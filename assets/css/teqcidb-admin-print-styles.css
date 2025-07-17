@@ -1,0 +1,1163 @@
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder{
+    display: block;
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder{
+    text-align: left;
+    margin: 15px 0px 0px 0px!important;
+    width: 100%;
+    border: solid 1px black;
+    padding: 0px 0px 20px 0px;
+    position: relative;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual{
+    display:flex;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row .teqcidb-top-level-colorbox-indiv-row-for-inlineblock{
+    vertical-align:top;
+}
+
+.teqcidb-top-level-colorbox-indiv-actual-row{
+    display:inline-block;
+}
+
+.teqcidb-top-level-colorbox-indiv-row-for-inlineblock span{
+    display:block;
+    margin-bottom: 3px!important;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row .teqcidb-top-level-colorbox-row-span-bold{
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 15px;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row{
+    margin: 10px;
+    flex: 1;
+    position: relative;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-title{
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-subtitle{
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.teqcidb-top-level-colorbox-print-holder{
+    position: fixed;
+    bottom: 0;
+    background-color: #eee;
+    width: 100%;
+    padding: 10px;
+}
+
+.teqcidb-top-level-colorbox-holder{
+    margin-bottom:60px;
+}
+
+.teqcidb-top-level-colorbox-holder-class-title-wrapper{
+    display: inline-block;
+    vertical-align: top;
+    width: 49%;
+    text-align: left;
+}
+
+.teqcidb-top-level-colorbox-holder-class-subtitle-wrapper{
+    display: inline-block;
+    width: 49%;
+    text-align: right;
+}
+
+.teqcidb-top-level-colorbox-holder-wrapper{
+    margin-top: 10px;
+    margin-bottom: 30px;
+}
+
+.teqcidb-te-logo-for-print{
+    width: 145px;
+    display: block;
+}
+
+.teqcdib-print-page-span{
+    font-size: 10px;
+    width: 100%;
+    display: block;
+    text-align: right;
+  }
+
+.teqcidb-top-level-colorbox-inner-holder-instructions{
+    margin-left: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+    margin-top: 20px;
+    text-align: left;   
+}
+
+.teqcidb-top-level-colorbox-row-span-bold-signature{
+    position: absolute;
+    display: inline-block;
+    bottom: -15px;
+    left: 0;
+}
+
+.teqcidb-top-level-colorbox-row-span-bold-signature-line{
+   border: solid 1px black;
+   width: 350px;
+   display: block;
+   border-top: 0;
+   border-left: 0;
+   border-right: 0;
+   position: relative;
+   left: 72px;
+   bottom: 3px;
+}
+
+.teqcidb-top-level-colorbox-indiv-holder-namebadge{
+    height: 224px;
+    width: 324px !important;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;    
+    position: relative;
+    margin: 8px 9px 8px 9px;
+}
+
+.teqcidb-top-level-colorbox-row-span-name{
+    font-size: 25px;
+    margin-top: 14%;  
+}
+
+.teqcidb-top-level-colorbox-row-span-company{
+    font-size: 18px;
+}
+
+.teqcidb-top-level-colorbox-inner-holder-namebadges{
+    text-align:  center;
+    margin-right: 8px;
+}
+
+.teqcidb-te-logo-for-print-namebadges{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+div.pagebreak{
+    page-break-after: always;
+    page-break-inside: avoid;
+}
+
+.teqcidb-top-level-colorbox-indiv-row-fornamebadges{
+    position: absolute;
+    bottom: 20px;
+    margin-right: auto;
+    margin-left: auto;
+    width: 100%;
+}
+
+.teqcidb-top-level-colorbox-indiv-row-fornamebadges span{
+    margin-bottom: 10px;
+    display: block;
+}
+
+.teqcidb-training-certificate-p{
+    margin: 10px 0px 10px 0px;
+    font-size:18px;
+}
+
+#teqcidb-training-certificate-p-1, #teqcidb-training-certificate-p-6 {
+  font-size: 27px;  
+}
+
+#teqcidb-training-certificate-p-2{
+    font-size: 55px;
+    color: #333399;
+    font-weight: bold;
+    letter-spacing: 1.4px;
+    transform: scaleY(1.5);
+    margin-bottom: 20px;
+}
+
+.teqcidb-training-certificate-div{
+    display: inline-block;
+    vertical-align: top;
+    width: 40%;
+    text-align: center;
+}
+
+.teqcidb-training-certificate-div img{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 160px;
+}
+
+.teqcidb-training-certificate-bottomholder{
+    position: relative;
+    top: 30px;
+}
+
+.teqcidb-training-certificate-bottomholder div{
+    display: inline-block;
+    width: 40%;
+    vertical-align: top;
+}
+
+.teqcidb-training-certificate-initial-online-bottomholder div{
+    width: 90%;
+}
+
+.teqcidb-training-certificate-p-7{
+    margin-top:0px;
+}
+
+.teqcidb-training-certificate-p-11{
+    text-align:left;
+    font-size: 12px;
+}
+
+.teqcidb-training-certificate-p-12, .teqcidb-training-certificate-p-13{
+    text-align:right;
+}
+
+.teqcidb-top-level-colorbox-inner-holder-student-cert{
+    text-align:center;
+}
+
+.teqcidb-top-level-colorbox-inner-holder-student-cert-background{
+    position: absolute;
+    width: 99%;
+    overflow: hidden;
+    left: 0.5%;  
+}
+
+.teqcidb-top-level-colorbox-inner-holder-student-cert-background img{
+    width: 100%;
+}
+
+.teqcidb-training-certificate-topholder{
+    padding-top:60px;
+}
+
+#teqcidb-training-certificate-p-11, #teqcidb-training-certificate-p-12, #teqcidb-training-certificate-p-13{
+    font-size:13px;
+}
+
+#teqcidb-training-certificate-p-12{
+    margin-bottom:0px;
+}
+
+#teqcidb-training-certificate-p-13, #teqcidb-training-certificate-p-5{
+    margin-top:0px;
+}
+
+.teqcidb-training-maillabel-topholder{
+    position: relative;
+    top:20px;
+    text-align: center;
+}
+
+.teqcidb-training-maillabel-topholder img{
+    width: 50px;
+}
+
+.teqcidb-training-maillabel-p{
+    margin: 0;
+}
+
+.teqcidb-training-maillabel-bottomholder-leftdiv, .teqcidb-training-maillabel-bottomholder-rightdiv{
+    display: inline-block;
+    width: 49%;
+    vertical-align: top;
+}
+
+.teqcidb-training-maillabel-bottomholder p{
+    font-size:10px;
+}
+
+.teqcidb-training-maillabel-middleholder{
+    position: relative;
+    bottom: -15px;
+}
+
+.teqcidb-training-maillabel-bottomholder{
+    position: relative;
+    top: 40px;
+}
+
+#teqcidb-training-maillabel-p-2, #teqcidb-training-maillabel-p-3{
+    font-weight:bold;
+    text-align: center;
+}
+
+.teqcidb-training-maillabel-side1{
+    text-align: center;
+    width: 300px;
+    height: 124px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+
+.teqcidb-training-maillabel-side2{
+    text-align: center;
+    width: 300px;
+    height: 124px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+
+.teqcidb-training-maillabel-middleholder ul{
+    margin-left: 25px;
+    font-size: 10px;
+    list-style: disc;
+    line-height: 1.2;
+    padding: 10px;
+}
+
+.teqcidb-training-walletcard-topholder{
+    position: relative;
+    top:20px;
+    text-align: center;
+}
+
+.teqcidb-training-walletcard-topholder img{
+    width: 75px;
+    margin-top: 8px;
+}
+
+.teqcidb-training-walletcard-p{
+    margin: 0;
+}
+
+.teqcidb-training-walletcard-bottomholder-leftdiv, .teqcidb-training-walletcard-bottomholder-rightdiv{
+    display: inline-block;
+    width: 49%;
+    vertical-align: top;
+}
+
+.teqcidb-training-walletcard-bottomholder p{
+    font-size:10px!important;
+}
+
+.teqcidb-training-walletcard-middleholder{
+    position: relative;
+    top: 30px;
+}
+
+.teqcidb-training-walletcard-bottomholder{
+    position: relative;
+    top: 40px;
+}
+
+#teqcidb-training-walletcard-p-2, #teqcidb-training-walletcard-p-3{
+    font-weight:bold;
+    text-align: center;
+}
+
+.teqcidb-training-walletcard-side1{
+    text-align: center;
+    width: 336px;
+    height: 210px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+
+.teqcidb-training-walletcard-side1-non-template-layout{
+    display: block;
+}
+
+.teqcidb-training-walletcard-side1-individual-student-wallet-card, .teqcidb-training-walletcard-side2-individual-student-wallet-card{
+    border:solid 1px #000;
+}
+
+.teqcidb-training-walletcard-side1-individual-student-wallet-card, .teqcidb-training-walletcard-side2-individual-student-wallet-card{
+    height:210px!important;
+    display: block!important;
+    margin-top: 25px;
+}
+
+.teqcidb-training-walletcard-side1-non-template-layout, .teqcidb-training-walletcard-side2-non-template-layout {
+    border: solid 1px #000;
+    margin-top:50px;
+}
+
+.teqcidb-training-walletcard-side2{
+    text-align: center;
+    width: 336px;
+    height: 210px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+
+.teqcidb-training-walletcard-side2-non-template-layout{
+    display: block;
+}
+
+.teqcidb-training-walletcard-middleholder ul{
+    margin-left: 25px;
+    font-size: 10px;
+    list-style: disc;
+    line-height: 1.2;
+    padding: 10px;
+}
+
+#teqcidb-top-level-colorbox-holder-for-centered-mail-labels{
+    text-align: center;
+    margin-top: 46px;
+}
+
+#teqcidb-top-level-colorbox-holder-for-centered-walletcards-labels{
+    text-align: center;
+}
+
+.teqcidb-odd-mail-label-class{
+   margin-right:50px; 
+}
+
+.teqcidb-even-mail-label-class{
+   margin-left:50px; 
+}
+
+.teqcidb-margintop-mail-label-class{
+    margin-top: 46px;
+}
+
+.teqcidb-margintop-walletcards-label-class{
+    margin-top: 55px;
+}
+
+#teqcidb-training-walletcard-p-1, #teqcidb-training-walletcard-p-4, #teqcidb-training-walletcard-p-5{
+    font-size: 12px;
+}
+
+#teqcidb-training-walletcard-p-2{
+    margin-top: 3px;
+    margin-bottom: 3px;
+    font-size: 15px;
+}
+
+.teqcidb-training-certificate-topholder-row1-imgleft{
+    width: 175px;
+    display: inline-block;
+    vertical-align: top;
+    float: left;
+    left: 80px;
+    position: relative;
+}
+
+.teqcidb-training-certificate-topholder-row1-imgright{
+    width: 175px;
+    display: inline-block;
+    vertical-align: top;
+    float: right;
+    right: 75px;
+    position: relative;
+    top: -25px;
+}
+
+.teqcidb-training-certificate-topholder-row1 .teqcidb-training-certificate-p{
+    display: inline-block;
+    font-size: 50px!important;
+    vertical-align: top;
+}
+
+.teqcidb-training-certificate-topholder-row1{
+    min-height:130px;
+    position: relative;
+    top: 30px;
+}
+
+#teqcidb-training-certificate-p-3{
+    font-size: 20px;
+    font-style: italic;
+}
+
+ #teqcidb-training-certificate-p-4{
+    font-size: 45px;
+    font-style: italic;
+} 
+
+#teqcidb-training-certificate-p-5{
+    font-size: 25px;
+    font-style: italic;
+    font-weight:bold;
+}
+
+#teqcidb-training-certificate-p-6{
+    font-size: 20px;
+    font-style: italic;
+}
+
+#teqcidb-training-certificate-p-10{
+    font-size: 25px;
+    font-weight: bold;
+}
+
+#teqcidb-training-certificate-p-8{
+    font-size: 25px;
+    font-weight: bold;
+}
+
+
+            /* override styles when printing */
+            @media print {
+
+              @page{
+                size: auto;
+                margin-top: 12mm; 
+                margin-bottom: 0mm; 
+                margin-left: 0mm; 
+                margin-right: 0mm; 
+              }
+
+
+                    .teqcidb-training-certificate-topholder-row1-imgleft{
+                        width: 175px;
+                        display: inline-block;
+                        vertical-align: top;
+                        float: left;
+                        left: 80px;
+                        position: relative;
+                    }
+
+                    .teqcidb-training-certificate-topholder-row1-imgright{
+                        width: 175px;
+                        display: inline-block;
+                        vertical-align: top;
+                        float: right;
+                        right: 75px;
+                        position: relative;
+                        top: -25px;
+                    }
+
+                    .teqcidb-training-certificate-topholder-row1 .teqcidb-training-certificate-p{
+                        display: inline-block;
+                        font-size: 50px!important;
+                        vertical-align: top;
+                    } 
+
+                    .teqcidb-training-certificate-topholder-row1{
+                        min-height:130px;
+                        position: relative;
+                        top: 30px;
+                    }
+
+                    #teqcidb-training-certificate-p-3{
+                        font-size: 20px;
+                        font-style: italic;
+                    }
+
+                    #teqcidb-training-certificate-p-4{
+                        font-size: 45px;
+                        font-style: italic;
+                    } 
+
+                    #teqcidb-training-certificate-p-5{
+                        font-size: 25px;
+                        font-style: italic;
+                        font-weight:bold;
+                    }
+
+                    #teqcidb-training-certificate-p-6{
+                        font-size: 20px;
+                        font-style: italic;
+                    }
+
+                    #teqcidb-training-certificate-p-7{
+                        font-size: 25px;
+                        font-style: italic;
+                        font-weight: bold;
+                        color: blue;
+                    }
+
+                    .teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-7,.teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-8, .teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-9, .teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-10{
+                        margin: 10px 0px 10px 0px!important;
+                        font-size: 18px!important;
+                        color:initial;
+                        font-weight:normal;
+                        font-style:normal;
+                    }
+
+                    .teqcidb-initial-inperson-cert-topholder{
+                        margin-bottom:40px;
+                    }
+
+                    .teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-7, .teqcidb-initial-inperson-cert-holder #teqcidb-training-certificate-p-9{
+                        font-weight:bold;
+                    }
+
+                    #teqcidb-training-certificate-p-10{
+                        font-size: 25px;
+                        font-weight: bold;
+                    }
+
+                    #teqcidb-training-certificate-p-8{
+                        font-size: 25px;
+                        font-weight: bold;
+                    }
+
+              .teqcidb-training-walletcard-side1-lastone, .teqcidb-training-walletcard-side2-lastone{
+                position: relative;
+                right: 169px;
+              }
+
+              .teqcidb-training-walletcard-side2-lastone{
+                position: relative;
+                left: 170px;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder{
+                  display: block;
+                  flex-direction: row;
+                  flex-wrap: wrap;
+                  position:  relative;
+              }
+
+              #teqcidb-training-walletcard-p-1, #teqcidb-training-walletcard-p-4, #teqcidb-training-walletcard-p-5{
+                font-size: 12px;
+              }
+
+              #teqcidb-training-walletcard-p-2{
+                    margin-top: 3px;
+                    margin-bottom: 3px;
+                    font-size: 15px;
+                }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder{
+                text-align: left;
+                margin: 15px 0px 0px 0px!important;
+                width: 100%;
+                padding: 0px 0px 20px 0px;
+                position: relative;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual{
+                  display:flex;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row .teqcidb-top-level-colorbox-indiv-row-for-inlineblock{
+                  vertical-align:top;
+              }
+
+              .teqcidb-top-level-colorbox-indiv-actual-row{
+                  display:inline-block;
+              }
+
+              .teqcidb-top-level-colorbox-indiv-row-for-inlineblock span{
+                  display:block;
+                  margin-bottom: 3px!important;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row .teqcidb-top-level-colorbox-row-span-bold{
+                  font-weight: bold;
+                  display: block;
+                  margin-bottom: 5px;
+                  font-size: 15px;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row{
+                  margin: 10px;
+                  flex: 1;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-title{
+                  font-size: 20px;
+                  font-weight: bold;
+                  margin-bottom: 10px;
+              }
+
+              .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-subtitle{
+                  font-size: 14px;
+                  font-weight: bold;
+                  margin-bottom: 5px;
+              }
+
+              .teqcidb-top-level-colorbox-print-holder{
+                  position: fixed;
+                  bottom: 0;
+                  background-color: #eee;
+                  width: 100%;
+                  padding: 10px;
+              }
+
+              .teqcidb-top-level-colorbox-holder{
+                  margin-bottom:60px;
+              }
+
+              .teqcidb-top-level-colorbox-holder-class-title-wrapper{
+                  display: inline-block;
+                  vertical-align: top;
+                  width: 49%;
+                  text-align: left;
+              }
+
+              .teqcidb-top-level-colorbox-holder-class-subtitle-wrapper{
+                  display: inline-block;
+                  width: 49%;
+                  text-align: right;
+              }
+
+              .teqcidb-top-level-colorbox-holder-wrapper{
+                  margin-top: 10px;
+                  margin-bottom: 30px;
+              }
+
+              .teqcidb-te-logo-for-print{
+                width: 145px;
+                display: block;
+              }
+
+              .teqcdib-print-page-span{
+                font-size: 10px;
+                width: 100%;
+                display: block;
+                text-align: right;
+              }
+
+                div.pagebreak{
+                    page-break-after: always;
+                    page-break-inside: avoid;
+                }
+
+                .teqcidb-top-level-colorbox-inner-holder-instructions{
+                    margin-left: 15px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    font-style: italic;
+                    margin-top: 20px; 
+                    text-align: left;  
+                }
+
+                .teqcidb-top-level-colorbox-row-span-bold-signature{
+                    position: absolute;
+                    display: inline-block;
+                    bottom: -25px;
+                    left: 0;
+                }
+
+                .teqcidb-top-level-colorbox-row-span-bold-signature-line{
+                   border: solid 1px black;
+                   width: 350px;
+                   display: block;
+                   border-top: 0;
+                   border-left: 0;
+                   border-right: 0;
+                   position: relative;
+                   left: 72px;
+                   bottom: 3px;
+                }
+
+                .teqcidb-top-level-colorbox-indiv-holder-namebadge{
+                    height: 224px;
+                    width: 324px !important;
+                    display: inline-block;
+                    vertical-align: top;
+                    text-align: center;
+                    position: relative;
+                    margin: 8px 9px 8px 9px;
+                }
+
+                .teqcidb-top-level-colorbox-row-span-name{
+                    font-size: 25px;
+                    margin-top: 14%;  
+                }
+
+                .teqcidb-top-level-colorbox-row-span-company{
+                    font-size: 18px;
+                }
+
+                .teqcidb-top-level-colorbox-inner-holder-namebadges{
+                    text-align:  center;
+                    margin-right: 8px;
+                }
+
+                .teqcidb-te-logo-for-print-namebadges{
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+
+                .teqcidb-top-level-colorbox-indiv-row-fornamebadges{
+                    position: absolute;
+                    bottom: 20px;
+                    margin-right: auto;
+                    margin-left: auto;
+                    width: 100%;
+                }
+
+                .teqcidb-top-level-colorbox-indiv-row-fornamebadges span{
+                    margin-bottom: 10px;
+                    display: block;
+                }
+
+                .teqcidb-training-certificate-p{
+                    margin: 10px 0px 10px 0px;
+                    font-size:18px;
+                }
+
+                #teqcidb-training-certificate-p-1{
+                  font-size: 27px;  
+                }
+
+                #teqcidb-training-certificate-p-2{
+                  font-size: 55px;
+                  color: #333399;
+                  font-weight: bold;
+                  letter-spacing: 1.4px;
+                  transform: scaleY(1.5);
+                  margin-bottom: 20px;
+                }
+
+                .teqcidb-training-certificate-div{
+                    display: inline-block;
+                    vertical-align: top;
+                    width: 40%;
+                    text-align: center;
+                }
+
+                .teqcidb-training-certificate-div img{
+                    display: block;
+                    margin-left: auto;
+                    margin-right: auto;
+                    width: 160px;
+                }
+
+                .teqcidb-training-certificate-bottomholder{
+                    position: relative;
+                    top: 30px;
+                }
+
+                .teqcidb-training-certificate-bottomholder div{
+                    display: inline-block;
+                    width: 40%;
+                    vertical-align: top;
+                }
+
+                .teqcidb-training-certificate-initial-online-bottomholder div{
+                    width: 70%;
+                }
+
+                .teqcidb-training-certificate-p-7{
+                    margin-top:0px;
+                }
+
+                .teqcidb-training-certificate-p-11{
+                    text-align:left;
+                    font-size: 12px;
+                }
+
+                .teqcidb-training-certificate-p-12, .teqcidb-training-certificate-p-13{
+                    text-align:right;
+                }
+
+                .teqcidb-top-level-colorbox-inner-holder-student-cert{
+                    text-align:center;
+                }
+
+                .teqcidb-top-level-colorbox-inner-holder-student-cert-background{
+                    position: absolute;
+                    width: 99%;
+                    overflow: hidden;
+                    left: 0.5%;  
+                }
+
+                .teqcidb-top-level-colorbox-inner-holder-student-cert-background img{
+                    width: 100%;
+                }
+
+                .teqcidb-training-certificate-topholder{
+                    padding-top:50px;
+                }
+
+                #teqcidb-training-certificate-p-11, #teqcidb-training-certificate-p-12, #teqcidb-training-certificate-p-13{
+                    font-size:13px;
+                }
+
+                #teqcidb-training-certificate-p-12, #teqcidb-training-certificate-p-13{
+                    font-size: 20px;
+                    font-weight: bold;
+                }
+
+                #teqcidb-training-certificate-p-12{
+                    margin-bottom:0px;
+                }
+
+                #teqcidb-training-certificate-p-13, #teqcidb-training-certificate-p-5{
+                    margin-top:0px;
+                }
+
+                .teqcidb-training-maillabel-topholder{
+                    position: relative;
+                    top:20px;
+                    text-align: center;
+                }
+
+                .teqcidb-training-maillabel-topholder img{
+                    width: 50px;
+                }
+
+                .teqcidb-training-maillabel-p{
+                    margin: 0;
+                }
+
+                .teqcidb-training-maillabel-bottomholder-leftdiv, .teqcidb-training-maillabel-bottomholder-rightdiv{
+                    display: inline-block;
+                    width: 49%;
+                    vertical-align: top;
+                }
+
+                .teqcidb-training-maillabel-bottomholder p{
+                    font-size:10px;
+                }
+
+                .teqcidb-training-maillabel-middleholder{
+                    position: relative;
+                    top: 10px;
+                }
+
+                .teqcidb-training-maillabel-bottomholder{
+                    position: relative;
+                    top: 40px;
+                }
+
+                #teqcidb-training-maillabel-p-2, #teqcidb-training-maillabel-p-3{
+                    font-weight:bold;
+                    text-align: center;
+                }
+
+                .teqcidb-training-maillabel-side1{
+                    text-align: center;
+                    width:300px;
+                    height: 124px;
+                    overflow: hidden;
+                    margin-left: auto;
+                    margin-right: auto;
+                    display:  inline-block;
+                }
+
+                .teqcidb-training-maillabel-side2{
+                    text-align: center;
+                    width:300px;
+                    height: 124px;
+                    overflow: hidden;
+                    margin-left: auto;
+                    margin-right: auto;
+                    display:  inline-block;
+                }
+
+                .teqcidb-odd-mail-label-class{
+                   margin-right:  50px; 
+                }
+
+                .teqcidb-even-mail-label-class{
+                   margin-left:50px; 
+                }
+
+                #teqcidb-top-level-colorbox-holder-for-centered-mail-labels{
+                    text-align: center;
+                    margin-top: 46px;
+                }
+
+                .teqcidb-training-maillabel-middleholder ul{
+                    margin-left: 25px;
+                    font-size: 10px;
+                    list-style: disc;
+                    line-height: 1.2;
+                    padding: 10px;
+                }
+
+                .teqcidb-training-walletcard-topholder{
+                    position: relative;
+                    top:15px;
+                    text-align: center;
+                }
+
+                .teqcidb-training-walletcard-topholder img{
+                    width: 75px;
+                    margin-top: 8px;
+                }
+
+                .teqcidb-training-walletcard-p{
+                    margin: 0;
+                }
+
+                .teqcidb-training-walletcard-bottomholder-leftdiv, .teqcidb-training-walletcard-bottomholder-rightdiv{
+                    display: inline-block;
+                    width: 49%;
+                    vertical-align: top;
+                }
+
+                .teqcidb-training-walletcard-bottomholder-rightdiv{
+                    width: 48%;
+                }
+
+                .teqcidb-training-walletcard-bottomholder-leftdiv{
+                    left: 10px;
+                    position: relative;
+                    margin-left: 0!important;
+                }
+
+                .teqcidb-training-walletcard-bottomholder p{
+                    font-size:10px!important;
+                }
+
+                .teqcidb-training-walletcard-middleholder{
+                    position: relative;
+                    top: 25px;
+                }
+
+                .teqcidb-training-walletcard-bottomholder{
+                    position: relative;
+                    top: 35px;
+                }
+
+                #teqcidb-training-walletcard-p-2, #teqcidb-training-walletcard-p-3{
+                    text-align: center;
+                }
+
+                .teqcidb-training-walletcard-side1{
+                    text-align: center;
+                    width: 336px;
+                    height: 190.66px;
+                    overflow: hidden;
+                    margin-left: auto;
+                    margin-right: auto;
+                    display: inline-block;
+                }
+
+                .wallet-card-back-last-li {
+                    position: relative;
+                    bottom: 28px;
+                }
+
+                .wallet-card-back-last-div-1 {
+                    display: inline-block;
+                    width: 67%;
+                    vertical-align: text-top !important;
+                }
+
+                .wallet-card-back-last-div-2 {
+                    display: inline-block;
+                    width: 9%;
+                    position: relative;
+                    left: 10px;
+                    top: 30px;
+                }
+
+                .teqcidb-training-walletcard-side2{
+                    text-align: center;
+                    width: 336px;
+                    height: 190.66px;
+                    overflow: hidden;
+                    margin-left: auto;
+                    margin-right: auto;
+                    display: inline-block;
+                }
+
+                .teqcidb-training-walletcard-side2 #teqcidb-training-walletcard-p-2{
+                    top: 30px;
+                    position: relative;
+                }
+
+                #teqcidb-top-level-colorbox-holder-for-centered-walletcards-labels{
+                    text-align: center;
+                }
+
+                .teqcidb-training-walletcard-middleholder ul{
+                    text-align: left;
+                    margin-left: 25px;
+                    font-size: 10px;
+                    list-style: disc;
+                    line-height: 1.2;
+                    padding: 10px;
+                }
+
+                .teqcidb-margintop-mail-label-class{
+                    margin-top: 46px;
+                }
+
+                .teqcidb-margintop-walletcards-label-class{
+                    margin-top: 55px;
+                }
+            }
+
+
+
+
+
+.teqcidb-sis-colorbox-page-header-left, .teqcidb-sis-colorbox-page-header-right{
+    display: inline-block;
+}
+
+.teqcidb-sis-colorbox-page-header{
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing table{
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    table-layout: fixed;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing table tbody tr{
+    height:19vh;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing table thead tr th{
+    font-weight: bold;
+    font-size: 16px;
+    border:solid 1px black;
+    padding:10px;
+    word-wrap:break-word;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing table tbody tr td{
+    border:solid 1px black;
+    padding:10px;
+    word-wrap:break-word;
+    vertical-align:top;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing .th-signature, #teqcidb-top-level-colorbox-holder-for-printing .td-signature{
+    width:25%;
+}
+
+#teqcidb-top-level-colorbox-holder-for-printing .th-email, #teqcidb-top-level-colorbox-holder-for-printing .td-email{
+    width: 18%;
+}
+
+.teqcidb-sis-colorbox-page-header-left p{
+    margin-top:0;
+    margin-bottom:5px;
+}
+
+.teqcidb-sis-colorbox-page-header-right{
+    float:right;
+}
+
+.teqcidb-sis-colorbox-page-header-right img{
+    width:200px;
+}

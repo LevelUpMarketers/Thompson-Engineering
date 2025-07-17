@@ -1,0 +1,16 @@
+
+request: {"amount":null,"hpf_token":null,"enc_key":null,"integrator_id":"","billing_address":{"name":"Protect-Sale","street_address":"8320 E. West St.","city":"Spokane","state":"WA","zip":"85284"}}
+Response:
+{"success":false,"response_code":1,"status_message":"One or more errors has occurred.","errors":{"970":["Param is missing or the value is empty: integrator_id"]},"external_transaction_id":""}
+request: {"amount":"Amount","hpf_token":"","enc_key":"","integrator_id":"","billing_address":{"name":"Protect-Sale","street_address":"8320 E. West St.","city":"Spokane","state":"WA","zip":"85284"}}
+Response:
+{"success":false,"response_code":1,"status_message":"One or more errors has occurred.","errors":{"970":["Param is missing or the value is empty: integrator_id"]},"external_transaction_id":""}
+request: {"amount":"Amount","hpf_token":"","enc_key":"","integrator_id":"","billing_address":{"name":"Protect-Sale","street_address":"8320 E. West St.","city":"Spokane","state":"WA","zip":"85284"}}
+Response:
+{"success":false,"response_code":1,"status_message":"One or more errors has occurred.","errors":{"970":["Param is missing or the value is empty: integrator_id"]},"external_transaction_id":""}
+request: {"amount":"300.00","hpf_token":"","enc_key":"","integrator_id":"","billing_address":{"name":"Protect-Sale","street_address":"8320 E. West St.","city":"Spokane","state":"WA","zip":"85284"}}
+Response:
+{"success":false,"response_code":1,"status_message":"One or more errors has occurred.","errors":{"970":["Param is missing or the value is empty: integrator_id"]},"external_transaction_id":""}
+request: {"amount":"300.00","hpf_token":"","enc_key":"","integrator_id":"9623516x0w5W","billing_address":{"name":"Protect-Sale","street_address":"8320 E. West St.","city":"Spokane","state":"WA","zip":"85284"}}
+Response:
+{"success":false,"response_code":1,"status_message":"One or more errors has occurred.","errors":{"970":["Param is missing or the value is empty: hpf_token"]},"external_transaction_id":""}

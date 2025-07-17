@@ -1,0 +1,1988 @@
+#teqcidb-search-by-expired-qci-date-range-button{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 5px;
+}
+.teqcidbplugin-admin-top-container,
+.teqcidbplugin-admin-advert-container {
+    border: solid 1px #f8991d;
+}
+.teqcidbplugin-admin-top-container,
+.teqcidbplugin-admin-advert-container {
+    box-shadow: 10px 10px 10px #f8991d;
+}
+#teqcidbplugin-smile-icon-1,
+#teqcidbplugin-admin-advert-email-me,
+.teqcidbplugin-admin-advert-site-div img,
+.teqcidbplugin-tab-intro-para-left,
+.teqcidbplugin-tab-intro-para {
+    margin-left: auto;
+    margin-right: auto;
+}
+.teqcidbplugin-question-icon-label {
+    position: relative;
+    right: 10px;
+}
+.teqcidbplugin-response-success-fail-container {
+    text-align: center;
+    margin-top: 50px;
+}
+.teqcidbplugin-admin-top-title-icon {
+    width: 30px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.teqcidbplugin-admin-top-title {
+    border-top: 0px;
+    border-right: 0px;
+    border-left: 0px;
+    border-bottom: 1px;
+    border-style: solid;
+}
+.teqcidbplugin-admin-advert-visit-me-title {
+    font-variant: small-caps;
+    font-size: 20px;
+    font-style: italic;
+    margin-bottom: 5px;
+    margin-top: 20px;
+}
+.teqcidbplugin-admin-advert-site-div {
+    text-align: center;
+    font-variant: small-caps;
+    display: inline-block;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.teqcidbplugin-icon-image-question,
+.teqcidbplugin-icon-image-question-with-link {
+    width: 12px;
+    display: inline-block;
+    cursor: pointer;
+    padding-left: 10px;
+    position: relative;
+    right: 10px;
+}
+.teqcidbplugin-spinner {
+    opacity: 0;
+    height: 20px;
+    width: 20px;
+    margin: 10px auto;
+    -webkit-animation: rotation 0.6s infinite linear;
+    -moz-animation: rotation 0.6s infinite linear;
+    -o-animation: rotation 0.6s infinite linear;
+    animation: rotation 0.6s infinite linear;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    border-top: 1px solid #f8991d;
+    border-radius: 100%;
+    position: relative;
+}
+.teqcidbplugin-tab-intro-para-left,
+.teqcidbplugin-tab-intro-para {
+    text-align: center;
+    max-width: 600px;
+}
+.teqcidbplugin-admin-top-container,
+.teqcidbplugin-admin-advert-container {
+    background-color: #fff;
+    padding: 10px;
+    width: 70%;
+    border-radius: 10px;
+    margin: 25px;
+}
+.teqcidbplugin-admin-top-title {
+    width: 100%;
+    font-weight: bold;
+    font-variant: small-caps;
+    font-size: 18px;
+    text-align: center;
+}
+.teqcidbplugin-addition-div-img {
+    width: 22px;
+}
+.teqcidbplugin-addition-div-p {
+    margin: 0px;
+    font-size: 10px;
+    position: relative;
+    top: 42px;
+    line-height: 0.9;
+}
+.teqcidbplugin-bold-shortcode,
+.teqcidbplugin-bold-shortcode-orange {
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+.teqcidbplugin-bold-shortcode-orange {
+    color: #f8991d;
+}
+.teqcidbplugin-bold-li-heading {
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+.teqcidbplugin-my-notice-dismiss-forever {
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
+    margin: 5px;
+    background-color: #f8991d;
+    padding: 7px;
+    padding-left: 10px;
+    margin: 5px;
+    border-radius: 5px;
+    color: #fff;
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+}
+.teqcidbplugin-my-notice-dismiss-forever:hover {
+    box-shadow: none;
+}
+.teqcidbplugin-response-success-fail-button {
+    margin: 50px;
+    margin-top: 20px;
+}
+.teqcidbplugin-color-orange-italic {
+    color: #f8991d;
+    font-style: italic;
+}
+#teqcidbplugin-smile-icon-1 {
+    width: 30px;
+    display: block;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+tr[data-slug="bell-website-database"] {
+    pointer-events: none;
+}
+.toplevel_page_TEQciDb-Options img {
+    width: 15px;
+}
+.teqcidbplugin-admin-advert-site-div img {
+    width: 100%;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+#teqcidbplugin-admin-advert-email-me {
+    text-align: center;
+    width: 70%;
+    font-size: 16px;
+    font-weight: bold;
+}
+#teqcidbplugin-admin-advert-flex-container {
+    display: flex;
+}
+#teqcidbplugin-facebook-link-div,
+#teqcidbplugin-admin-advert-money-container {
+    text-align: center;
+}
+#teqcidbplugin-admin-advert-money-container form {
+    display: inline-block;
+}
+#teqcidbplugin-patreon-img {
+    width: 100px;
+}
+#teqcidbplugin-patreon-link {
+    display: inline-block;
+    margin: 10px;
+}
+.teqcidbplugin-admin-advert-visit-me-link {
+    text-decoration: none;
+    font-size: 20px;
+    margin-bottom: 30px;
+    display: block;
+}
+.teqcidb_page_TEQcidbPlugin-Options .dashicons-before img {
+    width: 30px !important;
+    margin-right: 2px !important;
+    margin-left: 2px !important;
+}
+.teqcidbplugin-extension-genreric-key-plugins-page-input {
+    margin-right: 5px;
+}
+.teqcidbplugin-extension-genreric-key-dashboard-input {
+    min-width: 300px;
+}
+.teqcidbplugin-extension-genreric-key-dashboard-form {
+    padding-bottom: 10px;
+}
+.teqcidbplugin-tab-intro-para-left {
+    text-align: left;
+}
+.teqcidbplugin-icon-image-question-with-link {
+    right: 3px;
+}
+.teqcidbplugin-addition-div-img {
+    width: 22px;
+}
+#teqcidbplugin-success-span {
+    font-style: italic;
+    color: #f8991d;
+    font-size: 16px;
+}
+.teqcidbplugin-show-book-colorbox {
+    text-decoration: underline;
+    cursor: pointer;
+}
+#teqcidbplugin-dynamic-input-library {
+    min-width: 300px;
+    margin-bottom: 50px;
+}
+#teqcidbplugin-dynamic-shortcode-button {
+    margin-bottom: 50px;
+}
+#teqcidbplugin-dynamic-shortcode-button,
+.teqcidb_delete_custom_lib {
+    width: 200px;
+}
+.teqcidbplugin-response-success-fail-button {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+#teqcidbplugin-cache-clear-wrapper {
+    width: 70%;
+    margin: 25px;
+    margin-top: 0px;
+    position: relative;
+    text-align: center;
+    top: 5px;
+}
+#teqcidbplugin-cache-clear-wrapper img {
+    left: 0px;
+    top: 1px;
+}
+#teqcidbplugin-spinner-cache {
+    height: 10px;
+    width: 10px;
+    display: inline-block;
+    top: 10px;
+    border-left: 1px solid #f1f1f1;
+    border-right: 1px solid #f1f1f1;
+    border-bottom: 1px solid #f1f1f1;
+}
+#teqcidb-pagecontrols div {
+    display: inline-block;
+    margin: 10px 10px;
+    width: 100px;
+}
+#teqcidb-previouspage,
+#teqcidb-nextpage {
+    appearance: auto;
+    -webkit-writing-mode: horizontal-tb !important;
+    text-rendering: auto;
+    color: -internal-light-dark(black, white);
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    text-align: center;
+    align-items: flex-start;
+    cursor: default;
+    background-color: #efefef;
+    box-sizing: border-box;
+    margin: 0em;
+    font: 400 13.3333px Arial;
+    padding: 1px 6px;
+    border-width: 2px;
+    border-style: outset;
+    border-color: -internal-light-dark(#767676, #858585);
+    border-image: initial;
+    box-shadow: 1px 1px 1px #ccc;
+    cursor: pointer;
+}
+.teqcidbplugin-add-more-historical-data-edit-div,
+.teqcidbplugin-add-more-historical-data-div,
+.teqcidbplugin-generate-class-forms-button,
+.teqcidbplugin-add-more-instructors-div, .teqcidbplugin-walletcard-dates-holder {
+    appearance: auto;
+    -webkit-writing-mode: horizontal-tb !important;
+    text-rendering: auto;
+    color: -internal-light-dark(black, white);
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    text-align: center;
+    align-items: flex-start;
+    background-color: #efefef;
+    box-sizing: border-box;
+    margin: 0em;
+    font: 400 13.3333px Arial;
+    border-width: 1px;
+    border-style: solid;
+    border-color: -internal-light-dark(#767676, #858585);
+    border-image: initial;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 3px;
+    margin-top: 10px;
+}
+.teqcidbplugin-walletcard-dates-holder, .teqcidbplugin-walletcard-dates-holder .teqcidbplugin-form-section-fields-label {
+	cursor: initial;
+	width: 215px;
+    margin: 20px;
+}
+
+.teqcidbplugin-walletcard-dates-holder .teqcidbplugin-generate-class-forms-button{
+    width: 100%;
+    margin: 0;
+}
+
+.teqcidbplugin-walletcard-dates-holder .teqcidbplugin-form-section-fields-label{
+	width: 100%;
+    margin: 0px 0px 10px 0px;
+}
+
+.teqcidbplugin-walletcard-dates-holder input{
+	width: 100%;
+}
+
+.teqcidbplugin-generate-class-forms-button {
+    margin: 20px;
+    width: 215px;
+    vertical-align: top;
+}
+.teqcidbplugin-add-more-historical-data-edit-div p,
+.teqcidbplugin-add-more-historical-data-div p,
+.teqcidbplugin-add-more-instructors-div p {
+    margin: 0;
+}
+#teqcidb-previouspage:hover,
+#teqcidb-nextpage:hover,
+.teqcidbplugin-add-more-historical-data-edit-div:hover,
+.teqcidbplugin-add-more-historical-data-div:hover,
+.teqcidbplugin-add-more-instructor-div:hover {
+    background-color: #dcdcdc;
+}
+.teqcidbplugin-historical-training-header {
+    margin: 50px 0px 10px 0px;
+    font-weight: bold;
+}
+.teqcidb-students-update-container-accordion-heading {
+    width: 100%;
+    margin: 10px 0px -5px 0px;
+    padding: 5px;
+    box-shadow: 1px 1px 1px #ccc;
+    cursor: pointer;
+}
+.teqcidbplugin-admin-top-inner-container {
+    text-align: center;
+}
+.teqcidbplugin-form-section-fields-wrapper {
+    display: flex;
+    margin: 10px;
+}
+.teqcidbplugin-form-section-fields-label {
+    display: block;
+    margin-bottom: 5px;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper {
+    flex: 1;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.teqcidbplugin-form-section-fields-input-select,
+.teqcidbplugin-form-section-fields-input-text {
+    width: 13vw;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper-checkbox-div {
+    flex: 1;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper-checkbox-div label {
+    display: block;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper-checkbox-div-container {
+    display: flex;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper-checkbox-div .teqcidbplugin-form-section-fields-input-checkbox {
+    margin: 0px;
+}
+.teqcidbplugin-response-div-p {
+    height: 100px;
+    font-weight: bold;
+    font-size: 20px;
+}
+.teqcidbplugin_page_TEQciDb-Options .dashicons-before img {
+    width: 30px !important;
+    margin-right: 2px !important;
+    padding: 2px 0 0 !important;
+    top: 6px;
+    position: relative;
+}
+@media screen and (max-width: 960px) {
+    .teqcidbplugin-form-section-fields-wrapper {
+        flex-direction: column;
+    }
+    .teqcidbplugin-form-section-fields-indiv-wrapper input {
+        width: 40vw;
+    }
+}
+.teqcidb-form-section-fields-indiv-wrapper {
+    display: inline-block;
+}
+.teqcidb-form-section-fields-indiv-wrapper label {
+    display: block;
+    text-align: center;
+}
+.teqcidb-form-section-fields-wrapper {
+    text-align: center;
+    margin: 20px;
+}
+.teqcidb-display-search-ui-search-buttons-container {
+    text-align: center;
+}
+.teqcidb-siteinfo-update-container-accordion-heading {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+}
+.teqcidb-display-search-ui-top-container {
+    margin-bottom: 20px;
+}
+.teqcidb-all-edit-siteinfo .bellwebsites-form-section-wrapper {
+    margin-top: 0px;
+}
+.teqcidb-all-edit-siteinfo .teqcidb-siteinfo-update-container-accordion-heading {
+    margin-bottom: 7px;
+}
+.teqcidb-all-edit-siteinfo .teqcidb-siteinfo-update-info-container {
+    background-color: #f6f6f6;
+    border: solid 1px #cecece;
+    margin-bottom: 50px;
+}
+.teqcidb-all-edit-siteinfo .bellwebsites-form-section-wrapper {
+    border-left: 0;
+    border-right: 0;
+    margin-bottom: -1px;
+}
+.teqcidb-all-edit-siteinfo .bellwebsites-displayentries-response-div-wrapper {
+    text-align: center;
+}
+.bellwebsites-form-section-fields-input-button-editwebsite {
+    top: 20px;
+    position: relative;
+}
+.teqcidbplugin-form-section-placeholder-image {
+    width: 80px;
+    margin: 10px;
+}
+.teqcidbplugin-form-section-placeholder-image-small {
+    width: 15px;
+    margin: 0px;
+}
+.teqcidbplugin-add-more-historical-data-div {
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 20px;
+}
+.teqcidbplugin-add-more-instructors-div {
+    cursor: pointer;
+    display: block;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 130px;
+}
+.select2-container {
+    width: 13vw !important;
+    font-size: 14px;
+    line-height: 2;
+    color: #2c3338;
+    border-color: #8c8f94;
+    border-style: solid;
+    border-width: 1px;
+    box-shadow: none;
+    border-radius: 3px;
+    -webkit-appearance: none;
+    background: #fff
+        url(data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%206l5%205%205-5%202%201-7%207-7-7%202-1z%22%20fill%3D%22%23555%22%2F%3E%3C%2Fsvg%3E)
+        no-repeat right 5px top 55%;
+    background-size: 16px 16px;
+    cursor: pointer;
+    margin-top: 0px !important;
+}
+.select2-container.select2-container--default.select2-container--open {
+    margin: 0px 0px 5px 0px !important;
+}
+.teqcidbplugin-add-more-historical-data-div p {
+    margin: 0px;
+}
+.teqcidbplugin-form-section-placeholder-image-button {
+    display: block;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 10px;
+}
+.teqcidbplugin-form-section-save-student-edits-submit-button,
+#teqcidbplugin-form-section-add-class-button,
+.teqcidbplugin-form-section-add-new-student-submit-button {
+    margin-top: 10px;
+}
+.teqcidbplugin-form-section-fields-input-textarea {
+    width: 50%;
+    height: 100px;
+}
+.teqcidbplugin-form-section-fields-class-wrapper {
+    background-color: #eee;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+.teqcidbplugin-form-section-remove-student-historical-info-div {
+    display: inline-block;
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+    top: 9px;
+}
+.teqcidbplugin-form-section-remove-student-historical-info-div:hover {
+    opacity: 0.7;
+}
+.teqcidbplugin-form-section-remove-student-historical-info {
+    pointer-events: none;
+}
+.teqcidb-students-update-info-container {
+    height: 0px;
+    overflow: hidden;
+    background-color: #fdfdfd;
+    border: solid 1px #ddd;
+    border-radius: 3px;
+}
+.teqcidbplugin-form-section-fields-class-edit-history-wrapper,
+.teqcidbplugin-form-section-fields-class-add-history-wrapper {
+    border: solid 1px #ccc;
+    position: relative;
+    margin: 10px;
+}
+.teqcidbplugin-admin-form-section-header-forediting {
+    font-weight: bold;
+    padding: 10px 0px 10px 0px;
+}
+.teqcidbplugin-form-section-save-class-edits-submit-button {
+    margin-top: 10px;
+}
+.teqcidbplugin-form-section-delete-this-class-submit-button-actual {
+    opacity: 0;
+    pointer-events: none;
+    margin-top: 10px;
+    margin-bottom: 40px;
+}
+.teqcidbplugin-form-section-fields-input-text-emailmessage-actual {
+    width: 100%;
+    height: 200px;
+}
+.teqcidbplugin-form-section-fields-indiv-wrapper-for-wide-select2 .select2.select2-container.select2-container--default {
+    width: 90% !important;
+}
+.teqcidb-student-forms-update-container input {
+    opacity: 0.6;
+}
+.teqcidb-form-section-fields-wrapper-for-sorting .teqcidb-sort-field {
+    margin: 5px;
+}
+.teqcidb-form-section-fields-wrapper-for-sorting .teqcidb-sort-field label {
+    margin: 0px 5px 5px 5px;
+}
+.teqcidb-tab-intro-para-searchsort {
+    font-weight: bold;
+}
+.teqcidbplugin-form-section-remove-instructor-field-div {
+    position: absolute;
+    right: 0px;
+    top: 2px;
+    cursor: pointer;
+}
+.teqcidbplugin-form-section-placeholder-image-extrasmall {
+    width: 11px;
+}
+.teqcidbplugin-extra-instructors-top-div {
+    position: relative;
+    width: 13vw;
+    margin-left: auto;
+    margin-right: auto;
+}
+.teqcidbplugin-form-wrapper-inner-instructor-indiv {
+    display: inline-block;
+}
+.teqcidbplugin-form-wrapper-inner-instructor-indiv .teqcidbplugin-form-wrapper-inner-instructor-indiv-input {
+    width: 215px;
+    margin-bottom: 20px;
+    opacity: 1;
+}
+.teqcidbplugin-email-student-selection-buttons-inner-holder {
+    display: inline-block;
+    text-align: center;
+    vertical-align: top;
+}
+.teqcidbplugin-email-student-selection-buttons-inner-holder label,
+.teqcidbplugin-email-student-selection-buttons-inner-holder input,
+.teqcidbplugin-email-student-selection-buttons-inner-holder button,
+.teqcidbplugin-email-student-selection-buttons-inner-holder select,
+.teqcidbplugin-email-student-selection-buttons-inner-holder .select2 {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px !important;
+}
+#teqcidb-search-by-company-button {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.teqcidb-form-section-fields-wrapper-specific-companies input {
+    margin: 6px;
+}
+.teqcidbplugin-associated-student-to-be-expanded {
+    height: 0px;
+    overflow: hidden;
+}
+.teqcidbplugin-admin-form-section-header-forediting {
+    cursor: pointer;
+}
+.wphealthtracker-response-form-exercise-innerrow-div-select-2 {
+    width: 100%;
+}
+.select2-input {
+    width: 70%;
+}
+.select2-container {
+    margin: 5px !important;
+    margin-top: 0px !important;
+    box-sizing: border-box;
+    display: inline-block;
+    margin: 0;
+    position: relative;
+    vertical-align: middle;
+}
+.select2-container .select2-selection--single {
+    box-sizing: border-box;
+    cursor: pointer;
+    display: block;
+    height: 28px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.select2-container .select2-selection--single .select2-selection__rendered {
+    max-width: 70%;
+    display: block;
+    padding-left: 8px;
+    padding-right: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.select2-container .select2-selection--single .select2-selection__clear {
+    position: relative;
+}
+.select2-container[dir="rtl"] .select2-selection--single .select2-selection__rendered {
+    padding-right: 8px;
+    padding-left: 20px;
+}
+.select2-container .select2-selection--multiple {
+    box-sizing: border-box;
+    cursor: pointer;
+    display: block;
+    min-height: 32px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.select2-container .select2-selection--multiple .select2-selection__rendered {
+    display: inline-block;
+    overflow: hidden;
+    padding-left: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.select2-container .select2-search--inline {
+    float: left;
+}
+.select2-container .select2-search--inline .select2-search__field {
+    box-sizing: border-box;
+    border: none;
+    font-size: 100%;
+    margin-top: 5px;
+    padding: 0;
+}
+.select2-container .select2-search--inline .select2-search__field::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+.select2-dropdown {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    left: -100000px;
+    width: 100%;
+    z-index: 1051;
+}
+.select2-results {
+    display: block;
+}
+.select2-results__options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.select2-results__option {
+    padding: 6px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.select2-results__option[aria-selected] {
+    cursor: pointer;
+}
+.select2-container--open .select2-dropdown {
+    left: -1px;
+}
+.select2-container--open .select2-dropdown--above {
+    border-bottom: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.select2-container--open .select2-dropdown--below {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+.select2-search--dropdown {
+    display: block;
+    padding: 4px;
+}
+.select2-search--dropdown .select2-search__field {
+    padding: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.select2-search--dropdown .select2-search__field::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+.select2-search--dropdown.select2-search--hide {
+    display: none;
+}
+.select2-close-mask {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    min-height: 100%;
+    min-width: 100%;
+    height: auto;
+    width: auto;
+    opacity: 0;
+    z-index: 99;
+    background-color: #fff;
+    filter: alpha(opacity=0);
+}
+.select2-hidden-accessible {
+    border: 0 !important;
+    clip: rect(0 0 0 0) !important;
+    height: 1px !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    position: absolute !important;
+    width: 1px !important;
+}
+.select2-container--default .select2-selection--single {
+    background-color: #fff;
+    border-radius: 4px;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #444;
+    line-height: 28px;
+}
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    cursor: pointer;
+    float: right;
+    font-weight: bold;
+}
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #999;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 26px;
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 20px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #888 transparent transparent transparent;
+    border-style: solid;
+    border-width: 5px 4px 0 4px;
+    height: 0;
+    left: 50%;
+    margin-left: -4px;
+    margin-top: -2px;
+    position: absolute;
+    top: 50%;
+    width: 0;
+}
+.select2-container--default[dir="rtl"] .select2-selection--single .select2-selection__clear {
+    float: left;
+}
+.select2-container--default[dir="rtl"] .select2-selection--single .select2-selection__arrow {
+    left: 1px;
+    right: auto;
+}
+.select2-container--default.select2-container--disabled .select2-selection--single {
+    background-color: #eee;
+    cursor: default;
+}
+.select2-container--default.select2-container--disabled .select2-selection--single .select2-selection__clear {
+    display: none;
+}
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #888 transparent;
+    border-width: 0 4px 5px 4px;
+}
+.select2-container--default .select2-selection--multiple {
+    -webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.07);
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: text;
+    padding-top: 4px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    max-width: 98%;
+    box-sizing: border-box;
+    list-style: none;
+    margin: 0;
+    padding: 0 5px;
+    width: 100%;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__rendered li {
+    list-style: none;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+    color: #999;
+    margin-top: 5px;
+    float: left;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__clear {
+    cursor: pointer;
+    float: right;
+    font-weight: bold;
+    margin-top: 5px;
+    margin-right: 10px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #e4e4e4;
+    border: 1px solid #ddd;
+    cursor: default;
+    float: left;
+    margin-right: 5px;
+    margin-top: 5px;
+    padding: 0 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #999;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: bold;
+    margin-right: 2px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #333;
+}
+.select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice,
+.select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__placeholder,
+.select2-container--default[dir="rtl"] .select2-selection--multiple .select2-search--inline {
+    float: right;
+}
+.select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice {
+    margin-left: 5px;
+    margin-right: auto;
+}
+.select2-container--default[dir="rtl"] .select2-selection--multiple .select2-selection__choice__remove {
+    margin-left: 2px;
+    margin-right: auto;
+}
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border: solid #ddd 1px;
+    outline: 0;
+    padding-top: 4px;
+}
+.select2-container--default.select2-container--disabled .select2-selection--multiple {
+    background-color: #eee;
+    cursor: default;
+}
+.select2-container--default.select2-container--disabled .select2-selection__choice__remove {
+    display: none;
+}
+.select2-container--default.select2-container--open.select2-container--above .select2-selection--single,
+.select2-container--default.select2-container--open.select2-container--above .select2-selection--multiple {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+.select2-container--default.select2-container--open.select2-container--below .select2-selection--single,
+.select2-container--default.select2-container--open.select2-container--below .select2-selection--multiple {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ddd;
+}
+.select2-container--default .select2-search--inline .select2-search__field {
+    background: transparent;
+    border: none;
+    outline: 0;
+    box-shadow: none;
+    -webkit-appearance: textfield;
+}
+.select2-container--default .select2-results > .select2-results__options {
+    max-height: 200px;
+    overflow-y: auto;
+}
+.select2-container--default .select2-results__option[role="group"] {
+    padding: 0;
+}
+.select2-container--default .select2-results__option[aria-disabled="true"] {
+    color: #999;
+}
+.select2-container--default .select2-results__option[aria-selected="true"] {
+    background-color: #ddd;
+}
+.select2-container--default .select2-results__option .select2-results__option {
+    padding-left: 1em;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__group {
+    padding-left: 0;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__option {
+    margin-left: -1em;
+    padding-left: 2em;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
+    margin-left: -2em;
+    padding-left: 3em;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
+    margin-left: -3em;
+    padding-left: 4em;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
+    margin-left: -4em;
+    padding-left: 5em;
+}
+.select2-container--default .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option .select2-results__option {
+    margin-left: -5em;
+    padding-left: 6em;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #5897fb;
+    color: #fff;
+}
+.select2-container--default .select2-results__group {
+    cursor: default;
+    display: block;
+    padding: 6px;
+}
+.select2-container--classic .select2-selection--single {
+    background-color: #f7f7f7;
+    border: 1px solid #ddd;
+    outline: 0;
+    background-image: -webkit-linear-gradient(top, #ffffff 50%, #eee 100%);
+    background-image: -o-linear-gradient(top, #ffffff 50%, #eee 100%);
+    background-image: linear-gradient(to bottom, #ffffff 50%, #eee 100%);
+    background-repeat: repeat-x;
+}
+.select2-container--classic .select2-selection--single:focus {
+    border: 1px solid #5897fb;
+}
+.select2-container--classic .select2-selection--single .select2-selection__rendered {
+    color: #444;
+    line-height: 28px;
+}
+.select2-container--classic .select2-selection--single .select2-selection__clear {
+    cursor: pointer;
+    float: right;
+    font-weight: bold;
+    margin-right: 10px;
+}
+.select2-container--classic .select2-selection--single .select2-selection__placeholder {
+    color: #999;
+}
+.select2-container--classic .select2-selection--single .select2-selection__arrow {
+    background-color: #ddd;
+    border: none;
+    border-left: 1px solid #ddd;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    height: 26px;
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 20px;
+    background-image: -webkit-linear-gradient(top, #eee 50%, #ccc 100%);
+    background-image: -o-linear-gradient(top, #eee 50%, #ccc 100%);
+    background-image: linear-gradient(to bottom, #eee 50%, #ccc 100%);
+    background-repeat: repeat-x;
+}
+.select2-container--classic .select2-selection--single .select2-selection__arrow b {
+    border-color: #888 transparent transparent transparent;
+    border-style: solid;
+    border-width: 5px 4px 0 4px;
+    height: 0;
+    left: 50%;
+    margin-left: -4px;
+    margin-top: -2px;
+    position: absolute;
+    top: 50%;
+    width: 0;
+}
+.select2-container--classic[dir="rtl"] .select2-selection--single .select2-selection__clear {
+    float: left;
+}
+.select2-container--classic[dir="rtl"] .select2-selection--single .select2-selection__arrow {
+    border: none;
+    border-right: 1px solid #ddd;
+    border-radius: 0;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    left: 1px;
+    right: auto;
+}
+.select2-container--classic.select2-container--open .select2-selection--single {
+    border: 1px solid #5897fb;
+}
+.select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow {
+    background: transparent;
+    border: none;
+}
+.select2-container--classic.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #888 transparent;
+    border-width: 0 4px 5px 4px;
+}
+.select2-container--classic.select2-container--open.select2-container--above .select2-selection--single {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    background-image: -webkit-linear-gradient(top, #ffffff 0%, #eee 50%);
+    background-image: -o-linear-gradient(top, #ffffff 0%, #eee 50%);
+    background-image: linear-gradient(to bottom, #ffffff 0%, #eee 50%);
+    background-repeat: repeat-x;
+}
+.select2-container--classic.select2-container--open.select2-container--below .select2-selection--single {
+    border-bottom: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background-image: -webkit-linear-gradient(top, #eee 50%, #ffffff 100%);
+    background-image: -o-linear-gradient(top, #eee 50%, #ffffff 100%);
+    background-image: linear-gradient(to bottom, #eee 50%, #ffffff 100%);
+    background-repeat: repeat-x;
+}
+.select2-container--classic .select2-selection--multiple {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: text;
+    outline: 0;
+}
+.select2-container--classic .select2-selection--multiple:focus {
+    border: 1px solid #5897fb;
+}
+.select2-container--classic .select2-selection--multiple .select2-selection__rendered {
+    list-style: none;
+    margin: 0;
+    padding: 0 5px;
+}
+.select2-container--classic .select2-selection--multiple .select2-selection__clear {
+    display: none;
+}
+.select2-container--classic .select2-selection--multiple .select2-selection__choice {
+    background-color: #e4e4e4;
+    border: 1px solid #ddd;
+    cursor: default;
+    float: left;
+    margin-right: 5px;
+    margin-top: 5px;
+    padding: 0 5px;
+}
+.select2-container--classic .select2-selection--multiple .select2-selection__choice__remove {
+    color: #888;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: bold;
+    margin-right: 2px;
+}
+.select2-container--classic .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #555;
+}
+.select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice {
+    float: right;
+}
+.select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice {
+    margin-left: 5px;
+    margin-right: auto;
+}
+.select2-container--classic[dir="rtl"] .select2-selection--multiple .select2-selection__choice__remove {
+    margin-left: 2px;
+    margin-right: auto;
+}
+.select2-container--classic.select2-container--open .select2-selection--multiple {
+    border: 1px solid #5897fb;
+}
+.select2-container--classic.select2-container--open.select2-container--above .select2-selection--multiple {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+.select2-container--classic.select2-container--open.select2-container--below .select2-selection--multiple {
+    border-bottom: none;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.select2-container--classic .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ddd;
+    outline: 0;
+}
+.select2-container--classic .select2-search--inline .select2-search__field {
+    outline: 0;
+    box-shadow: none;
+}
+.select2-container--classic .select2-dropdown {
+    background-color: #fff;
+    border: 1px solid transparent;
+}
+.select2-container--classic .select2-dropdown--above {
+    border-bottom: none;
+}
+.select2-container--classic .select2-dropdown--below {
+    border-top: none;
+}
+.select2-container--classic .select2-results > .select2-results__options {
+    max-height: 200px;
+    overflow-y: auto;
+}
+.select2-container--classic .select2-results__option[role="group"] {
+    padding: 0;
+}
+.select2-container--classic .select2-results__option[aria-disabled="true"] {
+    color: gray;
+}
+.select2-container--classic .select2-results__option--highlighted[aria-selected] {
+    background-color: #3875d7;
+    color: #fff;
+}
+.select2-container--classic .select2-results__group {
+    cursor: default;
+    display: block;
+    padding: 6px;
+}
+.select2-container--classic.select2-container--open .select2-dropdown {
+    border-color: #5897fb;
+}
+#colorbox html,
+#colorbox body,
+#colorbox div,
+#colorbox span,
+#colorbox applet,
+#colorbox object,
+#colorbox iframe,
+h1,
+#colorbox h2,
+#colorbox h3,
+#colorbox h4,
+#colorbox h5,
+#colorbox h6,
+#colorbox blockquote,
+#colorbox pre,
+a,
+#colorbox abbr,
+#colorbox acronym,
+#colorbox address,
+#colorbox big,
+#colorbox cite,
+del,
+#colorbox dfn,
+#colorbox img,
+#colorbox ins,
+#colorbox q,
+#colorbox s,
+small,
+#colorbox strike,
+#colorbox sub,
+#colorbox sup,
+#colorbox tt,
+#colorbox u,
+#colorbox center,
+dl,
+#colorbox dt,
+#colorbox dd,
+#colorbox ol,
+#colorbox ul,
+#colorbox li,
+fieldset,
+#colorbox form,
+#colorbox label,
+#colorbox legend,
+table,
+#colorbox caption,
+#colorbox tbody,
+#colorbox tfoot,
+#colorbox thead,
+#colorbox tr,
+#colorbox th,
+#colorbox td,
+article,
+#colorbox aside,
+#colorbox canvas,
+#colorbox details,
+#colorbox embed,
+#colorbox figure,
+#colorbox figcaption,
+#colorbox footer,
+#colorbox header,
+#colorbox hgroup,
+#colorbox menu,
+#colorbox nav,
+#colorbox output,
+#colorbox ruby,
+#colorbox section,
+#colorbox summary,
+time,
+#colorbox mark,
+#colorbox audio,
+#colorbox video {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+}
+#colorbox article,
+#colorbox aside,
+#colorbox details,
+#colorbox figcaption,
+#colorbox figure,
+#colorbox footer,
+#colorbox header,
+#colorbox hgroup,
+#colorbox menu,
+#colorbox nav,
+#colorbox section {
+    display: block;
+}
+body {
+    line-height: 1;
+}
+#colorbox ol,
+#colorbox #colorbox ul {
+    list-style: none;
+}
+#colorbox blockquote,
+#colorbox q {
+    quotes: none;
+}
+#colorbox blockquote:before,
+#colorbox blockquote:after,
+q:before,
+#colorbox q:after {
+    content: "";
+    content: none;
+}
+#colorbox table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+#colorbox,
+#cboxOverlay,
+#cboxWrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    overflow: hidden;
+    -webkit-transform: translate3d(0, 0, 0);
+}
+#cboxWrapper {
+    max-width: none;
+}
+#cboxOverlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+#cboxMiddleLeft,
+#cboxBottomLeft {
+    clear: left;
+}
+#cboxContent {
+    position: relative;
+    border-radius: 3px;
+}
+#cboxLoadedContent {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+#cboxTitle {
+    margin: 0;
+}
+#cboxLoadingOverlay,
+#cboxLoadingGraphic {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+#cboxPrevious,
+#cboxNext,
+#cboxClose,
+#cboxSlideshow {
+    cursor: pointer;
+}
+.cboxPhoto {
+    float: left;
+    margin: auto;
+    border: 0;
+    display: block;
+    max-width: none;
+    -ms-interpolation-mode: bicubic;
+}
+.cboxIframe {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+#colorbox,
+#cboxContent,
+#cboxLoadedContent {
+    box-sizing: content-box;
+    -moz-box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+}
+#cboxOverlay {
+    background: #000;
+    opacity: 0.9;
+    filter: alpha(opacity=90);
+}
+#colorbox {
+    outline: 0;
+}
+#cboxContent {
+    background: #fff;
+    overflow: visible;
+}
+.cboxIframe {
+    background: #fff;
+}
+#cboxError {
+    padding: 50px;
+    border: 1px solid #ccc;
+}
+#cboxLoadedContent {
+    margin-bottom: 5px;
+    text-align: center;
+}
+#cboxLoadingGraphic {
+    background: url(images/loading.gif) no-repeat center center;
+}
+#cboxTitle {
+    position: absolute;
+    bottom: -25px;
+    left: 0;
+    text-align: center;
+    width: 100%;
+    font-weight: bold;
+    color: #7c7c7c;
+}
+@media screen and (max-width: 767px) {
+    #cboxTitle {
+        display: none !important;
+    }
+}
+#cboxCurrent {
+    position: absolute;
+    bottom: -25px;
+    left: 58px;
+    font-weight: bold;
+    color: #7c7c7c;
+}
+#cboxPrevious:active,
+#cboxNext:active,
+#cboxSlideshow:active,
+#cboxClose:active {
+    outline: 0;
+}
+#cboxPrevious {
+    left: 0px;
+    background-position: -51px -25px;
+}
+#cboxPrevious:hover {
+    background-position: -51px 0px;
+}
+#cboxNext {
+    left: 27px;
+    background-position: -75px -25px;
+}
+#cboxNext:hover {
+    background-position: -75px 0px;
+}
+#cboxClose {
+    right: 0;
+    background-position: -100px -25px;
+}
+#cboxClose:hover {
+    background-position: -100px 0px;
+}
+.cboxSlideshow_on #cboxSlideshow {
+    background-position: -125px 0px;
+    right: 27px;
+}
+.cboxSlideshow_on #cboxSlideshow:hover {
+    background-position: -150px 0px;
+}
+.cboxSlideshow_off #cboxSlideshow {
+    background-position: -150px -25px;
+    right: 27px;
+}
+.cboxSlideshow_off #cboxSlideshow:hover {
+    background-position: -125px 0px;
+}
+@keyframes rotate360 {
+    to {
+        transform: rotate(360deg);
+    }
+}
+#colorbox #google-preview-no-results-div {
+    border: solid 1px #e1e1e1;
+    border-radius: 5px;
+    padding: 20px;
+    width: 96%;
+    margin-left: auto;
+    margin-right: auto;
+}
+#cboxClose,
+#cboxBottomLeft,
+#cboxBottomCenter,
+#cboxBottomRight,
+#cboxTopLeft,
+#cboxTopCenter,
+#cboxTopRight,
+#cboxMiddleLeft,
+#cboxMiddleRight {
+    display: none;
+}
+.teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder {
+    text-align: left;
+    margin: 15px !important;
+    width: 100%;
+    border: solid 1px #000;
+    padding: 10px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual {
+    display: flex;
+}
+#cboxLoadedContent
+    .teqcidb-top-level-colorbox-holder
+    .teqcidb-top-level-colorbox-inner-holder
+    .teqcidb-top-level-colorbox-indiv-holder
+    .teqcidb-top-level-colorbox-indiv-actual
+    .teqcidb-top-level-colorbox-indiv-actual-row
+    .teqcidb-top-level-colorbox-indiv-row-for-inlineblock {
+    vertical-align: top;
+}
+.teqcidb-top-level-colorbox-indiv-actual-row {
+    display: inline-block;
+}
+.teqcidb-top-level-colorbox-indiv-row-for-inlineblock span {
+    display: block;
+    margin-bottom: 3px !important;
+}
+#cboxLoadedContent
+    .teqcidb-top-level-colorbox-holder
+    .teqcidb-top-level-colorbox-inner-holder
+    .teqcidb-top-level-colorbox-indiv-holder
+    .teqcidb-top-level-colorbox-indiv-actual
+    .teqcidb-top-level-colorbox-indiv-actual-row
+    .teqcidb-top-level-colorbox-row-span-bold {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 15px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-inner-holder .teqcidb-top-level-colorbox-indiv-holder .teqcidb-top-level-colorbox-indiv-actual .teqcidb-top-level-colorbox-indiv-actual-row {
+    margin: 10px;
+    flex: 1;
+    position: relative;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder .teqcidb-top-level-colorbox-holder-class-subtitle {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-print-holder {
+    position: fixed;
+    bottom: 0;
+    background-color: #eee;
+    width: 100%;
+    padding: 10px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder {
+    margin-bottom: 60px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder-class-title-wrapper {
+    display: inline-block;
+    vertical-align: top;
+    width: 49%;
+    text-align: left;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder-class-subtitle-wrapper {
+    display: inline-block;
+    width: 49%;
+    text-align: right;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-holder-wrapper {
+    margin-top: 10px;
+}
+#cboxLoadedContent .teqcidb-te-logo-for-print {
+    width: 145px;
+    display: block;
+}
+#cboxLoadedContent .teqcdib-print-page-span {
+    font-size: 10px;
+    width: 100%;
+    display: block;
+    text-align: right;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-inner-holder-instructions {
+    margin-left: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+    margin-top: 20px;
+    text-align: left;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-row-span-bold-signature {
+    position: absolute;
+    display: inline-block;
+    bottom: -25px;
+    left: 0;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-row-span-bold-signature-line {
+    border: solid 1px #000;
+    width: 350px;
+    display: block;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    left: 72px;
+    bottom: 3px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-indiv-holder-namebadge {
+    height: 224px;
+    width: 324px !important;
+    display: inline-block;
+    vertical-align: top;
+    margin: 20px;
+    text-align: center;
+    padding: 0px 5px 0px 5px;
+    position: relative;
+    margin: 8px 9px 8px 9px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-row-span-name {
+    font-size: 25px;
+    margin-top: 14%;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-row-span-company {
+    font-size: 18px;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-inner-holder-namebadges {
+    text-align: center;
+    margin-right: 8px;
+}
+#cboxLoadedContent .teqcidb-te-logo-for-print-namebadges {
+    margin-left: auto;
+    margin-right: auto;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-indiv-row-fornamebadges {
+    position: absolute;
+    bottom: 20px;
+    margin-right: auto;
+    margin-left: auto;
+    width: 100%;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-indiv-row-fornamebadges span {
+    margin-bottom: 10px;
+    display: block;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-inner-holder-student-cert {
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-certificate-p {
+    margin: 10px 0px 10px 0px;
+    font-size: 18px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-1,
+#cboxLoadedContent #teqcidb-training-certificate-p-3,
+#cboxLoadedContent #teqcidb-training-certificate-p-6 {
+    font-size: 27px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-3 {
+    margin-top: 15px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-2 {
+    font-size: 40px;
+    color: #339;
+    font-weight: bold;
+    letter-spacing: 1.4px;
+    transform: scaleY(1.5);
+    margin-bottom: 20px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-div {
+    display: inline-block;
+    vertical-align: top;
+    width: 40%;
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-certificate-div img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 160px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-bottomholder {
+    position: relative;
+    top: 50px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-leftrightholder {
+    position: relative;
+    top: 25px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-bottomholder div {
+    display: inline-block;
+    width: 40%;
+    vertical-align: top;
+}
+#cboxLoadedContent .teqcidb-training-certificate-initial-online-bottomholder div {
+    width: 90%;
+}
+#cboxLoadedContent .teqcidb-training-certificate-p-7 {
+    margin-top: 0px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-p-11 {
+    text-align: left;
+    font-size: 12px;
+}
+#cboxLoadedContent .teqcidb-training-certificate-p-12,
+.teqcidb-training-certificate-p-13 {
+    text-align: right;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-inner-holder-student-cert-background {
+    position: absolute;
+    width: 99%;
+    overflow: hidden;
+}
+#cboxLoadedContent .teqcidb-top-level-colorbox-inner-holder-student-cert-background img {
+    width: 100%;
+}
+#cboxLoadedContent .teqcidb-training-certificate-topholder {
+    padding-top: 60px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-11,
+#cboxLoadedContent #teqcidb-training-certificate-p-12,
+#cboxLoadedContent #teqcidb-training-certificate-p-13 {
+    font-size: 13px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-12,
+#cboxLoadedContent .teqcidb-training-certificate-p-4 {
+    margin-bottom: 0px;
+}
+#cboxLoadedContent #teqcidb-training-certificate-p-13,
+#cboxLoadedContent .teqcidb-training-certificate-p-5 {
+    margin-top: 0px;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-topholder {
+    position: relative;
+    top: 20px;
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-topholder img {
+    width: 50px;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-p {
+    margin: 0;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-bottomholder-leftdiv,
+.teqcidb-training-walletcard-bottomholder-rightdiv {
+    display: inline-block;
+    width: 49%;
+    vertical-align: top;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-bottomholder p {
+    font-size: 10px;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-middleholder {
+    position: relative;
+    top: 30px;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-bottomholder {
+    position: relative;
+    top: 40px;
+}
+#cboxLoadedContent #teqcidb-training-walletcard-p-2 {
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-side1 {
+    text-align: center;
+    width: 336px;
+    height: 210px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+.wp-admin #cboxLoadedContent .teqcidb-training-walletcard-side1{
+    display: inline-block;
+}
+
+.teqcidbplugin-generate-class-forms-all-refresher-inperson, .teqcidbplugin-generate-class-forms-all-initial-inperson, .teqcidbplugin-generate-class-forms-button-online-initial-spreadsheet, .teqcidbplugin-generate-class-forms-button-signin, .teqcidbplugin-generate-class-forms-button-namebadge{
+    min-height:267px;
+}
+
+.wp-admin .teqcidb-training-walletcard-side1-non-template-layout{
+    display:block;
+}
+
+#cboxLoadedContent .teqcidb-training-walletcard-side2 {
+    text-align: center;
+    width: 336px;
+    height: 210px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
+.teqcidb-training-walletcard-side1-non-template-layout, .teqcidb-training-walletcard-side2-non-template-layout {
+    border: solid 1px #000;
+    margin-top:50px;
+}
+
+
+.wp-admin #cboxLoadedContent .teqcidb-training-walletcard-side2 {
+    display: inline-block;
+}
+
+
+.wp-admin .teqcidb-training-walletcard-side2-non-template-layout{
+    display:block;
+}
+
+.wallet-card-back-last-div-2{
+    right: 15px;
+    position: relative;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-middleholder ul {
+    text-align: left;
+    margin-left: 25px;
+    font-size: 10px;
+    list-style: disc;
+    line-height: 1.2;
+    padding: 10px;
+}
+#cboxLoadedContent #teqcidb-training-walletcard-p-1,
+#cboxLoadedContent #teqcidb-training-walletcard-p-4,
+#cboxLoadedContent #teqcidb-training-walletcard-p-5 {
+    font-size: 10px;
+}
+#cboxLoadedContent #teqcidb-training-walletcard-p-2 {
+    margin-top: 5px;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-topholder {
+    position: relative;
+    top: 20px;
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-topholder img {
+    width: 50px;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-p {
+    margin: 0;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-bottomholder-leftdiv,
+.teqcidb-training-maillabel-bottomholder-rightdiv {
+    display: inline-block;
+    width: 49%;
+    vertical-align: top;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-bottomholder p {
+    font-size: 10px;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-middleholder {
+    position: relative;
+    top: 10px;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-bottomholder {
+    position: relative;
+    top: 40px;
+}
+#cboxLoadedContent #teqcidb-training-maillabel-p-2,
+#cboxLoadedContent #teqcidb-training-maillabel-p-3 {
+    font-weight: bold;
+    text-align: center;
+}
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-centered-mail-labels {
+    text-align: center;
+    margin-top: 46px;
+}
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-centered-walletcards-labels {
+    text-align: center;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-side1 {
+    text-align: center;
+    width: 300px;
+    height: 124px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-side2 {
+    text-align: center;
+    width: 300px;
+    height: 124px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    display: inline-block;
+}
+#cboxLoadedContent .teqcidb-odd-mail-label-class {
+    margin-right: 50px;
+}
+#cboxLoadedContent .pagebreak-with-margin-mail-labels {
+    margin-top: 46px;
+}
+#cboxLoadedContent .teqcidb-even-mail-label-class {
+    margin-left: 50px;
+}
+#cboxLoadedContent .teqcidb-training-maillabel-middleholder ul {
+    margin-left: 25px;
+    font-size: 10px;
+    list-style: disc;
+    line-height: 1.2;
+    padding: 10px;
+}
+.teqcidb-training-walletcard-bottomholder-leftdiv {
+    text-align: left;
+}
+.teqcidb-training-walletcard-bottomholder-rightdiv {
+    text-align: right;
+}
+#cboxLoadedContent .teqcidb-training-walletcard-side2 .teqcidb-training-walletcard-middleholder {
+    top: 0px;
+}
+.wallet-card-back-last-li {
+    position: relative;
+    bottom: 28px;
+}
+.wallet-card-back-last-div-1 {
+    display: inline-block;
+    width: 67%;
+    vertical-align: text-top !important;
+}
+.wallet-card-back-last-div-2 {
+    display: inline-block;
+    width: 9%;
+    position: relative;
+    left: 10px;
+    top: 30px;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing-right, #cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing-left{
+    display: inline-block;
+}
+
+#cboxLoadedContent .teqcidb-sis-colorbox-page-header-left, .teqcidb-sis-colorbox-page-header-right{
+    display: inline-block;
+}
+
+#cboxLoadedContent .teqcidb-sis-colorbox-page-header{
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing table{
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    table-layout: fixed;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing table tbody tr{
+    height:19vh;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing table thead tr th{
+    font-weight: bold;
+    font-size: 16px;
+    border:solid 1px black;
+    padding:10px;
+    word-wrap:break-word;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing table tbody tr td{
+    border:solid 1px black;
+    padding:10px;
+    word-wrap:break-word;
+    vertical-align:top;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing .th-signature, #teqcidb-top-level-colorbox-holder-for-printing .td-signature{
+    width:25%;
+}
+
+#cboxLoadedContent #teqcidb-top-level-colorbox-holder-for-printing .th-email, #teqcidb-top-level-colorbox-holder-for-printing .td-email{
+    width: 18%;
+}
+
+#cboxLoadedContent .teqcidb-sis-colorbox-page-header-left p{
+    margin-top:0;
+    margin-bottom:5px;
+}
+
+#cboxLoadedContent .teqcidb-sis-colorbox-page-header-right{
+    float:right;
+}
+
+#cboxLoadedContent .teqcidb-sis-colorbox-page-header-right img{
+    width:200px;
+}
+
+
+
+
+
+
+
+
+
+
