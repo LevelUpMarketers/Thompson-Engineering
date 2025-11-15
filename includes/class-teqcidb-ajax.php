@@ -2,25 +2,25 @@
 /**
  * Handle Ajax operations with configurable minimum execution time.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
-class CPB_Ajax {
+class TEQCIDB_Ajax {
 
     public function register() {
-        add_action( 'wp_ajax_cpb_save_main_entity', array( $this, 'save_main_entity' ) );
-        add_action( 'wp_ajax_cpb_save_general_settings', array( $this, 'save_general_settings' ) );
-        add_action( 'wp_ajax_cpb_delete_main_entity', array( $this, 'delete_main_entity' ) );
-        add_action( 'wp_ajax_cpb_read_main_entity', array( $this, 'read_main_entity' ) );
-        add_action( 'wp_ajax_cpb_save_email_template', array( $this, 'save_email_template' ) );
-        add_action( 'wp_ajax_cpb_send_test_email', array( $this, 'send_test_email' ) );
-        add_action( 'wp_ajax_cpb_clear_email_log', array( $this, 'clear_email_log' ) );
-        add_action( 'wp_ajax_cpb_save_api_settings', array( $this, 'save_api_settings' ) );
-        add_action( 'wp_ajax_cpb_clear_error_log', array( $this, 'clear_error_log' ) );
-        add_action( 'wp_ajax_cpb_download_error_log', array( $this, 'download_error_log' ) );
+        add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
+        add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
+        add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
+        add_action( 'wp_ajax_teqcidb_save_email_template', array( $this, 'save_email_template' ) );
+        add_action( 'wp_ajax_teqcidb_send_test_email', array( $this, 'send_test_email' ) );
+        add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
+        add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
+        add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
+        add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
     }
 
-    private function maybe_delay( $start, $minimum_time = CPB_MIN_EXECUTION_TIME ) {
+    private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
         if ( $minimum_time <= 0 ) {
             return;
         }
@@ -37,11 +37,11 @@ class CPB_Ajax {
         }
     }
 
-    public function save_main_entity() {
+    public function save_student() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
         global $wpdb;
-        $table = $wpdb->prefix . 'cpb_main_entity';
+        $table = $wpdb->prefix . 'teqcidb_students';
         $id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
         $now   = current_time( 'mysql' );
 
@@ -101,13 +101,13 @@ class CPB_Ajax {
 
         if ( $id > 0 ) {
             $result  = $wpdb->update( $table, $data, array( 'id' => $id ), $formats, array( '%d' ) );
-            $message = __( 'Changes saved.', 'codex-plugin-boilerplate' );
+            $message = __( 'Changes saved.', 'teqcidb' );
 
             if ( false === $result && $wpdb->last_error ) {
                 $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
-                        'message' => __( 'Unable to save changes. Please try again.', 'codex-plugin-boilerplate' ),
+                        'message' => __( 'Unable to save changes. Please try again.', 'teqcidb' ),
                     )
                 );
             }
@@ -115,13 +115,13 @@ class CPB_Ajax {
             $data['created_at'] = $now;
             $formats[]          = '%s';
             $result             = $wpdb->insert( $table, $data, $formats );
-            $message            = __( 'Saved', 'codex-plugin-boilerplate' );
+            $message            = __( 'Saved', 'teqcidb' );
 
             if ( false === $result ) {
                 $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
-                        'message' => __( 'Unable to save the record. Please try again.', 'codex-plugin-boilerplate' ),
+                        'message' => __( 'Unable to save the record. Please try again.', 'teqcidb' ),
                     )
                 );
             }
@@ -133,28 +133,28 @@ class CPB_Ajax {
 
     public function save_general_settings() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You do not have permission to save these settings.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You do not have permission to save these settings.', 'teqcidb' ),
                 )
             );
         }
 
-        $sanitized = CPB_Settings_Helper::sanitize_general_settings( $_POST );
-        $result    = CPB_Settings_Helper::save_general_settings( $_POST );
+        $sanitized = TEQCIDB_Settings_Helper::sanitize_general_settings( $_POST );
+        $result    = TEQCIDB_Settings_Helper::save_general_settings( $_POST );
 
         if ( false === $result ) {
-            $stored = CPB_Settings_Helper::get_general_settings();
+            $stored = TEQCIDB_Settings_Helper::get_general_settings();
 
             if ( $stored !== $sanitized ) {
                 $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
-                        'message' => __( 'Settings could not be saved. Please try again.', 'codex-plugin-boilerplate' ),
+                        'message' => __( 'Settings could not be saved. Please try again.', 'teqcidb' ),
                     )
                 );
             }
@@ -163,25 +163,25 @@ class CPB_Ajax {
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message' => __( 'Settings saved.', 'codex-plugin-boilerplate' ),
+                'message' => __( 'Settings saved.', 'teqcidb' ),
             )
         );
     }
 
     public function save_api_settings() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You do not have permission to save these settings.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You do not have permission to save these settings.', 'teqcidb' ),
                 )
             );
         }
 
-        $api_key = isset( $_POST['cpb_api_key'] ) ? sanitize_key( wp_unslash( $_POST['cpb_api_key'] ) ) : '';
+        $api_key = isset( $_POST['teqcidb_api_key'] ) ? sanitize_key( wp_unslash( $_POST['teqcidb_api_key'] ) ) : '';
 
         $api_definitions = array(
             'payment_gateway' => array(
@@ -235,7 +235,7 @@ class CPB_Ajax {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unknown API configuration.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unknown API configuration.', 'teqcidb' ),
                 )
             );
         }
@@ -265,7 +265,7 @@ class CPB_Ajax {
             }
         }
 
-        $all_settings = get_option( 'cpb_api_settings', array() );
+        $all_settings = get_option( 'teqcidb_api_settings', array() );
 
         if ( ! is_array( $all_settings ) ) {
             $all_settings = array();
@@ -273,129 +273,129 @@ class CPB_Ajax {
 
         $all_settings[ $api_key ] = $sanitized;
 
-        update_option( 'cpb_api_settings', $all_settings );
+        update_option( 'teqcidb_api_settings', $all_settings );
 
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message' => __( 'API settings saved.', 'codex-plugin-boilerplate' ),
+                'message' => __( 'API settings saved.', 'teqcidb' ),
             )
         );
     }
 
     public function clear_error_log() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You are not allowed to modify error logs.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You are not allowed to modify error logs.', 'teqcidb' ),
                 )
             );
         }
 
-        $scope = isset( $_POST['scope'] ) ? CPB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
+        $scope = isset( $_POST['scope'] ) ? TEQCIDB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
 
         if ( '' === $scope ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unknown log scope.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unknown log scope.', 'teqcidb' ),
                 )
             );
         }
 
-        $cleared = CPB_Error_Log_Helper::clear_log( $scope );
+        $cleared = TEQCIDB_Error_Log_Helper::clear_log( $scope );
 
         if ( ! $cleared ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unable to clear the requested log. Please check file permissions.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unable to clear the requested log. Please check file permissions.', 'teqcidb' ),
                 )
             );
         }
 
-        $message = CPB_Error_Log_Helper::get_clear_success_message( $scope );
+        $message = TEQCIDB_Error_Log_Helper::get_clear_success_message( $scope );
 
         if ( '' === $message ) {
-            $message = __( 'Log cleared.', 'codex-plugin-boilerplate' );
+            $message = __( 'Log cleared.', 'teqcidb' );
         }
 
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => $message,
-                'content' => CPB_Error_Log_Helper::get_log_contents( $scope ),
+                'content' => TEQCIDB_Error_Log_Helper::get_log_contents( $scope ),
             )
         );
     }
 
     public function download_error_log() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You are not allowed to download error logs.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You are not allowed to download error logs.', 'teqcidb' ),
                 )
             );
         }
 
-        $scope = isset( $_POST['scope'] ) ? CPB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
+        $scope = isset( $_POST['scope'] ) ? TEQCIDB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
 
         if ( '' === $scope ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unknown log scope.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unknown log scope.', 'teqcidb' ),
                 )
             );
         }
 
-        $filename = CPB_Error_Log_Helper::get_download_filename( $scope );
+        $filename = TEQCIDB_Error_Log_Helper::get_download_filename( $scope );
 
         if ( '' === $filename ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unable to prepare the download filename.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unable to prepare the download filename.', 'teqcidb' ),
                 )
             );
         }
 
-        $contents = CPB_Error_Log_Helper::get_log_contents( $scope );
+        $contents = TEQCIDB_Error_Log_Helper::get_log_contents( $scope );
 
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message'  => __( 'Log download ready.', 'codex-plugin-boilerplate' ),
+                'message'  => __( 'Log download ready.', 'teqcidb' ),
                 'filename' => sanitize_file_name( $filename ),
                 'content'  => (string) $contents,
             )
         );
     }
 
-    public function delete_main_entity() {
+    public function delete_student() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
         $id = isset( $_POST['id'] ) ? intval( $_POST['id'] ) : 0;
         global $wpdb;
-        $table = $wpdb->prefix . 'cpb_main_entity';
+        $table = $wpdb->prefix . 'teqcidb_students';
         $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
         $this->maybe_delay( $start );
-        wp_send_json_success( array( 'message' => __( 'Deleted', 'codex-plugin-boilerplate' ) ) );
+        wp_send_json_success( array( 'message' => __( 'Deleted', 'teqcidb' ) ) );
     }
 
-    public function read_main_entity() {
+    public function read_student() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
         global $wpdb;
-        $table    = $wpdb->prefix . 'cpb_main_entity';
+        $table    = $wpdb->prefix . 'teqcidb_students';
         $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
         $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 20;
 
@@ -563,13 +563,13 @@ class CPB_Ajax {
 
     public function save_email_template() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You are not allowed to perform this action.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
                 )
             );
         }
@@ -580,18 +580,18 @@ class CPB_Ajax {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Invalid template selection.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Invalid template selection.', 'teqcidb' ),
                 )
             );
         }
 
-        $from_name = isset( $_POST['from_name'] ) ? CPB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
-        $from_email = isset( $_POST['from_email'] ) ? CPB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
+        $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
         $body    = isset( $_POST['body'] ) ? wp_kses_post( wp_unslash( $_POST['body'] ) ) : '';
         $sms     = isset( $_POST['sms'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sms'] ) ) : '';
 
-        CPB_Email_Template_Helper::update_template_settings(
+        TEQCIDB_Email_Template_Helper::update_template_settings(
             $template_id,
             array(
                 'from_name'  => $from_name,
@@ -605,20 +605,20 @@ class CPB_Ajax {
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message' => __( 'Template saved.', 'codex-plugin-boilerplate' ),
+                'message' => __( 'Template saved.', 'teqcidb' ),
             )
         );
     }
 
     public function send_test_email() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You are not allowed to perform this action.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
                 )
             );
         }
@@ -629,7 +629,7 @@ class CPB_Ajax {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Invalid template selection.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Invalid template selection.', 'teqcidb' ),
                 )
             );
         }
@@ -640,30 +640,30 @@ class CPB_Ajax {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Please provide a valid email address.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
                 )
             );
         }
 
-        $from_name = isset( $_POST['from_name'] ) ? CPB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
-        $from_email = isset( $_POST['from_email'] ) ? CPB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
+        $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
         $body    = isset( $_POST['body'] ) ? wp_kses_post( wp_unslash( $_POST['body'] ) ) : '';
 
-        $stored_settings = CPB_Email_Template_Helper::get_template_settings( $template_id );
+        $stored_settings = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
 
         if ( '' === $from_name && isset( $stored_settings['from_name'] ) ) {
-            $from_name = CPB_Email_Template_Helper::sanitize_from_name( $stored_settings['from_name'] );
+            $from_name = TEQCIDB_Email_Template_Helper::sanitize_from_name( $stored_settings['from_name'] );
         }
 
         if ( '' === $from_email && isset( $stored_settings['from_email'] ) ) {
-            $from_email = CPB_Email_Template_Helper::sanitize_from_email( $stored_settings['from_email'] );
+            $from_email = TEQCIDB_Email_Template_Helper::sanitize_from_email( $stored_settings['from_email'] );
         }
 
-        $from_name  = CPB_Email_Template_Helper::resolve_from_name( $from_name );
-        $from_email = CPB_Email_Template_Helper::resolve_from_email( $from_email );
+        $from_name  = TEQCIDB_Email_Template_Helper::resolve_from_name( $from_name );
+        $from_email = TEQCIDB_Email_Template_Helper::resolve_from_email( $from_email );
 
-        $tokens = CPB_Main_Entity_Helper::get_first_preview_data();
+        $tokens = TEQCIDB_Student_Helper::get_first_preview_data();
 
         if ( ! empty( $tokens ) ) {
             $subject = $this->replace_template_tokens( $subject, $tokens );
@@ -677,7 +677,7 @@ class CPB_Ajax {
         }
 
         $headers = array( 'Content-Type: text/html; charset=UTF-8' );
-        $from_header = CPB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
 
         if ( $from_header ) {
             $headers[] = $from_header;
@@ -689,7 +689,7 @@ class CPB_Ajax {
         if ( ! $sent ) {
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unable to send the test email. Please try again.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unable to send the test email. Please try again.', 'teqcidb' ),
                 )
             );
         }
@@ -712,64 +712,64 @@ class CPB_Ajax {
             $triggered_by = $name;
         }
 
-        CPB_Email_Log_Helper::log_email(
+        TEQCIDB_Email_Log_Helper::log_email(
             array(
                 'template_id'    => $template_id,
-                'template_title' => CPB_Email_Template_Helper::get_template_label( $template_id ),
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
                 'recipient'      => $to_email,
                 'from_name'      => $from_name,
                 'from_email'     => $from_email,
                 'subject'        => $subject,
                 'body'           => $rendered_body,
-                'context'        => __( 'Test email', 'codex-plugin-boilerplate' ),
+                'context'        => __( 'Test email', 'teqcidb' ),
                 'triggered_by'   => $triggered_by,
             )
         );
 
         wp_send_json_success(
             array(
-                'message' => __( 'Test email sent.', 'codex-plugin-boilerplate' ),
+                'message' => __( 'Test email sent.', 'teqcidb' ),
             )
         );
     }
 
     public function clear_email_log() {
         $start = microtime( true );
-        check_ajax_referer( 'cpb_ajax_nonce' );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'You are not allowed to perform this action.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
                 )
             );
         }
 
-        if ( ! CPB_Email_Log_Helper::is_log_available() ) {
+        if ( ! TEQCIDB_Email_Log_Helper::is_log_available() ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'Email logging is unavailable. Check directory permissions and try again.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Email logging is unavailable. Check directory permissions and try again.', 'teqcidb' ),
                 )
             );
         }
 
-        $cleared = CPB_Email_Log_Helper::clear_log();
+        $cleared = TEQCIDB_Email_Log_Helper::clear_log();
 
         $this->maybe_delay( $start );
 
         if ( ! $cleared ) {
             wp_send_json_error(
                 array(
-                    'message' => __( 'Unable to clear the email log. Please try again.', 'codex-plugin-boilerplate' ),
+                    'message' => __( 'Unable to clear the email log. Please try again.', 'teqcidb' ),
                 )
             );
         }
 
         wp_send_json_success(
             array(
-                'message' => __( 'Email log cleared.', 'codex-plugin-boilerplate' ),
+                'message' => __( 'Email log cleared.', 'teqcidb' ),
             )
         );
     }
@@ -780,7 +780,7 @@ class CPB_Ajax {
          *
          * @param string $option_name Default option name.
          */
-        return CPB_Email_Template_Helper::get_option_name();
+        return TEQCIDB_Email_Template_Helper::get_option_name();
     }
 
     private function get_post_value( $key ) {
@@ -1183,56 +1183,56 @@ class CPB_Ajax {
 
     private function get_us_states() {
         return array(
-            __( 'Alabama', 'codex-plugin-boilerplate' ),
-            __( 'Alaska', 'codex-plugin-boilerplate' ),
-            __( 'Arizona', 'codex-plugin-boilerplate' ),
-            __( 'Arkansas', 'codex-plugin-boilerplate' ),
-            __( 'California', 'codex-plugin-boilerplate' ),
-            __( 'Colorado', 'codex-plugin-boilerplate' ),
-            __( 'Connecticut', 'codex-plugin-boilerplate' ),
-            __( 'Delaware', 'codex-plugin-boilerplate' ),
-            __( 'Florida', 'codex-plugin-boilerplate' ),
-            __( 'Georgia', 'codex-plugin-boilerplate' ),
-            __( 'Hawaii', 'codex-plugin-boilerplate' ),
-            __( 'Idaho', 'codex-plugin-boilerplate' ),
-            __( 'Illinois', 'codex-plugin-boilerplate' ),
-            __( 'Indiana', 'codex-plugin-boilerplate' ),
-            __( 'Iowa', 'codex-plugin-boilerplate' ),
-            __( 'Kansas', 'codex-plugin-boilerplate' ),
-            __( 'Kentucky', 'codex-plugin-boilerplate' ),
-            __( 'Louisiana', 'codex-plugin-boilerplate' ),
-            __( 'Maine', 'codex-plugin-boilerplate' ),
-            __( 'Maryland', 'codex-plugin-boilerplate' ),
-            __( 'Massachusetts', 'codex-plugin-boilerplate' ),
-            __( 'Michigan', 'codex-plugin-boilerplate' ),
-            __( 'Minnesota', 'codex-plugin-boilerplate' ),
-            __( 'Mississippi', 'codex-plugin-boilerplate' ),
-            __( 'Missouri', 'codex-plugin-boilerplate' ),
-            __( 'Montana', 'codex-plugin-boilerplate' ),
-            __( 'Nebraska', 'codex-plugin-boilerplate' ),
-            __( 'Nevada', 'codex-plugin-boilerplate' ),
-            __( 'New Hampshire', 'codex-plugin-boilerplate' ),
-            __( 'New Jersey', 'codex-plugin-boilerplate' ),
-            __( 'New Mexico', 'codex-plugin-boilerplate' ),
-            __( 'New York', 'codex-plugin-boilerplate' ),
-            __( 'North Carolina', 'codex-plugin-boilerplate' ),
-            __( 'North Dakota', 'codex-plugin-boilerplate' ),
-            __( 'Ohio', 'codex-plugin-boilerplate' ),
-            __( 'Oklahoma', 'codex-plugin-boilerplate' ),
-            __( 'Oregon', 'codex-plugin-boilerplate' ),
-            __( 'Pennsylvania', 'codex-plugin-boilerplate' ),
-            __( 'Rhode Island', 'codex-plugin-boilerplate' ),
-            __( 'South Carolina', 'codex-plugin-boilerplate' ),
-            __( 'South Dakota', 'codex-plugin-boilerplate' ),
-            __( 'Tennessee', 'codex-plugin-boilerplate' ),
-            __( 'Texas', 'codex-plugin-boilerplate' ),
-            __( 'Utah', 'codex-plugin-boilerplate' ),
-            __( 'Vermont', 'codex-plugin-boilerplate' ),
-            __( 'Virginia', 'codex-plugin-boilerplate' ),
-            __( 'Washington', 'codex-plugin-boilerplate' ),
-            __( 'West Virginia', 'codex-plugin-boilerplate' ),
-            __( 'Wisconsin', 'codex-plugin-boilerplate' ),
-            __( 'Wyoming', 'codex-plugin-boilerplate' ),
+            __( 'Alabama', 'teqcidb' ),
+            __( 'Alaska', 'teqcidb' ),
+            __( 'Arizona', 'teqcidb' ),
+            __( 'Arkansas', 'teqcidb' ),
+            __( 'California', 'teqcidb' ),
+            __( 'Colorado', 'teqcidb' ),
+            __( 'Connecticut', 'teqcidb' ),
+            __( 'Delaware', 'teqcidb' ),
+            __( 'Florida', 'teqcidb' ),
+            __( 'Georgia', 'teqcidb' ),
+            __( 'Hawaii', 'teqcidb' ),
+            __( 'Idaho', 'teqcidb' ),
+            __( 'Illinois', 'teqcidb' ),
+            __( 'Indiana', 'teqcidb' ),
+            __( 'Iowa', 'teqcidb' ),
+            __( 'Kansas', 'teqcidb' ),
+            __( 'Kentucky', 'teqcidb' ),
+            __( 'Louisiana', 'teqcidb' ),
+            __( 'Maine', 'teqcidb' ),
+            __( 'Maryland', 'teqcidb' ),
+            __( 'Massachusetts', 'teqcidb' ),
+            __( 'Michigan', 'teqcidb' ),
+            __( 'Minnesota', 'teqcidb' ),
+            __( 'Mississippi', 'teqcidb' ),
+            __( 'Missouri', 'teqcidb' ),
+            __( 'Montana', 'teqcidb' ),
+            __( 'Nebraska', 'teqcidb' ),
+            __( 'Nevada', 'teqcidb' ),
+            __( 'New Hampshire', 'teqcidb' ),
+            __( 'New Jersey', 'teqcidb' ),
+            __( 'New Mexico', 'teqcidb' ),
+            __( 'New York', 'teqcidb' ),
+            __( 'North Carolina', 'teqcidb' ),
+            __( 'North Dakota', 'teqcidb' ),
+            __( 'Ohio', 'teqcidb' ),
+            __( 'Oklahoma', 'teqcidb' ),
+            __( 'Oregon', 'teqcidb' ),
+            __( 'Pennsylvania', 'teqcidb' ),
+            __( 'Rhode Island', 'teqcidb' ),
+            __( 'South Carolina', 'teqcidb' ),
+            __( 'South Dakota', 'teqcidb' ),
+            __( 'Tennessee', 'teqcidb' ),
+            __( 'Texas', 'teqcidb' ),
+            __( 'Utah', 'teqcidb' ),
+            __( 'Vermont', 'teqcidb' ),
+            __( 'Virginia', 'teqcidb' ),
+            __( 'Washington', 'teqcidb' ),
+            __( 'West Virginia', 'teqcidb' ),
+            __( 'Wisconsin', 'teqcidb' ),
+            __( 'Wyoming', 'teqcidb' ),
         );
     }
 
@@ -1240,12 +1240,12 @@ class CPB_Ajax {
         return array_merge(
             $this->get_us_states(),
             array(
-                __( 'District of Columbia', 'codex-plugin-boilerplate' ),
-                __( 'American Samoa', 'codex-plugin-boilerplate' ),
-                __( 'Guam', 'codex-plugin-boilerplate' ),
-                __( 'Northern Mariana Islands', 'codex-plugin-boilerplate' ),
-                __( 'Puerto Rico', 'codex-plugin-boilerplate' ),
-                __( 'U.S. Virgin Islands', 'codex-plugin-boilerplate' ),
+                __( 'District of Columbia', 'teqcidb' ),
+                __( 'American Samoa', 'teqcidb' ),
+                __( 'Guam', 'teqcidb' ),
+                __( 'Northern Mariana Islands', 'teqcidb' ),
+                __( 'Puerto Rico', 'teqcidb' ),
+                __( 'U.S. Virgin Islands', 'teqcidb' ),
             )
         );
     }

@@ -2,16 +2,16 @@
 /**
  * Helper utilities for storing and retrieving general plugin settings.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class CPB_Settings_Helper {
+class TEQCIDB_Settings_Helper {
 
-    const OPTION_NAME = 'cpb_general_settings';
+    const OPTION_NAME = 'teqcidb_general_settings';
 
     const FIELD_OPTION            = 'option';
     const FIELD_LOG_EMAIL         = 'log_email';

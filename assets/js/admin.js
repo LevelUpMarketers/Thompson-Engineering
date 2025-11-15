@@ -5,8 +5,8 @@ jQuery(document).ready(function($){
             var $form = $(this);
             var data = $form.serialize();
             var spinnerHideTimer = $form.data('spinnerHideTimer');
-            var $spinner = $form.find('.cpb-feedback-area .spinner').first();
-            var $feedback = $form.find('.cpb-feedback-area [role="status"]').first();
+            var $spinner = $form.find('.teqcidb-feedback-area .spinner').first();
+            var $feedback = $form.find('.teqcidb-feedback-area [role="status"]').first();
             if ($feedback.length) {
                 $feedback.removeClass('is-visible').text('');
             }
@@ -14,7 +14,7 @@ jQuery(document).ready(function($){
                 clearTimeout(spinnerHideTimer);
             }
             $spinner.addClass('is-active');
-            $.post(cpbAjax.ajaxurl, data + '&action=' + action + '&_ajax_nonce=' + cpbAjax.nonce)
+            $.post(teqcidbAjax.ajaxurl, data + '&action=' + action + '&_ajax_nonce=' + teqcidbAjax.nonce)
                 .done(function(response){
                     if ($feedback.length && response && response.data) {
                         var message = response.data.message || response.data.error;
@@ -24,8 +24,8 @@ jQuery(document).ready(function($){
                     }
                 })
                 .fail(function(){
-                    if ($feedback.length && cpbAdmin.error) {
-                        $feedback.text(cpbAdmin.error).addClass('is-visible');
+                    if ($feedback.length && teqcidbAdmin.error) {
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                     }
                 })
                 .always(function(){
@@ -36,13 +36,13 @@ jQuery(document).ready(function($){
                 });
         });
     }
-    handleForm('#cpb-create-form','cpb_save_main_entity');
-    handleForm('#cpb-general-settings-form','cpb_save_general_settings');
-    handleForm('#cpb-style-settings-form','cpb_save_main_entity');
-    handleForm('.cpb-api-settings__form','cpb_save_api_settings');
+    handleForm('#teqcidb-create-form','teqcidb_save_student');
+    handleForm('#teqcidb-general-settings-form','teqcidb_save_general_settings');
+    handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
+    handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
 
     function handleLogActionForms(){
-        $('.cpb-log-actions__form').on('submit', function(e){
+        $('.teqcidb-log-actions__form').on('submit', function(e){
             e.preventDefault();
             var $form = $(this);
             var ajaxAction = $form.data('ajaxAction');
@@ -53,8 +53,8 @@ jQuery(document).ready(function($){
 
             var serialized = $form.serialize();
             var spinnerHideTimer = $form.data('spinnerHideTimer');
-            var $spinner = $form.find('.cpb-feedback-area .spinner').first();
-            var $feedback = $form.find('.cpb-feedback-area [role="status"]').first();
+            var $spinner = $form.find('.teqcidb-feedback-area .spinner').first();
+            var $feedback = $form.find('.teqcidb-feedback-area [role="status"]').first();
             var logAction = $form.data('logAction');
             var targetSelector = $form.data('logTarget');
 
@@ -70,7 +70,7 @@ jQuery(document).ready(function($){
                 $spinner.addClass('is-active');
             }
 
-            $.post(cpbAjax.ajaxurl, serialized + '&action=' + ajaxAction + '&_ajax_nonce=' + cpbAjax.nonce)
+            $.post(teqcidbAjax.ajaxurl, serialized + '&action=' + ajaxAction + '&_ajax_nonce=' + teqcidbAjax.nonce)
                 .done(function(response){
                     var message = '';
                     var wasSuccessful = response && response.success;
@@ -91,7 +91,7 @@ jQuery(document).ready(function($){
                         }
 
                         if (wasSuccessful && logAction === 'download'){
-                            var filename = response.data.filename || 'cpb-log.txt';
+                            var filename = response.data.filename || 'teqcidb-log.txt';
                             var content = typeof response.data.content === 'string' ? response.data.content : '';
                             var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                             var url = window.URL.createObjectURL(blob);
@@ -105,8 +105,8 @@ jQuery(document).ready(function($){
                                 window.URL.revokeObjectURL(url);
                             }, 100);
 
-                            if (!message && cpbAdmin.logDownloadReady){
-                                message = cpbAdmin.logDownloadReady;
+                            if (!message && teqcidbAdmin.logDownloadReady){
+                                message = teqcidbAdmin.logDownloadReady;
                             }
                         }
                     }
@@ -114,14 +114,14 @@ jQuery(document).ready(function($){
                     if ($feedback.length){
                         if (message){
                             $feedback.text(message).addClass('is-visible');
-                        } else if (!wasSuccessful && cpbAdmin.error){
-                            $feedback.text(cpbAdmin.error).addClass('is-visible');
+                        } else if (!wasSuccessful && teqcidbAdmin.error){
+                            $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                         }
                     }
                 })
                 .fail(function(){
-                    if ($feedback.length && cpbAdmin.error){
-                        $feedback.text(cpbAdmin.error).addClass('is-visible');
+                    if ($feedback.length && teqcidbAdmin.error){
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                     }
                 })
                 .always(function(){
@@ -170,10 +170,10 @@ jQuery(document).ready(function($){
         });
     }
 
-    $(document).on('click','.cpb-upload',function(e){
+    $(document).on('click','.teqcidb-upload',function(e){
         e.preventDefault();
         var target=$(this).data('target');
-        var frame=wp.media({title:cpbAdmin.mediaTitle,button:{text:cpbAdmin.mediaButton},multiple:false});
+        var frame=wp.media({title:teqcidbAdmin.mediaTitle,button:{text:teqcidbAdmin.mediaButton},multiple:false});
         frame.on('select',function(){
             var attachment=frame.state().get('selection').first().toJSON();
             $(target).val(attachment.id);
@@ -182,20 +182,20 @@ jQuery(document).ready(function($){
         frame.open();
     });
 
-    if($('#cpb-entity-list').length){
-        var $entityTableBody = $('#cpb-entity-list');
+    if($('#teqcidb-entity-list').length){
+        var $entityTableBody = $('#teqcidb-entity-list');
         var perPage = parseInt($entityTableBody.data('per-page'), 10) || 20;
         var columnCount = parseInt($entityTableBody.data('column-count'), 10) || 6;
-        var $pagination = $('#cpb-entity-pagination');
+        var $pagination = $('#teqcidb-entity-pagination');
         var $paginationContainer = $pagination.closest('.tablenav');
-        var $entityFeedback = $('#cpb-entity-feedback');
-        var $searchForm = $('#cpb-main-entity-search');
-        var $searchSpinner = $('#cpb-entity-search-spinner');
-        var $searchFeedback = $('#cpb-entity-search-feedback');
-        var $clearSearchButton = $('#cpb-entity-search-clear');
-        var placeholderMap = cpbAdmin.placeholderMap || {};
-        var placeholderList = Array.isArray(cpbAdmin.placeholders) ? cpbAdmin.placeholders : [];
-        var entityFields = Array.isArray(cpbAdmin.entityFields) ? cpbAdmin.entityFields : [];
+        var $entityFeedback = $('#teqcidb-entity-feedback');
+        var $searchForm = $('#teqcidb-student-search');
+        var $searchSpinner = $('#teqcidb-entity-search-spinner');
+        var $searchFeedback = $('#teqcidb-entity-search-feedback');
+        var $clearSearchButton = $('#teqcidb-entity-search-clear');
+        var placeholderMap = teqcidbAdmin.placeholderMap || {};
+        var placeholderList = Array.isArray(teqcidbAdmin.placeholders) ? teqcidbAdmin.placeholders : [];
+        var entityFields = Array.isArray(teqcidbAdmin.entityFields) ? teqcidbAdmin.entityFields : [];
         var pendingFeedbackMessage = '';
         var currentPage = 1;
         var emptyValue = '—';
@@ -336,7 +336,7 @@ jQuery(document).ready(function($){
             var fieldName = field.name;
             var stringValue = value === null || typeof value === 'undefined' ? '' : value;
             var baseId = fieldName + '-' + entityId;
-            var addAnotherLabel = cpbAdmin.addAnotherItem || '+ Add Another Item';
+            var addAnotherLabel = teqcidbAdmin.addAnotherItem || '+ Add Another Item';
 
             switch (type){
                 case 'select':
@@ -365,7 +365,7 @@ jQuery(document).ready(function($){
                     var $stateSelect = $('<select/>', { name: fieldName });
                     var placeholderOption = $('<option/>', {
                         value: '',
-                        text: cpbAdmin.makeSelection || ''
+                        text: teqcidbAdmin.makeSelection || ''
                     }).prop('disabled', true);
 
                     if (!stringValue){
@@ -391,7 +391,7 @@ jQuery(document).ready(function($){
 
                     Object.keys(radioOptions).forEach(function(optionValue){
                         var option = radioOptions[optionValue] || {};
-                        var $label = $('<label/>', { 'class': 'cpb-radio-option' });
+                        var $label = $('<label/>', { 'class': 'teqcidb-radio-option' });
                         var $input = $('<input/>', {
                             type: 'radio',
                             name: fieldName,
@@ -405,7 +405,7 @@ jQuery(document).ready(function($){
                         $label.append($input);
                         $label.append(' ');
                         $label.append($('<span/>', {
-                            'class': 'cpb-tooltip-icon dashicons dashicons-editor-help',
+                            'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
                             'data-tooltip': option.tooltip || ''
                         }));
                         $label.append(document.createTextNode(option.label || ''));
@@ -419,7 +419,7 @@ jQuery(document).ready(function($){
                     optInOptions.forEach(function(option){
                         var optionName = option.name || '';
                         var isChecked = entity && (entity[optionName] === '1' || entity[optionName] === 1 || entity[optionName] === true);
-                        var $label = $('<label/>', { 'class': 'cpb-opt-in-option' });
+                        var $label = $('<label/>', { 'class': 'teqcidb-opt-in-option' });
                         var $input = $('<input/>', {
                             type: 'checkbox',
                             name: optionName,
@@ -433,7 +433,7 @@ jQuery(document).ready(function($){
                         $label.append($input);
                         $label.append(' ');
                         $label.append($('<span/>', {
-                            'class': 'cpb-tooltip-icon dashicons dashicons-editor-help',
+                            'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
                             'data-tooltip': option.tooltip || ''
                         }));
                         $label.append(document.createTextNode(option.label || ''));
@@ -446,7 +446,7 @@ jQuery(document).ready(function($){
                     var containerId = baseId + '-container';
                     var $itemsContainer = $('<div/>', {
                         id: containerId,
-                        'class': 'cpb-items-container',
+                        'class': 'teqcidb-items-container',
                         'data-placeholder': fieldName
                     });
                     var items = parseItemsValue(stringValue);
@@ -457,21 +457,21 @@ jQuery(document).ready(function($){
 
                     items.forEach(function(itemValue, index){
                         var $row = $('<div/>', {
-                            'class': 'cpb-item-row',
+                            'class': 'teqcidb-item-row',
                             style: 'margin-bottom:8px; display:flex; align-items:center;'
                         });
-                        var placeholderText = cpbAdmin.itemPlaceholder ? formatString(cpbAdmin.itemPlaceholder, index + 1) : '';
+                        var placeholderText = teqcidbAdmin.itemPlaceholder ? formatString(teqcidbAdmin.itemPlaceholder, index + 1) : '';
                         var $input = $('<input/>', {
                             type: 'text',
                             name: fieldName + '[]',
-                            'class': 'regular-text cpb-item-field',
+                            'class': 'regular-text teqcidb-item-field',
                             placeholder: placeholderText,
                             value: itemValue
                         });
                         $row.append($input);
                         var $removeButton = $('<button/>', {
                             type: 'button',
-                            'class': 'cpb-delete-item',
+                            'class': 'teqcidb-delete-item',
                             'aria-label': 'Remove',
                             style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
                         }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
@@ -483,7 +483,7 @@ jQuery(document).ready(function($){
 
                     var $addButton = $('<button/>', {
                         type: 'button',
-                        'class': 'button cpb-add-item',
+                        'class': 'button teqcidb-add-item',
                         'data-target': '#' + containerId,
                         'data-field-name': fieldName,
                         style: 'margin-top:8px;'
@@ -501,9 +501,9 @@ jQuery(document).ready(function($){
                     });
                     var $button = $('<button/>', {
                         type: 'button',
-                        'class': 'button cpb-upload',
+                        'class': 'button teqcidb-upload',
                         'data-target': '#' + inputId
-                    }).text(cpbAdmin.mediaTitle);
+                    }).text(teqcidbAdmin.mediaTitle);
                     var previewId = inputId + '-preview';
                     var $preview = $('<div/>', {
                         id: previewId,
@@ -526,7 +526,7 @@ jQuery(document).ready(function($){
                     var $textarea = $('<textarea/>', {
                         name: fieldName,
                         id: editorId,
-                        'class': 'cpb-editor-field'
+                        'class': 'teqcidb-editor-field'
                     }).val(stringValue);
                     $container.append($textarea);
                     break;
@@ -551,10 +551,10 @@ jQuery(document).ready(function($){
         function buildEntityForm(entity){
             var entityId = entity && entity.id ? entity.id : 0;
             var $form = $('<form/>', {
-                'class': 'cpb-entity-edit-form',
+                'class': 'teqcidb-entity-edit-form',
                 'data-entity-id': entityId
             });
-            var $flex = $('<div/>', { 'class': 'cpb-flex-form' });
+            var $flex = $('<div/>', { 'class': 'teqcidb-flex-form' });
 
             $form.append($('<input/>', { type: 'hidden', name: 'id', value: entityId }));
             $form.append($('<input/>', { type: 'hidden', name: 'name', value: entity && entity.name ? entity.name : '' }));
@@ -565,17 +565,17 @@ jQuery(document).ready(function($){
                 }
 
                 var value = getFieldValue(entity, field.name);
-                var fieldClasses = 'cpb-field';
+                var fieldClasses = 'teqcidb-field';
 
                 if (field.fullWidth){
-                    fieldClasses += ' cpb-field-full';
+                    fieldClasses += ' teqcidb-field-full';
                 }
 
                 var $fieldWrapper = $('<div/>', { 'class': fieldClasses });
                 var $label = $('<label/>');
 
                 $label.append($('<span/>', {
-                    'class': 'cpb-tooltip-icon dashicons dashicons-editor-help',
+                    'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
                     'data-tooltip': field.tooltip || ''
                 }));
                 $label.append(document.createTextNode(field.label || ''));
@@ -586,19 +586,19 @@ jQuery(document).ready(function($){
 
             $form.append($flex);
 
-            var $actions = $('<p/>', { 'class': 'cpb-entity__actions submit' });
+            var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
             var $saveButton = $('<button/>', {
                 type: 'submit',
-                'class': 'button button-primary cpb-entity-save'
-            }).text(cpbAdmin.saveChanges || 'Save Changes');
+                'class': 'button button-primary teqcidb-entity-save'
+            }).text(teqcidbAdmin.saveChanges || 'Save Changes');
             var $deleteButton = $('<button/>', {
                 type: 'button',
-                'class': 'button button-secondary cpb-delete',
+                'class': 'button button-secondary teqcidb-delete',
                 'data-id': entityId
-            }).text(cpbAdmin.delete);
-            var $feedbackArea = $('<span/>', { 'class': 'cpb-feedback-area cpb-feedback-area--inline' });
-            var $spinner = $('<span/>', { 'class': 'spinner cpb-entity-spinner', 'aria-hidden': 'true' });
-            var $feedback = $('<span/>', { 'class': 'cpb-entity-feedback', 'role': 'status', 'aria-live': 'polite' });
+            }).text(teqcidbAdmin.delete);
+            var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
+            var $spinner = $('<span/>', { 'class': 'spinner teqcidb-entity-spinner', 'aria-hidden': 'true' });
+            var $feedback = $('<span/>', { 'class': 'teqcidb-entity-feedback', 'role': 'status', 'aria-live': 'polite' });
             $feedbackArea.append($spinner).append($feedback);
             $actions.append($saveButton).append(' ').append($deleteButton).append($feedbackArea);
             $form.append($actions);
@@ -623,24 +623,24 @@ jQuery(document).ready(function($){
 
             var totalPagesSafe = totalPages && totalPages > 0 ? totalPages : 1;
             var pageSafe = page && page > 0 ? page : 1;
-            var html = '<span class="displaying-num">' + formatString(cpbAdmin.totalRecords, total) + '</span>';
+            var html = '<span class="displaying-num">' + formatString(teqcidbAdmin.totalRecords, total) + '</span>';
 
             if (totalPagesSafe > 1){
                 html += '<span class="pagination-links">';
 
                 if (pageSafe > 1){
-                    html += '<a class="first-page button cpb-entity-page" href="#" data-page="1"><span class="screen-reader-text">' + cpbAdmin.firstPage + '</span><span aria-hidden="true">&laquo;</span></a>';
-                    html += '<a class="prev-page button cpb-entity-page" href="#" data-page="' + (pageSafe - 1) + '"><span class="screen-reader-text">' + cpbAdmin.prevPage + '</span><span aria-hidden="true">&lsaquo;</span></a>';
+                    html += '<a class="first-page button teqcidb-entity-page" href="#" data-page="1"><span class="screen-reader-text">' + teqcidbAdmin.firstPage + '</span><span aria-hidden="true">&laquo;</span></a>';
+                    html += '<a class="prev-page button teqcidb-entity-page" href="#" data-page="' + (pageSafe - 1) + '"><span class="screen-reader-text">' + teqcidbAdmin.prevPage + '</span><span aria-hidden="true">&lsaquo;</span></a>';
                 } else {
                     html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>';
                     html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>';
                 }
 
-                html += '<span class="tablenav-paging-text">' + formatString(cpbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
+                html += '<span class="tablenav-paging-text">' + formatString(teqcidbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
 
                 if (pageSafe < totalPagesSafe){
-                    html += '<a class="next-page button cpb-entity-page" href="#" data-page="' + (pageSafe + 1) + '"><span class="screen-reader-text">' + cpbAdmin.nextPage + '</span><span aria-hidden="true">&rsaquo;</span></a>';
-                    html += '<a class="last-page button cpb-entity-page" href="#" data-page="' + totalPagesSafe + '"><span class="screen-reader-text">' + cpbAdmin.lastPage + '</span><span aria-hidden="true">&raquo;</span></a>';
+                    html += '<a class="next-page button teqcidb-entity-page" href="#" data-page="' + (pageSafe + 1) + '"><span class="screen-reader-text">' + teqcidbAdmin.nextPage + '</span><span aria-hidden="true">&rsaquo;</span></a>';
+                    html += '<a class="last-page button teqcidb-entity-page" href="#" data-page="' + totalPagesSafe + '"><span class="screen-reader-text">' + teqcidbAdmin.lastPage + '</span><span aria-hidden="true">&raquo;</span></a>';
                 } else {
                     html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>';
                     html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>';
@@ -648,7 +648,7 @@ jQuery(document).ready(function($){
 
                 html += '</span>';
             } else {
-                html += '<span class="tablenav-paging-text">' + formatString(cpbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
+                html += '<span class="tablenav-paging-text">' + formatString(teqcidbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
             }
 
             $pagination.html(html);
@@ -668,7 +668,7 @@ jQuery(document).ready(function($){
 
             if (!entities.length){
                 var $emptyRow = $('<tr class="no-items"></tr>');
-                var $emptyCell = $('<td/>').attr('colspan', columnCount).text(cpbAdmin.none);
+                var $emptyCell = $('<td/>').attr('colspan', columnCount).text(teqcidbAdmin.none);
                 $emptyRow.append($emptyCell);
                 $entityTableBody.append($emptyRow);
                 updatePagination(total, totalPages, currentPage);
@@ -677,20 +677,20 @@ jQuery(document).ready(function($){
 
             entities.forEach(function(entity){
                 var entityId = entity.id || 0;
-                var headerId = 'cpb-entity-' + entityId + '-header';
-                var panelId = 'cpb-entity-' + entityId + '-panel';
+                var headerId = 'teqcidb-entity-' + entityId + '-header';
+                var panelId = 'teqcidb-entity-' + entityId + '-panel';
 
                 var $summaryRow = $('<tr/>', {
                     id: headerId,
-                    'class': 'cpb-accordion__summary-row',
+                    'class': 'teqcidb-accordion__summary-row',
                     tabindex: 0,
                     role: 'button',
                     'aria-expanded': 'false',
                     'aria-controls': panelId
                 });
 
-                var $titleCell = $('<td/>', {'class': 'cpb-accordion__cell cpb-accordion__cell--title'});
-                var $titleText = $('<span/>', {'class': 'cpb-accordion__title-text'}).text(formatValue(entity.placeholder_1));
+                var $titleCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--title'});
+                var $titleText = $('<span/>', {'class': 'teqcidb-accordion__title-text'}).text(formatValue(entity.placeholder_1));
                 $titleCell.append($titleText);
                 $summaryRow.append($titleCell);
 
@@ -698,19 +698,19 @@ jQuery(document).ready(function($){
                     var label = getPlaceholderLabel(index);
                     var valueKey = 'placeholder_' + index;
                     var value = formatValue(entity[valueKey]);
-                    var $metaCell = $('<td/>', {'class': 'cpb-accordion__cell cpb-accordion__cell--meta'});
-                    var $metaText = $('<span/>', {'class': 'cpb-accordion__meta-text'});
-                    $metaText.append($('<span/>', {'class': 'cpb-accordion__meta-label'}).text(label + ':'));
+                    var $metaCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--meta'});
+                    var $metaText = $('<span/>', {'class': 'teqcidb-accordion__meta-text'});
+                    $metaText.append($('<span/>', {'class': 'teqcidb-accordion__meta-label'}).text(label + ':'));
                     $metaText.append(' ');
-                    $metaText.append($('<span/>', {'class': 'cpb-accordion__meta-value'}).text(value));
+                    $metaText.append($('<span/>', {'class': 'teqcidb-accordion__meta-value'}).text(value));
                     $metaCell.append($metaText);
                     $summaryRow.append($metaCell);
                 }
 
-                var $actionsCell = $('<td/>', {'class': 'cpb-accordion__cell cpb-accordion__cell--actions'});
-                var $editText = $('<span/>', {'class': 'cpb-accordion__action-link', 'aria-hidden': 'true'}).text(cpbAdmin.editAction);
-                var $icon = $('<span/>', {'class': 'dashicons dashicons-arrow-down-alt2 cpb-accordion__icon', 'aria-hidden': 'true'});
-                var $srText = $('<span/>', {'class': 'screen-reader-text'}).text(cpbAdmin.toggleDetails);
+                var $actionsCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--actions'});
+                var $editText = $('<span/>', {'class': 'teqcidb-accordion__action-link', 'aria-hidden': 'true'}).text(teqcidbAdmin.editAction);
+                var $icon = $('<span/>', {'class': 'dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon', 'aria-hidden': 'true'});
+                var $srText = $('<span/>', {'class': 'screen-reader-text'}).text(teqcidbAdmin.toggleDetails);
                 $actionsCell.append($editText);
                 $actionsCell.append($icon).append($srText);
                 $summaryRow.append($actionsCell);
@@ -718,14 +718,14 @@ jQuery(document).ready(function($){
 
                 var $panelRow = $('<tr/>', {
                     id: panelId,
-                    'class': 'cpb-accordion__panel-row',
+                    'class': 'teqcidb-accordion__panel-row',
                     role: 'region',
                     'aria-labelledby': headerId,
                     'aria-hidden': 'true'
                 }).hide();
 
                 var $panelCell = $('<td/>').attr('colspan', columnCount);
-                var $panel = $('<div/>', {'class': 'cpb-accordion__panel'}).hide();
+                var $panel = $('<div/>', {'class': 'teqcidb-accordion__panel'}).hide();
                 var $form = buildEntityForm(entity);
 
                 $panel.append($form);
@@ -737,7 +737,7 @@ jQuery(document).ready(function($){
             updatePagination(total, totalPages, currentPage);
 
             if (typeof wp !== 'undefined' && wp.editor && typeof wp.editor.initialize === 'function'){
-                $entityTableBody.find('.cpb-editor-field').each(function(){
+                $entityTableBody.find('.teqcidb-editor-field').each(function(){
                     var editorId = $(this).attr('id');
 
                     if (!editorId){
@@ -752,7 +752,7 @@ jQuery(document).ready(function($){
                         }
                     }
 
-                    var editorSettings = $.extend(true, {}, cpbAdmin.editorSettings || {});
+                    var editorSettings = $.extend(true, {}, teqcidbAdmin.editorSettings || {});
 
                     if (typeof editorSettings.tinymce === 'undefined'){
                         editorSettings.tinymce = true;
@@ -773,9 +773,9 @@ jQuery(document).ready(function($){
             clearSearchFeedback();
             setSearchLoading(true);
 
-            $.post(cpbAjax.ajaxurl, {
-                action: 'cpb_read_main_entity',
-                _ajax_nonce: cpbAjax.nonce,
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_read_student',
+                _ajax_nonce: teqcidbAjax.nonce,
                 page: targetPage,
                 per_page: perPage,
                 search: {
@@ -793,18 +793,18 @@ jQuery(document).ready(function($){
                         }
 
                         if (isSearchActive()){
-                            showSearchFeedback(cpbAdmin.searchFiltersApplied || '');
+                            showSearchFeedback(teqcidbAdmin.searchFiltersApplied || '');
                         } else {
                             clearSearchFeedback();
                         }
                     } else {
-                        showFeedback(cpbAdmin.loadError || cpbAdmin.error);
-                        showSearchFeedback(cpbAdmin.loadError || cpbAdmin.error);
+                        showFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                        showSearchFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
                     }
                 })
                 .fail(function(){
-                    showFeedback(cpbAdmin.loadError || cpbAdmin.error);
-                    showSearchFeedback(cpbAdmin.loadError || cpbAdmin.error);
+                    showFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                    showSearchFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
                     pendingFeedbackMessage = '';
                 })
                 .always(function(){
@@ -815,7 +815,7 @@ jQuery(document).ready(function($){
         fetchEntities(1);
 
         if ($pagination.length){
-            $pagination.on('click', '.cpb-entity-page', function(e){
+            $pagination.on('click', '.teqcidb-entity-page', function(e){
                 e.preventDefault();
                 var targetPage = parseInt($(this).data('page'), 10);
 
@@ -877,13 +877,13 @@ jQuery(document).ready(function($){
             });
         }
 
-        $entityTableBody.on('submit', '.cpb-entity-edit-form', function(e){
+        $entityTableBody.on('submit', '.teqcidb-entity-edit-form', function(e){
             e.preventDefault();
             e.stopPropagation();
 
             var $form = $(this);
-            var $spinner = $form.find('.cpb-entity-spinner');
-            var $feedback = $form.find('.cpb-entity-feedback');
+            var $spinner = $form.find('.teqcidb-entity-spinner');
+            var $feedback = $form.find('.teqcidb-entity-feedback');
 
             if ($spinner.length){
                 $spinner.addClass('is-active');
@@ -894,15 +894,15 @@ jQuery(document).ready(function($){
             }
 
             var formData = $form.serialize();
-            formData += '&action=cpb_save_main_entity&_ajax_nonce=' + encodeURIComponent(cpbAjax.nonce);
+            formData += '&action=teqcidb_save_student&_ajax_nonce=' + encodeURIComponent(teqcidbAjax.nonce);
 
-            $.post(cpbAjax.ajaxurl, formData)
+            $.post(teqcidbAjax.ajaxurl, formData)
                 .done(function(resp){
                     if (resp && resp.success){
                         pendingFeedbackMessage = resp.data && resp.data.message ? resp.data.message : '';
                         fetchEntities(currentPage);
                     } else {
-                        var message = resp && resp.data && resp.data.message ? resp.data.message : (cpbAdmin.error || '');
+                        var message = resp && resp.data && resp.data.message ? resp.data.message : (teqcidbAdmin.error || '');
 
                         if ($feedback.length && message){
                             $feedback.text(message).addClass('is-visible');
@@ -910,8 +910,8 @@ jQuery(document).ready(function($){
                     }
                 })
                 .fail(function(){
-                    if ($feedback.length && cpbAdmin.error){
-                        $feedback.text(cpbAdmin.error).addClass('is-visible');
+                    if ($feedback.length && teqcidbAdmin.error){
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                     }
                 })
                 .always(function(){
@@ -923,7 +923,7 @@ jQuery(document).ready(function($){
                 });
         });
 
-        $entityTableBody.on('click', '.cpb-delete', function(e){
+        $entityTableBody.on('click', '.teqcidb-delete', function(e){
             e.preventDefault();
             e.stopPropagation();
             var id = $(this).data('id');
@@ -934,36 +934,36 @@ jQuery(document).ready(function($){
 
             clearFeedback();
 
-            $.post(cpbAjax.ajaxurl, {
-                action: 'cpb_delete_main_entity',
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_delete_student',
                 id: id,
-                _ajax_nonce: cpbAjax.nonce
+                _ajax_nonce: teqcidbAjax.nonce
             })
                 .done(function(resp){
                     if (resp && resp.success){
                         pendingFeedbackMessage = resp.data && resp.data.message ? resp.data.message : '';
                         fetchEntities(currentPage);
                     } else {
-                        showFeedback(cpbAdmin.error);
+                        showFeedback(teqcidbAdmin.error);
                     }
                 })
                 .fail(function(){
-                    showFeedback(cpbAdmin.error);
+                    showFeedback(teqcidbAdmin.error);
                 });
         });
     }
 
-    $('.cpb-accordion').on('click','.item-header',function(){
+    $('.teqcidb-accordion').on('click','.item-header',function(){
         $(this).next('.item-content').slideToggle();
         $(this).parent().toggleClass('open');
     });
 
-    $(document).on('click', '.cpb-api-settings__toggle-visibility', function(e){
+    $(document).on('click', '.teqcidb-api-settings__toggle-visibility', function(e){
         e.preventDefault();
 
         var $button = $(this);
         var targetSelector = $button.data('target');
-        var $input = targetSelector ? $(targetSelector) : $button.closest('.cpb-api-settings__input-group').find('input').first();
+        var $input = targetSelector ? $(targetSelector) : $button.closest('.teqcidb-api-settings__input-group').find('input').first();
 
         if (!$input.length) {
             return;
@@ -993,14 +993,14 @@ jQuery(document).ready(function($){
     });
 
     function initAccordionGroups(){
-        $('[data-cpb-accordion-group]').each(function(){
+        $('[data-teqcidb-accordion-group]').each(function(){
             var $group = $(this);
 
-            if ($group.data('cpbAccordionInitialized')) {
+            if ($group.data('teqcidbAccordionInitialized')) {
                 return;
             }
 
-            $group.data('cpbAccordionInitialized', true);
+            $group.data('teqcidbAccordionInitialized', true);
 
             function closeRow($summary, $panelRow){
                 if (!$summary.length || !$panelRow.length) {
@@ -1009,7 +1009,7 @@ jQuery(document).ready(function($){
 
                 $summary.removeClass('is-open').attr('aria-expanded', 'false');
 
-                var $panel = $panelRow.find('.cpb-accordion__panel');
+                var $panel = $panelRow.find('.teqcidb-accordion__panel');
 
                 $panel.stop(true, true).slideUp(200, function(){
                     $panelRow.hide();
@@ -1031,7 +1031,7 @@ jQuery(document).ready(function($){
                     return;
                 }
 
-                $group.find('.cpb-accordion__summary-row.is-open').each(function(){
+                $group.find('.teqcidb-accordion__summary-row.is-open').each(function(){
                     var $openSummary = $(this);
                     var openPanelId = $openSummary.attr('aria-controls');
                     var $openPanelRow = $('#' + openPanelId);
@@ -1041,10 +1041,10 @@ jQuery(document).ready(function($){
 
                 $summary.addClass('is-open').attr('aria-expanded', 'true');
                 $panelRow.show().attr('aria-hidden', 'false');
-                $panelRow.find('.cpb-accordion__panel').stop(true, true).slideDown(200);
+                $panelRow.find('.teqcidb-accordion__panel').stop(true, true).slideDown(200);
             }
 
-            $group.find('.cpb-accordion__summary-row').each(function(){
+            $group.find('.teqcidb-accordion__summary-row').each(function(){
                 var $summary = $(this);
                 var panelId = $summary.attr('aria-controls');
                 var $panelRow = $('#' + panelId);
@@ -1055,10 +1055,10 @@ jQuery(document).ready(function($){
 
                 $summary.removeClass('is-open').attr('aria-expanded', 'false');
                 $panelRow.hide().attr('aria-hidden', 'true');
-                $panelRow.find('.cpb-accordion__panel').hide();
+                $panelRow.find('.teqcidb-accordion__panel').hide();
             });
 
-            $group.on('click', '.cpb-accordion__summary-row', function(e){
+            $group.on('click', '.teqcidb-accordion__summary-row', function(e){
                 if ($(e.target).closest('a, button, input, textarea, select, label').length) {
                     return;
                 }
@@ -1066,7 +1066,7 @@ jQuery(document).ready(function($){
                 toggleRow($(this));
             });
 
-            $group.on('keydown', '.cpb-accordion__summary-row', function(e){
+            $group.on('keydown', '.teqcidb-accordion__summary-row', function(e){
                 var key = e.key || e.keyCode;
 
                 if (key === 'Enter' || key === ' ' || key === 13 || key === 32) {
@@ -1079,34 +1079,34 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
-    $(document).on('click', '.cpb-add-item', function(e){
+    $(document).on('click', '.teqcidb-add-item', function(e){
         e.preventDefault();
         e.stopPropagation();
 
         var $button = $(this);
         var targetSelector = $button.data('target');
-        var $container = targetSelector ? $(targetSelector) : $button.closest('.cpb-field').find('.cpb-items-container').first();
+        var $container = targetSelector ? $(targetSelector) : $button.closest('.teqcidb-field').find('.teqcidb-items-container').first();
 
         if (!$container.length){
             return;
         }
 
         var fieldName = $button.data('field-name') || $container.data('placeholder') || 'placeholder_25';
-        var count = $container.find('.cpb-item-row').length + 1;
-        var placeholderText = cpbAdmin.itemPlaceholder ? formatString(cpbAdmin.itemPlaceholder, count) : '';
+        var count = $container.find('.teqcidb-item-row').length + 1;
+        var placeholderText = teqcidbAdmin.itemPlaceholder ? formatString(teqcidbAdmin.itemPlaceholder, count) : '';
         var $row = $('<div/>', {
-            'class': 'cpb-item-row',
+            'class': 'teqcidb-item-row',
             style: 'margin-bottom:8px; display:flex; align-items:center;'
         });
         var $input = $('<input/>', {
             type: 'text',
             name: fieldName + '[]',
-            'class': 'regular-text cpb-item-field',
+            'class': 'regular-text teqcidb-item-field',
             placeholder: placeholderText
         });
         var $removeButton = $('<button/>', {
             type: 'button',
-            'class': 'cpb-delete-item',
+            'class': 'teqcidb-delete-item',
             'aria-label': 'Remove',
             style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
         }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
@@ -1115,20 +1115,20 @@ jQuery(document).ready(function($){
         $container.append($row);
     });
 
-    $(document).on('click', '.cpb-delete-item', function(e){
+    $(document).on('click', '.teqcidb-delete-item', function(e){
         e.preventDefault();
         e.stopPropagation();
 
-        var $row = $(this).closest('.cpb-item-row');
-        var $container = $row.parent('.cpb-items-container');
+        var $row = $(this).closest('.teqcidb-item-row');
+        var $container = $row.parent('.teqcidb-items-container');
         $row.remove();
 
-        if ($container && $container.length && cpbAdmin.itemPlaceholder){
-            $container.find('.cpb-item-row').each(function(index){
-                var $input = $(this).find('.cpb-item-field');
+        if ($container && $container.length && teqcidbAdmin.itemPlaceholder){
+            $container.find('.teqcidb-item-row').each(function(index){
+                var $input = $(this).find('.teqcidb-item-field');
 
                 if ($input.length){
-                    $input.attr('placeholder', formatString(cpbAdmin.itemPlaceholder, index + 1));
+                    $input.attr('placeholder', formatString(teqcidbAdmin.itemPlaceholder, index + 1));
                 }
             });
         }
@@ -1151,10 +1151,10 @@ jQuery(document).ready(function($){
             return $activeTokenTarget;
         }
 
-        var $editor = $button.closest('.cpb-template-editor');
+        var $editor = $button.closest('.teqcidb-template-editor');
 
         if ($editor.length){
-            var $fallback = $editor.find('.cpb-token-target').first();
+            var $fallback = $editor.find('.teqcidb-token-target').first();
 
             if ($fallback.length){
                 return $fallback;
@@ -1208,11 +1208,11 @@ jQuery(document).ready(function($){
         }
     }
 
-    $(document).on('focus', '.cpb-token-target', function(){
+    $(document).on('focus', '.teqcidb-token-target', function(){
         $activeTokenTarget = $(this);
     });
 
-    $(document).on('click', '.cpb-token-button', function(e){
+    $(document).on('click', '.teqcidb-token-button', function(e){
         e.preventDefault();
 
         var $button = $(this);
@@ -1222,11 +1222,11 @@ jQuery(document).ready(function($){
         insertTokenIntoField($target, token);
     });
 
-    var previewEntity = cpbAdmin.previewEntity || {};
-    var previewEmptyMessage = cpbAdmin.previewEmptyMessage || '';
-    var previewUnavailableMessage = cpbAdmin.previewUnavailableMessage || '';
-    var testEmailRequired = cpbAdmin.testEmailRequired || '';
-    var testEmailSuccess = cpbAdmin.testEmailSuccess || '';
+    var previewEntity = teqcidbAdmin.previewEntity || {};
+    var previewEmptyMessage = teqcidbAdmin.previewEmptyMessage || '';
+    var previewUnavailableMessage = teqcidbAdmin.previewUnavailableMessage || '';
+    var testEmailRequired = teqcidbAdmin.testEmailRequired || '';
+    var testEmailSuccess = teqcidbAdmin.testEmailSuccess || '';
     var previewEntityKeys = Object.keys(previewEntity);
     var previewHasEntity = previewEntityKeys.length > 0;
 
@@ -1261,8 +1261,8 @@ jQuery(document).ready(function($){
             return;
         }
 
-        var $notice = $editor.find('.cpb-template-preview__notice');
-        var $content = $editor.find('.cpb-template-preview__content');
+        var $notice = $editor.find('.teqcidb-template-preview__notice');
+        var $content = $editor.find('.teqcidb-template-preview__content');
 
         if (!$content.length || !$notice.length){
             return;
@@ -1309,7 +1309,7 @@ jQuery(document).ready(function($){
         }
     }
 
-    $(document).on('click', '.cpb-template-test-send', function(e){
+    $(document).on('click', '.teqcidb-template-test-send', function(e){
         e.preventDefault();
 
         var $button = $(this);
@@ -1319,7 +1319,7 @@ jQuery(document).ready(function($){
         }
 
         var templateId = $button.data('template');
-        var $editor = $button.closest('.cpb-template-editor');
+        var $editor = $button.closest('.teqcidb-template-editor');
 
         if (!templateId || !$editor.length){
             return;
@@ -1328,9 +1328,9 @@ jQuery(document).ready(function($){
         var spinnerSelector = $button.data('spinner');
         var feedbackSelector = $button.data('feedback');
         var emailInputSelector = $button.data('emailInput') || $button.data('email-input');
-        var $spinner = spinnerSelector ? $(spinnerSelector) : $editor.find('.cpb-template-spinner').first();
-        var $feedback = feedbackSelector ? $(feedbackSelector) : $editor.find('.cpb-template-feedback').first();
-        var $emailInput = emailInputSelector ? $(emailInputSelector) : $editor.find('.cpb-template-test-email').first();
+        var $spinner = spinnerSelector ? $(spinnerSelector) : $editor.find('.teqcidb-template-spinner').first();
+        var $feedback = feedbackSelector ? $(feedbackSelector) : $editor.find('.teqcidb-template-feedback').first();
+        var $emailInput = emailInputSelector ? $(emailInputSelector) : $editor.find('.teqcidb-template-test-email').first();
         var emailValue = $emailInput.length ? $emailInput.val() : '';
 
         emailValue = emailValue ? emailValue.trim() : '';
@@ -1338,8 +1338,8 @@ jQuery(document).ready(function($){
         if (!emailValue){
             if (testEmailRequired){
                 window.alert(testEmailRequired);
-            } else if (typeof cpbAdmin !== 'undefined' && cpbAdmin.error){
-                window.alert(cpbAdmin.error);
+            } else if (typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.error){
+                window.alert(teqcidbAdmin.error);
             } else {
                 window.alert('Please enter an email address.');
             }
@@ -1362,8 +1362,8 @@ jQuery(document).ready(function($){
         $button.prop('disabled', true);
 
         var payload = {
-            action: 'cpb_send_test_email',
-            _ajax_nonce: cpbAjax.nonce,
+            action: 'teqcidb_send_test_email',
+            _ajax_nonce: teqcidbAjax.nonce,
             template_id: templateId,
             to_email: emailValue,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
@@ -1372,7 +1372,7 @@ jQuery(document).ready(function($){
             body: $editor.find('[data-token-context="body"]').first().val() || ''
         };
 
-        $.post(cpbAjax.ajaxurl, payload)
+        $.post(teqcidbAjax.ajaxurl, payload)
             .done(function(response){
                 var isSuccess = response && response.success;
                 var message = '';
@@ -1389,8 +1389,8 @@ jQuery(document).ready(function($){
                     message = testEmailSuccess;
                 }
 
-                if (!isSuccess && !message && typeof cpbAdmin !== 'undefined' && cpbAdmin.error){
-                    message = cpbAdmin.error;
+                if (!isSuccess && !message && typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.error){
+                    message = teqcidbAdmin.error;
                 }
 
                 if ($feedback.length){
@@ -1402,8 +1402,8 @@ jQuery(document).ready(function($){
                 }
             })
             .fail(function(){
-                if ($feedback.length && typeof cpbAdmin !== 'undefined' && cpbAdmin.error){
-                    $feedback.text(cpbAdmin.error).addClass('is-visible');
+                if ($feedback.length && typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.error){
+                    $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                 }
             })
             .always(function(){
@@ -1417,7 +1417,7 @@ jQuery(document).ready(function($){
             });
     });
 
-    $(document).on('click', '.cpb-template-save', function(e){
+    $(document).on('click', '.teqcidb-template-save', function(e){
         e.preventDefault();
 
         var $button = $(this);
@@ -1427,7 +1427,7 @@ jQuery(document).ready(function($){
         }
 
         var templateId = $button.data('template');
-        var $editor = $button.closest('.cpb-template-editor');
+        var $editor = $button.closest('.teqcidb-template-editor');
 
         if (!templateId || !$editor.length){
             return;
@@ -1435,8 +1435,8 @@ jQuery(document).ready(function($){
 
         var spinnerSelector = $button.data('spinner');
         var feedbackSelector = $button.data('feedback');
-        var $spinner = spinnerSelector ? $(spinnerSelector) : $editor.find('.cpb-template-spinner').first();
-        var $feedback = feedbackSelector ? $(feedbackSelector) : $editor.find('.cpb-template-feedback').first();
+        var $spinner = spinnerSelector ? $(spinnerSelector) : $editor.find('.teqcidb-template-spinner').first();
+        var $feedback = feedbackSelector ? $(feedbackSelector) : $editor.find('.teqcidb-template-feedback').first();
 
         if ($feedback.length){
             $feedback.removeClass('is-visible').text('');
@@ -1449,8 +1449,8 @@ jQuery(document).ready(function($){
         $button.prop('disabled', true);
 
         var payload = {
-            action: 'cpb_save_email_template',
-            _ajax_nonce: cpbAjax.nonce,
+            action: 'teqcidb_save_email_template',
+            _ajax_nonce: teqcidbAjax.nonce,
             template_id: templateId,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
             from_email: $editor.find('[data-template-field="from_email"]').first().val() || '',
@@ -1459,7 +1459,7 @@ jQuery(document).ready(function($){
             sms: $editor.find('[data-token-context="sms"]').first().val() || ''
         };
 
-        $.post(cpbAjax.ajaxurl, payload)
+        $.post(teqcidbAjax.ajaxurl, payload)
             .done(function(response){
                 var isSuccess = response && response.success;
                 var message = '';
@@ -1472,8 +1472,8 @@ jQuery(document).ready(function($){
                     }
                 }
 
-                if (!isSuccess && !message && typeof cpbAdmin !== 'undefined' && cpbAdmin.error){
-                    message = cpbAdmin.error;
+                if (!isSuccess && !message && typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.error){
+                    message = teqcidbAdmin.error;
                 }
 
                 if ($feedback.length){
@@ -1489,8 +1489,8 @@ jQuery(document).ready(function($){
                 }
             })
             .fail(function(){
-                if ($feedback.length && typeof cpbAdmin !== 'undefined' && cpbAdmin.error){
-                    $feedback.text(cpbAdmin.error).addClass('is-visible');
+                if ($feedback.length && typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.error){
+                    $feedback.text(teqcidbAdmin.error).addClass('is-visible');
                 }
             })
             .always(function(){
@@ -1504,7 +1504,7 @@ jQuery(document).ready(function($){
             });
     });
 
-    $(document).on('click', '.cpb-email-log__clear', function(e){
+    $(document).on('click', '.teqcidb-email-log__clear', function(e){
         e.preventDefault();
 
         var $button = $(this);
@@ -1516,27 +1516,27 @@ jQuery(document).ready(function($){
         var spinnerSelector = $button.data('spinner');
         var feedbackSelector = $button.data('feedback');
         var $spinner = spinnerSelector ? $(spinnerSelector) : $button.siblings('.spinner').first();
-        var $feedback = feedbackSelector ? $(feedbackSelector) : $button.siblings('.cpb-email-log__feedback').first();
-        var $list = $('#cpb-email-log-list');
-        var $empty = $('#cpb-email-log-empty');
+        var $feedback = feedbackSelector ? $(feedbackSelector) : $button.siblings('.teqcidb-email-log__feedback').first();
+        var $list = $('#teqcidb-email-log-list');
+        var $empty = $('#teqcidb-email-log-empty');
         var emptyMessage = '';
 
         if ($list.length){
             emptyMessage = $list.data('emptyMessage');
         }
 
-        if (!emptyMessage && typeof cpbAdmin !== 'undefined' && cpbAdmin.emailLogEmpty){
-            emptyMessage = cpbAdmin.emailLogEmpty;
+        if (!emptyMessage && typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.emailLogEmpty){
+            emptyMessage = teqcidbAdmin.emailLogEmpty;
         }
 
-        var successMessage = (typeof cpbAdmin !== 'undefined' && cpbAdmin.emailLogCleared) ? cpbAdmin.emailLogCleared : '';
+        var successMessage = (typeof teqcidbAdmin !== 'undefined' && teqcidbAdmin.emailLogCleared) ? teqcidbAdmin.emailLogCleared : '';
         var errorMessage = '';
 
-        if (typeof cpbAdmin !== 'undefined'){
-            if (cpbAdmin.emailLogError){
-                errorMessage = cpbAdmin.emailLogError;
-            } else if (cpbAdmin.error){
-                errorMessage = cpbAdmin.error;
+        if (typeof teqcidbAdmin !== 'undefined'){
+            if (teqcidbAdmin.emailLogError){
+                errorMessage = teqcidbAdmin.emailLogError;
+            } else if (teqcidbAdmin.error){
+                errorMessage = teqcidbAdmin.error;
             }
         }
 
@@ -1550,9 +1550,9 @@ jQuery(document).ready(function($){
 
         $button.prop('disabled', true);
 
-        $.post(cpbAjax.ajaxurl, {
-            action: 'cpb_clear_email_log',
-            _ajax_nonce: cpbAjax.nonce
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_clear_email_log',
+            _ajax_nonce: teqcidbAjax.nonce
         }).done(function(response){
             var isSuccess = response && response.success;
             var message = '';
@@ -1561,7 +1561,7 @@ jQuery(document).ready(function($){
                 message = successMessage;
 
                 if ($list.length){
-                    $list.find('.cpb-email-log__entry').remove();
+                    $list.find('.teqcidb-email-log__entry').remove();
                 }
 
                 if ($empty.length){
@@ -1569,8 +1569,8 @@ jQuery(document).ready(function($){
                     $empty.removeAttr('hidden').addClass('is-visible');
                 } else if ($list.length){
                     $empty = $('<p/>', {
-                        id: 'cpb-email-log-empty',
-                        'class': 'cpb-email-log__empty is-visible',
+                        id: 'teqcidb-email-log-empty',
+                        'class': 'teqcidb-email-log__empty is-visible',
                         text: emptyMessage || ''
                     });
                     $list.prepend($empty);
@@ -1609,12 +1609,12 @@ jQuery(document).ready(function($){
         });
     });
 
-    $(document).on('blur', '.cpb-template-editor [data-token-context="subject"], .cpb-template-editor [data-token-context="body"]', function(){
-        var $editor = $(this).closest('.cpb-template-editor');
+    $(document).on('blur', '.teqcidb-template-editor [data-token-context="subject"], .teqcidb-template-editor [data-token-context="body"]', function(){
+        var $editor = $(this).closest('.teqcidb-template-editor');
         updateTemplatePreview($editor);
     });
 
-    $('.cpb-template-editor').each(function(){
+    $('.teqcidb-template-editor').each(function(){
         updateTemplatePreview($(this));
     });
 });

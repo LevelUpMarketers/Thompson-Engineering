@@ -3,9 +3,9 @@
  * Isolated update server code.
  * Remove this directory for WP.org submission.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
-class CPB_Update_Server {
+class TEQCIDB_Update_Server {
     // Placeholder for plugin update server functionality.
 }

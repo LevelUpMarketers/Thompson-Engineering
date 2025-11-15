@@ -2,10 +2,10 @@
 /**
  * The core plugin class.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
-class CPB_Plugin {
+class TEQCIDB_Plugin {
 
     private $i18n;
     private $admin;
@@ -17,14 +17,14 @@ class CPB_Plugin {
     private $error_logger;
 
     public function __construct() {
-        $this->i18n     = new CPB_I18n();
-        $this->admin    = new CPB_Admin();
-        $this->ajax     = new CPB_Ajax();
-        $this->shortcode      = new CPB_Shortcode_Main_Entity();
-        $this->block          = new CPB_Block_Main_Entity();
-        $this->content_logger = new CPB_Content_Logger();
-        $this->cron_manager   = new CPB_Cron_Manager();
-        $this->error_logger   = new CPB_Error_Logger();
+        $this->i18n     = new TEQCIDB_I18n();
+        $this->admin    = new TEQCIDB_Admin();
+        $this->ajax     = new TEQCIDB_Ajax();
+        $this->shortcode      = new TEQCIDB_Shortcode_Student();
+        $this->block          = new TEQCIDB_Block_Student();
+        $this->content_logger = new TEQCIDB_Content_Logger();
+        $this->cron_manager   = new TEQCIDB_Cron_Manager();
+        $this->error_logger   = new TEQCIDB_Error_Logger();
     }
 
     public function run() {
