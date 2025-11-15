@@ -10,6 +10,10 @@ class TEQCIDB_Admin {
     public function register() {
         add_action( 'admin_menu', array( $this, 'add_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_action( 'admin_post_teqcidb_run_cron_event', array( $this, 'handle_run_cron_event' ) );
+        add_action( 'admin_post_teqcidb_delete_cron_event', array( $this, 'handle_delete_cron_event' ) );
+        add_action( 'admin_post_teqcidb_download_email_log', array( $this, 'handle_download_email_log' ) );
+        add_action( 'admin_post_teqcidb_delete_generated_content', array( $this, 'handle_delete_generated_content' ) );
     }
 
     public function add_menu() {
@@ -19,6 +23,24 @@ class TEQCIDB_Admin {
             'manage_options',
             'teqcidb-student',
             array( $this, 'render_student_page' )
+        );
+
+        add_submenu_page(
+            'teqcidb-student',
+            __( 'Communications', 'teqcidb' ),
+            __( 'Communications', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-communications',
+            array( $this, 'render_communications_page' )
+        );
+
+        add_submenu_page(
+            'teqcidb-student',
+            __( 'Settings', 'teqcidb' ),
+            __( 'Settings', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-settings',
+            array( $this, 'render_settings_page' )
         );
     }
 

@@ -11,6 +11,11 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
+        add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
+        add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
+        add_action( 'wp_ajax_teqcidb_save_email_template', array( $this, 'save_email_template' ) );
+        add_action( 'wp_ajax_teqcidb_send_test_email', array( $this, 'send_test_email' ) );
+        add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
