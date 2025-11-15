@@ -84,3 +84,4 @@
 81. 2025-11-12: Bootstrapped plugin instantiation on `plugins_loaded` so localization and error logging initialize once WordPress is ready before other components register hooks.
 82. 2025-11-12: Wrapped error handler entry points in a logging guard so translation lookups can no longer re-enter the logger and exhaust memory during activation.
 83. 2025-11-12: Temporarily disabled communications, logging, settings, and cron bootstraps so only core Student admin/AJAX/shortcode features load while we isolate the activation memory exhaustion.
+84. 2025-11-12: Re-enabled the content logger and cron manager to continue narrowing the activation culprit while leaving other subsystems offline.
