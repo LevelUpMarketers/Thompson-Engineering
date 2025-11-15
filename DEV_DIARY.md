@@ -90,3 +90,4 @@
 87. 2025-11-12: Added a per-request cap to error logging and disabled sitewide logging by default so third-party notices cannot exhaust memory before the settings page loads.
 88. 2025-11-12: Disabled plugin error logging by default and gated the logger behind the settings toggles so we can test without the subsystem until the memory leak is isolated.
 89. 2025-11-12: Cached logging toggles per request, skipped stack traces when only sitewide logging is active, and bypassed repeated option lookups during log writes to prevent runaway memory usage when PHP notices fire.
+90. 2025-11-12: Removed sitewide PHP logging toggles, helpers, and UI so the error logger now focuses solely on Thompson Engineering QCI Database events.

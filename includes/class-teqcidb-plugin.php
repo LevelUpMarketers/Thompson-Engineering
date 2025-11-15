@@ -49,10 +49,9 @@ class TEQCIDB_Plugin {
      * @return bool
      */
     private function should_register_error_logger() {
-        $site_logging_enabled   = TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS );
         $plugin_logging_enabled = TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
 
-        $should_register = ( $site_logging_enabled || $plugin_logging_enabled );
+        $should_register = $plugin_logging_enabled;
 
         /**
          * Filter whether the error logger should be registered.

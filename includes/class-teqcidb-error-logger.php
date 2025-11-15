@@ -65,13 +65,6 @@ class TEQCIDB_Error_Logger {
     protected $limit_notice_sent = false;
 
     /**
-     * Whether sitewide PHP logging is enabled for the current request.
-     *
-     * @var bool
-     */
-    protected $log_site_errors = false;
-
-    /**
      * Whether plugin-scoped PHP logging is enabled for the current request.
      *
      * @var bool
@@ -83,7 +76,6 @@ class TEQCIDB_Error_Logger {
             $this->plugin_dir = wp_normalize_path( TEQCIDB_PLUGIN_DIR );
         }
 
-        $this->log_site_errors   = TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS );
         $this->log_plugin_errors = TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
     }
 
@@ -535,10 +527,9 @@ class TEQCIDB_Error_Logger {
             $is_plugin = $this->is_plugin_related( $file, $message, $stack );
         }
 
-        $should_log_site   = $this->log_site_errors;
         $should_log_plugin = ( $this->log_plugin_errors && $is_plugin );
 
-        if ( ! $should_log_site && ! $should_log_plugin ) {
+        if ( ! $should_log_plugin ) {
             return;
         }
 
@@ -552,12 +543,6 @@ class TEQCIDB_Error_Logger {
         }
 
         $this->request_entry_count++;
-
-        if ( $should_log_site ) {
-            $site_entry          = $entry;
-            $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
-            TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry, true );
-        }
 
         if ( $should_log_plugin ) {
             $plugin_entry          = $entry;

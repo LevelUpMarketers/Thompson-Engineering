@@ -11,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class TEQCIDB_Error_Log_Helper {
 
-    const SCOPE_SITEWIDE = 'sitewide';
     const SCOPE_PLUGIN   = 'plugin';
     const SCOPE_PAYMENTS = 'payments';
 
@@ -21,7 +20,6 @@ class TEQCIDB_Error_Log_Helper {
      * @var array<string, string>
      */
     protected static $filenames = array(
-        self::SCOPE_SITEWIDE => 'teqcidb-sitewide-errors.log',
         self::SCOPE_PLUGIN   => 'teqcidb-plugin-errors.log',
         self::SCOPE_PAYMENTS => 'teqcidb-payment-activity.log',
     );
@@ -267,8 +265,6 @@ class TEQCIDB_Error_Log_Helper {
         switch ( $scope ) {
             case self::SCOPE_PLUGIN:
                 return __( 'TEQCIDB error log cleared.', 'teqcidb' );
-            case self::SCOPE_SITEWIDE:
-                return __( 'Sitewide error log cleared.', 'teqcidb' );
             case self::SCOPE_PAYMENTS:
                 return __( 'Payment log cleared.', 'teqcidb' );
         }
@@ -306,8 +302,6 @@ class TEQCIDB_Error_Log_Helper {
         switch ( $scope ) {
             case self::SCOPE_PLUGIN:
                 return __( 'TEQCIDB-Related', 'teqcidb' );
-            case self::SCOPE_SITEWIDE:
-                return __( 'Sitewide', 'teqcidb' );
             case self::SCOPE_PAYMENTS:
                 return __( 'Payment', 'teqcidb' );
         }
@@ -324,8 +318,6 @@ class TEQCIDB_Error_Log_Helper {
      */
     protected static function is_scope_enabled( $scope ) {
         switch ( $scope ) {
-            case self::SCOPE_SITEWIDE:
-                return TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS );
             case self::SCOPE_PLUGIN:
                 return TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
             case self::SCOPE_PAYMENTS:

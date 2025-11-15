@@ -1570,10 +1570,6 @@ class TEQCIDB_Admin {
                 'label'       => __( 'SMS Logs', 'teqcidb' ),
                 'description' => __( 'Store outbound SMS activity for future messaging diagnostics.', 'teqcidb' ),
             ),
-            TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS => array(
-                'label'       => __( 'Sitewide errors, notices, and warnings', 'teqcidb' ),
-                'description' => __( 'Record PHP notices from the entire site inside the Error Logs tab.', 'teqcidb' ),
-            ),
             TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS => array(
                 'label'       => __( 'Errors, notices, and warnings specific to this plugin only', 'teqcidb' ),
                 'description' => __( 'Limit error tracking to issues related to Thompson Engineering QCI Database for targeted troubleshooting.', 'teqcidb' ),
@@ -2105,7 +2101,7 @@ class TEQCIDB_Admin {
 
         $tab_descriptions = array(
             'generated_content' => __( 'Inspect saved content entries and jump to editing, viewing, or deleting items created by the logger.', 'teqcidb' ),
-            'error_logs'        => __( 'Review PHP and WordPress notices captured for this site and the Thompson Engineering QCI Database features.', 'teqcidb' ),
+            'error_logs'        => __( 'Review PHP notices captured for the Thompson Engineering QCI Database features.', 'teqcidb' ),
             'payment_logs'      => __( 'Monitor payment-related activity and capture diagnostics for future transaction workflows.', 'teqcidb' ),
         );
 
@@ -2159,13 +2155,6 @@ class TEQCIDB_Admin {
 
     private function render_error_logs_tab() {
         $sections = array(
-            array(
-                'scope'       => TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE,
-                'title'       => __( 'Sitewide errors/notices/warnings', 'teqcidb' ),
-                /* translators: description for the sitewide error log textarea. */
-                'description' => __( 'Displays every PHP error, warning, and notice triggered anywhere on this site.', 'teqcidb' ),
-                'channel'     => TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS,
-            ),
             array(
                 'scope'       => TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN,
                 'title'       => __( 'TEQCIDB-Related errors/notices/warnings', 'teqcidb' ),
