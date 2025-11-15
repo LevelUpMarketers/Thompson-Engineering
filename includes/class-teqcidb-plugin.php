@@ -28,7 +28,8 @@ class TEQCIDB_Plugin {
     }
 
     public function run() {
-        add_action( 'plugins_loaded', array( $this, 'bootstrap_localization_and_logging' ) );
+        $this->i18n->load_textdomain();
+        $this->error_logger->register();
 
         $this->admin->register();
         $this->ajax->register();
@@ -36,13 +37,5 @@ class TEQCIDB_Plugin {
         $this->block->register();
         $this->content_logger->register();
         $this->cron_manager->register();
-    }
-
-    /**
-     * Ensure localization and error logging are registered after core finishes loading plugins.
-     */
-    public function bootstrap_localization_and_logging() {
-        $this->i18n->load_textdomain();
-        $this->error_logger->register();
     }
 }

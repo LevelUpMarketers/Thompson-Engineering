@@ -40,8 +40,17 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-plugin.php';
 register_activation_hook( __FILE__, array( 'TEQCIDB_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'TEQCIDB_Deactivator', 'deactivate' ) );
 
-function run_teqcidb_plugin() {
+/**
+ * Bootstrap the Thompson Engineering QCI Database plugin after WordPress loads.
+ */
+function teqcidb_bootstrap() {
+    static $plugin = null;
+
+    if ( null !== $plugin ) {
+        return;
+    }
+
     $plugin = new TEQCIDB_Plugin();
     $plugin->run();
 }
-run_teqcidb_plugin();
+add_action( 'plugins_loaded', 'teqcidb_bootstrap', 0 );
