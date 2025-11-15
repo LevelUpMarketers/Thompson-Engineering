@@ -32,6 +32,15 @@ class TEQCIDB_Error_Logger {
      */
     protected $plugin_dir = '';
 
+    /**
+     * Whether the logger is currently writing an entry.
+     *
+     * Used to prevent recursive error handling if a filesystem warning occurs while logging.
+     *
+     * @var bool
+     */
+    protected $is_logging = false;
+
     public function __construct() {
         if ( defined( 'TEQCIDB_PLUGIN_DIR' ) ) {
             $this->plugin_dir = wp_normalize_path( TEQCIDB_PLUGIN_DIR );
@@ -356,22 +365,32 @@ class TEQCIDB_Error_Logger {
      * @param array $entry Entry data.
      */
     protected function log_event( array $entry ) {
-        $entry['timestamp'] = gmdate( 'c' );
-
-        $file       = isset( $entry['file'] ) ? $entry['file'] : '';
-        $message    = isset( $entry['message'] ) ? $entry['message'] : '';
-        $stack      = isset( $entry['stack'] ) ? $entry['stack'] : '';
-        $is_plugin  = $this->is_plugin_related( $file, $message, $stack );
-        if ( TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS ) ) {
-            $site_entry           = $entry;
-            $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
-            TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry );
+        if ( $this->is_logging ) {
+            return;
         }
 
-        if ( $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS ) ) {
-            $plugin_entry          = $entry;
-            $plugin_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN );
-            TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN, $plugin_entry );
+        $this->is_logging = true;
+
+        try {
+            $entry['timestamp'] = gmdate( 'c' );
+
+            $file       = isset( $entry['file'] ) ? $entry['file'] : '';
+            $message    = isset( $entry['message'] ) ? $entry['message'] : '';
+            $stack      = isset( $entry['stack'] ) ? $entry['stack'] : '';
+            $is_plugin  = $this->is_plugin_related( $file, $message, $stack );
+            if ( TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS ) ) {
+                $site_entry           = $entry;
+                $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
+                TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry );
+            }
+
+            if ( $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS ) ) {
+                $plugin_entry          = $entry;
+                $plugin_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN );
+                TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN, $plugin_entry );
+            }
+        } finally {
+            $this->is_logging = false;
         }
     }
 

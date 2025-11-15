@@ -80,3 +80,4 @@
 77. 2025-11-11: Normalized error logger keyword matching to stringify stack traces and messages so array data no longer triggers PHP type errors during log writes.
 78. 2025-11-11: Hardened error log helper formatting by stringifying complex values before sanitization to prevent array-to-string warnings when writing entries.
 79. 2025-11-12: Rebranded the boilerplate to Thompson Engineering QCI Database, renamed CPB assets to teqcidb, and retargeted student tooling with updated table names, text domains, and plugin metadata.
+80. 2025-11-12: Deferred text-domain bootstrapping to `plugins_loaded` and added recursion guards around log writes to prevent memory exhaustion when logging encounters filesystem warnings.

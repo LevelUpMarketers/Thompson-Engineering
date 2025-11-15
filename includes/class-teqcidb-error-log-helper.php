@@ -130,7 +130,7 @@ class TEQCIDB_Error_Log_Helper {
             return false;
         }
 
-        $result = file_put_contents( $path, $formatted, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        $result = @file_put_contents( $path, $formatted, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
         return false !== $result;
     }
