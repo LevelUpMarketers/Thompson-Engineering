@@ -19,6 +19,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Monitor scheduled tasks in **TEQCIDB Settings → Cron Jobs**, where you can review countdowns, run hooks immediately, or delete plugin-created cron events.
 - Plan customer touchpoints in **TEQCIDB Communications**, beginning with the **Email Templates** tab that showcases reusable accordion layouts for future automation work.
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
+- Enable sitewide PHP error logging only after testing; by default the plugin limits logging to Thompson Engineering code to avoid runaway log growth caused by third-party notices.
 
 ## Admin Form Guidelines
 

@@ -46,7 +46,7 @@ class TEQCIDB_Settings_Helper {
             self::FIELD_OPTION            => '',
             self::FIELD_LOG_EMAIL         => true,
             self::FIELD_LOG_SMS           => true,
-            self::FIELD_LOG_SITE_ERRORS   => true,
+            self::FIELD_LOG_SITE_ERRORS   => false,
             self::FIELD_LOG_PLUGIN_ERRORS => true,
             self::FIELD_LOG_PAYMENTS      => true,
         );

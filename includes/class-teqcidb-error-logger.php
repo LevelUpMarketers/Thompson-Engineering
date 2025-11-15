@@ -42,6 +42,29 @@ class TEQCIDB_Error_Logger {
     protected $is_logging = false;
 
     /**
+     * Number of entries logged during the current request.
+     *
+     * @var int
+     */
+    protected $request_entry_count = 0;
+
+    /**
+     * Maximum number of entries to log during a single request.
+     *
+     * Prevents runaway logging from exhausting memory when third-party code repeatedly triggers notices.
+     *
+     * @var int
+     */
+    protected $request_entry_limit = 200;
+
+    /**
+     * Tracks whether the per-request logging limit notice has been sent to the PHP error log.
+     *
+     * @var bool
+     */
+    protected $limit_notice_sent = false;
+
+    /**
      * Execute logging work while preventing re-entrant handler calls.
      *
      * @param callable $callback Logging routine.
@@ -455,13 +478,31 @@ class TEQCIDB_Error_Logger {
         $stack     = isset( $entry['stack'] ) ? $entry['stack'] : '';
         $is_plugin = $this->is_plugin_related( $file, $message, $stack );
 
-        if ( TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS ) ) {
+        $should_log_site   = TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS );
+        $should_log_plugin = $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
+
+        if ( ! $should_log_site && ! $should_log_plugin ) {
+            return;
+        }
+
+        if ( $this->request_entry_limit > 0 && $this->request_entry_count >= $this->request_entry_limit ) {
+            if ( ! $this->limit_notice_sent ) {
+                $this->limit_notice_sent = true;
+                error_log( 'TEQCIDB Error Logger: per-request logging limit reached; suppressing additional entries.' );
+            }
+
+            return;
+        }
+
+        $this->request_entry_count++;
+
+        if ( $should_log_site ) {
             $site_entry          = $entry;
             $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
             TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry );
         }
 
-        if ( $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS ) ) {
+        if ( $should_log_plugin ) {
             $plugin_entry          = $entry;
             $plugin_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN );
             TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN, $plugin_entry );
