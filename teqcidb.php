@@ -27,6 +27,8 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-student-helper.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-settings-helper.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-email-template-helper.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-email-log-helper.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-log-helper.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-content-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-cron.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-ajax.php';

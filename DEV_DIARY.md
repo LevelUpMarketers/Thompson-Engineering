@@ -86,3 +86,4 @@
 83. 2025-11-12: Temporarily disabled communications, logging, settings, and cron bootstraps so only core Student admin/AJAX/shortcode features load while we isolate the activation memory exhaustion.
 84. 2025-11-12: Re-enabled the content logger and cron manager to continue narrowing the activation culprit while leaving other subsystems offline.
 85. 2025-11-12: Restored the Communications and Settings admin tabs with their AJAX and admin-post handlers so we can continue staged feature reactivation.
+86. 2025-11-12: Re-enabled the Logs admin area, reinstated error log AJAX endpoints, and booted the error logger alongside other subsystems for the next activation test.

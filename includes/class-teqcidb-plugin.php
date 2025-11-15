@@ -14,6 +14,7 @@ class TEQCIDB_Plugin {
     private $block;
     private $content_logger;
     private $cron_manager;
+    private $error_logger;
 
     public function __construct() {
         $this->i18n     = new TEQCIDB_I18n();
@@ -23,10 +24,12 @@ class TEQCIDB_Plugin {
         $this->block     = new TEQCIDB_Block_Student();
         $this->content_logger = new TEQCIDB_Content_Logger();
         $this->cron_manager   = new TEQCIDB_Cron_Manager();
+        $this->error_logger   = new TEQCIDB_Error_Logger();
     }
 
     public function run() {
         $this->i18n->load_textdomain();
+        $this->error_logger->register();
         $this->admin->register();
         $this->ajax->register();
         $this->shortcode->register();

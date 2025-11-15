@@ -42,6 +42,15 @@ class TEQCIDB_Admin {
             'teqcidb-settings',
             array( $this, 'render_settings_page' )
         );
+
+        add_submenu_page(
+            'teqcidb-student',
+            __( 'Logs', 'teqcidb' ),
+            __( 'Logs', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-logs',
+            array( $this, 'render_logs_page' )
+        );
     }
 
     public function render_communications_page() {

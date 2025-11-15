@@ -16,6 +16,8 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_email_template', array( $this, 'save_email_template' ) );
         add_action( 'wp_ajax_teqcidb_send_test_email', array( $this, 'send_test_email' ) );
         add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
+        add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
+        add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
