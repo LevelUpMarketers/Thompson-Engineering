@@ -102,19 +102,20 @@ class TEQCIDB_Error_Log_Helper {
     /**
      * Append an error entry to the requested log file.
      *
-     * @param string $scope Log scope identifier.
-     * @param array  $entry Log details.
+     * @param string $scope               Log scope identifier.
+     * @param array  $entry               Log details.
+     * @param bool   $bypass_scope_check Optional. When true, skip scope toggle validation. Defaults to false.
      *
      * @return bool
      */
-    public static function append_entry( $scope, array $entry ) {
+    public static function append_entry( $scope, array $entry, $bypass_scope_check = false ) {
         $scope = self::normalize_scope( $scope );
 
         if ( '' === $scope ) {
             return false;
         }
 
-        if ( ! self::is_scope_enabled( $scope ) ) {
+        if ( ! $bypass_scope_check && ! self::is_scope_enabled( $scope ) ) {
             return false;
         }
 
