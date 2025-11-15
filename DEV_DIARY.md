@@ -82,3 +82,4 @@
 79. 2025-11-12: Rebranded the boilerplate to Thompson Engineering QCI Database, renamed CPB assets to teqcidb, and retargeted student tooling with updated table names, text domains, and plugin metadata.
 80. 2025-11-12: Deferred text-domain bootstrapping to `plugins_loaded` and added recursion guards around log writes to prevent memory exhaustion when logging encounters filesystem warnings.
 81. 2025-11-12: Bootstrapped plugin instantiation on `plugins_loaded` so localization and error logging initialize once WordPress is ready before other components register hooks.
+82. 2025-11-12: Wrapped error handler entry points in a logging guard so translation lookups can no longer re-enter the logger and exhaust memory during activation.

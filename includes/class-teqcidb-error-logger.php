@@ -41,6 +41,25 @@ class TEQCIDB_Error_Logger {
      */
     protected $is_logging = false;
 
+    /**
+     * Execute logging work while preventing re-entrant handler calls.
+     *
+     * @param callable $callback Logging routine.
+     */
+    protected function with_logging_guard( callable $callback ) {
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->is_logging = true;
+
+        try {
+            call_user_func( $callback );
+        } finally {
+            $this->is_logging = false;
+        }
+    }
+
     public function __construct() {
         if ( defined( 'TEQCIDB_PLUGIN_DIR' ) ) {
             $this->plugin_dir = wp_normalize_path( TEQCIDB_PLUGIN_DIR );
@@ -74,12 +93,20 @@ class TEQCIDB_Error_Logger {
      * @return bool
      */
     public function handle_error( $errno, $errstr, $errfile = '', $errline = 0 ) {
+        if ( $this->is_logging ) {
+            return $this->call_previous_error_handler( $errno, $errstr, $errfile, $errline );
+        }
+
         if ( 0 === error_reporting() ) {
             // Respect suppressed errors (@ operator).
             return $this->call_previous_error_handler( $errno, $errstr, $errfile, $errline );
         }
 
-        $this->log_php_error( $errno, $errstr, $errfile, $errline );
+        $this->with_logging_guard(
+            function () use ( $errno, $errstr, $errfile, $errline ) {
+                $this->log_php_error( $errno, $errstr, $errfile, $errline );
+            }
+        );
 
         return $this->call_previous_error_handler( $errno, $errstr, $errfile, $errline );
     }
@@ -90,21 +117,33 @@ class TEQCIDB_Error_Logger {
      * @param Throwable $exception Captured exception/throwable.
      */
     public function handle_exception( $exception ) {
+        if ( $this->is_logging ) {
+            if ( $this->previous_exception_handler ) {
+                call_user_func( $this->previous_exception_handler, $exception );
+            }
+
+            return;
+        }
+
         $message = sprintf(
             /* translators: %s: exception class name */
             __( 'Uncaught %s encountered.', 'teqcidb' ),
             is_object( $exception ) ? get_class( $exception ) : __( 'exception', 'teqcidb' )
         );
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Exception', 'teqcidb' ),
-                'severity' => 'E_EXCEPTION',
-                'message'  => $message . ' ' . $exception->getMessage(),
-                'file'     => $exception->getFile(),
-                'line'     => $exception->getLine(),
-                'stack'    => $exception->getTraceAsString(),
-            )
+        $this->with_logging_guard(
+            function () use ( $exception, $message ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Exception', 'teqcidb' ),
+                        'severity' => 'E_EXCEPTION',
+                        'message'  => $message . ' ' . $exception->getMessage(),
+                        'file'     => $exception->getFile(),
+                        'line'     => $exception->getLine(),
+                        'stack'    => $exception->getTraceAsString(),
+                    )
+                );
+            }
         );
 
         if ( $this->previous_exception_handler ) {
@@ -118,7 +157,7 @@ class TEQCIDB_Error_Logger {
     public function handle_shutdown() {
         $error = error_get_last();
 
-        if ( empty( $error ) ) {
+        if ( $this->is_logging || empty( $error ) ) {
             return;
         }
 
@@ -131,7 +170,11 @@ class TEQCIDB_Error_Logger {
         );
 
         if ( isset( $error['type'] ) && in_array( $error['type'], $fatal_types, true ) ) {
-            $this->log_php_error( $error['type'], $error['message'], $error['file'], $error['line'], true );
+            $this->with_logging_guard(
+                function () use ( $error ) {
+                    $this->log_php_error( $error['type'], $error['message'], $error['file'], $error['line'], true );
+                }
+            );
         }
     }
 
@@ -151,13 +194,21 @@ class TEQCIDB_Error_Logger {
             $message
         );
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Incorrect Usage', 'teqcidb' ),
-                'severity' => 'doing_it_wrong',
-                'message'  => $formatted,
-                'stack'    => $this->get_stack_summary(),
-            )
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->with_logging_guard(
+            function () use ( $formatted ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Incorrect Usage', 'teqcidb' ),
+                        'severity' => 'doing_it_wrong',
+                        'message'  => $formatted,
+                        'stack'    => $this->get_stack_summary(),
+                    )
+                );
+            }
         );
     }
 
@@ -171,13 +222,21 @@ class TEQCIDB_Error_Logger {
     public function handle_deprecated_function( $function, $replacement, $version ) {
         $message = $this->format_deprecated_message( __( 'Function', 'teqcidb' ), $function, $replacement, $version );
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Deprecated Function', 'teqcidb' ),
-                'severity' => 'deprecated_function',
-                'message'  => $message,
-                'stack'    => $this->get_stack_summary(),
-            )
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->with_logging_guard(
+            function () use ( $message ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Deprecated Function', 'teqcidb' ),
+                        'severity' => 'deprecated_function',
+                        'message'  => $message,
+                        'stack'    => $this->get_stack_summary(),
+                    )
+                );
+            }
         );
     }
 
@@ -201,13 +260,21 @@ class TEQCIDB_Error_Logger {
             );
         }
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Deprecated Argument', 'teqcidb' ),
-                'severity' => 'deprecated_argument',
-                'message'  => $summary,
-                'stack'    => $this->get_stack_summary(),
-            )
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->with_logging_guard(
+            function () use ( $summary ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Deprecated Argument', 'teqcidb' ),
+                        'severity' => 'deprecated_argument',
+                        'message'  => $summary,
+                        'stack'    => $this->get_stack_summary(),
+                    )
+                );
+            }
         );
     }
 
@@ -231,13 +298,21 @@ class TEQCIDB_Error_Logger {
             );
         }
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Deprecated Hook', 'teqcidb' ),
-                'severity' => 'deprecated_hook',
-                'message'  => $summary,
-                'stack'    => $this->get_stack_summary(),
-            )
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->with_logging_guard(
+            function () use ( $summary ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Deprecated Hook', 'teqcidb' ),
+                        'severity' => 'deprecated_hook',
+                        'message'  => $summary,
+                        'stack'    => $this->get_stack_summary(),
+                    )
+                );
+            }
         );
     }
 
@@ -261,13 +336,21 @@ class TEQCIDB_Error_Logger {
             );
         }
 
-        $this->log_event(
-            array(
-                'label'    => __( 'Deprecated File', 'teqcidb' ),
-                'severity' => 'deprecated_file',
-                'message'  => $summary,
-                'stack'    => $this->get_stack_summary(),
-            )
+        if ( $this->is_logging ) {
+            return;
+        }
+
+        $this->with_logging_guard(
+            function () use ( $summary ) {
+                $this->log_event(
+                    array(
+                        'label'    => __( 'Deprecated File', 'teqcidb' ),
+                        'severity' => 'deprecated_file',
+                        'message'  => $summary,
+                        'stack'    => $this->get_stack_summary(),
+                    )
+                );
+            }
         );
     }
 
@@ -365,32 +448,23 @@ class TEQCIDB_Error_Logger {
      * @param array $entry Entry data.
      */
     protected function log_event( array $entry ) {
-        if ( $this->is_logging ) {
-            return;
+        $entry['timestamp'] = gmdate( 'c' );
+
+        $file      = isset( $entry['file'] ) ? $entry['file'] : '';
+        $message   = isset( $entry['message'] ) ? $entry['message'] : '';
+        $stack     = isset( $entry['stack'] ) ? $entry['stack'] : '';
+        $is_plugin = $this->is_plugin_related( $file, $message, $stack );
+
+        if ( TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS ) ) {
+            $site_entry          = $entry;
+            $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
+            TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry );
         }
 
-        $this->is_logging = true;
-
-        try {
-            $entry['timestamp'] = gmdate( 'c' );
-
-            $file       = isset( $entry['file'] ) ? $entry['file'] : '';
-            $message    = isset( $entry['message'] ) ? $entry['message'] : '';
-            $stack      = isset( $entry['stack'] ) ? $entry['stack'] : '';
-            $is_plugin  = $this->is_plugin_related( $file, $message, $stack );
-            if ( TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_SITE_ERRORS ) ) {
-                $site_entry           = $entry;
-                $site_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE );
-                TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_SITEWIDE, $site_entry );
-            }
-
-            if ( $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS ) ) {
-                $plugin_entry          = $entry;
-                $plugin_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN );
-                TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN, $plugin_entry );
-            }
-        } finally {
-            $this->is_logging = false;
+        if ( $is_plugin && TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS ) ) {
+            $plugin_entry          = $entry;
+            $plugin_entry['scope'] = TEQCIDB_Error_Log_Helper::get_scope_label( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN );
+            TEQCIDB_Error_Log_Helper::append_entry( TEQCIDB_Error_Log_Helper::SCOPE_PLUGIN, $plugin_entry );
         }
     }
 
