@@ -88,3 +88,4 @@
 85. 2025-11-12: Restored the Communications and Settings admin tabs with their AJAX and admin-post handlers so we can continue staged feature reactivation.
 86. 2025-11-12: Re-enabled the Logs admin area, reinstated error log AJAX endpoints, and booted the error logger alongside other subsystems for the next activation test.
 87. 2025-11-12: Added a per-request cap to error logging and disabled sitewide logging by default so third-party notices cannot exhaust memory before the settings page loads.
+88. 2025-11-12: Disabled plugin error logging by default and gated the logger behind the settings toggles so we can test without the subsystem until the memory leak is isolated.
