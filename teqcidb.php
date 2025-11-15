@@ -24,17 +24,10 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-activator.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-deactivator.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-i18n.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-student-helper.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-email-template-helper.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-email-log-helper.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-settings-helper.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-log-helper.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-ajax.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-cron.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/admin/class-teqcidb-admin.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/blocks/class-teqcidb-block-student.php';
-require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-content-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-plugin.php';
 
 register_activation_hook( __FILE__, array( 'TEQCIDB_Activator', 'activate' ) );
