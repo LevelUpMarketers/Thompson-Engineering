@@ -2,10 +2,10 @@
 
 1. 2025-08-11: Initial commit with plugin boilerplate structure, documentation, and placeholder features.
 2. 2025-08-12: Added content logging table, logger class, and admin tab for generated pages/posts.
-3. 2025-08-12: Converted Main Entity admin page to use tabs for creating and editing entries.
+3. 2025-08-12: Converted Student admin page to use tabs for creating and editing entries.
 4. 2025-08-12: Moved top message center beneath navigation tabs on admin pages.
 5. 2025-08-12: Split Settings into General and Style tabs and promoted Settings and Logs to top-level menus.
-6. 2025-08-12: Expanded Main Entity schema with placeholder fields and added responsive, tooltip-enabled form layout.
+6. 2025-08-12: Expanded Student schema with placeholder fields and added responsive, tooltip-enabled form layout.
 7. 2025-08-12: Replaced demo fields with twenty Placeholder inputs, varied types, image selector, and synchronized database schema.
 8. 2025-08-12: Standardized field widths, implemented centralized hover tooltips, and added default options for Placeholder 14.
 9. 2025-08-12: Added custom admin font, ensured all dropdowns default to "Make a Selection...", and widened the image selector button.
@@ -22,7 +22,7 @@
 20. 2025-08-12: Removed top logo row, added thank-you tagline to bottom message, and cleaned up unused premium logo styles.
 21. 2025-08-12: Reintroduced logos, added US states and territories placeholder, and refreshed styles and scripts.
 22. 2025-08-12: Wrapped "SO MUCH" in thank-you message with stylable span and added bold, italic styling.
-23. 2025-08-12: Added Cron Jobs tab with automatic cpb_ hook discovery, manual run/delete controls, countdowns, and demo event.
+23. 2025-08-12: Added Cron Jobs tab with automatic teqcidb_ hook discovery, manual run/delete controls, countdowns, and demo event.
 24. 2025-08-12: Documented translation coverage expectations and cron tooltip description requirements for future work.
 25. 2025-08-12: Enabled AJAX spinner transitions by toggling WordPress's is-active class to show progress without shifting the layout.
 26. 2025-08-12: Wrapped spinner and feedback in a fixed-height container, added inline fade transitions, and surfaced a generic error message when AJAX requests fail.
@@ -42,24 +42,24 @@
 40. 2025-08-12: Widened tooltip popovers and enforced equal-width cron action buttons for consistent control layouts.
 41. 2025-08-12: Increased tooltip popover width by seventy percent to improve readability of longer descriptions.
 42. 2025-08-12: Raised tooltip text size to 17px and enforced a 300px minimum width for clearer popup readability.
-43. 2025-11-05: Rebuilt the Main Entity edit tab with the communications accordion table, added paginated AJAX loading of records, and localized supporting scripts.
-44. 2025-11-05: Streamlined the Main Entity edit table by loading records immediately with alphabetical sorting, added the non-interactive edit cue, and centralized placeholder labels for future renames.
-45. 2025-11-05: Removed the enforced AJAX delay from Main Entity reads so the edit tab populates instantly on load.
-46. 2025-11-05: Embedded the creation form inside each Main Entity accordion, localized field metadata for client-side rendering, and wired AJAX save/delete actions with inline feedback and pagination refreshes.
-47. 2025-11-05: Re-ran the inline Main Entity editor deployment with refreshed feedback styling and corrected placeholder sanitization for saved values.
-48. 2025-11-05: Hardened Main Entity AJAX saving with normalized sanitization for date, time, and select fields plus explicit database error handling.
-49. 2025-11-05: Synced the Main Entity schema and AJAX handlers to persist all placeholders, state dropdowns, opt-ins, item lists, media, and editor content while mirroring the create form's TinyMCE setup.
-50. 2025-11-05: Top-aligned Main Entity accordion summary cells so row heights stay consistent when toggling inline editors.
-51. 2025-11-05: Added a 50px minimum height to Main Entity accordion summary cells to eliminate row shifts when toggling panels.
+43. 2025-11-05: Rebuilt the Student edit tab with the communications accordion table, added paginated AJAX loading of records, and localized supporting scripts.
+44. 2025-11-05: Streamlined the Student edit table by loading records immediately with alphabetical sorting, added the non-interactive edit cue, and centralized placeholder labels for future renames.
+45. 2025-11-05: Removed the enforced AJAX delay from Student reads so the edit tab populates instantly on load.
+46. 2025-11-05: Embedded the creation form inside each Student accordion, localized field metadata for client-side rendering, and wired AJAX save/delete actions with inline feedback and pagination refreshes.
+47. 2025-11-05: Re-ran the inline Student editor deployment with refreshed feedback styling and corrected placeholder sanitization for saved values.
+48. 2025-11-05: Hardened Student AJAX saving with normalized sanitization for date, time, and select fields plus explicit database error handling.
+49. 2025-11-05: Synced the Student schema and AJAX handlers to persist all placeholders, state dropdowns, opt-ins, item lists, media, and editor content while mirroring the create form's TinyMCE setup.
+50. 2025-11-05: Top-aligned Student accordion summary cells so row heights stay consistent when toggling inline editors.
+51. 2025-11-05: Added a 50px minimum height to Student accordion summary cells to eliminate row shifts when toggling panels.
 52. 2025-11-05: Evened accordion header column widths and mirrored the action-cell treatment on Communications templates for a consistent layout across tabs.
-53. 2025-11-05: Built the Welcome Aboard template editor with subject, body, SMS fields, and token buttons sourced from Main Entity placeholders.
-54. 2025-11-05: Added a live Welcome Aboard email preview fed by the first Main Entity record with blur-based updates and styled it alongside the existing template controls.
+53. 2025-11-05: Built the Welcome Aboard template editor with subject, body, SMS fields, and token buttons sourced from Student placeholders.
+54. 2025-11-05: Added a live Welcome Aboard email preview fed by the first Student record with blur-based updates and styled it alongside the existing template controls.
 55. 2025-11-05: Added Save Template controls that persist Welcome Aboard subject, body, and SMS text via AJAX with inline spinner feedback and prefilled fields.
 56. 2025-11-05: Enabled Welcome Aboard test emails with inline validation, shared preview helpers, and spinner-backed messaging.
 57. 2025-11-05: Added configurable From name and email fields with sensible defaults, persisted them with template saves, and applied the values to test email headers.
 58. 2025-11-05: Standardized email template buttons to a 165px minimum width and let token labels wrap so token grids stay aligned when text breaks.
-59. 2025-11-05: Restyled the Email Templates accordion shells to mirror Main Entity cards with padded headers, rounded borders, and coordinated open-state shadows.
-60. 2025-11-05: Reverted the email template accordion styling to the baseline list-table treatment so it matches the proven Main Entity appearance.
+59. 2025-11-05: Restyled the Email Templates accordion shells to mirror Student cards with padded headers, rounded borders, and coordinated open-state shadows.
+60. 2025-11-05: Reverted the email template accordion styling to the baseline list-table treatment so it matches the proven Student appearance.
 61. 2025-11-05: Scoped email template header cells to remove flex alignment and enforce a 50px row height without affecting other accordion tabs.
 62. 2025-11-05: Cleared the email template action cell width constraints so the tab inherits the default table alignment.
 63. 2025-11-05: Built the Email Logs tab with file-backed delivery history, styled entry cards, and clear/download controls wired to AJAX and admin-post handlers.
@@ -69,13 +69,25 @@
 67. 2025-11-10: Wired API Settings forms to AJAX persistence with per-integration sanitization, inline feedback reuse, and saved credential prefills.
 68. 2025-11-10: Added an SMS Service accordion with generic messaging credentials and select-driven environments alongside existing API settings.
 
-69. 2025-11-10: Introduced error logging with sitewide and CPB-specific tabs, AJAX clear/download controls, and global handlers that track current and future plugin features.
+69. 2025-11-10: Introduced error logging with sitewide and TEQCIDB-specific tabs, AJAX clear/download controls, and global handlers that track current and future plugin features.
 70. 2025-11-10: Eliminated deprecated sleep warnings, extended the log helper for payment scopes, and added Payment Logs with clear/download tools; future payment integrations should capture full transaction context (names, contact info, purchase details, WordPress user data, allowed card fragments) while excluding sensitive card numbers.
-71. 2025-11-10: Normalized placeholder label and value sanitization so apostrophes, dashes, and other legitimate characters save and render consistently across Main Entity forms and related tooling.
-72. 2025-11-10: Added a Main Entity search dashboard with placeholder filters, inline spinner feedback, and paginated AJAX reads that honor active criteria.
-73. 2025-11-10: Added a Clear Search control to reset Main Entity filters and reload the default paginated results.
+71. 2025-11-10: Normalized placeholder label and value sanitization so apostrophes, dashes, and other legitimate characters save and render consistently across Student forms and related tooling.
+72. 2025-11-10: Added a Student search dashboard with placeholder filters, inline spinner feedback, and paginated AJAX reads that honor active criteria.
+73. 2025-11-10: Added a Clear Search control to reset Student filters and reload the default paginated results.
 74. 2025-11-10: Added general settings toggles for all logging channels, persisted preferences via AJAX, and gated email/error log writers behind the new helper so disabled logs stop recording immediately.
 75. 2025-11-10: Surfaced logging status indicators across communications and log tabs with styled settings links so admins can confirm which channels are currently recording entries.
 76. 2025-11-10: Moved the payment log status indicator inside the log section so its layout matches the error log scopes while keeping other tabs unchanged.
 77. 2025-11-11: Normalized error logger keyword matching to stringify stack traces and messages so array data no longer triggers PHP type errors during log writes.
 78. 2025-11-11: Hardened error log helper formatting by stringifying complex values before sanitization to prevent array-to-string warnings when writing entries.
+79. 2025-11-12: Rebranded the boilerplate to Thompson Engineering QCI Database, renamed CPB assets to teqcidb, and retargeted student tooling with updated table names, text domains, and plugin metadata.
+80. 2025-11-12: Deferred text-domain bootstrapping to `plugins_loaded` and added recursion guards around log writes to prevent memory exhaustion when logging encounters filesystem warnings.
+81. 2025-11-12: Bootstrapped plugin instantiation on `plugins_loaded` so localization and error logging initialize once WordPress is ready before other components register hooks.
+82. 2025-11-12: Wrapped error handler entry points in a logging guard so translation lookups can no longer re-enter the logger and exhaust memory during activation.
+83. 2025-11-12: Temporarily disabled communications, logging, settings, and cron bootstraps so only core Student admin/AJAX/shortcode features load while we isolate the activation memory exhaustion.
+84. 2025-11-12: Re-enabled the content logger and cron manager to continue narrowing the activation culprit while leaving other subsystems offline.
+85. 2025-11-12: Restored the Communications and Settings admin tabs with their AJAX and admin-post handlers so we can continue staged feature reactivation.
+86. 2025-11-12: Re-enabled the Logs admin area, reinstated error log AJAX endpoints, and booted the error logger alongside other subsystems for the next activation test.
+87. 2025-11-12: Added a per-request cap to error logging and disabled sitewide logging by default so third-party notices cannot exhaust memory before the settings page loads.
+88. 2025-11-12: Disabled plugin error logging by default and gated the logger behind the settings toggles so we can test without the subsystem until the memory leak is isolated.
+89. 2025-11-12: Cached logging toggles per request, skipped stack traces when only sitewide logging is active, and bypassed repeated option lookups during log writes to prevent runaway memory usage when PHP notices fire.
+90. 2025-11-12: Removed sitewide PHP logging toggles, helpers, and UI so the error logger now focuses solely on Thompson Engineering QCI Database events.

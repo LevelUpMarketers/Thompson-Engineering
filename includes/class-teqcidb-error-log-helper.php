@@ -1,17 +1,16 @@
 <?php
 /**
- * Utility helpers for storing and retrieving CPB error logs.
+ * Utility helpers for storing and retrieving TEQCIDB error logs.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class CPB_Error_Log_Helper {
+class TEQCIDB_Error_Log_Helper {
 
-    const SCOPE_SITEWIDE = 'sitewide';
     const SCOPE_PLUGIN   = 'plugin';
     const SCOPE_PAYMENTS = 'payments';
 
@@ -21,9 +20,8 @@ class CPB_Error_Log_Helper {
      * @var array<string, string>
      */
     protected static $filenames = array(
-        self::SCOPE_SITEWIDE => 'cpb-sitewide-errors.log',
-        self::SCOPE_PLUGIN   => 'cpb-plugin-errors.log',
-        self::SCOPE_PAYMENTS => 'cpb-payment-activity.log',
+        self::SCOPE_PLUGIN   => 'teqcidb-plugin-errors.log',
+        self::SCOPE_PAYMENTS => 'teqcidb-payment-activity.log',
     );
 
     /**
@@ -59,7 +57,7 @@ class CPB_Error_Log_Helper {
             return '';
         }
 
-        $directory = trailingslashit( $upload_dir['basedir'] ) . 'cpb-logs';
+        $directory = trailingslashit( $upload_dir['basedir'] ) . 'teqcidb-logs';
 
         /**
          * Filter the base directory used to store error logs.
@@ -70,7 +68,7 @@ class CPB_Error_Log_Helper {
          * @param array  $upload_dir Upload directory information from {@see wp_upload_dir()}.
          * @param string $scope      Error log scope.
          */
-        $directory = apply_filters( 'cpb_error_log_directory', $directory, $upload_dir, $scope );
+        $directory = apply_filters( 'teqcidb_error_log_directory', $directory, $upload_dir, $scope );
         $directory = untrailingslashit( $directory );
 
         if ( '' === $directory ) {
@@ -102,19 +100,20 @@ class CPB_Error_Log_Helper {
     /**
      * Append an error entry to the requested log file.
      *
-     * @param string $scope Log scope identifier.
-     * @param array  $entry Log details.
+     * @param string $scope               Log scope identifier.
+     * @param array  $entry               Log details.
+     * @param bool   $bypass_scope_check Optional. When true, skip scope toggle validation. Defaults to false.
      *
      * @return bool
      */
-    public static function append_entry( $scope, array $entry ) {
+    public static function append_entry( $scope, array $entry, $bypass_scope_check = false ) {
         $scope = self::normalize_scope( $scope );
 
         if ( '' === $scope ) {
             return false;
         }
 
-        if ( ! self::is_scope_enabled( $scope ) ) {
+        if ( ! $bypass_scope_check && ! self::is_scope_enabled( $scope ) ) {
             return false;
         }
 
@@ -130,7 +129,7 @@ class CPB_Error_Log_Helper {
             return false;
         }
 
-        $result = file_put_contents( $path, $formatted, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        $result = @file_put_contents( $path, $formatted, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
         return false !== $result;
     }
@@ -144,7 +143,7 @@ class CPB_Error_Log_Helper {
      */
     public static function format_entry( array $entry ) {
         $timestamp = isset( $entry['timestamp'] ) ? self::sanitize_line( $entry['timestamp'] ) : gmdate( 'c' );
-        $label     = isset( $entry['label'] ) ? self::sanitize_line( $entry['label'] ) : __( 'Notice', 'codex-plugin-boilerplate' );
+        $label     = isset( $entry['label'] ) ? self::sanitize_line( $entry['label'] ) : __( 'Notice', 'teqcidb' );
         $severity  = isset( $entry['severity'] ) ? self::sanitize_line( $entry['severity'] ) : '';
         $message   = isset( $entry['message'] ) ? self::normalize_multiline( $entry['message'] ) : '';
         $file      = isset( $entry['file'] ) ? self::sanitize_line( $entry['file'] ) : '';
@@ -265,11 +264,9 @@ class CPB_Error_Log_Helper {
 
         switch ( $scope ) {
             case self::SCOPE_PLUGIN:
-                return __( 'CPB error log cleared.', 'codex-plugin-boilerplate' );
-            case self::SCOPE_SITEWIDE:
-                return __( 'Sitewide error log cleared.', 'codex-plugin-boilerplate' );
+                return __( 'TEQCIDB error log cleared.', 'teqcidb' );
             case self::SCOPE_PAYMENTS:
-                return __( 'Payment log cleared.', 'codex-plugin-boilerplate' );
+                return __( 'Payment log cleared.', 'teqcidb' );
         }
 
         return '';
@@ -304,11 +301,9 @@ class CPB_Error_Log_Helper {
 
         switch ( $scope ) {
             case self::SCOPE_PLUGIN:
-                return __( 'CPB-Related', 'codex-plugin-boilerplate' );
-            case self::SCOPE_SITEWIDE:
-                return __( 'Sitewide', 'codex-plugin-boilerplate' );
+                return __( 'TEQCIDB-Related', 'teqcidb' );
             case self::SCOPE_PAYMENTS:
-                return __( 'Payment', 'codex-plugin-boilerplate' );
+                return __( 'Payment', 'teqcidb' );
         }
 
         return '';
@@ -323,12 +318,10 @@ class CPB_Error_Log_Helper {
      */
     protected static function is_scope_enabled( $scope ) {
         switch ( $scope ) {
-            case self::SCOPE_SITEWIDE:
-                return CPB_Settings_Helper::is_logging_enabled( CPB_Settings_Helper::FIELD_LOG_SITE_ERRORS );
             case self::SCOPE_PLUGIN:
-                return CPB_Settings_Helper::is_logging_enabled( CPB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
+                return TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PLUGIN_ERRORS );
             case self::SCOPE_PAYMENTS:
-                return CPB_Settings_Helper::is_logging_enabled( CPB_Settings_Helper::FIELD_LOG_PAYMENTS );
+                return TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_PAYMENTS );
         }
 
         return true;

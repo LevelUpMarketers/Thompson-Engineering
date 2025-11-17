@@ -2,21 +2,20 @@
 /**
  * Helper utilities for storing and retrieving general plugin settings.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class CPB_Settings_Helper {
+class TEQCIDB_Settings_Helper {
 
-    const OPTION_NAME = 'cpb_general_settings';
+    const OPTION_NAME = 'teqcidb_general_settings';
 
     const FIELD_OPTION            = 'option';
     const FIELD_LOG_EMAIL         = 'log_email';
     const FIELD_LOG_SMS           = 'log_sms';
-    const FIELD_LOG_SITE_ERRORS   = 'log_site_errors';
     const FIELD_LOG_PLUGIN_ERRORS = 'log_plugin_errors';
     const FIELD_LOG_PAYMENTS      = 'log_payments';
 
@@ -46,8 +45,7 @@ class CPB_Settings_Helper {
             self::FIELD_OPTION            => '',
             self::FIELD_LOG_EMAIL         => true,
             self::FIELD_LOG_SMS           => true,
-            self::FIELD_LOG_SITE_ERRORS   => true,
-            self::FIELD_LOG_PLUGIN_ERRORS => true,
+            self::FIELD_LOG_PLUGIN_ERRORS => false,
             self::FIELD_LOG_PAYMENTS      => true,
         );
     }
@@ -83,7 +81,6 @@ class CPB_Settings_Helper {
         $toggle_fields = array(
             self::FIELD_LOG_EMAIL,
             self::FIELD_LOG_SMS,
-            self::FIELD_LOG_SITE_ERRORS,
             self::FIELD_LOG_PLUGIN_ERRORS,
             self::FIELD_LOG_PAYMENTS,
         );

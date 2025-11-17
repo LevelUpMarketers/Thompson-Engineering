@@ -2,16 +2,16 @@
 /**
  * Utility methods for storing and presenting email delivery logs.
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class CPB_Email_Log_Helper {
+class TEQCIDB_Email_Log_Helper {
 
-    const LOG_FILENAME = 'cpb-email-log.txt';
+    const LOG_FILENAME = 'teqcidb-email-log.txt';
 
     /**
      * Cache of the resolved log path.
@@ -36,7 +36,7 @@ class CPB_Email_Log_Helper {
             return '';
         }
 
-        $directory = trailingslashit( $upload_dir['basedir'] ) . 'cpb-logs';
+        $directory = trailingslashit( $upload_dir['basedir'] ) . 'teqcidb-logs';
 
         /**
          * Filter the directory used to store email log files.
@@ -46,7 +46,7 @@ class CPB_Email_Log_Helper {
          * @param string $directory  Absolute directory path.
          * @param array  $upload_dir Upload directory information from {@see wp_upload_dir()}.
          */
-        $directory = apply_filters( 'cpb_email_log_directory', $directory, $upload_dir );
+        $directory = apply_filters( 'teqcidb_email_log_directory', $directory, $upload_dir );
         $directory = untrailingslashit( $directory );
 
         if ( '' === $directory ) {
@@ -93,7 +93,7 @@ class CPB_Email_Log_Helper {
      * @return bool
      */
     public static function log_email( array $args ) {
-        if ( ! CPB_Settings_Helper::is_logging_enabled( CPB_Settings_Helper::FIELD_LOG_EMAIL ) ) {
+        if ( ! TEQCIDB_Settings_Helper::is_logging_enabled( TEQCIDB_Settings_Helper::FIELD_LOG_EMAIL ) ) {
             return false;
         }
 
@@ -266,7 +266,7 @@ class CPB_Email_Log_Helper {
     public static function get_download_filename() {
         $eastern_time = new DateTime( 'now', new DateTimeZone( 'America/New_York' ) );
 
-        return sprintf( 'cpb-email-log-%s.txt', $eastern_time->format( 'Ymd-His' ) );
+        return sprintf( 'teqcidb-email-log-%s.txt', $eastern_time->format( 'Ymd-His' ) );
     }
 
     /**

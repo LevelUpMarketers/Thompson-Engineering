@@ -2,14 +2,14 @@
 /**
  * Define the internationalization functionality
  *
- * @package Codex_Plugin_Boilerplate
+ * @package Thompson_Engineering_QCI_Database
  */
 
-class CPB_I18n {
+class TEQCIDB_I18n {
 
     public function load_textdomain() {
         load_plugin_textdomain(
-            'codex-plugin-boilerplate',
+            'teqcidb',
             false,
             dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
         );
