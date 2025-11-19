@@ -1167,8 +1167,7 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'    => 'is_a_representative',
-                /* translators: <em> tags emphasize the word "also" in the label. */
-                'label'   => __( 'Is this Student <em>also</em> a Representative?', 'teqcidb' ),
+                'label'   => __( 'Is this Student also a Representative?', 'teqcidb' ),
                 'type'    => 'select',
                 'options' => $yes_no,
                 'tooltip' => $tooltips['is_a_representative'],
