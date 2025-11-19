@@ -97,3 +97,4 @@
 94. 2025-11-12: Simplified the Create a Student form by assuming US addresses and hiding representative lookup IDs so admins focus on contact info that drives later automation.
 95. 2025-11-12: Matched address line widths to other location inputs, converted State to a US states-and-territories dropdown, renamed Zip labeling, and emphasized the representative toggle copy.
 96. 2025-11-12: Removed markup from the representative toggle label and aligned the Previous Companies repeater inputs with the other full-width text fields for consistent sizing.
+97. 2025-11-12: Narrowed the Previous Companies repeater to the standard field width by dropping its full-width class and custom CSS override.

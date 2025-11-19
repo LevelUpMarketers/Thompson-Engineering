@@ -1101,7 +1101,6 @@ class TEQCIDB_Admin {
                 'name'       => 'old_companies',
                 'label'      => __( 'Previous Companies', 'teqcidb' ),
                 'type'       => 'items',
-                'full_width' => true,
                 'tooltip'    => $tooltips['old_companies'],
             ),
             array(
