@@ -102,3 +102,4 @@
 99. 2025-11-19: Enforced WordPress user creation for new students, prevented duplicate student emails, and aligned unique student IDs with the legacy email-plus-timestamp format.
 100. 2025-11-19: Added live phone input masking, normalized stored phone numbers (including fax and representative contacts), and switched the student address JSON to a `zip_code` key for the postal value.
 101. 2025-11-19: Removed the tutorial/promo banner markup and related styles from every admin tab so the UI stays focused on core plugin tools.
+102. 2025-11-19: Added a legacy Upload tab to import old teqcidb_students rows, converting legacy fields into the new schema while guarding against missing data and duplicates.
