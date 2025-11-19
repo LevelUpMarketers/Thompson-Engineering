@@ -94,3 +94,4 @@
 91. 2025-11-12: Replaced the student activation schema with production fields for WordPress linkage, contact info, training dates, and metadata columns.
 92. 2025-11-12: Rebuilt the Create a Student tab to mirror the production schema with named fields, contextual tooltips, and inputs sized for addresses, lists, and notes.
 93. 2025-11-12: Split the student address into discrete inputs, expanded representative contact fields, and replaced association selection with dedicated checkboxes.
+94. 2025-11-12: Simplified the Create a Student form by assuming US addresses and hiding representative lookup IDs so admins focus on contact info that drives later automation.
