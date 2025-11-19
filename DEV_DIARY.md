@@ -95,3 +95,4 @@
 92. 2025-11-12: Rebuilt the Create a Student tab to mirror the production schema with named fields, contextual tooltips, and inputs sized for addresses, lists, and notes.
 93. 2025-11-12: Split the student address into discrete inputs, expanded representative contact fields, and replaced association selection with dedicated checkboxes.
 94. 2025-11-12: Simplified the Create a Student form by assuming US addresses and hiding representative lookup IDs so admins focus on contact info that drives later automation.
+95. 2025-11-12: Matched address line widths to other location inputs, converted State to a US states-and-territories dropdown, renamed Zip labeling, and emphasized the representative toggle copy.

@@ -1108,14 +1108,12 @@ class TEQCIDB_Admin {
                 'name'       => 'student_address_street_1',
                 'label'      => __( 'Address Line 1', 'teqcidb' ),
                 'type'       => 'text',
-                'full_width' => true,
                 'tooltip'    => $tooltips['student_address_street_1'],
             ),
             array(
                 'name'       => 'student_address_street_2',
                 'label'      => __( 'Address Line 2', 'teqcidb' ),
                 'type'       => 'text',
-                'full_width' => true,
                 'tooltip'    => $tooltips['student_address_street_2'],
             ),
             array(
@@ -1126,13 +1124,14 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'    => 'student_address_state',
-                'label'   => __( 'State / Province', 'teqcidb' ),
-                'type'    => 'text',
+                'label'   => __( 'State', 'teqcidb' ),
+                'type'    => 'state',
+                'options' => $this->get_us_states_and_territories(),
                 'tooltip' => $tooltips['student_address_state'],
             ),
             array(
                 'name'    => 'student_address_postal_code',
-                'label'   => __( 'Postal Code', 'teqcidb' ),
+                'label'   => __( 'Zip Code', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['student_address_postal_code'],
             ),
@@ -1168,7 +1167,8 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'    => 'is_a_representative',
-                'label'   => __( 'Is a Representative?', 'teqcidb' ),
+                /* translators: <em> tags emphasize the word "also" in the label. */
+                'label'   => __( 'Is this Student <em>also</em> a Representative?', 'teqcidb' ),
                 'type'    => 'select',
                 'options' => $yes_no,
                 'tooltip' => $tooltips['is_a_representative'],
@@ -1289,7 +1289,7 @@ class TEQCIDB_Admin {
                 $classes .= ' teqcidb-field-full';
             }
             echo '<div class="' . $classes . '">';
-            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $field['tooltip'] ) . '"></span>' . esc_html( $field['label'] ) . '</label>';
+            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $field['tooltip'] ) . '"></span>' . wp_kses_post( $field['label'] ) . '</label>';
             switch ( $field['type'] ) {
                 case 'select':
                     echo '<select name="' . esc_attr( $field['name'] ) . '">';
@@ -1303,7 +1303,7 @@ class TEQCIDB_Admin {
                     echo '</select>';
                     break;
                 case 'state':
-                    $states = isset( $field['options'] ) ? $field['options'] : $this->get_us_states();
+                    $states = isset( $field['options'] ) ? $field['options'] : $this->get_us_states_and_territories();
                     echo '<select name="' . esc_attr( $field['name'] ) . '">';
                     echo '<option value="" disabled selected>' . esc_html__( 'Make a Selection...', 'teqcidb' ) . '</option>';
                     foreach ( $states as $state ) {
