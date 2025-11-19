@@ -91,3 +91,10 @@
 88. 2025-11-12: Disabled plugin error logging by default and gated the logger behind the settings toggles so we can test without the subsystem until the memory leak is isolated.
 89. 2025-11-12: Cached logging toggles per request, skipped stack traces when only sitewide logging is active, and bypassed repeated option lookups during log writes to prevent runaway memory usage when PHP notices fire.
 90. 2025-11-12: Removed sitewide PHP logging toggles, helpers, and UI so the error logger now focuses solely on Thompson Engineering QCI Database events.
+91. 2025-11-12: Replaced the student activation schema with production fields for WordPress linkage, contact info, training dates, and metadata columns.
+92. 2025-11-12: Rebuilt the Create a Student tab to mirror the production schema with named fields, contextual tooltips, and inputs sized for addresses, lists, and notes.
+93. 2025-11-12: Split the student address into discrete inputs, expanded representative contact fields, and replaced association selection with dedicated checkboxes.
+94. 2025-11-12: Simplified the Create a Student form by assuming US addresses and hiding representative lookup IDs so admins focus on contact info that drives later automation.
+95. 2025-11-12: Matched address line widths to other location inputs, converted State to a US states-and-territories dropdown, renamed Zip labeling, and emphasized the representative toggle copy.
+96. 2025-11-12: Removed markup from the representative toggle label and aligned the Previous Companies repeater inputs with the other full-width text fields for consistent sizing.
+97. 2025-11-12: Narrowed the Previous Companies repeater to the standard field width by dropping its full-width class and custom CSS override.
