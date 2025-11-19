@@ -40,61 +40,45 @@ class TEQCIDB_Ajax {
     public function save_student() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
+
         global $wpdb;
+
         $table = $wpdb->prefix . 'teqcidb_students';
         $id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-        $now   = current_time( 'mysql' );
 
-        $name = $this->sanitize_text_value( 'name' );
+        $first_name = $this->sanitize_text_value( 'first_name' );
+        $last_name  = $this->sanitize_text_value( 'last_name' );
+        $email      = $this->sanitize_email_value( 'email' );
 
-        if ( '' === $name ) {
-            $name = $this->sanitize_text_value( 'placeholder_1' );
+        if ( '' === $email ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
+                )
+            );
         }
 
-        $state_options          = $this->get_us_states();
-        $extended_state_options = $this->get_us_states_and_territories();
-        $opt_in_keys            = array(
-            'opt_in_marketing_email',
-            'opt_in_marketing_sms',
-            'opt_in_event_update_email',
-            'opt_in_event_update_sms',
-        );
+        $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
 
         $data = array(
-            'name'                        => $name,
-            'placeholder_1'               => $this->sanitize_text_value( 'placeholder_1' ),
-            'placeholder_2'               => $this->sanitize_text_value( 'placeholder_2' ),
-            'placeholder_3'               => $this->sanitize_date_value( 'placeholder_3' ),
-            'placeholder_4'               => $this->sanitize_select_value( 'placeholder_4', array( '0', '1' ) ),
-            'placeholder_5'               => $this->sanitize_time_value( 'placeholder_5' ),
-            'placeholder_6'               => $this->sanitize_time_value( 'placeholder_6' ),
-            'placeholder_7'               => $this->sanitize_select_value( 'placeholder_7', array( '0', '1' ) ),
-            'placeholder_8'               => $this->sanitize_text_value( 'placeholder_8' ),
-            'placeholder_9'               => $this->sanitize_text_value( 'placeholder_9' ),
-            'placeholder_10'              => $this->sanitize_text_value( 'placeholder_10' ),
-            'placeholder_11'              => $this->sanitize_state_value( 'placeholder_11', $state_options ),
-            'placeholder_12'              => $this->sanitize_text_value( 'placeholder_12' ),
-            'placeholder_13'              => $this->sanitize_text_value( 'placeholder_13' ),
-            'placeholder_14'              => $this->sanitize_url_value( 'placeholder_14' ),
-            'placeholder_15'              => $this->sanitize_select_value( 'placeholder_15', array( 'option1', 'option2', 'option3' ) ),
-            'placeholder_16'              => $this->sanitize_decimal_value( 'placeholder_16' ),
-            'placeholder_17'              => $this->sanitize_decimal_value( 'placeholder_17' ),
-            'placeholder_18'              => $this->sanitize_decimal_value( 'placeholder_18' ),
-            'placeholder_19'              => $this->sanitize_select_value( 'placeholder_19', array( '0', '1' ) ),
-            'placeholder_20'              => $this->sanitize_select_value( 'placeholder_20', array( '0', '1' ) ),
-            'placeholder_21'              => $this->sanitize_state_value( 'placeholder_21', $extended_state_options ),
-            'placeholder_22'              => $this->sanitize_text_value( 'placeholder_22' ),
-            'placeholder_23'              => $this->sanitize_select_value( 'placeholder_23', array( 'option1', 'option2', 'option3' ) ),
-            'placeholder_24'              => $this->sanitize_opt_in_summary( $opt_in_keys ),
-            'placeholder_25'              => $this->sanitize_items_value( 'placeholder_25' ),
-            'placeholder_26'              => $this->sanitize_color_value( 'placeholder_26' ),
-            'placeholder_27'              => $this->sanitize_image_value( 'placeholder_27' ),
-            'placeholder_28'              => $this->sanitize_editor_value( 'placeholder_28' ),
-            'opt_in_marketing_email'      => $this->sanitize_checkbox_value( 'opt_in_marketing_email' ),
-            'opt_in_marketing_sms'        => $this->sanitize_checkbox_value( 'opt_in_marketing_sms' ),
-            'opt_in_event_update_email'   => $this->sanitize_checkbox_value( 'opt_in_event_update_email' ),
-            'opt_in_event_update_sms'     => $this->sanitize_checkbox_value( 'opt_in_event_update_sms' ),
-            'updated_at'                  => $now,
+            'first_name'            => $first_name,
+            'last_name'             => $last_name,
+            'company'               => $this->sanitize_text_value( 'company' ),
+            'old_companies'         => $this->sanitize_items_value( 'old_companies' ),
+            'student_address'       => $this->sanitize_student_address(),
+            'phone_cell'            => $this->sanitize_text_value( 'phone_cell' ),
+            'phone_office'          => $this->sanitize_text_value( 'phone_office' ),
+            'fax'                   => $this->sanitize_text_value( 'fax' ),
+            'email'                 => $email,
+            'initial_training_date' => $this->sanitize_date_value( 'initial_training_date' ),
+            'last_refresher_date'   => $this->sanitize_date_value( 'last_refresher_date' ),
+            'is_a_representative'   => $this->sanitize_yes_no_value( 'is_a_representative' ),
+            'their_representative'  => $this->sanitize_representative_contact(),
+            'associations'          => $this->sanitize_associations_value( 'associations', $association_options ),
+            'expiration_date'       => $this->sanitize_date_value( 'expiration_date' ),
+            'qcinumber'             => $this->sanitize_text_value( 'qcinumber' ),
+            'comments'              => $this->sanitize_textarea_value( 'comments' ),
         );
 
         $formats = array_fill( 0, count( $data ), '%s' );
@@ -112,10 +96,9 @@ class TEQCIDB_Ajax {
                 );
             }
         } else {
-            $data['created_at'] = $now;
-            $formats[]          = '%s';
-            $result             = $wpdb->insert( $table, $data, $formats );
-            $message            = __( 'Saved', 'teqcidb' );
+            $data['uniquestudentid'] = $this->generate_unique_student_id( $table );
+            $result                  = $wpdb->insert( $table, $data, $formats );
+            $message                 = __( 'Saved', 'teqcidb' );
 
             if ( false === $result ) {
                 $this->maybe_delay( $start );
@@ -128,7 +111,11 @@ class TEQCIDB_Ajax {
         }
 
         $this->maybe_delay( $start );
-        wp_send_json_success( array( 'message' => $message ) );
+        wp_send_json_success(
+            array(
+                'message' => $message,
+            )
+        );
     }
 
     public function save_general_settings() {
@@ -411,15 +398,9 @@ class TEQCIDB_Ajax {
             $raw_search = array();
         }
 
-        $searchable_columns = array(
-            'placeholder_1',
-            'placeholder_2',
-            'placeholder_3',
-        );
-
         $search_terms = array();
 
-        foreach ( $searchable_columns as $column ) {
+        foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
             if ( isset( $raw_search[ $column ] ) ) {
                 $value = sanitize_text_field( $raw_search[ $column ] );
 
@@ -432,9 +413,25 @@ class TEQCIDB_Ajax {
         $where_clauses = array();
         $where_params  = array();
 
-        foreach ( $search_terms as $column => $value ) {
-            $where_clauses[] = $column . ' LIKE %s';
-            $where_params[]  = '%' . $wpdb->esc_like( $value ) . '%';
+        foreach ( $search_terms as $key => $value ) {
+            $like_value = '%' . $wpdb->esc_like( $value ) . '%';
+
+            if ( 'placeholder_1' === $key ) {
+                $where_clauses[] = "CONCAT_WS(' ', first_name, last_name) LIKE %s";
+                $where_params[]  = $like_value;
+                continue;
+            }
+
+            if ( 'placeholder_2' === $key ) {
+                $where_clauses[] = 'email LIKE %s';
+                $where_params[]  = $like_value;
+                continue;
+            }
+
+            if ( 'placeholder_3' === $key ) {
+                $where_clauses[] = 'company LIKE %s';
+                $where_params[]  = $like_value;
+            }
         }
 
         $where_sql = '';
@@ -473,22 +470,15 @@ class TEQCIDB_Ajax {
         $entities = array();
 
         if ( $total > 0 ) {
-            $opt_in_keys = array(
-                'opt_in_marketing_email',
-                'opt_in_marketing_sms',
-                'opt_in_event_update_email',
-                'opt_in_event_update_sms',
-            );
-
             $select_query = "SELECT * FROM $table";
 
             if ( $where_sql ) {
                 $select_query .= ' ' . $where_sql;
             }
 
-            $select_query .= ' ORDER BY placeholder_1 ASC, id ASC LIMIT %d OFFSET %d';
+            $select_query .= ' ORDER BY first_name ASC, last_name ASC, id ASC LIMIT %d OFFSET %d';
 
-            $select_params = $where_params;
+            $select_params   = $where_params;
             $select_params[] = $per_page;
             $select_params[] = $offset;
 
@@ -500,53 +490,19 @@ class TEQCIDB_Ajax {
                 ARRAY_A
             );
 
-            foreach ( $entities as &$entity ) {
-                $entity['placeholder_3']  = $this->format_date_for_response( $entity['placeholder_3'] );
-                $entity['placeholder_5']  = $this->format_time_for_response( $entity['placeholder_5'] );
-                $entity['placeholder_6']  = $this->format_time_for_response( $entity['placeholder_6'] );
-                $entity['placeholder_16'] = $this->format_decimal_for_response( $entity['placeholder_16'] );
-                $entity['placeholder_17'] = $this->format_decimal_for_response( $entity['placeholder_17'] );
-                $entity['placeholder_18'] = $this->format_decimal_for_response( $entity['placeholder_18'] );
-                $entity['placeholder_24'] = $this->format_json_field( $entity['placeholder_24'] );
-                $entity['placeholder_25'] = $this->format_json_field( $entity['placeholder_25'] );
-                $entity['placeholder_26'] = $this->format_color_for_response( $entity['placeholder_26'] );
-                $entity['placeholder_27'] = (string) absint( $entity['placeholder_27'] );
-                $entity['placeholder_27_url'] = $this->get_attachment_url( $entity['placeholder_27'] );
-                $entity['placeholder_28'] = $this->format_editor_content_for_response( $entity['placeholder_28'] );
-
-                foreach ( array( 'placeholder_4', 'placeholder_7', 'placeholder_19', 'placeholder_20', 'opt_in_marketing_email', 'opt_in_marketing_sms', 'opt_in_event_update_email', 'opt_in_event_update_sms' ) as $bool_key ) {
-                    if ( isset( $entity[ $bool_key ] ) ) {
-                        $entity[ $bool_key ] = (string) ( (int) $entity[ $bool_key ] );
+            if ( is_array( $entities ) ) {
+                foreach ( $entities as &$entity ) {
+                    if ( ! is_array( $entity ) ) {
+                        $entity = array();
+                        continue;
                     }
-                }
 
-                if ( ! isset( $entity['placeholder_21'] ) ) {
-                    $entity['placeholder_21'] = '';
+                    $entity = $this->prepare_student_entity( $entity );
                 }
-
-                if ( ! isset( $entity['placeholder_22'] ) ) {
-                    $entity['placeholder_22'] = '';
-                }
-
-                if ( ! isset( $entity['placeholder_23'] ) ) {
-                    $entity['placeholder_23'] = '';
-                }
-
-                if ( ! isset( $entity['placeholder_24'] ) ) {
-                    $entity['placeholder_24'] = wp_json_encode( array() );
-                }
-
-                if ( ! isset( $entity['placeholder_25'] ) ) {
-                    $entity['placeholder_25'] = wp_json_encode( array() );
-                }
-
-                foreach ( $opt_in_keys as $opt_in_key ) {
-                    if ( ! isset( $entity[ $opt_in_key ] ) ) {
-                        $entity[ $opt_in_key ] = '0';
-                    }
-                }
+                unset( $entity );
+            } else {
+                $entities = array();
             }
-            unset( $entity );
         }
 
         $this->maybe_delay( $start, 0 );
@@ -1095,6 +1051,109 @@ class TEQCIDB_Ajax {
         return wp_kses_post( $value );
     }
 
+    private function sanitize_email_value( $key ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        $email = sanitize_email( $value );
+
+        return $email ? $email : '';
+    }
+
+    private function sanitize_textarea_value( $key ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        return sanitize_textarea_field( $value );
+    }
+
+    private function sanitize_yes_no_value( $key ) {
+        return $this->sanitize_select_value( $key, array( '0', '1' ) );
+    }
+
+    private function sanitize_student_address() {
+        $states = $this->get_us_states_and_territories();
+
+        $address = array(
+            'street_1'    => $this->sanitize_text_value( 'student_address_street_1' ),
+            'street_2'    => $this->sanitize_text_value( 'student_address_street_2' ),
+            'city'        => $this->sanitize_text_value( 'student_address_city' ),
+            'state'       => $this->sanitize_state_value( 'student_address_state', $states ),
+            'postal_code' => $this->sanitize_text_value( 'student_address_postal_code' ),
+        );
+
+        $has_value = false;
+
+        foreach ( $address as $part ) {
+            if ( '' !== $part ) {
+                $has_value = true;
+                break;
+            }
+        }
+
+        return $has_value ? wp_json_encode( $address ) : '';
+    }
+
+    private function sanitize_representative_contact() {
+        $contact = array(
+            'first_name' => $this->sanitize_text_value( 'representative_first_name' ),
+            'last_name'  => $this->sanitize_text_value( 'representative_last_name' ),
+            'email'      => $this->sanitize_email_value( 'representative_email' ),
+            'phone'      => $this->sanitize_text_value( 'representative_phone' ),
+        );
+
+        $has_value = false;
+
+        foreach ( $contact as $value ) {
+            if ( '' !== $value ) {
+                $has_value = true;
+                break;
+            }
+        }
+
+        return $has_value ? wp_json_encode( $contact ) : '';
+    }
+
+    private function sanitize_associations_value( $key, array $allowed_values ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return wp_json_encode( array() );
+        }
+
+        if ( ! is_array( $value ) ) {
+            $value = array( $value );
+        }
+
+        $selected = array();
+
+        foreach ( $value as $entry ) {
+            $entry = sanitize_text_field( $entry );
+
+            if ( in_array( $entry, $allowed_values, true ) ) {
+                $selected[] = $entry;
+            }
+        }
+
+        $selected = array_values( array_unique( $selected ) );
+
+        return wp_json_encode( $selected );
+    }
+
     private function format_date_for_response( $value ) {
         if ( empty( $value ) || '0000-00-00' === $value ) {
             return '';
@@ -1165,6 +1224,110 @@ class TEQCIDB_Ajax {
         return wp_kses_post( $value );
     }
 
+    private function prepare_student_entity( array $entity ) {
+        $entity['initial_training_date'] = $this->format_date_for_response( isset( $entity['initial_training_date'] ) ? $entity['initial_training_date'] : '' );
+        $entity['last_refresher_date']   = $this->format_date_for_response( isset( $entity['last_refresher_date'] ) ? $entity['last_refresher_date'] : '' );
+        $entity['expiration_date']       = $this->format_date_for_response( isset( $entity['expiration_date'] ) ? $entity['expiration_date'] : '' );
+        $entity['old_companies']         = $this->format_json_field( isset( $entity['old_companies'] ) ? $entity['old_companies'] : '' );
+        $entity['associations']          = $this->format_json_field( isset( $entity['associations'] ) ? $entity['associations'] : '' );
+
+        $address = $this->decode_student_address_field( isset( $entity['student_address'] ) ? $entity['student_address'] : '' );
+        $entity['student_address_street_1']   = $address['street_1'];
+        $entity['student_address_street_2']   = $address['street_2'];
+        $entity['student_address_city']       = $address['city'];
+        $entity['student_address_state']      = $address['state'];
+        $entity['student_address_postal_code'] = $address['postal_code'];
+
+        $representative = $this->decode_representative_contact_field( isset( $entity['their_representative'] ) ? $entity['their_representative'] : '' );
+        $entity['representative_first_name'] = $representative['first_name'];
+        $entity['representative_last_name']  = $representative['last_name'];
+        $entity['representative_email']      = $representative['email'];
+        $entity['representative_phone']      = $representative['phone'];
+
+        $entity['is_a_representative'] = isset( $entity['is_a_representative'] ) ? (string) ( (int) $entity['is_a_representative'] ) : '0';
+
+        $entity['placeholder_1'] = $this->build_student_display_name( $entity );
+        $entity['placeholder_2'] = isset( $entity['email'] ) ? $entity['email'] : '';
+        $entity['placeholder_3'] = isset( $entity['company'] ) ? $entity['company'] : '';
+        $entity['placeholder_4'] = isset( $entity['phone_cell'] ) ? $entity['phone_cell'] : '';
+        $entity['placeholder_5'] = $entity['expiration_date'];
+        $entity['name']          = $entity['placeholder_1'];
+
+        return $entity;
+    }
+
+    private function decode_student_address_field( $value ) {
+        $defaults = array(
+            'street_1'    => '',
+            'street_2'    => '',
+            'city'        => '',
+            'state'       => '',
+            'postal_code' => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        $decoded = json_decode( $value, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        foreach ( $defaults as $key => $default_value ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        return $defaults;
+    }
+
+    private function decode_representative_contact_field( $value ) {
+        $defaults = array(
+            'first_name' => '',
+            'last_name'  => '',
+            'email'      => '',
+            'phone'      => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        $decoded = json_decode( $value, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        foreach ( array( 'first_name', 'last_name', 'phone' ) as $key ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        if ( isset( $decoded['email'] ) ) {
+            $email = sanitize_email( $decoded['email'] );
+            $defaults['email'] = $email ? $email : '';
+        }
+
+        return $defaults;
+    }
+
+    private function build_student_display_name( array $entity ) {
+        $first = isset( $entity['first_name'] ) ? $entity['first_name'] : '';
+        $last  = isset( $entity['last_name'] ) ? $entity['last_name'] : '';
+        $name  = trim( $first . ' ' . $last );
+
+        if ( '' !== $name ) {
+            return $name;
+        }
+
+        return isset( $entity['email'] ) ? $entity['email'] : '';
+    }
+
     private function get_attachment_url( $attachment_id ) {
         $attachment_id = absint( $attachment_id );
 
@@ -1179,6 +1342,21 @@ class TEQCIDB_Ajax {
         }
 
         return esc_url_raw( $url );
+    }
+
+    private function generate_unique_student_id( $table ) {
+        global $wpdb;
+
+        for ( $i = 0; $i < 5; $i++ ) {
+            $candidate = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : wp_generate_password( 32, false );
+            $exists    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE uniquestudentid = %s", $candidate ) );
+
+            if ( 0 === $exists ) {
+                return $candidate;
+            }
+        }
+
+        return uniqid( 'teqcidb_', true );
     }
 
     private function get_us_states() {

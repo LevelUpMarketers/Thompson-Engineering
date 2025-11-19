@@ -758,10 +758,20 @@ class TEQCIDB_Admin {
         static $labels = null;
 
         if ( null === $labels ) {
-            $labels = array();
+            $defaults = array(
+                'placeholder_1' => __( 'Student Name', 'teqcidb' ),
+                'placeholder_2' => __( 'Email Address', 'teqcidb' ),
+                'placeholder_3' => __( 'Company', 'teqcidb' ),
+                'placeholder_4' => __( 'Cell Phone', 'teqcidb' ),
+                'placeholder_5' => __( 'Certification Expiration', 'teqcidb' ),
+            );
 
             for ( $i = 1; $i <= 28; $i++ ) {
-                $labels[ 'placeholder_' . $i ] = sprintf( __( 'Placeholder %d', 'teqcidb' ), $i );
+                $key = 'placeholder_' . $i;
+
+                if ( ! isset( $defaults[ $key ] ) ) {
+                    $defaults[ $key ] = sprintf( __( 'Placeholder %d', 'teqcidb' ), $i );
+                }
             }
 
             /**
@@ -772,7 +782,7 @@ class TEQCIDB_Admin {
              *
              * @param array $labels Associative array of placeholder slugs to labels.
              */
-            $labels = apply_filters( 'teqcidb_students_placeholder_labels', $labels );
+            $labels = apply_filters( 'teqcidb_students_placeholder_labels', $defaults );
 
             $labels = $this->sanitize_placeholder_label_map( $labels );
         }
