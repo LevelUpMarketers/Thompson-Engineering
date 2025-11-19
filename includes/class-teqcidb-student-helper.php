@@ -47,6 +47,22 @@ class TEQCIDB_Student_Helper {
             $prepared[ $key ] = self::normalize_preview_token_value( $key, $value );
         }
 
+        if ( isset( $row['student_address'] ) ) {
+            $address = self::decode_student_address_field( $row['student_address'] );
+
+            foreach ( $address as $address_key => $address_value ) {
+                $prepared[ 'student_address_' . $address_key ] = $address_value;
+            }
+        }
+
+        if ( isset( $row['their_representative'] ) ) {
+            $representative = self::decode_representative_field( $row['their_representative'] );
+
+            foreach ( $representative as $rep_key => $rep_value ) {
+                $prepared[ 'representative_' . $rep_key ] = $rep_value;
+            }
+        }
+
         $preview_data = $prepared;
 
         return $preview_data;
@@ -63,6 +79,28 @@ class TEQCIDB_Student_Helper {
     private static function normalize_preview_token_value( $key, $value ) {
         if ( null === $value ) {
             return '';
+        }
+
+        if ( in_array( $key, array( 'old_companies', 'associations' ), true ) ) {
+            $items = self::decode_list_field( $value );
+
+            return empty( $items ) ? '' : implode( ', ', $items );
+        }
+
+        if ( 'student_address' === $key ) {
+            $address = self::decode_student_address_field( $value );
+
+            return self::format_address_for_tokens( $address );
+        }
+
+        if ( 'their_representative' === $key ) {
+            $contact = self::decode_representative_field( $value );
+
+            return self::format_representative_for_tokens( $contact );
+        }
+
+        if ( in_array( $key, array( 'phone_cell', 'phone_office', 'fax' ), true ) ) {
+            return self::format_phone_value( $value );
         }
 
         if ( 'placeholder_3' === $key ) {
@@ -133,5 +171,192 @@ class TEQCIDB_Student_Helper {
         }
 
         return '';
+    }
+
+    private static function decode_list_field( $value ) {
+        if ( is_array( $value ) ) {
+            $items = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+            $items   = is_array( $decoded ) ? $decoded : array();
+        }
+
+        if ( empty( $items ) ) {
+            return array();
+        }
+
+        $sanitized = array();
+
+        foreach ( $items as $item ) {
+            if ( ! is_scalar( $item ) ) {
+                continue;
+            }
+
+            $normalized = wp_kses_post( (string) $item );
+
+            if ( '' !== $normalized ) {
+                $sanitized[] = $normalized;
+            }
+        }
+
+        return $sanitized;
+    }
+
+    private static function decode_student_address_field( $value ) {
+        $defaults = array(
+            'street_1'    => '',
+            'street_2'    => '',
+            'city'        => '',
+            'state'       => '',
+            'postal_code' => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        if ( is_array( $value ) ) {
+            $decoded = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+        }
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        if ( isset( $decoded['zip_code'] ) ) {
+            $decoded['postal_code'] = $decoded['zip_code'];
+        }
+
+        foreach ( $defaults as $key => $default ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        return $defaults;
+    }
+
+    private static function format_address_for_tokens( array $address ) {
+        $parts = array();
+
+        if ( $address['street_1'] ) {
+            $parts[] = $address['street_1'];
+        }
+
+        if ( $address['street_2'] ) {
+            $parts[] = $address['street_2'];
+        }
+
+        $city_state = trim( $address['city'] );
+
+        if ( $address['state'] ) {
+            $city_state = $city_state ? $city_state . ', ' . $address['state'] : $address['state'];
+        }
+
+        if ( $city_state ) {
+            $parts[] = $city_state;
+        }
+
+        if ( $address['postal_code'] ) {
+            $parts[] = $address['postal_code'];
+        }
+
+        return implode( ', ', array_filter( $parts, 'strlen' ) );
+    }
+
+    private static function decode_representative_field( $value ) {
+        $defaults = array(
+            'first_name' => '',
+            'last_name'  => '',
+            'email'      => '',
+            'phone'      => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        if ( is_array( $value ) ) {
+            $decoded = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+        }
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        foreach ( array( 'first_name', 'last_name' ) as $key ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        if ( isset( $decoded['phone'] ) ) {
+            $defaults['phone'] = self::format_phone_value( $decoded['phone'] );
+        }
+
+        if ( isset( $decoded['email'] ) ) {
+            $email = sanitize_email( $decoded['email'] );
+            $defaults['email'] = $email ? $email : '';
+        }
+
+        return $defaults;
+    }
+
+    private static function format_phone_value( $value ) {
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $digits = preg_replace( '/\D+/', '', (string) $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( strlen( $digits ) > 10 && '1' === substr( $digits, 0, 1 ) ) {
+            $digits = substr( $digits, 1 );
+        }
+
+        if ( strlen( $digits ) > 10 ) {
+            $digits = substr( $digits, 0, 10 );
+        }
+
+        if ( 10 !== strlen( $digits ) ) {
+            return $digits;
+        }
+
+        return sprintf(
+            '(%1$s) %2$s-%3$s',
+            substr( $digits, 0, 3 ),
+            substr( $digits, 3, 3 ),
+            substr( $digits, 6, 4 )
+        );
+    }
+
+    private static function format_representative_for_tokens( array $contact ) {
+        $parts = array();
+        $name  = trim( $contact['first_name'] . ' ' . $contact['last_name'] );
+
+        if ( $name ) {
+            $parts[] = $name;
+        }
+
+        if ( $contact['email'] ) {
+            $parts[] = $contact['email'];
+        }
+
+        if ( $contact['phone'] ) {
+            $parts[] = $contact['phone'];
+        }
+
+        return implode( ' | ', array_filter( $parts, 'strlen' ) );
     }
 }

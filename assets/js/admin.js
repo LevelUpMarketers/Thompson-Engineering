@@ -41,6 +41,72 @@ jQuery(document).ready(function($){
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
 
+    function extractPhoneDigits(value){
+        var digits = (value || '').replace(/\D/g, '');
+
+        if (digits.length > 10 && digits.charAt(0) === '1'){
+            digits = digits.substring(1);
+        }
+
+        return digits.substring(0, 10);
+    }
+
+    function formatDigitsAsPhone(digits){
+        if (!digits){
+            return '';
+        }
+
+        var area = digits.substring(0, 3);
+        var prefix = digits.substring(3, 6);
+        var line = digits.substring(6, 10);
+        var formatted = '';
+
+        if (area){
+            formatted = '(' + area;
+
+            if (area.length === 3){
+                formatted += ')';
+            }
+        }
+
+        if (prefix){
+            formatted += area.length === 3 ? ' ' + prefix : prefix;
+
+            if (prefix.length === 3 && line){
+                formatted += '-';
+            }
+        }
+
+        if (line){
+            formatted += line;
+        }
+
+        return formatted;
+    }
+
+    function maskPhoneInputs(){
+        var selector = 'input[name="phone_cell"], input[name="phone_office"], input[name="representative_phone"], input[name="fax"]';
+
+        var formatInput = function(input){
+            if (!input){
+                return;
+            }
+
+            var digits = extractPhoneDigits(input.value);
+            input.value = formatDigitsAsPhone(digits);
+        };
+
+        $(document).on('input change blur', selector, function(){
+            formatInput(this);
+        });
+
+        $(selector).each(function(){
+            formatInput(this);
+        });
+    }
+
+    maskPhoneInputs();
+
     function handleLogActionForms(){
         $('.teqcidb-log-actions__form').on('submit', function(e){
             e.preventDefault();

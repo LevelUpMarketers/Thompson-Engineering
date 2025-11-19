@@ -87,8 +87,6 @@ class TEQCIDB_Admin {
 
         echo '</h2>';
 
-        $this->top_message_center();
-
         $tab_descriptions = array(
             'email-templates' => __( 'Review placeholder email templates that demonstrate how communications can be grouped for future automation requests.', 'teqcidb' ),
             'email-logs'      => __( 'Review detailed delivery history for plugin-generated emails and export the log for troubleshooting.', 'teqcidb' ),
@@ -120,7 +118,6 @@ class TEQCIDB_Admin {
             );
         }
 
-        $this->bottom_message_center();
         echo '</div>';
     }
 
@@ -758,10 +755,20 @@ class TEQCIDB_Admin {
         static $labels = null;
 
         if ( null === $labels ) {
-            $labels = array();
+            $defaults = array(
+                'placeholder_1' => __( 'Student Name', 'teqcidb' ),
+                'placeholder_2' => __( 'Email Address', 'teqcidb' ),
+                'placeholder_3' => __( 'Company', 'teqcidb' ),
+                'placeholder_4' => __( 'Cell Phone', 'teqcidb' ),
+                'placeholder_5' => __( 'Certification Expiration', 'teqcidb' ),
+            );
 
             for ( $i = 1; $i <= 28; $i++ ) {
-                $labels[ 'placeholder_' . $i ] = sprintf( __( 'Placeholder %d', 'teqcidb' ), $i );
+                $key = 'placeholder_' . $i;
+
+                if ( ! isset( $defaults[ $key ] ) ) {
+                    $defaults[ $key ] = sprintf( __( 'Placeholder %d', 'teqcidb' ), $i );
+                }
             }
 
             /**
@@ -772,7 +779,7 @@ class TEQCIDB_Admin {
              *
              * @param array $labels Associative array of placeholder slugs to labels.
              */
-            $labels = apply_filters( 'teqcidb_students_placeholder_labels', $labels );
+            $labels = apply_filters( 'teqcidb_students_placeholder_labels', $defaults );
 
             $labels = $this->sanitize_placeholder_label_map( $labels );
         }
@@ -909,51 +916,6 @@ class TEQCIDB_Admin {
         );
     }
 
-    private function top_message_center() {
-        echo '<div class="teqcidb-top-message">';
-        echo '<div class="teqcidb-top-row">';
-        echo '<div class="teqcidb-top-left">';
-        echo '<h3>' . esc_html__( 'Need help? Watch the Tutorial video!', 'teqcidb' ) . '</h3>';
-        echo '<div class="teqcidb-video-container"><iframe width="100%" height="200" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
-        echo '</div>';
-        echo '<div class="teqcidb-top-right">';
-        echo '<h3>' . esc_html__( 'Upgrade to Premium Today', 'teqcidb' ) . '</h3>';
-        $upgrade_text = sprintf(
-            __( 'Upgrade to the Premium version of Thompson Engineering QCI Database today and receive additional features, options, priority customer support, and a dedicated hour of setup and customization! %s', 'teqcidb' ),
-            '<a href="https://levelupmarketers.com" target="_blank">' . esc_html__( 'Click here to upgrade now.', 'teqcidb' ) . '</a>'
-        );
-        echo '<p>' . wp_kses_post( $upgrade_text ) . '</p>';
-        echo '<a class="teqcidb-upgrade-button" href="https://levelupmarketers.com" target="_blank">' . esc_html__( 'Upgrade Now', 'teqcidb' ) . '</a>';
-        echo '<a href="https://levelupmarketers.com" target="_blank"><img src="' . esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/levelup-logo.svg' ) . '" alt="' . esc_attr__( 'Level Up Digital Marketing logo', 'teqcidb' ) . '" class="teqcidb-premium-logo" /></a>';
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
-    }
-
-    private function bottom_message_center() {
-        include_once ABSPATH . 'wp-admin/includes/plugin.php';
-        $plugin_data = get_plugin_data( TEQCIDB_PLUGIN_DIR . 'teqcidb.php' );
-        $plugin_name = $plugin_data['Name'];
-
-        echo '<div class="teqcidb-top-message teqcidb-bottom-message-digital-marketing-section">';
-        echo '<div class="teqcidb-top-logo-row">';
-        echo '<a href="https://levelupmarketers.com" target="_blank"><img src="' . esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/levelup-logo.svg' ) . '" alt="' . esc_attr__( 'Level Up Digital Marketing logo', 'teqcidb' ) . '" class="teqcidb-premium-logo" /></a>';
-        $thanks = sprintf(
-            /* translators: %s: Plugin name. */
-            __( 'Thanks <span class="teqcidb-so-much">SO MUCH</span> for using %s - a Level Up plugin!', 'teqcidb' ),
-            esc_html( $plugin_name )
-        );
-        echo '<p class="teqcidb-thanks-message">' . wp_kses_post( $thanks ) . '</p>';
-        $tagline = sprintf(
-            __( 'Need marketing or custom software development help? Email %1$s or call %2$s now!', 'teqcidb' ),
-            '<a href="mailto:contact@levelupmarketers.com">contact@levelupmarketers.com</a>',
-            '<a href="tel:18044898188">(804) 489-8188</a>'
-        );
-        echo '<p class="teqcidb-top-tagline">' . wp_kses_post( $tagline ) . '</p>';
-        echo '</div>';
-        echo '</div>';
-    }
-
     private function render_tab_intro( $title, $description ) {
         if ( empty( $title ) && empty( $description ) ) {
             return;
@@ -1033,8 +995,6 @@ class TEQCIDB_Admin {
         echo '<a href="?page=teqcidb-student&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Student', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Students', 'teqcidb' ) . '</a>';
         echo '</h2>';
-        $this->top_message_center();
-
         $tab_titles = array(
             'create' => __( 'Create a Student', 'teqcidb' ),
             'edit'   => __( 'Edit Students', 'teqcidb' ),
@@ -1060,7 +1020,6 @@ class TEQCIDB_Admin {
             $this->render_create_tab();
         }
 
-        $this->bottom_message_center();
         echo '</div>';
     }
 
@@ -1476,8 +1435,6 @@ class TEQCIDB_Admin {
         echo '<a href="?page=teqcidb-settings&tab=api" class="nav-tab ' . ( 'api' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'API Settings', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-settings&tab=cron" class="nav-tab ' . ( 'cron' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Cron Jobs', 'teqcidb' ) . '</a>';
         echo '</h2>';
-        $this->top_message_center();
-
         $tab_titles = array(
             'general' => __( 'General Settings', 'teqcidb' ),
             'style'   => __( 'Style Settings', 'teqcidb' ),
@@ -1511,7 +1468,6 @@ class TEQCIDB_Admin {
             $this->render_general_settings_tab();
         }
 
-        $this->bottom_message_center();
         echo '</div>';
     }
 
@@ -2054,8 +2010,6 @@ class TEQCIDB_Admin {
         }
 
         echo '</h2>';
-        $this->top_message_center();
-
         $tab_descriptions = array(
             'generated_content' => __( 'Inspect saved content entries and jump to editing, viewing, or deleting items created by the logger.', 'teqcidb' ),
             'error_logs'        => __( 'Review PHP notices captured for the Thompson Engineering QCI Database features.', 'teqcidb' ),
@@ -2075,7 +2029,6 @@ class TEQCIDB_Admin {
             $this->render_payment_logs_tab();
         }
 
-        $this->bottom_message_center();
         echo '</div>';
     }
 
