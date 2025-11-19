@@ -34,7 +34,8 @@ class TEQCIDB_Student_Helper {
             return $preview_data;
         }
 
-        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id ASC LIMIT 1", ARRAY_A );
+        $primary_key = TEQCIDB_Student_Schema::get_primary_key();
+        $row         = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY $primary_key ASC LIMIT 1", ARRAY_A );
 
         if ( ! $row ) {
             $preview_data = array();
@@ -44,7 +45,8 @@ class TEQCIDB_Student_Helper {
         $prepared = array();
 
         foreach ( $row as $key => $value ) {
-            $prepared[ $key ] = self::normalize_preview_token_value( $key, $value );
+            $definition        = TEQCIDB_Student_Schema::get_field( $key );
+            $prepared[ $key ] = self::normalize_preview_token_value( $definition, $value );
         }
 
         $preview_data = $prepared;
@@ -60,78 +62,36 @@ class TEQCIDB_Student_Helper {
      *
      * @return string
      */
-    private static function normalize_preview_token_value( $key, $value ) {
+    private static function normalize_preview_token_value( $definition, $value ) {
         if ( null === $value ) {
             return '';
         }
 
-        if ( 'placeholder_3' === $key ) {
-            $value = (string) $value;
+        $data_type = is_array( $definition ) && isset( $definition['data_type'] ) ? $definition['data_type'] : 'string';
 
-            if ( '' === $value || '0000-00-00' === $value ) {
-                return '';
-            }
+        switch ( $data_type ) {
+            case 'date':
+                $value = (string) $value;
 
-            $date = date_create( $value );
+                if ( '' === $value || '0000-00-00' === $value ) {
+                    return '';
+                }
 
-            return $date ? $date->format( 'Y-m-d' ) : '';
+                $date = date_create( $value );
+
+                return $date ? $date->format( 'Y-m-d' ) : '';
+            case 'boolean':
+                return ( (int) $value ) ? '1' : '0';
+            case 'integer':
+                return (string) (int) $value;
+            case 'email':
+            case 'string':
+            case 'datetime':
+                return is_scalar( $value ) ? wp_kses_post( (string) $value ) : '';
+            case 'text':
+                return is_scalar( $value ) ? wp_kses_post( (string) $value ) : '';
+            default:
+                return is_scalar( $value ) ? wp_kses_post( (string) $value ) : '';
         }
-
-        if ( in_array( $key, array( 'placeholder_5', 'placeholder_6' ), true ) ) {
-            $value = (string) $value;
-
-            if ( preg_match( '/^(\d{2}:\d{2})/', $value, $matches ) ) {
-                return $matches[1];
-            }
-
-            return '';
-        }
-
-        if ( in_array( $key, array( 'placeholder_16', 'placeholder_17', 'placeholder_18' ), true ) ) {
-            return number_format( (float) $value, 2, '.', '' );
-        }
-
-        if ( in_array( $key, array( 'placeholder_24', 'placeholder_25' ), true ) ) {
-            if ( is_array( $value ) ) {
-                $items = $value;
-            } else {
-                $decoded = json_decode( (string) $value, true );
-                $items   = is_array( $decoded ) ? $decoded : array();
-            }
-
-            if ( empty( $items ) ) {
-                return '';
-            }
-
-            $items = array_map( 'strval', $items );
-            $items = array_map( 'wp_kses_post', $items );
-            $items = array_filter( $items, 'strlen' );
-
-            return implode( ', ', $items );
-        }
-
-        if ( 'placeholder_26' === $key ) {
-            $color = sanitize_hex_color( (string) $value );
-            return $color ? $color : '';
-        }
-
-        if ( 'placeholder_27' === $key ) {
-            $attachment_id = absint( $value );
-            $url           = $attachment_id ? wp_get_attachment_url( $attachment_id ) : '';
-
-            return $url ? esc_url_raw( $url ) : '';
-        }
-
-        if ( 'placeholder_28' === $key ) {
-            return wp_kses_post( (string) $value );
-        }
-
-        if ( is_scalar( $value ) ) {
-            $string_value = (string) $value;
-
-            return wp_kses_post( $string_value );
-        }
-
-        return '';
     }
 }
