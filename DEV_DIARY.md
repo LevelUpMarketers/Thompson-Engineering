@@ -92,3 +92,4 @@
 89. 2025-11-12: Cached logging toggles per request, skipped stack traces when only sitewide logging is active, and bypassed repeated option lookups during log writes to prevent runaway memory usage when PHP notices fire.
 90. 2025-11-12: Removed sitewide PHP logging toggles, helpers, and UI so the error logger now focuses solely on Thompson Engineering QCI Database events.
 91. 2025-11-12: Replaced the student activation schema with production fields for WordPress linkage, contact info, training dates, and metadata columns.
+92. 2025-11-12: Rebuilt the Create a Student tab to mirror the production schema with named fields, contextual tooltips, and inputs sized for addresses, lists, and notes.

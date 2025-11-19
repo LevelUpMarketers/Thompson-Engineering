@@ -881,14 +881,25 @@ class TEQCIDB_Admin {
     }
 
     private function get_tooltips() {
-        $tooltips = array();
-        for ( $i = 1; $i <= 28; $i++ ) {
-            $tooltips[ 'placeholder_' . $i ] = sprintf(
-                __( 'Tooltip placeholder text for Placeholder %d', 'teqcidb' ),
-                $i
-            );
-        }
-        return $tooltips;
+        return array(
+            'first_name'            => __( 'The student\'s legal first name for rosters and certificates.', 'teqcidb' ),
+            'last_name'             => __( 'The student\'s legal last name for rosters and certificates.', 'teqcidb' ),
+            'company'               => __( 'Company the student is currently associated with.', 'teqcidb' ),
+            'old_companies'         => __( 'List any previous companies to make historical lookups easier.', 'teqcidb' ),
+            'student_address'       => __( 'Store the mailing/location details (JSON or free-form text).', 'teqcidb' ),
+            'phone_cell'            => __( 'Direct cell phone number for notifications or follow-up.', 'teqcidb' ),
+            'phone_office'          => __( 'Office or main line tied to the student\'s organization.', 'teqcidb' ),
+            'fax'                   => __( 'Fax number for the student or their organization, if applicable.', 'teqcidb' ),
+            'email'                 => __( 'This will also become the WordPress user email, so it must be unique.', 'teqcidb' ),
+            'initial_training_date' => __( 'Latest completed Initial class date.', 'teqcidb' ),
+            'last_refresher_date'   => __( 'Latest completed Refresher class date.', 'teqcidb' ),
+            'is_a_representative'   => __( 'Mark “Yes” when this student can manage other students.', 'teqcidb' ),
+            'their_representative'  => __( 'Optional reference data for the representative that manages this student.', 'teqcidb' ),
+            'associations'          => __( 'List the associations (AAPA, ARBA, AGC, ABC, AUCA) tied to this student.', 'teqcidb' ),
+            'expiration_date'       => __( 'Certification expiration date (typically one year from the last class).', 'teqcidb' ),
+            'qcinumber'             => __( 'QCI number assigned to the student once certified.', 'teqcidb' ),
+            'comments'              => __( 'Private notes for admins—never shown to students.', 'teqcidb' ),
+        );
     }
 
     private function top_message_center() {
@@ -1023,7 +1034,7 @@ class TEQCIDB_Admin {
         );
 
         $tab_descriptions = array(
-            'create' => __( 'Build a new student record by completing the placeholder fields and saving your changes.', 'teqcidb' ),
+            'create' => __( 'Capture the student\'s profile, contact, and certification details before saving.', 'teqcidb' ),
             'edit'   => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
         );
 
@@ -1048,246 +1059,125 @@ class TEQCIDB_Admin {
 
     private function get_student_fields() {
         $tooltips = $this->get_tooltips();
-        $fields    = array(
+        $yes_no   = array(
+            ''  => __( 'Make a Selection...', 'teqcidb' ),
+            '0' => __( 'No', 'teqcidb' ),
+            '1' => __( 'Yes', 'teqcidb' ),
+        );
+
+        return array(
             array(
-                'name'    => 'placeholder_1',
-                'label'   => $this->get_placeholder_label( 1 ),
+                'name'    => 'first_name',
+                'label'   => __( 'First Name', 'teqcidb' ),
                 'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_1'],
+                'tooltip' => $tooltips['first_name'],
             ),
             array(
-                'name'    => 'placeholder_2',
-                'label'   => $this->get_placeholder_label( 2 ),
+                'name'    => 'last_name',
+                'label'   => __( 'Last Name', 'teqcidb' ),
                 'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_2'],
+                'tooltip' => $tooltips['last_name'],
             ),
             array(
-                'name'    => 'placeholder_3',
-                'label'   => $this->get_placeholder_label( 3 ),
-                'type'    => 'date',
-                'tooltip' => $tooltips['placeholder_3'],
+                'name'    => 'email',
+                'label'   => __( 'Email Address', 'teqcidb' ),
+                'type'    => 'email',
+                'tooltip' => $tooltips['email'],
             ),
             array(
-                'name'    => 'placeholder_4',
-                'label'   => $this->get_placeholder_label( 4 ),
-                'type'    => 'select',
-                'options' => array(
-                    ''  => __( 'Make a Selection...', 'teqcidb' ),
-                    '0' => __( 'No', 'teqcidb' ),
-                    '1' => __( 'Yes', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['placeholder_4'],
-            ),
-            array(
-                'name'    => 'placeholder_5',
-                'label'   => $this->get_placeholder_label( 5 ),
-                'type'    => 'time',
-                'tooltip' => $tooltips['placeholder_5'],
-            ),
-            array(
-                'name'    => 'placeholder_6',
-                'label'   => $this->get_placeholder_label( 6 ),
-                'type'    => 'time',
-                'tooltip' => $tooltips['placeholder_6'],
-            ),
-            array(
-                'name'    => 'placeholder_7',
-                'label'   => $this->get_placeholder_label( 7 ),
-                'type'    => 'select',
-                'options' => array(
-                    ''  => __( 'Make a Selection...', 'teqcidb' ),
-                    '0' => __( 'No', 'teqcidb' ),
-                    '1' => __( 'Yes', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['placeholder_7'],
-            ),
-            array(
-                'name'    => 'placeholder_8',
-                'label'   => $this->get_placeholder_label( 8 ),
+                'name'    => 'company',
+                'label'   => __( 'Current Company', 'teqcidb' ),
                 'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_8'],
+                'tooltip' => $tooltips['company'],
             ),
             array(
-                'name'    => 'placeholder_9',
-                'label'   => $this->get_placeholder_label( 9 ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_9'],
-            ),
-            array(
-                'name'    => 'placeholder_10',
-                'label'   => $this->get_placeholder_label( 10 ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_10'],
-            ),
-            array(
-                'name'    => 'placeholder_11',
-                'label'   => $this->get_placeholder_label( 11 ),
-                'type'    => 'state',
-                'options' => $this->get_us_states(),
-                'tooltip' => $tooltips['placeholder_11'],
-            ),
-            array(
-                'name'    => 'placeholder_12',
-                'label'   => $this->get_placeholder_label( 12 ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_12'],
-            ),
-            array(
-                'name'    => 'placeholder_13',
-                'label'   => $this->get_placeholder_label( 13 ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_13'],
-            ),
-            array(
-                'name'    => 'placeholder_14',
-                'label'   => $this->get_placeholder_label( 14 ),
-                'type'    => 'url',
-                'tooltip' => $tooltips['placeholder_14'],
-            ),
-            array(
-                'name'    => 'placeholder_15',
-                'label'   => $this->get_placeholder_label( 15 ),
-                'type'    => 'select',
-                'options' => array(
-                    ''        => __( 'Make a Selection...', 'teqcidb' ),
-                    'option1' => __( 'Option 1', 'teqcidb' ),
-                    'option2' => __( 'Option 2', 'teqcidb' ),
-                    'option3' => __( 'Option 3', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['placeholder_15'],
-            ),
-            array(
-                'name'    => 'placeholder_16',
-                'label'   => $this->get_placeholder_label( 16 ),
-                'type'    => 'number',
-                'attrs'   => 'step="0.01" min="0"',
-                'tooltip' => $tooltips['placeholder_16'],
-            ),
-            array(
-                'name'    => 'placeholder_17',
-                'label'   => $this->get_placeholder_label( 17 ),
-                'type'    => 'number',
-                'attrs'   => 'step="0.01" min="0"',
-                'tooltip' => $tooltips['placeholder_17'],
-            ),
-            array(
-                'name'    => 'placeholder_18',
-                'label'   => $this->get_placeholder_label( 18 ),
-                'type'    => 'number',
-                'attrs'   => 'step="0.01" min="0"',
-                'tooltip' => $tooltips['placeholder_18'],
-            ),
-            array(
-                'name'    => 'placeholder_19',
-                'label'   => $this->get_placeholder_label( 19 ),
-                'type'    => 'select',
-                'options' => array(
-                    ''  => __( 'Make a Selection...', 'teqcidb' ),
-                    '0' => __( 'No', 'teqcidb' ),
-                    '1' => __( 'Yes', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['placeholder_19'],
-            ),
-            array(
-                'name'    => 'placeholder_20',
-                'label'   => $this->get_placeholder_label( 20 ),
-                'type'    => 'select',
-                'options' => array(
-                    ''  => __( 'Make a Selection...', 'teqcidb' ),
-                    '0' => __( 'No', 'teqcidb' ),
-                    '1' => __( 'Yes', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['placeholder_20'],
-            ),
-            array(
-                'name'    => 'placeholder_21',
-                'label'   => $this->get_placeholder_label( 21 ),
-                'type'    => 'state',
-                'options' => $this->get_us_states_and_territories(),
-                'tooltip' => $tooltips['placeholder_21'],
-            ),
-            array(
-                'name'    => 'placeholder_22',
-                'label'   => $this->get_placeholder_label( 22 ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['placeholder_22'],
-            ),
-            array(
-                'name'    => 'placeholder_23',
-                'label'   => $this->get_placeholder_label( 23 ),
-                'type'    => 'radio',
-                'options' => array(
-                    'option1' => array(
-                        'label'   => __( 'Option 1', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 22 Option 1', 'teqcidb' ),
-                    ),
-                    'option2' => array(
-                        'label'   => __( 'Option 2', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 22 Option 2', 'teqcidb' ),
-                    ),
-                    'option3' => array(
-                        'label'   => __( 'Option 3', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 22 Option 3', 'teqcidb' ),
-                    ),
-                ),
-                'tooltip' => $tooltips['placeholder_23'],
-            ),
-            array(
-                'name'    => 'placeholder_24',
-                'label'   => $this->get_placeholder_label( 24 ),
-                'type'    => 'opt_in',
-                'tooltip' => $tooltips['placeholder_24'],
-                'options' => array(
-                    array(
-                        'name'    => 'opt_in_marketing_email',
-                        'label'   => __( 'Option 1', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 23 Option 1', 'teqcidb' ),
-                    ),
-                    array(
-                        'name'    => 'opt_in_marketing_sms',
-                        'label'   => __( 'Option 2', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 23 Option 2', 'teqcidb' ),
-                    ),
-                    array(
-                        'name'    => 'opt_in_event_update_email',
-                        'label'   => __( 'Option 3', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 23 Option 3', 'teqcidb' ),
-                    ),
-                    array(
-                        'name'    => 'opt_in_event_update_sms',
-                        'label'   => __( 'Option 4', 'teqcidb' ),
-                        'tooltip' => __( 'Tooltip placeholder text for Placeholder 23 Option 4', 'teqcidb' ),
-                    ),
-                ),
-            ),
-            array(
-                'name'    => 'placeholder_25',
-                'label'   => $this->get_placeholder_label( 25 ),
-                'type'    => 'items',
-                'tooltip' => $tooltips['placeholder_25'],
-            ),
-            array(
-                'name'    => 'placeholder_26',
-                'label'   => $this->get_placeholder_label( 26 ),
-                'type'    => 'color',
-                'attrs'   => 'value="#000000"',
-                'tooltip' => $tooltips['placeholder_26'],
-            ),
-            array(
-                'name'    => 'placeholder_27',
-                'label'   => $this->get_placeholder_label( 27 ),
-                'type'    => 'image',
-                'tooltip' => $tooltips['placeholder_27'],
-            ),
-            array(
-                'name'    => 'placeholder_28',
-                'label'   => $this->get_placeholder_label( 28 ),
-                'type'    => 'editor',
-                'tooltip' => $tooltips['placeholder_28'],
+                'name'       => 'old_companies',
+                'label'      => __( 'Previous Companies', 'teqcidb' ),
+                'type'       => 'items',
                 'full_width' => true,
+                'tooltip'    => $tooltips['old_companies'],
+            ),
+            array(
+                'name'       => 'student_address',
+                'label'      => __( 'Student Address', 'teqcidb' ),
+                'type'       => 'textarea',
+                'full_width' => true,
+                'tooltip'    => $tooltips['student_address'],
+                'attrs'      => ' rows="4"',
+            ),
+            array(
+                'name'    => 'phone_cell',
+                'label'   => __( 'Cell Phone', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['phone_cell'],
+            ),
+            array(
+                'name'    => 'phone_office',
+                'label'   => __( 'Office Phone', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['phone_office'],
+            ),
+            array(
+                'name'    => 'fax',
+                'label'   => __( 'Fax', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['fax'],
+            ),
+            array(
+                'name'    => 'initial_training_date',
+                'label'   => __( 'Initial Training Date', 'teqcidb' ),
+                'type'    => 'date',
+                'tooltip' => $tooltips['initial_training_date'],
+            ),
+            array(
+                'name'    => 'last_refresher_date',
+                'label'   => __( 'Last Refresher Date', 'teqcidb' ),
+                'type'    => 'date',
+                'tooltip' => $tooltips['last_refresher_date'],
+            ),
+            array(
+                'name'    => 'is_a_representative',
+                'label'   => __( 'Is a Representative?', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $yes_no,
+                'tooltip' => $tooltips['is_a_representative'],
+            ),
+            array(
+                'name'       => 'their_representative',
+                'label'      => __( 'Their Representative', 'teqcidb' ),
+                'type'       => 'textarea',
+                'full_width' => true,
+                'tooltip'    => $tooltips['their_representative'],
+                'attrs'      => ' rows="3"',
+            ),
+            array(
+                'name'       => 'associations',
+                'label'      => __( 'Associations', 'teqcidb' ),
+                'type'       => 'items',
+                'full_width' => true,
+                'tooltip'    => $tooltips['associations'],
+            ),
+            array(
+                'name'    => 'expiration_date',
+                'label'   => __( 'Certification Expiration Date', 'teqcidb' ),
+                'type'    => 'date',
+                'tooltip' => $tooltips['expiration_date'],
+            ),
+            array(
+                'name'    => 'qcinumber',
+                'label'   => __( 'QCI Number', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['qcinumber'],
+            ),
+            array(
+                'name'       => 'comments',
+                'label'      => __( 'Admin Comments', 'teqcidb' ),
+                'type'       => 'textarea',
+                'full_width' => true,
+                'tooltip'    => $tooltips['comments'],
+                'attrs'      => ' rows="4"',
             ),
         );
-        return $fields;
     }
 
     private function prepare_student_fields_for_js() {
@@ -1422,7 +1312,8 @@ class TEQCIDB_Admin {
                     echo '<button type="button" class="button teqcidb-add-item" id="teqcidb-add-item" data-target="#teqcidb-items-container" style="margin-top:8px;">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
                     break;
                 case 'textarea':
-                    echo '<textarea name="' . esc_attr( $field['name'] ) . '"></textarea>';
+                    $textarea_attrs = isset( $field['attrs'] ) ? ' ' . $field['attrs'] : '';
+                    echo '<textarea name="' . esc_attr( $field['name'] ) . '"' . $textarea_attrs . '></textarea>';
                     break;
                 case 'image':
                     echo '<input type="hidden" name="' . esc_attr( $field['name'] ) . '" id="' . esc_attr( $field['name'] ) . '" />';
