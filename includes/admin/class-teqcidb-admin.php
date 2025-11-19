@@ -882,23 +882,33 @@ class TEQCIDB_Admin {
 
     private function get_tooltips() {
         return array(
-            'first_name'            => __( 'The student\'s legal first name for rosters and certificates.', 'teqcidb' ),
-            'last_name'             => __( 'The student\'s legal last name for rosters and certificates.', 'teqcidb' ),
-            'company'               => __( 'Company the student is currently associated with.', 'teqcidb' ),
-            'old_companies'         => __( 'List any previous companies to make historical lookups easier.', 'teqcidb' ),
-            'student_address'       => __( 'Store the mailing/location details (JSON or free-form text).', 'teqcidb' ),
-            'phone_cell'            => __( 'Direct cell phone number for notifications or follow-up.', 'teqcidb' ),
-            'phone_office'          => __( 'Office or main line tied to the student\'s organization.', 'teqcidb' ),
-            'fax'                   => __( 'Fax number for the student or their organization, if applicable.', 'teqcidb' ),
-            'email'                 => __( 'This will also become the WordPress user email, so it must be unique.', 'teqcidb' ),
-            'initial_training_date' => __( 'Latest completed Initial class date.', 'teqcidb' ),
-            'last_refresher_date'   => __( 'Latest completed Refresher class date.', 'teqcidb' ),
-            'is_a_representative'   => __( 'Mark “Yes” when this student can manage other students.', 'teqcidb' ),
-            'their_representative'  => __( 'Optional reference data for the representative that manages this student.', 'teqcidb' ),
-            'associations'          => __( 'List the associations (AAPA, ARBA, AGC, ABC, AUCA) tied to this student.', 'teqcidb' ),
-            'expiration_date'       => __( 'Certification expiration date (typically one year from the last class).', 'teqcidb' ),
-            'qcinumber'             => __( 'QCI number assigned to the student once certified.', 'teqcidb' ),
-            'comments'              => __( 'Private notes for admins—never shown to students.', 'teqcidb' ),
+            'first_name'                    => __( 'The student\'s legal first name for rosters and certificates.', 'teqcidb' ),
+            'last_name'                     => __( 'The student\'s legal last name for rosters and certificates.', 'teqcidb' ),
+            'company'                       => __( 'Company the student is currently associated with.', 'teqcidb' ),
+            'old_companies'                 => __( 'List any previous companies to make historical lookups easier.', 'teqcidb' ),
+            'student_address_street_1'      => __( 'Primary street address for the student or their company.', 'teqcidb' ),
+            'student_address_street_2'      => __( 'Additional address information such as suite or floor.', 'teqcidb' ),
+            'student_address_city'          => __( 'City associated with the student\'s current location.', 'teqcidb' ),
+            'student_address_state'         => __( 'State or province associated with the student\'s current location.', 'teqcidb' ),
+            'student_address_postal_code'   => __( 'ZIP or postal code that matches the student address.', 'teqcidb' ),
+            'student_address_country'       => __( 'Country tied to the student\'s address.', 'teqcidb' ),
+            'phone_cell'                    => __( 'Direct cell phone number for notifications or follow-up.', 'teqcidb' ),
+            'phone_office'                  => __( 'Office or main line tied to the student\'s organization.', 'teqcidb' ),
+            'fax'                           => __( 'Fax number for the student or their organization, if applicable.', 'teqcidb' ),
+            'email'                         => __( 'This will also become the WordPress user email, so it must be unique.', 'teqcidb' ),
+            'initial_training_date'         => __( 'Latest completed Initial class date.', 'teqcidb' ),
+            'last_refresher_date'           => __( 'Latest completed Refresher class date.', 'teqcidb' ),
+            'is_a_representative'           => __( 'Mark “Yes” when this student can manage other students.', 'teqcidb' ),
+            'representative_first_name'     => __( 'Representative first name if someone manages this student.', 'teqcidb' ),
+            'representative_last_name'      => __( 'Representative last name if someone manages this student.', 'teqcidb' ),
+            'representative_email'          => __( 'Representative email for coordination.', 'teqcidb' ),
+            'representative_phone'          => __( 'Representative phone number.', 'teqcidb' ),
+            'representative_wp_id'          => __( 'WordPress user ID for the representative, when applicable.', 'teqcidb' ),
+            'representative_unique_id'      => __( 'Unique student ID for the representative if they are also a student.', 'teqcidb' ),
+            'associations'                  => __( 'Select the associations (AAPA, ARBA, AGC, ABC, AUCA) tied to this student.', 'teqcidb' ),
+            'expiration_date'               => __( 'Certification expiration date (typically one year from the last class).', 'teqcidb' ),
+            'qcinumber'                     => __( 'QCI number assigned to the student once certified.', 'teqcidb' ),
+            'comments'                      => __( 'Private notes for admins—never shown to students.', 'teqcidb' ),
         );
     }
 
@@ -1098,12 +1108,42 @@ class TEQCIDB_Admin {
                 'tooltip'    => $tooltips['old_companies'],
             ),
             array(
-                'name'       => 'student_address',
-                'label'      => __( 'Student Address', 'teqcidb' ),
-                'type'       => 'textarea',
+                'name'       => 'student_address_street_1',
+                'label'      => __( 'Address Line 1', 'teqcidb' ),
+                'type'       => 'text',
                 'full_width' => true,
-                'tooltip'    => $tooltips['student_address'],
-                'attrs'      => ' rows="4"',
+                'tooltip'    => $tooltips['student_address_street_1'],
+            ),
+            array(
+                'name'       => 'student_address_street_2',
+                'label'      => __( 'Address Line 2', 'teqcidb' ),
+                'type'       => 'text',
+                'full_width' => true,
+                'tooltip'    => $tooltips['student_address_street_2'],
+            ),
+            array(
+                'name'    => 'student_address_city',
+                'label'   => __( 'City', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['student_address_city'],
+            ),
+            array(
+                'name'    => 'student_address_state',
+                'label'   => __( 'State / Province', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['student_address_state'],
+            ),
+            array(
+                'name'    => 'student_address_postal_code',
+                'label'   => __( 'Postal Code', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['student_address_postal_code'],
+            ),
+            array(
+                'name'    => 'student_address_country',
+                'label'   => __( 'Country', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['student_address_country'],
             ),
             array(
                 'name'    => 'phone_cell',
@@ -1143,19 +1183,54 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['is_a_representative'],
             ),
             array(
-                'name'       => 'their_representative',
-                'label'      => __( 'Their Representative', 'teqcidb' ),
-                'type'       => 'textarea',
-                'full_width' => true,
-                'tooltip'    => $tooltips['their_representative'],
-                'attrs'      => ' rows="3"',
+                'name'    => 'representative_first_name',
+                'label'   => __( 'Representative First Name', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['representative_first_name'],
             ),
             array(
-                'name'       => 'associations',
-                'label'      => __( 'Associations', 'teqcidb' ),
-                'type'       => 'items',
-                'full_width' => true,
-                'tooltip'    => $tooltips['associations'],
+                'name'    => 'representative_last_name',
+                'label'   => __( 'Representative Last Name', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['representative_last_name'],
+            ),
+            array(
+                'name'    => 'representative_email',
+                'label'   => __( 'Representative Email', 'teqcidb' ),
+                'type'    => 'email',
+                'tooltip' => $tooltips['representative_email'],
+            ),
+            array(
+                'name'    => 'representative_phone',
+                'label'   => __( 'Representative Phone', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['representative_phone'],
+            ),
+            array(
+                'name'  => 'representative_wp_id',
+                'label' => __( 'Representative WordPress ID', 'teqcidb' ),
+                'type'  => 'number',
+                'attrs' => ' min="0" step="1"',
+                'tooltip' => $tooltips['representative_wp_id'],
+            ),
+            array(
+                'name'    => 'representative_unique_id',
+                'label'   => __( 'Representative Unique Student ID', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['representative_unique_id'],
+            ),
+            array(
+                'name'    => 'associations',
+                'label'   => __( 'Associations', 'teqcidb' ),
+                'type'    => 'checkboxes',
+                'tooltip' => $tooltips['associations'],
+                'options' => array(
+                    'AAPA' => __( 'AAPA', 'teqcidb' ),
+                    'ARBA' => __( 'ARBA', 'teqcidb' ),
+                    'AGC'  => __( 'AGC', 'teqcidb' ),
+                    'ABC'  => __( 'ABC', 'teqcidb' ),
+                    'AUCA' => __( 'AUCA', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'    => 'expiration_date',
@@ -1304,12 +1379,27 @@ class TEQCIDB_Admin {
                     }
                     echo '</fieldset>';
                     break;
+                case 'checkboxes':
+                    if ( empty( $field['options'] ) ) {
+                        break;
+                    }
+                    echo '<fieldset class="teqcidb-checkbox-group">';
+                    foreach ( $field['options'] as $value => $label ) {
+                        $input_id = $field['name'] . '-' . sanitize_title( $value );
+                        echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
+                        echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $field['name'] ) . '[]" value="' . esc_attr( $value ) . '" /> ';
+                        echo esc_html( $label );
+                        echo '</label>';
+                    }
+                    echo '</fieldset>';
+                    break;
                 case 'items':
-                    echo '<div id="teqcidb-items-container" class="teqcidb-items-container" data-placeholder="' . esc_attr( $field['name'] ) . '">';
+                    $container_id = 'teqcidb-items-container-' . sanitize_html_class( $field['name'] );
+                    echo '<div id="' . esc_attr( $container_id ) . '" class="teqcidb-items-container" data-placeholder="' . esc_attr( $field['name'] ) . '">';
                     echo '<div class="teqcidb-item-row" style="margin-bottom:8px; display:flex; align-items:center;">';
                     echo '<input type="text" name="' . esc_attr( $field['name'] ) . '[]" class="regular-text teqcidb-item-field" placeholder="' . esc_attr__( 'Item #1', 'teqcidb' ) . '" />';
                     echo '</div></div>';
-                    echo '<button type="button" class="button teqcidb-add-item" id="teqcidb-add-item" data-target="#teqcidb-items-container" style="margin-top:8px;">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
+                    echo '<button type="button" class="button teqcidb-add-item" data-target="#' . esc_attr( $container_id ) . '" style="margin-top:8px;">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
                     break;
                 case 'textarea':
                     $textarea_attrs = isset( $field['attrs'] ) ? ' ' . $field['attrs'] : '';
