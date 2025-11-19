@@ -1433,12 +1433,14 @@ class TEQCIDB_Admin {
         echo '<a href="?page=teqcidb-settings&tab=general" class="nav-tab ' . ( 'general' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'General Settings', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-settings&tab=style" class="nav-tab ' . ( 'style' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Style Settings', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-settings&tab=api" class="nav-tab ' . ( 'api' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'API Settings', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-settings&tab=upload" class="nav-tab ' . ( 'upload' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Upload', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-settings&tab=cron" class="nav-tab ' . ( 'cron' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Cron Jobs', 'teqcidb' ) . '</a>';
         echo '</h2>';
         $tab_titles = array(
             'general' => __( 'General Settings', 'teqcidb' ),
             'style'   => __( 'Style Settings', 'teqcidb' ),
             'api'     => __( 'API Settings', 'teqcidb' ),
+            'upload'  => __( 'Upload', 'teqcidb' ),
             'cron'    => __( 'Cron Jobs', 'teqcidb' ),
         );
 
@@ -1446,6 +1448,7 @@ class TEQCIDB_Admin {
             'general' => __( 'Adjust the baseline configuration values that control how Thompson Engineering QCI Database behaves across your site.', 'teqcidb' ),
             'style'   => __( 'Apply design tweaks and CSS overrides to align the boilerplate output with your brand guidelines.', 'teqcidb' ),
             'api'     => __( 'Store external service credentials behind collapsible sections so each integration can be updated without leaving this page.', 'teqcidb' ),
+            'upload'  => __( 'Paste a legacy student record and convert it into the current schema so it is stored in the new students table.', 'teqcidb' ),
             'cron'    => __( 'Review and manage every scheduled cron event created by Thompson Engineering QCI Database, including running or deleting hooks on demand.', 'teqcidb' ),
         );
 
@@ -1462,6 +1465,8 @@ class TEQCIDB_Admin {
             $this->render_style_settings_tab();
         } elseif ( 'api' === $active_tab ) {
             $this->render_api_settings_tab();
+        } elseif ( 'upload' === $active_tab ) {
+            $this->render_upload_settings_tab();
         } elseif ( 'cron' === $active_tab ) {
             $this->render_cron_jobs_tab();
         } else {
@@ -1718,6 +1723,37 @@ class TEQCIDB_Admin {
         echo '</table>';
         echo '</div>';
         echo '</div>';
+    }
+
+    private function render_upload_settings_tab() {
+        $example_record = "(2, 22, 'sammy.harton@greshamsmith.com1651589964', 'Samuel C.', 'Harton, Jr.', 'Gresham Smith', '2222 Arlington Ave. S. Suite 202', 'Birmingham', 'AL', '35205', '885 Third Avenue', 'Odenville', 'AL', '35120', '', '(205) 298-9216', '', 'sammy.harton@greshamsmith.com', 'https://training.thompsonengineering.com/wp-content/plugins/teqcidb/assets/img/student-image-placeholder.png', 'https://training.thompsonengineering.com/wp-content/plugins/teqcidb/assets/img/student-image-placeholder.png', '', '2025-06-23', '', '', '', 'true', NULL, NULL, NULL, 'none', '2026-06-26', 'T5703', '')";
+
+        echo '<form id="teqcidb-legacy-upload-form" class="teqcidb-settings-form">';
+
+        echo '<p>' . esc_html__( 'Paste a single row from the legacy teqcidb_students table exactly as it appears in the database export. The importer will map fields into the new schema and save the student.', 'teqcidb' ) . '</p>';
+
+        echo '<table class="form-table" role="presentation">';
+        echo '<tr>';
+        echo '<th scope="row">';
+        echo '<label for="teqcidb-legacy-record">' . esc_html__( 'Legacy student record', 'teqcidb' ) . '</label>';
+        echo '</th>';
+        echo '<td>';
+        echo '<textarea id="teqcidb-legacy-record" name="legacy_record" rows="8" class="large-text code" placeholder="' . esc_attr( $example_record ) . '"></textarea>';
+        echo '<p class="description">' . esc_html__( 'Include the full comma-separated row, with or without wrapping parentheses. Leave out multiple rows; this tool uploads one student at a time.', 'teqcidb' ) . '</p>';
+        echo '</td>';
+        echo '</tr>';
+        echo '</table>';
+
+        $submit_button = get_submit_button( __( 'Upload Student', 'teqcidb' ), 'primary', 'submit', false );
+
+        echo '<p class="submit">' . $submit_button;
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+        echo '<span class="spinner" aria-hidden="true"></span>';
+        echo '<span role="status" aria-live="polite"></span>';
+        echo '</span>';
+        echo '</p>';
+
+        echo '</form>';
     }
 
     private function render_style_settings_tab() {

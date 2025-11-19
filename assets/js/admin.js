@@ -40,6 +40,7 @@ jQuery(document).ready(function($){
     handleForm('#teqcidb-general-settings-form','teqcidb_save_general_settings');
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
+    handleForm('#teqcidb-legacy-upload-form','teqcidb_upload_legacy_student');
 
     function extractPhoneDigits(value){
         var digits = (value || '').replace(/\D/g, '');
