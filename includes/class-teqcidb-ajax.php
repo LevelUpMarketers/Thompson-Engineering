@@ -1285,17 +1285,15 @@ class TEQCIDB_Ajax {
             $notes[] = sprintf( __( 'Legacy payment dates: %s', 'teqcidb' ), sanitize_text_field( $legacy_record['allpaymentdates'] ) );
         }
 
+        if ( '' === $comment ) {
+            return '';
+        }
+
         if ( empty( $notes ) ) {
             return $comment;
         }
 
-        $notes_text = implode( ' | ', $notes );
-
-        if ( '' === $comment ) {
-            return $notes_text;
-        }
-
-        return $comment . "\n\n" . $notes_text;
+        return $comment . "\n\n" . implode( ' | ', $notes );
     }
 
     private function format_legacy_address( $street, $city, $state, $postal_code ) {
