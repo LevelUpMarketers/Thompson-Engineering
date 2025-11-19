@@ -272,6 +272,8 @@ class TEQCIDB_Student_Helper {
             'last_name'  => '',
             'email'      => '',
             'phone'      => '',
+            'wpuserid'   => '',
+            'uniquestudentid' => '',
         );
 
         if ( empty( $value ) ) {
@@ -301,6 +303,14 @@ class TEQCIDB_Student_Helper {
         if ( isset( $decoded['email'] ) ) {
             $email = sanitize_email( $decoded['email'] );
             $defaults['email'] = $email ? $email : '';
+        }
+
+        if ( isset( $decoded['wpuserid'] ) && is_numeric( $decoded['wpuserid'] ) ) {
+            $defaults['wpuserid'] = (string) absint( $decoded['wpuserid'] );
+        }
+
+        if ( isset( $decoded['uniquestudentid'] ) && is_scalar( $decoded['uniquestudentid'] ) ) {
+            $defaults['uniquestudentid'] = sanitize_text_field( (string) $decoded['uniquestudentid'] );
         }
 
         return $defaults;

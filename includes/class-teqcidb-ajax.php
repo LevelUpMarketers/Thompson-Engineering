@@ -1211,7 +1211,31 @@ class TEQCIDB_Ajax {
             'phone'      => $phone,
         );
 
+        $contact = $this->attach_representative_lookup_data( $contact );
+
         return wp_json_encode( $contact );
+    }
+
+    private function attach_representative_lookup_data( array $contact ) {
+        $email = isset( $contact['email'] ) ? $contact['email'] : '';
+
+        if ( '' === $email ) {
+            return $contact;
+        }
+
+        $user_id = $this->find_user_id_by_email( $email );
+
+        if ( null !== $user_id ) {
+            $contact['wpuserid'] = $user_id;
+        }
+
+        $unique_id = $this->find_student_unique_id_by_email_fragment( $email );
+
+        if ( '' !== $unique_id ) {
+            $contact['uniquestudentid'] = $unique_id;
+        }
+
+        return $contact;
     }
 
     private function split_legacy_name( $name ) {
@@ -1306,6 +1330,27 @@ class TEQCIDB_Ajax {
         $result = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE $column = %s LIMIT 1", $value ) );
 
         return ! empty( $result );
+    }
+
+    private function find_user_id_by_email( $email ) {
+        $user = get_user_by( 'email', $email );
+
+        if ( ! $user || is_wp_error( $user ) ) {
+            return null;
+        }
+
+        return (int) $user->ID;
+    }
+
+    private function find_student_unique_id_by_email_fragment( $email ) {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_students';
+        $like  = '%' . $wpdb->esc_like( $email ) . '%';
+
+        $result = $wpdb->get_var( $wpdb->prepare( "SELECT uniquestudentid FROM $table WHERE uniquestudentid LIKE %s ORDER BY id ASC LIMIT 1", $like ) );
+
+        return $result ? sanitize_text_field( $result ) : '';
     }
 
     private function normalize_legacy_value( $value ) {
@@ -1804,6 +1849,8 @@ class TEQCIDB_Ajax {
             'last_name'  => '',
             'email'      => '',
             'phone'      => '',
+            'wpuserid'   => '',
+            'uniquestudentid' => '',
         );
 
         if ( empty( $value ) ) {
@@ -1829,6 +1876,14 @@ class TEQCIDB_Ajax {
         if ( isset( $decoded['email'] ) ) {
             $email = sanitize_email( $decoded['email'] );
             $defaults['email'] = $email ? $email : '';
+        }
+
+        if ( isset( $decoded['wpuserid'] ) && is_numeric( $decoded['wpuserid'] ) ) {
+            $defaults['wpuserid'] = (string) absint( $decoded['wpuserid'] );
+        }
+
+        if ( isset( $decoded['uniquestudentid'] ) && is_scalar( $decoded['uniquestudentid'] ) ) {
+            $defaults['uniquestudentid'] = sanitize_text_field( (string) $decoded['uniquestudentid'] );
         }
 
         return $defaults;
