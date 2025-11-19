@@ -59,6 +59,54 @@ class TEQCIDB_Ajax {
             );
         }
 
+        $creating_new_student = ( 0 === $id );
+        $new_wp_user_id       = 0;
+
+        if ( $creating_new_student ) {
+            $existing_user = get_user_by( 'email', $email );
+
+            if ( $existing_user ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'A WordPress user already exists with that email address.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            $display_name = trim( $first_name . ' ' . $last_name );
+
+            if ( '' === $display_name ) {
+                $display_name = $email;
+            }
+
+            $user_login = $this->generate_user_login( $email );
+            $user_pass  = wp_generate_password( 20, true, true );
+            $user_args  = array(
+                'user_login'   => $user_login,
+                'user_pass'    => $user_pass,
+                'user_email'   => $email,
+                'first_name'   => $first_name,
+                'last_name'    => $last_name,
+                'display_name' => $display_name,
+            );
+
+            $new_wp_user_id = wp_insert_user( $user_args );
+
+            if ( is_wp_error( $new_wp_user_id ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => sprintf(
+                            /* translators: %s: WordPress error message. */
+                            __( 'Unable to create WordPress user: %s', 'teqcidb' ),
+                            $new_wp_user_id->get_error_message()
+                        ),
+                    )
+                );
+            }
+        }
+
         $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
 
         $data = array(
@@ -81,6 +129,11 @@ class TEQCIDB_Ajax {
             'comments'              => $this->sanitize_textarea_value( 'comments' ),
         );
 
+        if ( $creating_new_student ) {
+            $data['wpuserid']        = (string) $new_wp_user_id;
+            $data['uniquestudentid'] = $this->generate_unique_student_id( $email );
+        }
+
         $formats = array_fill( 0, count( $data ), '%s' );
 
         if ( $id > 0 ) {
@@ -96,9 +149,8 @@ class TEQCIDB_Ajax {
                 );
             }
         } else {
-            $data['uniquestudentid'] = $this->generate_unique_student_id( $table );
-            $result                  = $wpdb->insert( $table, $data, $formats );
-            $message                 = __( 'Saved', 'teqcidb' );
+            $result  = $wpdb->insert( $table, $data, $formats );
+            $message = __( 'Saved', 'teqcidb' );
 
             if ( false === $result ) {
                 $this->maybe_delay( $start );
@@ -1344,19 +1396,26 @@ class TEQCIDB_Ajax {
         return esc_url_raw( $url );
     }
 
-    private function generate_unique_student_id( $table ) {
-        global $wpdb;
+    private function generate_unique_student_id( $email ) {
+        return $email . time();
+    }
 
-        for ( $i = 0; $i < 5; $i++ ) {
-            $candidate = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : wp_generate_password( 32, false );
-            $exists    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE uniquestudentid = %s", $candidate ) );
+    private function generate_user_login( $email ) {
+        $base_login = sanitize_user( $email, true );
 
-            if ( 0 === $exists ) {
-                return $candidate;
-            }
+        if ( '' === $base_login ) {
+            $base_login = 'teqcidb_user';
         }
 
-        return uniqid( 'teqcidb_', true );
+        $candidate = $base_login;
+        $suffix    = 1;
+
+        while ( username_exists( $candidate ) ) {
+            $candidate = $base_login . '_' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     private function get_us_states() {
