@@ -1244,56 +1244,11 @@ class TEQCIDB_Ajax {
     private function merge_legacy_comments( array $legacy_record ) {
         $comment = sanitize_textarea_field( isset( $legacy_record['comments'] ) ? $legacy_record['comments'] : '' );
 
-        $notes = array();
-
-        $billing_address = $this->format_legacy_address(
-            isset( $legacy_record['billingstreetaddress'] ) ? $legacy_record['billingstreetaddress'] : '',
-            isset( $legacy_record['billingcity'] ) ? $legacy_record['billingcity'] : '',
-            isset( $legacy_record['billingstate'] ) ? $legacy_record['billingstate'] : '',
-            isset( $legacy_record['billingzip'] ) ? $legacy_record['billingzip'] : ''
-        );
-
-        if ( '' !== $billing_address ) {
-            $notes[] = sprintf( __( 'Legacy billing address: %s', 'teqcidb' ), $billing_address );
-        }
-
-        $images = array();
-
-        foreach ( array( 'studentimage1', 'studentimage2' ) as $image_key ) {
-            if ( isset( $legacy_record[ $image_key ] ) ) {
-                $url = esc_url_raw( $this->normalize_legacy_value( $legacy_record[ $image_key ] ) );
-
-                if ( '' !== $url ) {
-                    $images[] = $url;
-                }
-            }
-        }
-
-        if ( ! empty( $images ) ) {
-            $notes[] = sprintf( __( 'Legacy student images: %s', 'teqcidb' ), implode( ', ', $images ) );
-        }
-
-        if ( isset( $legacy_record['newregistrantflag'] ) && '' !== $this->normalize_legacy_value( $legacy_record['newregistrantflag'] ) ) {
-            $notes[] = sprintf( __( 'Legacy new registrant flag: %s', 'teqcidb' ), sanitize_text_field( $legacy_record['newregistrantflag'] ) );
-        }
-
-        if ( isset( $legacy_record['allpaymentamounts'] ) && '' !== $this->normalize_legacy_value( $legacy_record['allpaymentamounts'] ) ) {
-            $notes[] = sprintf( __( 'Legacy payment amounts: %s', 'teqcidb' ), sanitize_text_field( $legacy_record['allpaymentamounts'] ) );
-        }
-
-        if ( isset( $legacy_record['allpaymentdates'] ) && '' !== $this->normalize_legacy_value( $legacy_record['allpaymentdates'] ) ) {
-            $notes[] = sprintf( __( 'Legacy payment dates: %s', 'teqcidb' ), sanitize_text_field( $legacy_record['allpaymentdates'] ) );
-        }
-
         if ( '' === $comment ) {
             return '';
         }
 
-        if ( empty( $notes ) ) {
-            return $comment;
-        }
-
-        return $comment . "\n\n" . implode( ' | ', $notes );
+        return $comment;
     }
 
     private function format_legacy_address( $street, $city, $state, $postal_code ) {
