@@ -99,6 +99,10 @@ class TEQCIDB_Student_Helper {
             return self::format_representative_for_tokens( $contact );
         }
 
+        if ( in_array( $key, array( 'phone_cell', 'phone_office', 'fax' ), true ) ) {
+            return self::format_phone_value( $value );
+        }
+
         if ( 'placeholder_3' === $key ) {
             $value = (string) $value;
 
@@ -221,6 +225,10 @@ class TEQCIDB_Student_Helper {
             return $defaults;
         }
 
+        if ( isset( $decoded['zip_code'] ) ) {
+            $decoded['postal_code'] = $decoded['zip_code'];
+        }
+
         foreach ( $defaults as $key => $default ) {
             if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
                 $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
@@ -280,10 +288,14 @@ class TEQCIDB_Student_Helper {
             return $defaults;
         }
 
-        foreach ( array( 'first_name', 'last_name', 'phone' ) as $key ) {
+        foreach ( array( 'first_name', 'last_name' ) as $key ) {
             if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
                 $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
             }
+        }
+
+        if ( isset( $decoded['phone'] ) ) {
+            $defaults['phone'] = self::format_phone_value( $decoded['phone'] );
         }
 
         if ( isset( $decoded['email'] ) ) {
@@ -292,6 +304,41 @@ class TEQCIDB_Student_Helper {
         }
 
         return $defaults;
+    }
+
+    private static function format_phone_value( $value ) {
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $digits = preg_replace( '/\D+/', '', (string) $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( strlen( $digits ) > 10 && '1' === substr( $digits, 0, 1 ) ) {
+            $digits = substr( $digits, 1 );
+        }
+
+        if ( strlen( $digits ) > 10 ) {
+            $digits = substr( $digits, 0, 10 );
+        }
+
+        if ( 10 !== strlen( $digits ) ) {
+            return $digits;
+        }
+
+        return sprintf(
+            '(%1$s) %2$s-%3$s',
+            substr( $digits, 0, 3 ),
+            substr( $digits, 3, 3 ),
+            substr( $digits, 6, 4 )
+        );
     }
 
     private static function format_representative_for_tokens( array $contact ) {

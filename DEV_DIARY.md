@@ -100,3 +100,4 @@
 97. 2025-11-12: Narrowed the Previous Companies repeater to the standard field width by dropping its full-width class and custom CSS override.
 98. 2025-11-12: Rewired Student saving to the production schema, persisting the new contact, address, and association fields with updated AJAX handlers and labels.
 99. 2025-11-19: Enforced WordPress user creation for new students, prevented duplicate student emails, and aligned unique student IDs with the legacy email-plus-timestamp format.
+100. 2025-11-19: Added live phone input masking, normalized stored phone numbers (including fax and representative contacts), and switched the student address JSON to a `zip_code` key for the postal value.

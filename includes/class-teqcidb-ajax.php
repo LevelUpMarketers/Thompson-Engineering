@@ -115,9 +115,9 @@ class TEQCIDB_Ajax {
             'company'               => $this->sanitize_text_value( 'company' ),
             'old_companies'         => $this->sanitize_items_value( 'old_companies' ),
             'student_address'       => $this->sanitize_student_address(),
-            'phone_cell'            => $this->sanitize_text_value( 'phone_cell' ),
-            'phone_office'          => $this->sanitize_text_value( 'phone_office' ),
-            'fax'                   => $this->sanitize_text_value( 'fax' ),
+            'phone_cell'            => $this->sanitize_phone_value( 'phone_cell' ),
+            'phone_office'          => $this->sanitize_phone_value( 'phone_office' ),
+            'fax'                   => $this->sanitize_phone_value( 'fax' ),
             'email'                 => $email,
             'initial_training_date' => $this->sanitize_date_value( 'initial_training_date' ),
             'last_refresher_date'   => $this->sanitize_date_value( 'last_refresher_date' ),
@@ -1137,6 +1137,16 @@ class TEQCIDB_Ajax {
         return $this->sanitize_select_value( $key, array( '0', '1' ) );
     }
 
+    private function sanitize_phone_value( $key ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return '';
+        }
+
+        return $this->format_phone_for_response( $value );
+    }
+
     private function sanitize_student_address() {
         $states = $this->get_us_states_and_territories();
 
@@ -1145,7 +1155,7 @@ class TEQCIDB_Ajax {
             'street_2'    => $this->sanitize_text_value( 'student_address_street_2' ),
             'city'        => $this->sanitize_text_value( 'student_address_city' ),
             'state'       => $this->sanitize_state_value( 'student_address_state', $states ),
-            'postal_code' => $this->sanitize_text_value( 'student_address_postal_code' ),
+            'zip_code'    => $this->sanitize_text_value( 'student_address_postal_code' ),
         );
 
         $has_value = false;
@@ -1165,7 +1175,7 @@ class TEQCIDB_Ajax {
             'first_name' => $this->sanitize_text_value( 'representative_first_name' ),
             'last_name'  => $this->sanitize_text_value( 'representative_last_name' ),
             'email'      => $this->sanitize_email_value( 'representative_email' ),
-            'phone'      => $this->sanitize_text_value( 'representative_phone' ),
+            'phone'      => $this->sanitize_phone_value( 'representative_phone' ),
         );
 
         $has_value = false;
@@ -1283,6 +1293,10 @@ class TEQCIDB_Ajax {
         $entity['old_companies']         = $this->format_json_field( isset( $entity['old_companies'] ) ? $entity['old_companies'] : '' );
         $entity['associations']          = $this->format_json_field( isset( $entity['associations'] ) ? $entity['associations'] : '' );
 
+        foreach ( array( 'phone_cell', 'phone_office', 'fax' ) as $phone_field ) {
+            $entity[ $phone_field ] = $this->format_phone_for_response( isset( $entity[ $phone_field ] ) ? $entity[ $phone_field ] : '' );
+        }
+
         $address = $this->decode_student_address_field( isset( $entity['student_address'] ) ? $entity['student_address'] : '' );
         $entity['student_address_street_1']   = $address['street_1'];
         $entity['student_address_street_2']   = $address['street_2'];
@@ -1327,6 +1341,10 @@ class TEQCIDB_Ajax {
             return $defaults;
         }
 
+        if ( isset( $decoded['zip_code'] ) ) {
+            $decoded['postal_code'] = $decoded['zip_code'];
+        }
+
         foreach ( $defaults as $key => $default_value ) {
             if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
                 $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
@@ -1354,10 +1372,14 @@ class TEQCIDB_Ajax {
             return $defaults;
         }
 
-        foreach ( array( 'first_name', 'last_name', 'phone' ) as $key ) {
+        foreach ( array( 'first_name', 'last_name' ) as $key ) {
             if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
                 $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
             }
+        }
+
+        if ( isset( $decoded['phone'] ) ) {
+            $defaults['phone'] = $this->format_phone_for_response( $decoded['phone'] );
         }
 
         if ( isset( $decoded['email'] ) ) {
@@ -1366,6 +1388,65 @@ class TEQCIDB_Ajax {
         }
 
         return $defaults;
+    }
+
+    private function format_phone_for_response( $value ) {
+        $digits = $this->normalize_phone_digits( $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        return $this->format_digits_as_phone( $digits );
+    }
+
+    private function normalize_phone_digits( $value ) {
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $digits = preg_replace( '/\D+/', '', (string) $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( strlen( $digits ) > 10 && '1' === substr( $digits, 0, 1 ) ) {
+            $digits = substr( $digits, 1 );
+        }
+
+        if ( strlen( $digits ) > 10 ) {
+            $digits = substr( $digits, 0, 10 );
+        }
+
+        return $digits;
+    }
+
+    private function format_digits_as_phone( $digits ) {
+        $digits = (string) $digits;
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( 10 !== strlen( $digits ) ) {
+            return $digits;
+        }
+
+        return sprintf(
+            '(%1$s) %2$s-%3$s',
+            substr( $digits, 0, 3 ),
+            substr( $digits, 3, 3 ),
+            substr( $digits, 6, 4 )
+        );
     }
 
     private function build_student_display_name( array $entity ) {
