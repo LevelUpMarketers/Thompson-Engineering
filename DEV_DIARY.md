@@ -110,3 +110,4 @@
 107. 2025-11-20: Rebranded the admin menu entry to "QCI Database," set a custom icon from plugin assets, and moved it directly beneath Posts in the dashboard navigation.
 108. 2025-11-20: Removed the committed dashboard icon binary so the menu still references the asset path while allowing the file to be added manually outside version control.
 109. 2025-11-20: Ignored the optional dashboard icon PNG so branch updates no longer choke on binary assets that will be supplied outside version control.
+110. 2025-11-20: Renamed the primary submenu entry to "Students" so the QCI Database menu keeps its new branding while the student list remains easy to spot.

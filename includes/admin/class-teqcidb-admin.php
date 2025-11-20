@@ -27,6 +27,12 @@ class TEQCIDB_Admin {
             6
         );
 
+        global $submenu;
+
+        if ( isset( $submenu['teqcidb-student'][0] ) ) {
+            $submenu['teqcidb-student'][0][0] = __( 'Students', 'teqcidb' );
+        }
+
         add_submenu_page(
             'teqcidb-student',
             __( 'Communications', 'teqcidb' ),
