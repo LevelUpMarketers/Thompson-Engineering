@@ -113,3 +113,4 @@
 110. 2025-11-20: Renamed the primary submenu entry to "Students" so the QCI Database menu keeps its new branding while the student list remains easy to spot.
 111. 2025-11-20: Force-set the QCI Database submenu root label to "Students" to override WordPress defaults when building the dashboard navigation.
 112. 2025-11-20: Added activation-time creation of the teqcidb_classes table to store class metadata and enrollment counts.
+113. 2025-11-20: Expanded the upload tab with selectable legacy record types and backend support for importing legacy class rows alongside students.

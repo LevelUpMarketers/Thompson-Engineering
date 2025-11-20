@@ -737,6 +737,8 @@ class TEQCIDB_Admin {
             'makeSelection' => __( 'Make a Selection...', 'teqcidb' ),
             'error'        => __( 'Something went wrong. Please try again.', 'teqcidb' ),
             'loadError'    => __( 'Unable to load records. Please try again.', 'teqcidb' ),
+            'legacyUploadTypeRequired' => __( 'Select at least one upload type before submitting.', 'teqcidb' ),
+            'legacyUploadSingleType'   => __( 'Please select only one upload type.', 'teqcidb' ),
             'totalRecords' => __( 'Total records: %s', 'teqcidb' ),
             'pageOf'       => __( 'Page %1$s of %2$s', 'teqcidb' ),
             'firstPage'    => __( 'First page', 'teqcidb' ),
@@ -1751,11 +1753,31 @@ class TEQCIDB_Admin {
         echo '<td>';
         echo '<textarea id="teqcidb-legacy-record" name="legacy_record" rows="8" class="large-text code" placeholder="' . esc_attr( $example_record ) . '"></textarea>';
         echo '<p class="description">' . esc_html__( 'Include the full comma-separated row, with or without wrapping parentheses. Leave out multiple rows; this tool uploads one student at a time.', 'teqcidb' ) . '</p>';
+
+        echo '<p class="description">' . esc_html__( 'Choose what type of legacy record you are uploading.', 'teqcidb' ) . '</p>';
+        echo '<fieldset class="teqcidb-legacy-upload__types">';
+        echo '<legend class="screen-reader-text">' . esc_html__( 'Legacy upload types', 'teqcidb' ) . '</legend>';
+
+        $upload_types = array(
+            'student' => __( 'Upload Legacy Student Records', 'teqcidb' ),
+            'class'   => __( 'Upload Legacy Class Records', 'teqcidb' ),
+        );
+
+        foreach ( $upload_types as $type_value => $type_label ) {
+            $field_id = 'teqcidb-legacy-type-' . esc_attr( $type_value );
+            echo '<label for="' . esc_attr( $field_id ) . '" class="teqcidb-legacy-upload__type">';
+            echo '<input type="checkbox" id="' . esc_attr( $field_id ) . '" name="legacy_types[]" value="' . esc_attr( $type_value ) . '"' . checked( 'student', $type_value, false ) . ' /> ';
+            echo esc_html( $type_label );
+            echo '</label><br />';
+        }
+
+        echo '<p class="description">' . esc_html__( 'Select one upload type at a time. More options can be added here in the future.', 'teqcidb' ) . '</p>';
+        echo '</fieldset>';
         echo '</td>';
         echo '</tr>';
         echo '</table>';
 
-        $submit_button = get_submit_button( __( 'Upload Student', 'teqcidb' ), 'primary', 'submit', false );
+        $submit_button = get_submit_button( __( 'Upload Legacy Record', 'teqcidb' ), 'primary', 'submit', false );
 
         echo '<p class="submit">' . $submit_button;
         echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';

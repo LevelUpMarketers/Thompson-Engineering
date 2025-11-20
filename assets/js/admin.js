@@ -40,7 +40,85 @@ jQuery(document).ready(function($){
     handleForm('#teqcidb-general-settings-form','teqcidb_save_general_settings');
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
-    handleForm('#teqcidb-legacy-upload-form','teqcidb_upload_legacy_student');
+
+    function handleLegacyUploadForm(){
+        var selector = '#teqcidb-legacy-upload-form';
+
+        $(selector).on('submit', function(e){
+            e.preventDefault();
+
+            var $form = $(this);
+            var $spinner = $form.find('.teqcidb-feedback-area .spinner').first();
+            var $feedback = $form.find('.teqcidb-feedback-area [role="status"]').first();
+            var spinnerHideTimer = $form.data('spinnerHideTimer');
+
+            if ($feedback.length){
+                $feedback.removeClass('is-visible').text('');
+            }
+
+            if (spinnerHideTimer){
+                clearTimeout(spinnerHideTimer);
+            }
+
+            if ($spinner.length){
+                $spinner.addClass('is-active');
+            }
+
+            var selectedTypes = $form.find('input[name="legacy_types[]"]:checked');
+
+            if (!selectedTypes.length){
+                if ($spinner.length){
+                    $spinner.removeClass('is-active');
+                }
+
+                if ($feedback.length){
+                    $feedback.text(teqcidbAdmin.legacyUploadTypeRequired || '').addClass('is-visible');
+                }
+
+                return;
+            }
+
+            if (selectedTypes.length > 1){
+                if ($spinner.length){
+                    $spinner.removeClass('is-active');
+                }
+
+                if ($feedback.length){
+                    $feedback.text(teqcidbAdmin.legacyUploadSingleType || '').addClass('is-visible');
+                }
+
+                return;
+            }
+
+            var data = $form.serialize();
+
+            $.post(teqcidbAjax.ajaxurl, data + '&action=teqcidb_upload_legacy_records&_ajax_nonce=' + teqcidbAjax.nonce)
+                .done(function(response){
+                    if ($feedback.length && response && response.data){
+                        var message = response.data.message || response.data.error;
+
+                        if (message){
+                            $feedback.text(message).addClass('is-visible');
+                        }
+                    }
+                })
+                .fail(function(){
+                    if ($feedback.length){
+                        $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+                    }
+                })
+                .always(function(){
+                    spinnerHideTimer = setTimeout(function(){
+                        if ($spinner.length){
+                            $spinner.removeClass('is-active');
+                        }
+                    }, 150);
+                    $form.data('spinnerHideTimer', spinnerHideTimer);
+                });
+        });
+    }
+
+    handleLegacyUploadForm();
 
     function extractPhoneDigits(value){
         var digits = (value || '').replace(/\D/g, '');
