@@ -16,6 +16,7 @@ class TEQCIDB_Activator {
         $main_table      = $wpdb->prefix . 'teqcidb_students';
         $settings_table  = $wpdb->prefix . 'teqcidb_settings';
         $content_log     = $wpdb->prefix . 'teqcidb_content_log';
+        $classes_table   = $wpdb->prefix . 'teqcidb_classes';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -62,8 +63,30 @@ class TEQCIDB_Activator {
             KEY post_id (post_id)
         ) $charset_collate;";
 
+        $sql_classes = "CREATE TABLE $classes_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            uniqueclassid varchar(255) NOT NULL,
+            classname varchar(191) NOT NULL DEFAULT '',
+            classformat varchar(20) NOT NULL DEFAULT '',
+            classtype varchar(20) NOT NULL DEFAULT '',
+            classsize int(11) unsigned DEFAULT NULL,
+            classregistrantnumber int(11) unsigned NOT NULL DEFAULT 0,
+            instructors longtext,
+            classsaddress longtext,
+            classstartdate date DEFAULT NULL,
+            classstarttime time DEFAULT NULL,
+            classendtime time DEFAULT NULL,
+            classcost decimal(10,2) DEFAULT NULL,
+            classdescription longtext,
+            classhide tinyint(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
+            UNIQUE KEY uniqueclassid (uniqueclassid),
+            KEY classname (classname)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
+        dbDelta( $sql_classes );
     }
 }
