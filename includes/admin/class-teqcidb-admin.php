@@ -29,9 +29,12 @@ class TEQCIDB_Admin {
 
         global $submenu;
 
-        if ( isset( $submenu['teqcidb-student'][0] ) ) {
-            $submenu['teqcidb-student'][0][0] = __( 'Students', 'teqcidb' );
-        }
+        $submenu['teqcidb-student'][0] = array(
+            __( 'Students', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-student',
+            __( 'QCI Database', 'teqcidb' ),
+        );
 
         add_submenu_page(
             'teqcidb-student',
