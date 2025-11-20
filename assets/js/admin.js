@@ -509,6 +509,36 @@ jQuery(document).ready(function($){
 
                     $container.append($fieldset);
                     break;
+                case 'checkboxes':
+                    var checkboxOptions = field.options || {};
+                    var selectedValues = parseItemsValue(stringValue).map(function(item){
+                        return String(item);
+                    });
+                    var $checkboxFieldset = $('<fieldset/>', { 'class': 'teqcidb-checkbox-group' });
+
+                    Object.keys(checkboxOptions).forEach(function(optionValue){
+                        var optionLabel = checkboxOptions[optionValue];
+                        var optionId = baseId + '-' + String(optionValue).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                        var $label = $('<label/>', { 'class': 'teqcidb-checkbox-option', 'for': optionId });
+                        var $input = $('<input/>', {
+                            type: 'checkbox',
+                            id: optionId,
+                            name: fieldName + '[]',
+                            value: optionValue
+                        });
+
+                        if (selectedValues.indexOf(String(optionValue)) !== -1){
+                            $input.prop('checked', true);
+                        }
+
+                        $label.append($input);
+                        $label.append(' ');
+                        $label.append(document.createTextNode(optionLabel || ''));
+                        $checkboxFieldset.append($label);
+                    });
+
+                    $container.append($checkboxFieldset);
+                    break;
                 case 'items':
                     var containerId = baseId + '-container';
                     var $itemsContainer = $('<div/>', {
@@ -557,6 +587,18 @@ jQuery(document).ready(function($){
                     }).text(addAnotherLabel);
 
                     $container.append($addButton);
+                    break;
+                case 'textarea':
+                    var $textareaField = $('<textarea/>', { name: fieldName }).text(stringValue);
+
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $textareaField.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
+                    $container.append($textareaField);
                     break;
                 case 'image':
                     var inputId = baseId;

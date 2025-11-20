@@ -18,11 +18,13 @@ class TEQCIDB_Admin {
 
     public function add_menu() {
         add_menu_page(
-            __( 'Students', 'teqcidb' ),
-            __( 'Students', 'teqcidb' ),
+            __( 'QCI Database', 'teqcidb' ),
+            __( 'QCI Database', 'teqcidb' ),
             'manage_options',
             'teqcidb-student',
-            array( $this, 'render_student_page' )
+            array( $this, 'render_student_page' ),
+            TEQCIDB_PLUGIN_URL . 'assets/images/alabama_dashboard_icon.png',
+            6
         );
 
         add_submenu_page(
@@ -721,7 +723,7 @@ class TEQCIDB_Admin {
             'none'         => __( 'No entries found.', 'teqcidb' ),
             'mediaTitle'   => __( 'Select Image', 'teqcidb' ),
             'mediaButton'  => __( 'Use this image', 'teqcidb' ),
-            'itemPlaceholder' => __( 'Item #%d', 'teqcidb' ),
+            'itemPlaceholder' => '',
             'addAnotherItem' => __( '+ Add Another Item', 'teqcidb' ),
             'makeSelection' => __( 'Make a Selection...', 'teqcidb' ),
             'error'        => __( 'Something went wrong. Please try again.', 'teqcidb' ),
@@ -1169,7 +1171,7 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'    => 'expiration_date',
-                'label'   => __( 'Certification Expiration Date', 'teqcidb' ),
+                'label'   => __( 'Expiration Date', 'teqcidb' ),
                 'type'    => 'date',
                 'tooltip' => $tooltips['expiration_date'],
             ),
