@@ -721,7 +721,7 @@ class TEQCIDB_Admin {
             'none'         => __( 'No entries found.', 'teqcidb' ),
             'mediaTitle'   => __( 'Select Image', 'teqcidb' ),
             'mediaButton'  => __( 'Use this image', 'teqcidb' ),
-            'itemPlaceholder' => __( 'Item #%d', 'teqcidb' ),
+            'itemPlaceholder' => '',
             'addAnotherItem' => __( '+ Add Another Item', 'teqcidb' ),
             'makeSelection' => __( 'Make a Selection...', 'teqcidb' ),
             'error'        => __( 'Something went wrong. Please try again.', 'teqcidb' ),
@@ -1169,7 +1169,7 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'    => 'expiration_date',
-                'label'   => __( 'Certification Expiration Date', 'teqcidb' ),
+                'label'   => __( 'Expiration Date', 'teqcidb' ),
                 'type'    => 'date',
                 'tooltip' => $tooltips['expiration_date'],
             ),

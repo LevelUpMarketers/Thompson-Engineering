@@ -106,3 +106,4 @@
 103. 2025-11-19: Adjusted legacy Upload comment handling to leave new records blank when the original comment is empty instead of copying legacy notes.
 104. 2025-11-19: Stopped appending legacy billing, image, and flag notes to imported comments so uploads preserve only the original comment text.
 105. 2025-11-19: Added legacy Upload representative lookups to attach matching WordPress user IDs and unique student IDs when alternate contact emails already exist.
+106. 2025-11-20: Fixed the Student editor to render Associations as checkboxes with saved selections, converted Admin Comments to a textarea, blanked item placeholders for Previous Companies, and renamed the expiration date label for consistency.
