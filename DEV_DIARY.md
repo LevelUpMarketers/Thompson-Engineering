@@ -106,3 +106,9 @@
 103. 2025-11-19: Adjusted legacy Upload comment handling to leave new records blank when the original comment is empty instead of copying legacy notes.
 104. 2025-11-19: Stopped appending legacy billing, image, and flag notes to imported comments so uploads preserve only the original comment text.
 105. 2025-11-19: Added legacy Upload representative lookups to attach matching WordPress user IDs and unique student IDs when alternate contact emails already exist.
+106. 2025-11-20: Fixed the Student editor to render Associations as checkboxes with saved selections, converted Admin Comments to a textarea, blanked item placeholders for Previous Companies, and renamed the expiration date label for consistency.
+107. 2025-11-20: Rebranded the admin menu entry to "QCI Database," set a custom icon from plugin assets, and moved it directly beneath Posts in the dashboard navigation.
+108. 2025-11-20: Removed the committed dashboard icon binary so the menu still references the asset path while allowing the file to be added manually outside version control.
+109. 2025-11-20: Ignored the optional dashboard icon PNG so branch updates no longer choke on binary assets that will be supplied outside version control.
+110. 2025-11-20: Renamed the primary submenu entry to "Students" so the QCI Database menu keeps its new branding while the student list remains easy to spot.
+111. 2025-11-20: Force-set the QCI Database submenu root label to "Students" to override WordPress defaults when building the dashboard navigation.
