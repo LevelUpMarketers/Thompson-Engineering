@@ -1449,7 +1449,7 @@ jQuery(document).ready(function($){
         $container.append($row);
 
         if (autocompleteType === 'student'){
-            initAutocompleteForScope($row);
+            initStudentAutocomplete($input);
         }
     });
 
