@@ -119,3 +119,4 @@
 116. 2025-11-29: Refined the Classes Create form by removing generated-only fields, splitting the address into discrete inputs, updating course/quiz access selectors, and adjusting schema types for those toggles.
 117. 2025-11-29: Renamed class access columns to match new allow-all wording, updated the Create Class form labels to clearer questions, and retained explicit course/quiz restriction lists in the schema and UI.
 118. 2025-11-29: Reworked class access controls with global allow toggles plus per-student allow and restrict lists for courses and quizzes.
+119. 2025-11-29: Reordered Create Class fields so Hide this Class follows cost and instructors sit at the end of the form.

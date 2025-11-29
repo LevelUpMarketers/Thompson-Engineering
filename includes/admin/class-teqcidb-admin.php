@@ -1332,12 +1332,6 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['classsize'],
             ),
             array(
-                'name'    => 'instructors',
-                'label'   => __( 'Instructors', 'teqcidb' ),
-                'type'    => 'items',
-                'tooltip' => $tooltips['instructors'],
-            ),
-            array(
                 'name'    => 'class_address_street_1',
                 'label'   => __( 'Address Line 1', 'teqcidb' ),
                 'type'    => 'text',
@@ -1394,19 +1388,19 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['classcost'],
             ),
             array(
+                'name'    => 'classhide',
+                'label'   => __( 'Hide this Class?', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $yes_no,
+                'tooltip' => $tooltips['classhide'],
+            ),
+            array(
                 'name'       => 'classdescription',
                 'label'      => __( 'Class Description', 'teqcidb' ),
                 'type'       => 'textarea',
                 'tooltip'    => $tooltips['classdescription'],
                 'full_width' => true,
                 'attrs'      => ' rows="4"',
-            ),
-            array(
-                'name'    => 'classhide',
-                'label'   => __( 'Hide this Class?', 'teqcidb' ),
-                'type'    => 'select',
-                'options' => $yes_no,
-                'tooltip' => $tooltips['classhide'],
             ),
             array(
                 'name'    => 'allallowedcourse',
@@ -1445,6 +1439,12 @@ class TEQCIDB_Admin {
                 'label'   => __( 'Restrict certain students from accessing the associated Quiz?', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['quizstudentsrestricted'],
+            ),
+            array(
+                'name'    => 'instructors',
+                'label'   => __( 'Instructors', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['instructors'],
             ),
         );
     }
