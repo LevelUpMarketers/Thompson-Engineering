@@ -121,3 +121,4 @@
 118. 2025-11-29: Reworked class access controls with global allow toggles plus per-student allow and restrict lists for courses and quizzes.
 119. 2025-11-29: Reordered Create Class fields so Hide this Class follows cost and instructors sit at the end of the form.
 120. 2025-11-29: Added student autocomplete lookups for class access allow/restrict lists with a new AJAX endpoint to keep searches performant on large datasets.
+121. 2025-11-29: Simplified class access autocomplete selections to show only names/emails while storing hidden WordPress and unique IDs for each chosen student.

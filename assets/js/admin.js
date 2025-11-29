@@ -1279,6 +1279,37 @@ jQuery(document).ready(function($){
         return label;
     }
 
+    function setHiddenStudentFields($input, studentData){
+        if (!$input || !$input.length){
+            return;
+        }
+
+        var baseName = ($input.attr('name') || '').replace(/\[\]$/, '');
+        var $row = $input.closest('.teqcidb-item-row');
+
+        if (!baseName || !$row.length){
+            return;
+        }
+
+        var setOrCreateHidden = function(name, value){
+            var $hidden = $row.find('input[name="' + name + '"]');
+
+            if (!$hidden.length){
+                $hidden = $('<input/>', {
+                    type: 'hidden',
+                    name: name,
+                    'class': 'teqcidb-student-meta'
+                });
+                $row.append($hidden);
+            }
+
+            $hidden.val(value);
+        };
+
+        setOrCreateHidden(baseName + '_wpid[]', studentData.studentId || '');
+        setOrCreateHidden(baseName + '_uniqueid[]', studentData.uniqueId || '');
+    }
+
     function initStudentAutocomplete($input){
         if (!$input || !$input.length || $input.data('autocompleteBound')){
             return;
@@ -1314,11 +1345,16 @@ jQuery(document).ready(function($){
 
                     var suggestions = data.data.results.map(function(student){
                         var label = student.display || buildStudentDisplay(student);
-                        var value = student.value || label;
+                        var value = label;
 
                         return {
                             label: label,
-                            value: value
+                            value: value,
+                            studentId: student.id,
+                            uniqueId: student.uniquestudentid,
+                            email: student.email,
+                            firstName: student.first_name,
+                            lastName: student.last_name
                         };
                     });
 
@@ -1345,6 +1381,7 @@ jQuery(document).ready(function($){
                 }
 
                 $(this).val(ui.item.value);
+                setHiddenStudentFields($(this), ui.item);
                 return false;
             },
             focus: function(event, ui){
