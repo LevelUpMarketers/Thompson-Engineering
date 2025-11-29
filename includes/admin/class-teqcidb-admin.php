@@ -38,6 +38,15 @@ class TEQCIDB_Admin {
 
         add_submenu_page(
             'teqcidb-student',
+            __( 'Classes', 'teqcidb' ),
+            __( 'Classes', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-classes',
+            array( $this, 'render_classes_page' )
+        );
+
+        add_submenu_page(
+            'teqcidb-student',
             __( 'Communications', 'teqcidb' ),
             __( 'Communications', 'teqcidb' ),
             'manage_options',
@@ -929,6 +938,29 @@ class TEQCIDB_Admin {
         );
     }
 
+    private function get_class_tooltips() {
+        return array(
+            'uniqueclassid'             => __( 'A unique identifier for this session to help match registrations.', 'teqcidb' ),
+            'classname'                 => __( 'Display name for the training session or course.', 'teqcidb' ),
+            'classformat'               => __( 'Format of the session, such as in person, virtual, or hybrid.', 'teqcidb' ),
+            'classtype'                 => __( 'Training type (Initial, Refresher, or other internal labels).', 'teqcidb' ),
+            'classsize'                 => __( 'Maximum seats available for this class.', 'teqcidb' ),
+            'classregistrantnumber'     => __( 'How many students are currently registered for this session.', 'teqcidb' ),
+            'instructors'               => __( 'List each instructor who will lead or assist with the class.', 'teqcidb' ),
+            'classsaddress'             => __( 'Location details for on-site sessions, including room or suite.', 'teqcidb' ),
+            'classstartdate'            => __( 'Date the class begins.', 'teqcidb' ),
+            'classstarttime'            => __( 'Local start time for the session.', 'teqcidb' ),
+            'classendtime'              => __( 'Local end time for the session.', 'teqcidb' ),
+            'classcost'                 => __( 'Tuition or registration fee for the full class.', 'teqcidb' ),
+            'classdescription'          => __( 'Agenda, prerequisites, or any notes students should know.', 'teqcidb' ),
+            'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
+            'coursestudentsallowed'     => __( 'Students who are cleared to take this course content.', 'teqcidb' ),
+            'quizstudentsallowed'       => __( 'Students who can access the associated quiz or exam.', 'teqcidb' ),
+            'coursestudentsrestricted'  => __( 'Students who should be blocked from this course.', 'teqcidb' ),
+            'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam.', 'teqcidb' ),
+        );
+    }
+
     private function render_tab_intro( $title, $description ) {
         if ( empty( $title ) && empty( $description ) ) {
             return;
@@ -998,6 +1030,42 @@ class TEQCIDB_Admin {
             '<p class="teqcidb-log-status__message">%s</p>',
             wp_kses_post( $message )
         );
+        echo '</div>';
+    }
+
+    public function render_classes_page() {
+        $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'create';
+        echo '<div class="wrap"><h1>' . esc_html__( 'Classes', 'teqcidb' ) . '</h1>';
+        echo '<h2 class="nav-tab-wrapper">';
+        echo '<a href="?page=teqcidb-classes&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Class', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-classes&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit & Manage Classes', 'teqcidb' ) . '</a>';
+        echo '</h2>';
+
+        $tab_titles = array(
+            'create' => __( 'Create a Class', 'teqcidb' ),
+            'edit'   => __( 'Edit & Manage Classes', 'teqcidb' ),
+        );
+
+        $tab_descriptions = array(
+            'create' => __( 'Outline the logistics, schedule, and attendee rules for a new training session.', 'teqcidb' ),
+            'edit'   => __( 'Review upcoming or past sessions to adjust details and keep rosters accurate.', 'teqcidb' ),
+        );
+
+        if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
+            $active_tab = 'create';
+        }
+
+        $title       = isset( $tab_titles[ $active_tab ] ) ? $tab_titles[ $active_tab ] : '';
+        $description = isset( $tab_descriptions[ $active_tab ] ) ? $tab_descriptions[ $active_tab ] : '';
+
+        $this->render_tab_intro( $title, $description );
+
+        if ( 'edit' === $active_tab ) {
+            $this->render_class_edit_tab();
+        } else {
+            $this->render_class_create_tab();
+        }
+
         echo '</div>';
     }
 
@@ -1203,6 +1271,150 @@ class TEQCIDB_Admin {
         );
     }
 
+    private function get_class_fields() {
+        $tooltips = $this->get_class_tooltips();
+        $yes_no   = array(
+            ''  => __( 'Make a Selection...', 'teqcidb' ),
+            '0' => __( 'No', 'teqcidb' ),
+            '1' => __( 'Yes', 'teqcidb' ),
+        );
+
+        $formats = array(
+            ''          => __( 'Make a Selection...', 'teqcidb' ),
+            'in_person' => __( 'In Person', 'teqcidb' ),
+            'virtual'   => __( 'Virtual', 'teqcidb' ),
+            'hybrid'    => __( 'Hybrid', 'teqcidb' ),
+        );
+
+        $class_types = array(
+            ''          => __( 'Make a Selection...', 'teqcidb' ),
+            'initial'   => __( 'Initial', 'teqcidb' ),
+            'refresher' => __( 'Refresher', 'teqcidb' ),
+            'other'     => __( 'Other', 'teqcidb' ),
+        );
+
+        return array(
+            array(
+                'name'    => 'uniqueclassid',
+                'label'   => __( 'Unique Class ID', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['uniqueclassid'],
+            ),
+            array(
+                'name'    => 'classname',
+                'label'   => __( 'Class Name', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['classname'],
+            ),
+            array(
+                'name'    => 'classformat',
+                'label'   => __( 'Class Format', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $formats,
+                'tooltip' => $tooltips['classformat'],
+            ),
+            array(
+                'name'    => 'classtype',
+                'label'   => __( 'Class Type', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $class_types,
+                'tooltip' => $tooltips['classtype'],
+            ),
+            array(
+                'name'    => 'classsize',
+                'label'   => __( 'Maximum Class Size', 'teqcidb' ),
+                'type'    => 'number',
+                'attrs'   => ' min="0" step="1"',
+                'tooltip' => $tooltips['classsize'],
+            ),
+            array(
+                'name'    => 'classregistrantnumber',
+                'label'   => __( 'Current Registrants', 'teqcidb' ),
+                'type'    => 'number',
+                'attrs'   => ' min="0" step="1"',
+                'tooltip' => $tooltips['classregistrantnumber'],
+            ),
+            array(
+                'name'    => 'instructors',
+                'label'   => __( 'Instructors', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['instructors'],
+            ),
+            array(
+                'name'       => 'classsaddress',
+                'label'      => __( 'Class Address', 'teqcidb' ),
+                'type'       => 'textarea',
+                'tooltip'    => $tooltips['classsaddress'],
+                'full_width' => true,
+                'attrs'      => ' rows="3"',
+            ),
+            array(
+                'name'    => 'classstartdate',
+                'label'   => __( 'Class Start Date', 'teqcidb' ),
+                'type'    => 'date',
+                'tooltip' => $tooltips['classstartdate'],
+            ),
+            array(
+                'name'    => 'classstarttime',
+                'label'   => __( 'Class Start Time', 'teqcidb' ),
+                'type'    => 'time',
+                'tooltip' => $tooltips['classstarttime'],
+            ),
+            array(
+                'name'    => 'classendtime',
+                'label'   => __( 'Class End Time', 'teqcidb' ),
+                'type'    => 'time',
+                'tooltip' => $tooltips['classendtime'],
+            ),
+            array(
+                'name'    => 'classcost',
+                'label'   => __( 'Class Cost', 'teqcidb' ),
+                'type'    => 'number',
+                'attrs'   => ' min="0" step="0.01"',
+                'tooltip' => $tooltips['classcost'],
+            ),
+            array(
+                'name'       => 'classdescription',
+                'label'      => __( 'Class Description', 'teqcidb' ),
+                'type'       => 'textarea',
+                'tooltip'    => $tooltips['classdescription'],
+                'full_width' => true,
+                'attrs'      => ' rows="4"',
+            ),
+            array(
+                'name'    => 'classhide',
+                'label'   => __( 'Hide this Class?', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $yes_no,
+                'tooltip' => $tooltips['classhide'],
+            ),
+            array(
+                'name'    => 'coursestudentsallowed',
+                'label'   => __( 'Allowed Course Students', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['coursestudentsallowed'],
+            ),
+            array(
+                'name'    => 'quizstudentsallowed',
+                'label'   => __( 'Allowed Quiz Students', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['quizstudentsallowed'],
+            ),
+            array(
+                'name'    => 'coursestudentsrestricted',
+                'label'   => __( 'Restricted Course Students', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['coursestudentsrestricted'],
+            ),
+            array(
+                'name'    => 'quizstudentsrestricted',
+                'label'   => __( 'Restricted Quiz Students', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['quizstudentsrestricted'],
+            ),
+        );
+    }
+
     private function prepare_student_fields_for_js() {
         $fields    = $this->get_student_fields();
         $prepared  = array();
@@ -1249,36 +1461,45 @@ class TEQCIDB_Admin {
         return $default_settings;
     }
 
-    private function render_create_tab() {
-        $fields = $this->get_student_fields();
+    private function render_entity_form( $fields, $form_id, $submit_label, $submit_enabled = true, $submit_note = '' ) {
+        echo '<form id="' . esc_attr( $form_id ) . '"><div class="teqcidb-flex-form">';
 
-        echo '<form id="teqcidb-create-form"><div class="teqcidb-flex-form">';
         foreach ( $fields as $field ) {
             $classes = 'teqcidb-field';
+
             if ( ! empty( $field['full_width'] ) ) {
                 $classes .= ' teqcidb-field-full';
             }
-            echo '<div class="' . $classes . '">';
-            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $field['tooltip'] ) . '"></span>' . wp_kses_post( $field['label'] ) . '</label>';
+
+            $tooltip = isset( $field['tooltip'] ) ? $field['tooltip'] : '';
+            $label   = isset( $field['label'] ) ? $field['label'] : '';
+
+            echo '<div class="' . esc_attr( $classes ) . '">';
+            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $tooltip ) . '"></span>' . wp_kses_post( $label ) . '</label>';
+
             switch ( $field['type'] ) {
                 case 'select':
                     echo '<select name="' . esc_attr( $field['name'] ) . '">';
-                    foreach ( $field['options'] as $value => $label ) {
+
+                    foreach ( $field['options'] as $value => $option_label ) {
                         if ( '' === $value ) {
-                            echo '<option value="" disabled selected>' . esc_html( $label ) . '</option>';
+                            echo '<option value="" disabled selected>' . esc_html( $option_label ) . '</option>';
                         } else {
-                            echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $label ) . '</option>';
+                            echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $option_label ) . '</option>';
                         }
                     }
+
                     echo '</select>';
                     break;
                 case 'state':
                     $states = isset( $field['options'] ) ? $field['options'] : $this->get_us_states_and_territories();
                     echo '<select name="' . esc_attr( $field['name'] ) . '">';
                     echo '<option value="" disabled selected>' . esc_html__( 'Make a Selection...', 'teqcidb' ) . '</option>';
+
                     foreach ( $states as $state ) {
                         echo '<option value="' . esc_attr( $state ) . '">' . esc_html( $state ) . '</option>';
                     }
+
                     echo '</select>';
                     break;
                 case 'radio':
@@ -1320,25 +1541,30 @@ class TEQCIDB_Admin {
                     }
 
                     echo '<fieldset>';
+
                     foreach ( $opts as $opt ) {
                         echo '<label class="teqcidb-opt-in-option"><input type="checkbox" name="' . esc_attr( $opt['name'] ) . '" value="1" />';
                         echo ' <span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $opt['tooltip'] ) . '"></span>';
                         echo esc_html( $opt['label'] ) . '</label>';
                     }
+
                     echo '</fieldset>';
                     break;
                 case 'checkboxes':
                     if ( empty( $field['options'] ) ) {
                         break;
                     }
+
                     echo '<fieldset class="teqcidb-checkbox-group">';
-                    foreach ( $field['options'] as $value => $label ) {
+
+                    foreach ( $field['options'] as $value => $option_label ) {
                         $input_id = $field['name'] . '-' . sanitize_title( $value );
                         echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
                         echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $field['name'] ) . '[]" value="' . esc_attr( $value ) . '" /> ';
-                        echo esc_html( $label );
+                        echo esc_html( $option_label );
                         echo '</label>';
                     }
+
                     echo '</fieldset>';
                     break;
                 case 'items':
@@ -1363,14 +1589,52 @@ class TEQCIDB_Admin {
                     echo '<input type="' . esc_attr( $field['type'] ) . '" name="' . esc_attr( $field['name'] ) . '"' . $attrs . ' />';
                     break;
             }
+
             echo '</div>';
         }
+
         echo '</div>';
-        $submit_button = get_submit_button( __( 'Save', 'teqcidb' ), 'primary', 'submit', false );
+
+        $other_attributes = $submit_enabled ? '' : array(
+            'disabled'      => 'disabled',
+            'aria-disabled' => 'true',
+        );
+
+        $submit_button = get_submit_button( $submit_label, 'primary', 'submit', false, $other_attributes );
+
         echo '<p class="submit">' . $submit_button;
         echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span id="teqcidb-spinner" class="spinner" aria-hidden="true"></span><span id="teqcidb-feedback" role="status" aria-live="polite"></span></span>';
+
+        if ( $submit_note ) {
+            echo '<span class="description teqcidb-submit-note">' . esc_html( $submit_note ) . '</span>';
+        }
+
         echo '</p>';
         echo '</form>';
+    }
+
+    private function render_class_create_tab() {
+        $fields = $this->get_class_fields();
+
+        $this->render_entity_form(
+            $fields,
+            'teqcidb-class-create-form',
+            __( 'Save Class', 'teqcidb' ),
+            false,
+            __( 'Class saving will be connected once the backend handler is ready.', 'teqcidb' )
+        );
+    }
+
+    private function render_class_edit_tab() {
+        $this->render_communications_placeholder_tab(
+            __( 'Class editing and roster tools are coming soon.', 'teqcidb' )
+        );
+    }
+
+    private function render_create_tab() {
+        $fields = $this->get_student_fields();
+
+        $this->render_entity_form( $fields, 'teqcidb-create-form', __( 'Save', 'teqcidb' ) );
     }
 
     private function render_edit_tab() {
