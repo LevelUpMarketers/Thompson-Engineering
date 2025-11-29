@@ -13,7 +13,8 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
         add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
-        add_action( 'wp_ajax_teqcidb_upload_legacy_student', array( $this, 'upload_legacy_student' ) );
+        add_action( 'wp_ajax_teqcidb_upload_legacy_student', array( $this, 'upload_legacy_records' ) );
+        add_action( 'wp_ajax_teqcidb_upload_legacy_records', array( $this, 'upload_legacy_records' ) );
         add_action( 'wp_ajax_teqcidb_save_email_template', array( $this, 'save_email_template' ) );
         add_action( 'wp_ajax_teqcidb_send_test_email', array( $this, 'send_test_email' ) );
         add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
@@ -323,7 +324,7 @@ class TEQCIDB_Ajax {
         );
     }
 
-    public function upload_legacy_student() {
+    public function upload_legacy_records() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
@@ -337,7 +338,48 @@ class TEQCIDB_Ajax {
         }
 
         $raw_record = isset( $_POST['legacy_record'] ) ? wp_unslash( $_POST['legacy_record'] ) : '';
-        $parsed     = $this->parse_legacy_student_record( $raw_record );
+        $requested  = isset( $_POST['legacy_types'] ) ? (array) $_POST['legacy_types'] : array();
+        $action     = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+
+        $requested_types = array_values( array_unique( array_filter( array_map( 'sanitize_key', $requested ) ) ) );
+
+        if ( empty( $requested_types ) && 'teqcidb_upload_legacy_student' === $action ) {
+            $requested_types = array( 'student' );
+        }
+
+        $allowed_types  = array( 'student', 'class' );
+        $selected_types = array_values( array_intersect( $requested_types, $allowed_types ) );
+
+        if ( empty( $selected_types ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Select at least one supported upload type.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( count( $selected_types ) > 1 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please choose a single upload type at a time.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $upload_type = $selected_types[0];
+
+        if ( 'class' === $upload_type ) {
+            $this->process_legacy_class_upload( $raw_record, $start );
+            return;
+        }
+
+        $this->process_legacy_student_upload( $raw_record, $start );
+    }
+
+    private function process_legacy_student_upload( $raw_record, $start ) {
+        $parsed = $this->parse_legacy_student_record( $raw_record );
 
         if ( is_wp_error( $parsed ) ) {
             $this->maybe_delay( $start );
@@ -456,6 +498,109 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => __( 'Legacy student uploaded successfully.', 'teqcidb' ),
+            )
+        );
+    }
+
+    private function process_legacy_class_upload( $raw_record, $start ) {
+        $parsed = $this->parse_legacy_class_record( $raw_record );
+
+        if ( is_wp_error( $parsed ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => $parsed->get_error_message(),
+                )
+            );
+        }
+
+        $mapped = $this->map_legacy_class_record( $parsed );
+
+        if ( is_wp_error( $mapped ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => $mapped->get_error_message(),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_classes';
+
+        if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'A class with this unique ID already exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $data = array(
+            'uniqueclassid'         => $mapped['uniqueclassid'],
+            'classname'             => $mapped['classname'],
+            'classformat'           => $mapped['classformat'],
+            'classtype'             => $mapped['classtype'],
+            'classsize'             => $mapped['classsize'],
+            'classregistrantnumber' => $mapped['classregistrantnumber'],
+            'instructors'           => $mapped['instructors'],
+            'classsaddress'         => $mapped['classsaddress'],
+            'classstartdate'        => $mapped['classstartdate'],
+            'classstarttime'        => $mapped['classstarttime'],
+            'classendtime'          => $mapped['classendtime'],
+            'classcost'             => $mapped['classcost'],
+            'classdescription'      => $mapped['classdescription'],
+            'classhide'             => $mapped['classhide'],
+        );
+
+        $formats = array(
+            'uniqueclassid'         => '%s',
+            'classname'             => '%s',
+            'classformat'           => '%s',
+            'classtype'             => '%s',
+            'classsize'             => '%d',
+            'classregistrantnumber' => '%d',
+            'instructors'           => '%s',
+            'classsaddress'         => '%s',
+            'classstartdate'        => '%s',
+            'classstarttime'        => '%s',
+            'classendtime'          => '%s',
+            'classcost'             => '%s',
+            'classdescription'      => '%s',
+            'classhide'             => '%d',
+        );
+
+        foreach ( $data as $key => $value ) {
+            if ( null === $value ) {
+                unset( $data[ $key ], $formats[ $key ] );
+            }
+        }
+
+        $insert_formats = array();
+
+        foreach ( $data as $key => $_value ) {
+            if ( isset( $formats[ $key ] ) ) {
+                $insert_formats[] = $formats[ $key ];
+            }
+        }
+
+        $result = $wpdb->insert( $table, $data, $insert_formats );
+
+        if ( false === $result ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Legacy class uploaded successfully.', 'teqcidb' ),
             )
         );
     }
@@ -1104,6 +1249,71 @@ class TEQCIDB_Ajax {
         return $record;
     }
 
+    private function parse_legacy_class_record( $raw_record ) {
+        $normalized = trim( (string) $raw_record );
+
+        if ( '' === $normalized ) {
+            return new WP_Error( 'teqcidb_legacy_class_empty', __( 'Please paste a legacy class row before uploading.', 'teqcidb' ) );
+        }
+
+        $normalized = trim( $normalized, "; \t\n\r\0\x0B" );
+
+        if ( '(' === substr( $normalized, 0, 1 ) && ')' === substr( $normalized, -1 ) ) {
+            $normalized = substr( $normalized, 1, -1 );
+        }
+
+        $normalized = trim( $normalized );
+
+        $values = str_getcsv( $normalized, ',', "'" );
+
+        if ( ! is_array( $values ) || empty( $values ) ) {
+            return new WP_Error( 'teqcidb_legacy_class_parse', __( 'The legacy record could not be parsed. Please verify the comma-separated format.', 'teqcidb' ) );
+        }
+
+        $columns = array(
+            'ID',
+            'uniqueclassid',
+            'classname',
+            'classformat',
+            'classtype',
+            'classsize',
+            'classregistrantnumber',
+            'instructors',
+            'classstreetaddress',
+            'classcity',
+            'classstate',
+            'classzip',
+            'classstartdate',
+            'classstarttime',
+            'classendtime',
+            'classcost',
+            'classdescription',
+            'classhide',
+        );
+
+        if ( count( $values ) < count( $columns ) ) {
+            return new WP_Error(
+                'teqcidb_legacy_class_columns',
+                sprintf(
+                    /* translators: 1: expected column count, 2: provided column count. */
+                    __( 'The legacy record is missing columns. Expected %1$d values but found %2$d.', 'teqcidb' ),
+                    count( $columns ),
+                    count( $values )
+                )
+            );
+        }
+
+        $values = array_slice( $values, 0, count( $columns ) );
+
+        $record = array();
+
+        foreach ( $columns as $index => $column_key ) {
+            $record[ $column_key ] = isset( $values[ $index ] ) ? $this->normalize_legacy_value( $values[ $index ] ) : '';
+        }
+
+        return $record;
+    }
+
     private function map_legacy_student_record( array $legacy_record ) {
         $email = sanitize_email( isset( $legacy_record['email'] ) ? $legacy_record['email'] : '' );
 
@@ -1155,6 +1365,61 @@ class TEQCIDB_Ajax {
         );
     }
 
+    private function map_legacy_class_record( array $legacy_record ) {
+        $unique_id = isset( $legacy_record['uniqueclassid'] ) ? sanitize_text_field( $legacy_record['uniqueclassid'] ) : '';
+
+        if ( '' === $unique_id ) {
+            return new WP_Error( 'teqcidb_legacy_class_unique_id', __( 'A unique class ID is required.', 'teqcidb' ) );
+        }
+
+        $class_name = isset( $legacy_record['classname'] ) ? sanitize_text_field( $legacy_record['classname'] ) : '';
+
+        if ( '' === $class_name ) {
+            return new WP_Error( 'teqcidb_legacy_class_name', __( 'A class name is required.', 'teqcidb' ) );
+        }
+
+        $class_format = $this->sanitize_legacy_select_value(
+            isset( $legacy_record['classformat'] ) ? $legacy_record['classformat'] : '',
+            array( 'inperson', 'online', 'hybrid' )
+        );
+
+        $class_type = $this->sanitize_legacy_select_value(
+            isset( $legacy_record['classtype'] ) ? $legacy_record['classtype'] : '',
+            array( 'initial', 'refresher' )
+        );
+
+        $class_size        = $this->normalize_legacy_value( isset( $legacy_record['classsize'] ) ? $legacy_record['classsize'] : '' );
+        $registrant_number = $this->normalize_legacy_value( isset( $legacy_record['classregistrantnumber'] ) ? $legacy_record['classregistrantnumber'] : '' );
+
+        $address = array(
+            'street_1' => sanitize_text_field( isset( $legacy_record['classstreetaddress'] ) ? $legacy_record['classstreetaddress'] : '' ),
+            'street_2' => '',
+            'city'     => sanitize_text_field( isset( $legacy_record['classcity'] ) ? $legacy_record['classcity'] : '' ),
+            'state'    => $this->normalize_legacy_state( isset( $legacy_record['classstate'] ) ? $legacy_record['classstate'] : '' ),
+            'zip_code' => sanitize_text_field( isset( $legacy_record['classzip'] ) ? $legacy_record['classzip'] : '' ),
+        );
+
+        $encoded_address   = $this->encode_legacy_address( $address );
+        $encoded_instructors = $this->sanitize_legacy_instructors( isset( $legacy_record['instructors'] ) ? $legacy_record['instructors'] : '' );
+
+        return array(
+            'uniqueclassid'         => $unique_id,
+            'classname'             => $class_name,
+            'classformat'           => $class_format,
+            'classtype'             => $class_type,
+            'classsize'             => '' === $class_size ? null : absint( $class_size ),
+            'classregistrantnumber' => '' === $registrant_number ? 0 : absint( $registrant_number ),
+            'instructors'           => $encoded_instructors,
+            'classsaddress'         => $encoded_address,
+            'classstartdate'        => $this->convert_legacy_date( isset( $legacy_record['classstartdate'] ) ? $legacy_record['classstartdate'] : '' ),
+            'classstarttime'        => $this->convert_legacy_time( isset( $legacy_record['classstarttime'] ) ? $legacy_record['classstarttime'] : '' ),
+            'classendtime'          => $this->convert_legacy_time( isset( $legacy_record['classendtime'] ) ? $legacy_record['classendtime'] : '' ),
+            'classcost'             => $this->convert_legacy_cost( isset( $legacy_record['classcost'] ) ? $legacy_record['classcost'] : '' ),
+            'classdescription'      => sanitize_textarea_field( isset( $legacy_record['classdescription'] ) ? $legacy_record['classdescription'] : '' ),
+            'classhide'             => $this->convert_legacy_flag( isset( $legacy_record['classhide'] ) ? $legacy_record['classhide'] : '' ),
+        );
+    }
+
     private function convert_legacy_date( $value ) {
         $value = $this->normalize_legacy_value( $value );
 
@@ -1171,6 +1436,74 @@ class TEQCIDB_Ajax {
         }
 
         return $parsed->format( 'Y-m-d' );
+    }
+
+    private function convert_legacy_time( $value ) {
+        $value = $this->normalize_legacy_value( $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        $value = str_replace( array( '.', ' ' ), ':', $value );
+
+        $time_formats = array( 'H:i:s', 'H:i' );
+
+        foreach ( $time_formats as $format ) {
+            $parsed = date_create_from_format( $format, $value );
+
+            if ( $parsed ) {
+                return $parsed->format( 'H:i:s' );
+            }
+        }
+
+        return '';
+    }
+
+    private function convert_legacy_cost( $value ) {
+        $value = $this->normalize_legacy_value( $value );
+
+        if ( '' === $value ) {
+            return null;
+        }
+
+        $numeric = preg_replace( '/[^0-9.\-]/', '', $value );
+
+        if ( '' === $numeric ) {
+            return null;
+        }
+
+        return number_format( (float) $numeric, 2, '.', '' );
+    }
+
+    private function sanitize_legacy_select_value( $value, array $allowed ) {
+        $value = sanitize_key( $this->normalize_legacy_value( $value ) );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        return in_array( $value, $allowed, true ) ? $value : '';
+    }
+
+    private function sanitize_legacy_instructors( $value ) {
+        $normalized = $this->normalize_legacy_value( $value );
+
+        if ( '' === $normalized ) {
+            return '';
+        }
+
+        $instructors = array_filter( array_map( 'trim', explode( ',', $normalized ) ) );
+
+        if ( empty( $instructors ) ) {
+            return '';
+        }
+
+        return wp_json_encode(
+            array(
+                'instructors' => array_values( $instructors ),
+            )
+        );
     }
 
     private function encode_legacy_address( array $address ) {
@@ -1312,6 +1645,24 @@ class TEQCIDB_Ajax {
         $value = strtoupper( sanitize_text_field( $this->normalize_legacy_value( $value ) ) );
 
         return '' === $value ? '' : substr( $value, 0, 2 );
+    }
+
+    private function legacy_class_value_exists( $table, $column, $value ) {
+        if ( '' === $value ) {
+            return false;
+        }
+
+        global $wpdb;
+
+        $allowed_columns = array( 'uniqueclassid' );
+
+        if ( ! in_array( $column, $allowed_columns, true ) ) {
+            return false;
+        }
+
+        $result = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE $column = %s LIMIT 1", $value ) );
+
+        return ! empty( $result );
     }
 
     private function legacy_student_value_exists( $table, $column, $value ) {
