@@ -940,22 +940,24 @@ class TEQCIDB_Admin {
 
     private function get_class_tooltips() {
         return array(
-            'uniqueclassid'             => __( 'A unique identifier for this session to help match registrations.', 'teqcidb' ),
             'classname'                 => __( 'Display name for the training session or course.', 'teqcidb' ),
             'classformat'               => __( 'Format of the session, such as in person, virtual, or hybrid.', 'teqcidb' ),
             'classtype'                 => __( 'Training type (Initial, Refresher, or other internal labels).', 'teqcidb' ),
             'classsize'                 => __( 'Maximum seats available for this class.', 'teqcidb' ),
-            'classregistrantnumber'     => __( 'How many students are currently registered for this session.', 'teqcidb' ),
             'instructors'               => __( 'List each instructor who will lead or assist with the class.', 'teqcidb' ),
-            'classsaddress'             => __( 'Location details for on-site sessions, including room or suite.', 'teqcidb' ),
+            'class_address_street_1'    => __( 'Primary street address for the class location.', 'teqcidb' ),
+            'class_address_street_2'    => __( 'Additional address information such as suite or floor.', 'teqcidb' ),
+            'class_address_city'        => __( 'City where the class will be held.', 'teqcidb' ),
+            'class_address_state'       => __( 'State or territory for the class location.', 'teqcidb' ),
+            'class_address_postal_code' => __( 'ZIP or postal code for the class location.', 'teqcidb' ),
             'classstartdate'            => __( 'Date the class begins.', 'teqcidb' ),
             'classstarttime'            => __( 'Local start time for the session.', 'teqcidb' ),
             'classendtime'              => __( 'Local end time for the session.', 'teqcidb' ),
             'classcost'                 => __( 'Tuition or registration fee for the full class.', 'teqcidb' ),
             'classdescription'          => __( 'Agenda, prerequisites, or any notes students should know.', 'teqcidb' ),
             'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
-            'coursestudentsallowed'     => __( 'Students who are cleared to take this course content.', 'teqcidb' ),
-            'quizstudentsallowed'       => __( 'Students who can access the associated quiz or exam.', 'teqcidb' ),
+            'coursestudentsallowed'     => __( 'Whether enrolled students can access the course content by default.', 'teqcidb' ),
+            'quizstudentsallowed'       => __( 'Whether enrolled students can access the quiz by default.', 'teqcidb' ),
             'coursestudentsrestricted'  => __( 'Students who should be blocked from this course.', 'teqcidb' ),
             'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam.', 'teqcidb' ),
         );
@@ -1293,13 +1295,13 @@ class TEQCIDB_Admin {
             'other'     => __( 'Other', 'teqcidb' ),
         );
 
+        $access_options = array(
+            ''         => __( 'Make a Selection...', 'teqcidb' ),
+            'allowed'  => __( 'Access Allowed', 'teqcidb' ),
+            'blocked'  => __( 'Access Blocked', 'teqcidb' ),
+        );
+
         return array(
-            array(
-                'name'    => 'uniqueclassid',
-                'label'   => __( 'Unique Class ID', 'teqcidb' ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['uniqueclassid'],
-            ),
             array(
                 'name'    => 'classname',
                 'label'   => __( 'Class Name', 'teqcidb' ),
@@ -1328,25 +1330,41 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['classsize'],
             ),
             array(
-                'name'    => 'classregistrantnumber',
-                'label'   => __( 'Current Registrants', 'teqcidb' ),
-                'type'    => 'number',
-                'attrs'   => ' min="0" step="1"',
-                'tooltip' => $tooltips['classregistrantnumber'],
-            ),
-            array(
                 'name'    => 'instructors',
                 'label'   => __( 'Instructors', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['instructors'],
             ),
             array(
-                'name'       => 'classsaddress',
-                'label'      => __( 'Class Address', 'teqcidb' ),
-                'type'       => 'textarea',
-                'tooltip'    => $tooltips['classsaddress'],
-                'full_width' => true,
-                'attrs'      => ' rows="3"',
+                'name'    => 'class_address_street_1',
+                'label'   => __( 'Address Line 1', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['class_address_street_1'],
+            ),
+            array(
+                'name'    => 'class_address_street_2',
+                'label'   => __( 'Address Line 2', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['class_address_street_2'],
+            ),
+            array(
+                'name'    => 'class_address_city',
+                'label'   => __( 'City', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['class_address_city'],
+            ),
+            array(
+                'name'    => 'class_address_state',
+                'label'   => __( 'State', 'teqcidb' ),
+                'type'    => 'state',
+                'options' => $this->get_us_states_and_territories(),
+                'tooltip' => $tooltips['class_address_state'],
+            ),
+            array(
+                'name'    => 'class_address_postal_code',
+                'label'   => __( 'Zip Code', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['class_address_postal_code'],
             ),
             array(
                 'name'    => 'classstartdate',
@@ -1391,13 +1409,15 @@ class TEQCIDB_Admin {
             array(
                 'name'    => 'coursestudentsallowed',
                 'label'   => __( 'Allowed Course Students', 'teqcidb' ),
-                'type'    => 'items',
+                'type'    => 'select',
+                'options' => $access_options,
                 'tooltip' => $tooltips['coursestudentsallowed'],
             ),
             array(
                 'name'    => 'quizstudentsallowed',
                 'label'   => __( 'Allowed Quiz Students', 'teqcidb' ),
-                'type'    => 'items',
+                'type'    => 'select',
+                'options' => $access_options,
                 'tooltip' => $tooltips['quizstudentsallowed'],
             ),
             array(

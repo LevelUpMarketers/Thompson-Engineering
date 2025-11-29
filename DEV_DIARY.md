@@ -116,3 +116,4 @@
 113. 2025-11-20: Expanded the upload tab with selectable legacy record types and backend support for importing legacy class rows alongside students.
 114. 2025-11-29: Added student allow/deny list columns to the initial classes table schema for course and quiz access controls.
 115. 2025-11-29: Added a Classes admin submenu with a Create tab UI that mirrors the student form and a placeholder edit/manage tab.
+116. 2025-11-29: Refined the Classes Create form by removing generated-only fields, splitting the address into discrete inputs, updating course/quiz access selectors, and adjusting schema types for those toggles.
