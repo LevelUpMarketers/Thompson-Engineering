@@ -1266,6 +1266,111 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
+    function buildStudentDisplay(student){
+        var first = student.first_name || '';
+        var last = student.last_name || '';
+        var email = student.email || '';
+        var label = $.trim((first + ' ' + last).replace(/\s+/g, ' '));
+
+        if (email){
+            label = label ? label + ' (' + email + ')' : email;
+        }
+
+        return label;
+    }
+
+    function initStudentAutocomplete($input){
+        if (!$input || !$input.length || $input.data('autocompleteBound')){
+            return;
+        }
+
+        if (teqcidbAdmin.studentSearchPlaceholder){
+            $input.attr('placeholder', teqcidbAdmin.studentSearchPlaceholder);
+        }
+
+        $input.autocomplete({
+            minLength: 2,
+            delay: 200,
+            source: function(request, response){
+                if (!request || !request.term || request.term.length < 2){
+                    response([]);
+                    return;
+                }
+
+                $.ajax({
+                    url: teqcidbAjax.ajaxurl,
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        action: 'teqcidb_search_students',
+                        term: request.term,
+                        _ajax_nonce: teqcidbAjax.nonce
+                    }
+                }).done(function(data){
+                    if (!data || !data.success || !data.data || !Array.isArray(data.data.results)){
+                        response([]);
+                        return;
+                    }
+
+                    var suggestions = data.data.results.map(function(student){
+                        var label = student.display || buildStudentDisplay(student);
+                        var value = student.value || label;
+
+                        return {
+                            label: label,
+                            value: value
+                        };
+                    });
+
+                    if (!suggestions.length && teqcidbAdmin.studentSearchNoResults){
+                        suggestions.push({
+                            label: teqcidbAdmin.studentSearchNoResults,
+                            value: ''
+                        });
+                    }
+
+                    response(suggestions);
+                }).fail(function(){
+                    response([]);
+                });
+            },
+            select: function(event, ui){
+                if (!ui || !ui.item){
+                    return false;
+                }
+
+                if (!ui.item.value){
+                    $(this).val('');
+                    return false;
+                }
+
+                $(this).val(ui.item.value);
+                return false;
+            },
+            focus: function(event, ui){
+                if (ui && ui.item && ui.item.value){
+                    $(this).val(ui.item.value);
+                }
+
+                return false;
+            }
+        });
+
+        $input.data('autocompleteBound', true);
+    }
+
+    function initAutocompleteForScope($scope){
+        var $containers = ($scope || $(document)).find('.teqcidb-items-container[data-autocomplete="student"]');
+
+        $containers.each(function(){
+            $(this).find('.teqcidb-autocomplete-field').each(function(){
+                initStudentAutocomplete($(this));
+            });
+        });
+    }
+
+    initAutocompleteForScope($(document));
+
     $(document).on('click', '.teqcidb-add-item', function(e){
         e.preventDefault();
         e.stopPropagation();
@@ -1291,6 +1396,11 @@ jQuery(document).ready(function($){
             'class': 'regular-text teqcidb-item-field',
             placeholder: placeholderText
         });
+        var autocompleteType = $button.data('autocomplete') || $container.data('autocomplete');
+
+        if (autocompleteType === 'student'){
+            $input.addClass('teqcidb-autocomplete-field');
+        }
         var $removeButton = $('<button/>', {
             type: 'button',
             'class': 'teqcidb-delete-item',
@@ -1300,6 +1410,10 @@ jQuery(document).ready(function($){
 
         $row.append($input).append($removeButton);
         $container.append($row);
+
+        if (autocompleteType === 'student'){
+            initAutocompleteForScope($row);
+        }
     });
 
     $(document).on('click', '.teqcidb-delete-item', function(e){

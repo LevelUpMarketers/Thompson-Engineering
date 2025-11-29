@@ -723,7 +723,7 @@ class TEQCIDB_Admin {
             return;
         }
         wp_enqueue_style( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/css/admin.css', array(), TEQCIDB_VERSION );
-        wp_enqueue_script( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), TEQCIDB_VERSION, true );
+        wp_enqueue_script( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-autocomplete' ), TEQCIDB_VERSION, true );
         wp_enqueue_media();
         wp_enqueue_editor();
 
@@ -770,6 +770,9 @@ class TEQCIDB_Admin {
             'emailLogEmpty'     => __( 'No email activity has been recorded yet.', 'teqcidb' ),
             'logDownloadReady'  => __( 'Log download ready.', 'teqcidb' ),
             'searchFiltersApplied' => __( 'Showing filtered results.', 'teqcidb' ),
+            'studentSearchMinLength' => __( 'Type at least two characters to search students.', 'teqcidb' ),
+            'studentSearchPlaceholder' => __( 'Start typing a name or email...', 'teqcidb' ),
+            'studentSearchNoResults' => __( 'No matching students found.', 'teqcidb' ),
         ) );
     }
 
@@ -1421,24 +1424,28 @@ class TEQCIDB_Admin {
                 'label'   => __( 'Allow specific students to access the associated Course?', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['coursestudentsallowed'],
+                'autocomplete' => 'student',
             ),
             array(
                 'name'    => 'quizstudentsallowed',
                 'label'   => __( 'Allow specific students to access the associated Quiz?', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['quizstudentsallowed'],
+                'autocomplete' => 'student',
             ),
             array(
                 'name'    => 'coursestudentsrestricted',
                 'label'   => __( 'Restrict certain students from accessing the associated Course?', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['coursestudentsrestricted'],
+                'autocomplete' => 'student',
             ),
             array(
                 'name'    => 'quizstudentsrestricted',
                 'label'   => __( 'Restrict certain students from accessing the associated Quiz?', 'teqcidb' ),
                 'type'    => 'items',
                 'tooltip' => $tooltips['quizstudentsrestricted'],
+                'autocomplete' => 'student',
             ),
             array(
                 'name'    => 'instructors',
@@ -1603,11 +1610,29 @@ class TEQCIDB_Admin {
                     break;
                 case 'items':
                     $container_id = 'teqcidb-items-container-' . sanitize_html_class( $field['name'] );
-                    echo '<div id="' . esc_attr( $container_id ) . '" class="teqcidb-items-container" data-placeholder="' . esc_attr( $field['name'] ) . '">';
+                    $autocomplete_attr = '';
+
+                    if ( ! empty( $field['autocomplete'] ) ) {
+                        $autocomplete_attr = ' data-autocomplete="' . esc_attr( $field['autocomplete'] ) . '"';
+                    }
+
+                    echo '<div id="' . esc_attr( $container_id ) . '" class="teqcidb-items-container" data-placeholder="' . esc_attr( $field['name'] ) . '"' . $autocomplete_attr . '>';
                     echo '<div class="teqcidb-item-row" style="margin-bottom:8px; display:flex; align-items:center;">';
-                    echo '<input type="text" name="' . esc_attr( $field['name'] ) . '[]" class="regular-text teqcidb-item-field" placeholder="' . esc_attr__( 'Item #1', 'teqcidb' ) . '" />';
+                    $item_classes = 'regular-text teqcidb-item-field';
+
+                    if ( ! empty( $field['autocomplete'] ) ) {
+                        $item_classes .= ' teqcidb-autocomplete-field';
+                    }
+
+                    echo '<input type="text" name="' . esc_attr( $field['name'] ) . '[]" class="' . esc_attr( $item_classes ) . '" placeholder="' . esc_attr__( 'Item #1', 'teqcidb' ) . '" />';
                     echo '</div></div>';
-                    echo '<button type="button" class="button teqcidb-add-item" data-target="#' . esc_attr( $container_id ) . '" style="margin-top:8px;">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
+                    $add_button_attrs = ' class="button teqcidb-add-item" data-target="#' . esc_attr( $container_id ) . '" style="margin-top:8px;"';
+
+                    if ( ! empty( $field['autocomplete'] ) ) {
+                        $add_button_attrs .= ' data-autocomplete="' . esc_attr( $field['autocomplete'] ) . '"';
+                    }
+
+                    echo '<button type="button"' . $add_button_attrs . '>' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
                     break;
                 case 'textarea':
                     $textarea_attrs = isset( $field['attrs'] ) ? ' ' . $field['attrs'] : '';

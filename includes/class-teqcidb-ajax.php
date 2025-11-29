@@ -20,6 +20,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
+        add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
@@ -168,6 +169,89 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    public function search_students() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to search students.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+        $term = trim( $term );
+
+        if ( strlen( $term ) < 2 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_success(
+                array(
+                    'results' => array(),
+                    'message' => __( 'Type at least two characters to search students.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_students';
+        $like  = '%' . $wpdb->esc_like( $term ) . '%';
+
+        $query = $wpdb->prepare(
+            "SELECT id, uniquestudentid, first_name, last_name, email FROM $table WHERE first_name LIKE %s OR last_name LIKE %s OR email LIKE %s ORDER BY last_name ASC, first_name ASC LIMIT 15",
+            $like,
+            $like,
+            $like
+        );
+
+        $rows = $wpdb->get_results( $query );
+
+        if ( ! is_array( $rows ) ) {
+            $rows = array();
+        }
+
+        $results = array();
+
+        foreach ( $rows as $row ) {
+            $name = trim( (string) $row->first_name . ' ' . (string) $row->last_name );
+            $name = $name ? $name : __( 'Student', 'teqcidb' );
+            $email = isset( $row->email ) ? (string) $row->email : '';
+
+            $display = $name;
+
+            if ( '' !== $email ) {
+                $display .= ' (' . $email . ')';
+            }
+
+            $results[] = array(
+                'id'               => (int) $row->id,
+                'uniquestudentid'  => (string) $row->uniquestudentid,
+                'first_name'       => (string) $row->first_name,
+                'last_name'        => (string) $row->last_name,
+                'email'            => $email,
+                'display'          => $display,
+                'value'            => sprintf(
+                    /* translators: 1: WordPress user ID, 2: unique student ID, 3: student name, 4: student email */
+                    __( 'WP ID: %1$d | Unique ID: %2$s | %3$s (%4$s)', 'teqcidb' ),
+                    (int) $row->id,
+                    (string) $row->uniquestudentid,
+                    $name,
+                    $email
+                ),
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'results' => $results,
             )
         );
     }
