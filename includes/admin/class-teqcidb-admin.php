@@ -957,9 +957,11 @@ class TEQCIDB_Admin {
             'classdescription'          => __( 'Agenda, prerequisites, or any notes students should know.', 'teqcidb' ),
             'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
             'allallowedcourse'          => __( 'Whether all enrolled students can access the course content by default.', 'teqcidb' ),
-            'quizstudentsallowed'       => __( 'Whether all enrolled students can access the quiz by default.', 'teqcidb' ),
-            'coursestudentsrestricted'  => __( 'Students who should be blocked from this course.', 'teqcidb' ),
-            'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam.', 'teqcidb' ),
+            'allallowedquiz'            => __( 'Whether all enrolled students can access the quiz content by default.', 'teqcidb' ),
+            'coursestudentsallowed'     => __( 'Specific students who should be allowed to access the course even if access is blocked globally.', 'teqcidb' ),
+            'quizstudentsallowed'       => __( 'Specific students who should be allowed to access the quiz even if access is blocked globally.', 'teqcidb' ),
+            'coursestudentsrestricted'  => __( 'Students who should be blocked from this course even when course access is generally allowed.', 'teqcidb' ),
+            'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam even when quiz access is generally allowed.', 'teqcidb' ),
         );
     }
 
@@ -1414,10 +1416,22 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['allallowedcourse'],
             ),
             array(
-                'name'    => 'quizstudentsallowed',
+                'name'    => 'allallowedquiz',
                 'label'   => __( 'Allow all students to access the associated Quiz?', 'teqcidb' ),
                 'type'    => 'select',
                 'options' => $access_options,
+                'tooltip' => $tooltips['allallowedquiz'],
+            ),
+            array(
+                'name'    => 'coursestudentsallowed',
+                'label'   => __( 'Allow specific students to access the associated Course?', 'teqcidb' ),
+                'type'    => 'items',
+                'tooltip' => $tooltips['coursestudentsallowed'],
+            ),
+            array(
+                'name'    => 'quizstudentsallowed',
+                'label'   => __( 'Allow specific students to access the associated Quiz?', 'teqcidb' ),
+                'type'    => 'items',
                 'tooltip' => $tooltips['quizstudentsallowed'],
             ),
             array(
