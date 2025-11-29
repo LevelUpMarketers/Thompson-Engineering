@@ -79,6 +79,10 @@ class TEQCIDB_Activator {
             classcost decimal(10,2) DEFAULT NULL,
             classdescription longtext,
             classhide tinyint(1) NOT NULL DEFAULT 0,
+            coursestudentsallowed longtext,
+            quizstudentsallowed longtext,
+            coursestudentsrestricted longtext,
+            quizstudentsrestricted longtext,
             PRIMARY KEY  (id),
             UNIQUE KEY uniqueclassid (uniqueclassid),
             KEY classname (classname)
