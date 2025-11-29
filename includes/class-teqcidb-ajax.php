@@ -9,6 +9,7 @@ class TEQCIDB_Ajax {
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
@@ -169,6 +170,79 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    public function save_class() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to save this class.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table          = $wpdb->prefix . 'teqcidb_classes';
+        $class_name     = $this->sanitize_text_value( 'classname' );
+        $access_options = array( 'allowed', 'blocked' );
+        $format_options = array( 'in_person', 'virtual', 'hybrid' );
+        $type_options   = array( 'initial', 'refresher', 'other' );
+
+        if ( '' === $class_name ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please provide a class name before saving.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $data = array(
+            'uniqueclassid'           => $this->generate_unique_class_id( $class_name ),
+            'classname'               => $class_name,
+            'classformat'             => $this->sanitize_select_value( 'classformat', $format_options ),
+            'classtype'               => $this->sanitize_select_value( 'classtype', $type_options ),
+            'classsize'               => $this->sanitize_positive_int_value( 'classsize' ),
+            'classsaddress'           => $this->sanitize_class_address(),
+            'classstartdate'          => $this->sanitize_date_value( 'classstartdate' ),
+            'classstarttime'          => $this->sanitize_time_value( 'classstarttime' ),
+            'classendtime'            => $this->sanitize_time_value( 'classendtime' ),
+            'classcost'               => $this->sanitize_decimal_value( 'classcost' ),
+            'classdescription'        => $this->sanitize_textarea_value( 'classdescription' ),
+            'classhide'               => $this->sanitize_yes_no_value( 'classhide' ),
+            'allallowedcourse'        => $this->sanitize_select_value( 'allallowedcourse', $access_options ),
+            'allallowedquiz'          => $this->sanitize_select_value( 'allallowedquiz', $access_options ),
+            'coursestudentsallowed'   => $this->sanitize_student_access_items( 'coursestudentsallowed' ),
+            'quizstudentsallowed'     => $this->sanitize_student_access_items( 'quizstudentsallowed' ),
+            'coursestudentsrestricted' => $this->sanitize_student_access_items( 'coursestudentsrestricted' ),
+            'quizstudentsrestricted'   => $this->sanitize_student_access_items( 'quizstudentsrestricted' ),
+            'instructors'             => $this->sanitize_items_value( 'instructors' ),
+        );
+
+        $formats = array_fill( 0, count( $data ), '%s' );
+
+        $result = $wpdb->insert( $table, $data, $formats );
+
+        if ( false === $result ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to save the class. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Class saved.', 'teqcidb' ),
             )
         );
     }
@@ -1810,6 +1884,26 @@ class TEQCIDB_Ajax {
         return $value;
     }
 
+    private function sanitize_positive_int_value( $key ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        $value = sanitize_text_field( $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        return (string) absint( $value );
+    }
+
     private function sanitize_time_value( $key ) {
         $value = $this->get_post_value( $key );
 
@@ -1965,6 +2059,37 @@ class TEQCIDB_Ajax {
         return wp_json_encode( $items );
     }
 
+    private function sanitize_student_access_items( $key ) {
+        $labels     = $this->get_post_value( $key );
+        $wp_ids     = $this->get_post_value( $key . '_wpid' );
+        $unique_ids = $this->get_post_value( $key . '_uniqueid' );
+
+        $labels     = null === $labels ? array() : ( is_array( $labels ) ? array_values( $labels ) : array( $labels ) );
+        $wp_ids     = null === $wp_ids ? array() : ( is_array( $wp_ids ) ? array_values( $wp_ids ) : array( $wp_ids ) );
+        $unique_ids = null === $unique_ids ? array() : ( is_array( $unique_ids ) ? array_values( $unique_ids ) : array( $unique_ids ) );
+
+        $max_items = max( count( $labels ), count( $wp_ids ), count( $unique_ids ) );
+        $items     = array();
+
+        for ( $i = 0; $i < $max_items; $i++ ) {
+            $label    = isset( $labels[ $i ] ) ? $this->normalize_plain_text( $labels[ $i ] ) : '';
+            $wp_id    = isset( $wp_ids[ $i ] ) ? absint( $wp_ids[ $i ] ) : 0;
+            $uniqueid = isset( $unique_ids[ $i ] ) ? $this->normalize_plain_text( $unique_ids[ $i ] ) : '';
+
+            if ( '' === $label && 0 === $wp_id && '' === $uniqueid ) {
+                continue;
+            }
+
+            $items[] = array(
+                'label'    => $label,
+                'wpid'     => $wp_id ? (string) $wp_id : '',
+                'uniqueid' => $uniqueid,
+            );
+        }
+
+        return wp_json_encode( $items );
+    }
+
     private function normalize_plain_text( $value ) {
         if ( null === $value ) {
             return '';
@@ -2069,6 +2194,29 @@ class TEQCIDB_Ajax {
         }
 
         return $this->format_phone_for_response( $value );
+    }
+
+    private function sanitize_class_address() {
+        $states = $this->get_us_states_and_territories();
+
+        $address = array(
+            'street_1' => $this->sanitize_text_value( 'class_address_street_1' ),
+            'street_2' => $this->sanitize_text_value( 'class_address_street_2' ),
+            'city'     => $this->sanitize_text_value( 'class_address_city' ),
+            'state'    => $this->sanitize_state_value( 'class_address_state', $states ),
+            'zip_code' => $this->sanitize_text_value( 'class_address_postal_code' ),
+        );
+
+        $has_value = false;
+
+        foreach ( $address as $part ) {
+            if ( '' !== $part ) {
+                $has_value = true;
+                break;
+            }
+        }
+
+        return $has_value ? wp_json_encode( $address ) : '';
     }
 
     private function sanitize_student_address() {
@@ -2409,6 +2557,17 @@ class TEQCIDB_Ajax {
         }
 
         return esc_url_raw( $url );
+    }
+
+    private function generate_unique_class_id( $class_name ) {
+        $normalized = strtolower( $class_name );
+        $normalized = preg_replace( '/[^a-z0-9]/', '', $normalized );
+
+        if ( '' === $normalized ) {
+            $normalized = 'class';
+        }
+
+        return $normalized . time();
     }
 
     private function generate_unique_student_id( $email ) {

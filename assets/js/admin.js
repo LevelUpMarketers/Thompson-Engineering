@@ -37,6 +37,7 @@ jQuery(document).ready(function($){
         });
     }
     handleForm('#teqcidb-create-form','teqcidb_save_student');
+    handleForm('#teqcidb-class-create-form','teqcidb_save_class');
     handleForm('#teqcidb-general-settings-form','teqcidb_save_general_settings');
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');

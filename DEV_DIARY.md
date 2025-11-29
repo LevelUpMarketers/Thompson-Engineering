@@ -123,3 +123,4 @@
 120. 2025-11-29: Added student autocomplete lookups for class access allow/restrict lists with a new AJAX endpoint to keep searches performant on large datasets.
 121. 2025-11-29: Simplified class access autocomplete selections to show only names/emails while storing hidden WordPress and unique IDs for each chosen student.
 122. 2025-11-29: Bound student autocomplete directly on newly added class access rows so dynamic fields offer lookup suggestions immediately.
+123. 2025-11-29: Wired the Create Class form to save via AJAX, generating unique class IDs, persisting address/access fields, and storing selected student allow/restrict lists with their hidden IDs.

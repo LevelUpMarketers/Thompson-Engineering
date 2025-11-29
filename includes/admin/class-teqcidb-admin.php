@@ -1678,9 +1678,7 @@ class TEQCIDB_Admin {
         $this->render_entity_form(
             $fields,
             'teqcidb-class-create-form',
-            __( 'Save Class', 'teqcidb' ),
-            false,
-            __( 'Class saving will be connected once the backend handler is ready.', 'teqcidb' )
+            __( 'Save Class', 'teqcidb' )
         );
     }
 
