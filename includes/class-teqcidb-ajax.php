@@ -2465,18 +2465,44 @@ class TEQCIDB_Ajax {
     }
 
     private function format_json_field( $value ) {
+        $normalize_items = static function( $list ) {
+            if ( ! is_array( $list ) ) {
+                return array();
+            }
+
+            $normalized = array();
+
+            foreach ( $list as $item ) {
+                if ( is_array( $item ) ) {
+                    if ( isset( $item['label'] ) ) {
+                        $normalized[] = (string) $item['label'];
+                        continue;
+                    }
+
+                    $normalized[] = implode( ' ', array_map( 'strval', $item ) );
+                    continue;
+                }
+
+                if ( is_scalar( $item ) ) {
+                    $normalized[] = (string) $item;
+                }
+            }
+
+            return array_values( array_filter( $normalized, 'strlen' ) );
+        };
+
         if ( empty( $value ) ) {
             return wp_json_encode( array() );
         }
 
         if ( is_array( $value ) ) {
-            return wp_json_encode( array_values( $value ) );
+            return wp_json_encode( $normalize_items( $value ) );
         }
 
         $decoded = json_decode( $value, true );
 
         if ( is_array( $decoded ) ) {
-            return wp_json_encode( array_values( $decoded ) );
+            return wp_json_encode( $normalize_items( $decoded ) );
         }
 
         return wp_json_encode( array() );

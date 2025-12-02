@@ -1242,8 +1242,28 @@ jQuery(document).ready(function($){
         }
 
         function parseClassItemsValue(value){
+            var normalizeItems = function(list){
+                if (!Array.isArray(list)){
+                    return [];
+                }
+
+                return list.map(function(item){
+                    if (item && typeof item === 'object'){
+                        if (Object.prototype.hasOwnProperty.call(item, 'label')){
+                            return item.label;
+                        }
+
+                        return '';
+                    }
+
+                    return typeof item === 'undefined' || item === null ? '' : String(item);
+                }).filter(function(item){
+                    return item !== '';
+                });
+            };
+
             if (Array.isArray(value)){
-                return value;
+                return normalizeItems(value);
             }
 
             if (typeof value === 'string'){
@@ -1251,7 +1271,7 @@ jQuery(document).ready(function($){
                     var parsed = JSON.parse(value);
 
                     if (Array.isArray(parsed)){
-                        return parsed;
+                        return normalizeItems(parsed);
                     }
                 } catch (error){
                     return [];
@@ -1290,18 +1310,32 @@ jQuery(document).ready(function($){
 
                     if (field.type === 'state'){
                         $select.append($('<option/>', { value: '', text: teqcidbAdmin.makeSelection || 'Make a Selection...', disabled: true }));
+
+                        var stateOptions = Array.isArray(options) ? options : Object.keys(options).map(function(optionKey){
+                            return options[optionKey];
+                        });
+
+                        stateOptions.forEach(function(stateLabel){
+                            var $stateOption = $('<option/>', { value: stateLabel, text: stateLabel });
+
+                            if (String(stateLabel) === String(value)){
+                                $stateOption.prop('selected', true);
+                            }
+
+                            $select.append($stateOption);
+                        });
+                    } else {
+                        Object.keys(options).forEach(function(optionValue){
+                            var optionLabel = options[optionValue];
+                            var $option = $('<option/>', { value: optionValue, text: optionLabel });
+
+                            if (String(optionValue) === String(value)){
+                                $option.prop('selected', true);
+                            }
+
+                            $select.append($option);
+                        });
                     }
-
-                    Object.keys(options).forEach(function(optionValue){
-                        var optionLabel = options[optionValue];
-                        var $option = $('<option/>', { value: optionValue, text: optionLabel });
-
-                        if (String(optionValue) === String(value)){
-                            $option.prop('selected', true);
-                        }
-
-                        $select.append($option);
-                    });
 
                     $wrapper.append($select);
                     break;
@@ -1312,7 +1346,8 @@ jQuery(document).ready(function($){
                         items = [''];
                     }
 
-                    var $itemsContainer = $('<div/>', { 'class': 'teqcidb-items-container', 'data-placeholder': fieldName });
+                    var itemsContainerId = 'teqcidb-items-container-' + baseId;
+                    var $itemsContainer = $('<div/>', { 'class': 'teqcidb-items-container', 'data-placeholder': fieldName, id: itemsContainerId });
 
                     items.forEach(function(itemValue, index){
                         var $row = $('<div/>', { 'class': 'teqcidb-item-row', style: 'margin-bottom:8px; display:flex; align-items:center;' });
@@ -1330,6 +1365,19 @@ jQuery(document).ready(function($){
                     });
 
                     $wrapper.append($itemsContainer);
+
+                    var $addButton = $('<button/>', {
+                        type: 'button',
+                        'class': 'button teqcidb-add-item',
+                        'data-target': '#' + itemsContainerId,
+                        style: 'margin-top:8px;'
+                    }).text(teqcidbAdmin.addAnotherItem || '+ Add Another Item');
+
+                    if (field.autocomplete){
+                        $addButton.attr('data-autocomplete', field.autocomplete);
+                    }
+
+                    $wrapper.append($addButton);
                     break;
                 case 'textarea':
                     var $textareaField = $('<textarea/>', { name: fieldName, disabled: true, id: baseId }).text(value || '');
