@@ -191,6 +191,7 @@ class TEQCIDB_Ajax {
         global $wpdb;
 
         $table          = $wpdb->prefix . 'teqcidb_classes';
+        $id             = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
         $class_name     = $this->sanitize_text_value( 'classname' );
         $access_options = array( 'allowed', 'blocked' );
         $format_options = array( 'in_person', 'virtual', 'hybrid' );
@@ -205,8 +206,19 @@ class TEQCIDB_Ajax {
             );
         }
 
+        $existing_unique_id = '';
+
+        if ( $id > 0 ) {
+            $existing_unique_id = (string) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT uniqueclassid FROM $table WHERE id = %d",
+                    $id
+                )
+            );
+        }
+
         $data = array(
-            'uniqueclassid'           => $this->generate_unique_class_id( $class_name ),
+            'uniqueclassid'           => '' !== $existing_unique_id ? $existing_unique_id : $this->generate_unique_class_id( $class_name ),
             'classname'               => $class_name,
             'classformat'             => $this->sanitize_select_value( 'classformat', $format_options ),
             'classtype'               => $this->sanitize_select_value( 'classtype', $type_options ),
@@ -229,21 +241,36 @@ class TEQCIDB_Ajax {
 
         $formats = array_fill( 0, count( $data ), '%s' );
 
-        $result = $wpdb->insert( $table, $data, $formats );
+        if ( $id > 0 ) {
+            $result  = $wpdb->update( $table, $data, array( 'id' => $id ), $formats, array( '%d' ) );
+            $message = __( 'Changes saved.', 'teqcidb' );
 
-        if ( false === $result ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to save the class. Please try again.', 'teqcidb' ),
-                )
-            );
+            if ( false === $result && $wpdb->last_error ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unable to save changes. Please try again.', 'teqcidb' ),
+                    )
+                );
+            }
+        } else {
+            $result  = $wpdb->insert( $table, $data, $formats );
+            $message = __( 'Class saved.', 'teqcidb' );
+
+            if ( false === $result ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unable to save the class. Please try again.', 'teqcidb' ),
+                    )
+                );
+            }
         }
 
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message' => __( 'Class saved.', 'teqcidb' ),
+                'message' => $message,
             )
         );
     }
@@ -2526,6 +2553,92 @@ class TEQCIDB_Ajax {
         return wp_kses_post( $value );
     }
 
+    private function format_class_student_list_for_response( $value ) {
+        if ( empty( $value ) ) {
+            return array();
+        }
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( $value, true );
+
+            if ( is_array( $decoded ) ) {
+                $value = $decoded;
+            }
+        }
+
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+
+        $items = array();
+
+        foreach ( $value as $entry ) {
+            $label     = '';
+            $wp_id     = '';
+            $unique_id = '';
+
+            if ( is_array( $entry ) ) {
+                if ( isset( $entry['label'] ) ) {
+                    $label = $this->normalize_plain_text( $entry['label'] );
+                }
+
+                if ( isset( $entry['wpuserid'] ) && is_numeric( $entry['wpuserid'] ) ) {
+                    $wp_id = (string) absint( $entry['wpuserid'] );
+                }
+
+                if ( isset( $entry['uniquestudentid'] ) && is_scalar( $entry['uniquestudentid'] ) ) {
+                    $unique_id = $this->normalize_plain_text( $entry['uniquestudentid'] );
+                }
+            } elseif ( is_scalar( $entry ) ) {
+                $label = $this->normalize_plain_text( $entry );
+            }
+
+            if ( '' === $label && '' === $wp_id && '' === $unique_id ) {
+                continue;
+            }
+
+            $items[] = array(
+                'label'           => $label,
+                'wpuserid'        => $wp_id,
+                'uniquestudentid' => $unique_id,
+            );
+        }
+
+        return $items;
+    }
+
+    private function format_class_label_list_for_response( $value ) {
+        if ( empty( $value ) ) {
+            return array();
+        }
+
+        if ( is_string( $value ) ) {
+            $decoded = json_decode( $value, true );
+
+            if ( is_array( $decoded ) ) {
+                $value = $decoded;
+            }
+        }
+
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+
+        $items = array();
+
+        foreach ( $value as $entry ) {
+            if ( is_scalar( $entry ) ) {
+                $label = $this->normalize_plain_text( $entry );
+
+                if ( '' !== $label ) {
+                    $items[] = $label;
+                }
+            }
+        }
+
+        return $items;
+    }
+
     private function prepare_class_entity( array $entity ) {
         $entity['classstartdate'] = $this->format_date_for_response( isset( $entity['classstartdate'] ) ? $entity['classstartdate'] : '' );
         $entity['classstarttime'] = $this->format_time_for_response( isset( $entity['classstarttime'] ) ? $entity['classstarttime'] : '' );
@@ -2540,9 +2653,11 @@ class TEQCIDB_Ajax {
         $entity['class_address_state']       = $address['state'];
         $entity['class_address_postal_code'] = $address['postal_code'];
 
-        foreach ( array( 'coursestudentsallowed', 'quizstudentsallowed', 'coursestudentsrestricted', 'quizstudentsrestricted', 'instructors' ) as $list_field ) {
-            $entity[ $list_field ] = $this->format_json_field( isset( $entity[ $list_field ] ) ? $entity[ $list_field ] : '' );
-        }
+        $entity['coursestudentsallowed']   = $this->format_class_student_list_for_response( isset( $entity['coursestudentsallowed'] ) ? $entity['coursestudentsallowed'] : '' );
+        $entity['quizstudentsallowed']     = $this->format_class_student_list_for_response( isset( $entity['quizstudentsallowed'] ) ? $entity['quizstudentsallowed'] : '' );
+        $entity['coursestudentsrestricted'] = $this->format_class_student_list_for_response( isset( $entity['coursestudentsrestricted'] ) ? $entity['coursestudentsrestricted'] : '' );
+        $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
+        $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),

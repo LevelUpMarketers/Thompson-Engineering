@@ -1162,6 +1162,7 @@ jQuery(document).ready(function($){
             placeholder_3: ''
         };
         var classEmptyValue = '—';
+        var classPendingFeedbackMessage = '';
 
         if ($classFeedback.length){
             $classFeedback.hide().removeClass('is-visible');
@@ -1241,44 +1242,52 @@ jQuery(document).ready(function($){
             return String(value);
         }
 
-        function parseClassItemsValue(value){
-            var normalizeItems = function(list){
-                if (!Array.isArray(list)){
-                    return [];
-                }
-
-                return list.map(function(item){
-                    if (item && typeof item === 'object'){
-                        if (Object.prototype.hasOwnProperty.call(item, 'label')){
-                            return item.label;
-                        }
-
-                        return '';
-                    }
-
-                    return typeof item === 'undefined' || item === null ? '' : String(item);
-                }).filter(function(item){
-                    return item !== '';
-                });
+        function normalizeClassItem(item){
+            var normalized = {
+                label: '',
+                wpuserid: '',
+                uniquestudentid: ''
             };
 
-            if (Array.isArray(value)){
-                return normalizeItems(value);
+            if (item && typeof item === 'object'){
+                if (Object.prototype.hasOwnProperty.call(item, 'label') && item.label){
+                    normalized.label = String(item.label);
+                }
+
+                if (Object.prototype.hasOwnProperty.call(item, 'wpuserid') && item.wpuserid){
+                    normalized.wpuserid = String(item.wpuserid);
+                }
+
+                if (Object.prototype.hasOwnProperty.call(item, 'uniquestudentid') && item.uniquestudentid){
+                    normalized.uniquestudentid = String(item.uniquestudentid);
+                }
+            } else if (typeof item === 'string' || typeof item === 'number'){
+                normalized.label = String(item);
             }
 
-            if (typeof value === 'string'){
+            return normalized;
+        }
+
+        function parseClassItemsValue(value){
+            if (typeof value === 'string' && value){
                 try {
                     var parsed = JSON.parse(value);
 
                     if (Array.isArray(parsed)){
-                        return normalizeItems(parsed);
+                        value = parsed;
                     }
                 } catch (error){
-                    return [];
+                    // fall back to empty list
                 }
             }
 
-            return [];
+            if (!Array.isArray(value)){
+                return [];
+            }
+
+            return value.map(normalizeClassItem).filter(function(item){
+                return item.label || item.wpuserid || item.uniquestudentid;
+            });
         }
 
         function appendClassField($container, field, value){
@@ -1287,6 +1296,7 @@ jQuery(document).ready(function($){
             var wrapperClass = 'teqcidb-field' + (field.fullWidth ? ' teqcidb-field-full' : '');
             var $wrapper = $('<div/>', { 'class': wrapperClass });
             var $label = $('<label/>');
+            var stringValue = value === null || typeof value === 'undefined' ? '' : value;
 
             if (field.tooltip){
                 $label.append($('<span/>', {
@@ -1301,7 +1311,7 @@ jQuery(document).ready(function($){
             switch (field.type){
                 case 'select':
                 case 'state':
-                    var $select = $('<select/>', { name: fieldName, disabled: true, id: baseId });
+                    var $select = $('<select/>', { name: fieldName, id: baseId });
                     var options = field.options || {};
 
                     if (field.type === 'state'){
@@ -1309,7 +1319,7 @@ jQuery(document).ready(function($){
                     }
 
                     if (field.type === 'state'){
-                        $select.append($('<option/>', { value: '', text: teqcidbAdmin.makeSelection || 'Make a Selection...', disabled: true }));
+                        $select.append($('<option/>', { value: '', text: teqcidbAdmin.makeSelection || 'Make a Selection...', disabled: true, selected: !stringValue }));
 
                         var stateOptions = Array.isArray(options) ? options : Object.keys(options).map(function(optionKey){
                             return options[optionKey];
@@ -1329,7 +1339,13 @@ jQuery(document).ready(function($){
                             var optionLabel = options[optionValue];
                             var $option = $('<option/>', { value: optionValue, text: optionLabel });
 
-                            if (String(optionValue) === String(value)){
+                            if (optionValue === ''){
+                                $option.prop('disabled', true);
+
+                                if (!String(stringValue)){
+                                    $option.prop('selected', true);
+                                }
+                            } else if (String(optionValue) === String(value)){
                                 $option.prop('selected', true);
                             }
 
@@ -1343,11 +1359,15 @@ jQuery(document).ready(function($){
                     var items = parseClassItemsValue(value);
 
                     if (!items.length){
-                        items = [''];
+                        items = [{ label: '', wpuserid: '', uniquestudentid: '' }];
                     }
 
                     var itemsContainerId = 'teqcidb-items-container-' + baseId;
                     var $itemsContainer = $('<div/>', { 'class': 'teqcidb-items-container', 'data-placeholder': fieldName, id: itemsContainerId });
+
+                    if (field.autocomplete){
+                        $itemsContainer.attr('data-autocomplete', field.autocomplete);
+                    }
 
                     items.forEach(function(itemValue, index){
                         var $row = $('<div/>', { 'class': 'teqcidb-item-row', style: 'margin-bottom:8px; display:flex; align-items:center;' });
@@ -1357,10 +1377,29 @@ jQuery(document).ready(function($){
                             name: fieldName + '[]',
                             'class': 'regular-text teqcidb-item-field',
                             placeholder: placeholderText,
-                            value: itemValue,
-                            disabled: true
+                            value: itemValue && itemValue.label ? itemValue.label : ''
                         });
+
+                        if (field.autocomplete === 'student'){
+                            $input.addClass('teqcidb-autocomplete-field');
+
+                            if ((itemValue.wpuserid && String(itemValue.wpuserid)) || (itemValue.uniquestudentid && String(itemValue.uniquestudentid))){
+                                setHiddenStudentFields($input, {
+                                    wpuserid: itemValue.wpuserid,
+                                    uniquestudentid: itemValue.uniquestudentid
+                                });
+                            }
+                        }
+
                         $row.append($input);
+                        var $removeButton = $('<button/>', {
+                            type: 'button',
+                            'class': 'teqcidb-delete-item',
+                            'aria-label': 'Remove',
+                            style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
+                        }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
+
+                        $row.append($removeButton);
                         $itemsContainer.append($row);
                     });
 
@@ -1370,6 +1409,7 @@ jQuery(document).ready(function($){
                         type: 'button',
                         'class': 'button teqcidb-add-item',
                         'data-target': '#' + itemsContainerId,
+                        'data-field-name': fieldName,
                         style: 'margin-top:8px;'
                     }).text(teqcidbAdmin.addAnotherItem || '+ Add Another Item');
 
@@ -1380,7 +1420,7 @@ jQuery(document).ready(function($){
                     $wrapper.append($addButton);
                     break;
                 case 'textarea':
-                    var $textareaField = $('<textarea/>', { name: fieldName, disabled: true, id: baseId }).text(value || '');
+                    var $textareaField = $('<textarea/>', { name: fieldName, id: baseId }).text(stringValue || '');
 
                     if (field.attrs){
                         field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
@@ -1393,7 +1433,7 @@ jQuery(document).ready(function($){
                     break;
                 default:
                     var inputType = field.type === 'number' ? 'number' : (field.type || 'text');
-                    var $input = $('<input/>', { type: inputType, name: fieldName, id: baseId, value: value || '', disabled: true });
+                    var $input = $('<input/>', { type: inputType, name: fieldName, id: baseId, value: stringValue || '' });
 
                     if (field.attrs){
                         field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
@@ -1414,6 +1454,9 @@ jQuery(document).ready(function($){
             var $form = $('<form/>', { 'class': 'teqcidb-class-edit-form', 'data-entity-id': entityId });
             var $flexForm = $('<div/>', { 'class': 'teqcidb-flex-form' });
 
+            $form.append($('<input/>', { type: 'hidden', name: 'id', value: entityId }));
+            $form.append($('<input/>', { type: 'hidden', name: 'name', value: entity && entity.name ? entity.name : '' }));
+
             classFields.forEach(function(field){
                 var value = (entity && Object.prototype.hasOwnProperty.call(entity, field.name)) ? entity[field.name] : '';
                 appendClassField($flexForm, field, value);
@@ -1422,9 +1465,12 @@ jQuery(document).ready(function($){
             $form.append($flexForm);
 
             var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
-            var $button = $('<button/>', { type: 'button', 'class': 'button button-primary', disabled: true, 'aria-disabled': 'true' }).text(teqcidbAdmin.classEditingDisabled || '');
-            var $note = $('<span/>', { 'class': 'description teqcidb-submit-note' }).text(teqcidbAdmin.classEditingNotAvailable || '');
-            $actions.append($button).append(' ').append($note);
+            var $button = $('<button/>', { type: 'submit', 'class': 'button button-primary teqcidb-class-save' }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+            var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
+            var $spinner = $('<span/>', { 'class': 'spinner teqcidb-class-spinner', 'aria-hidden': 'true' });
+            var $feedback = $('<span/>', { 'class': 'teqcidb-class-feedback', 'role': 'status', 'aria-live': 'polite' });
+            $feedbackArea.append($spinner).append($feedback);
+            $actions.append($button).append($feedbackArea);
             $form.append($actions);
 
             return $form;
@@ -1541,6 +1587,7 @@ jQuery(document).ready(function($){
 
                 $panel.append($('<h3/>', {'class': 'teqcidb-entity__title'}).text(teqcidbAdmin.classEditHeading || ''));
                 $panel.append($form);
+                initAutocompleteForScope($panel);
                 $panelCell.append($panel);
                 $panelRow.append($panelCell);
                 $classTableBody.append($panelRow);
@@ -1569,6 +1616,13 @@ jQuery(document).ready(function($){
                 .done(function(response){
                     if (response && response.success && response.data){
                         renderClasses(response.data);
+
+                        if (classPendingFeedbackMessage){
+                            classShowFeedback(classPendingFeedbackMessage);
+                            classPendingFeedbackMessage = '';
+                        } else {
+                            classClearFeedback();
+                        }
 
                         if (classCurrentFilters.placeholder_1 || classCurrentFilters.placeholder_2 || classCurrentFilters.placeholder_3){
                             classShowSearchFeedback(teqcidbAdmin.classSearchFiltersApplied || '');
@@ -1633,6 +1687,52 @@ jQuery(document).ready(function($){
                 }
             });
         }
+
+        $classTableBody.on('submit', '.teqcidb-class-edit-form', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $form = $(this);
+            var $spinner = $form.find('.teqcidb-class-spinner');
+            var $feedback = $form.find('.teqcidb-class-feedback');
+
+            if ($spinner.length){
+                $spinner.addClass('is-active');
+            }
+
+            if ($feedback.length){
+                $feedback.removeClass('is-visible').text('');
+            }
+
+            var formData = $form.serialize();
+            formData += '&action=teqcidb_save_class&_ajax_nonce=' + encodeURIComponent(teqcidbAjax.nonce);
+
+            $.post(teqcidbAjax.ajaxurl, formData)
+                .done(function(resp){
+                    if (resp && resp.success){
+                        classPendingFeedbackMessage = resp.data && resp.data.message ? resp.data.message : '';
+                        fetchClasses(classCurrentPage);
+                    } else {
+                        var message = resp && resp.data && resp.data.message ? resp.data.message : (teqcidbAdmin.error || '');
+
+                        if ($feedback.length && message){
+                            $feedback.text(message).addClass('is-visible');
+                        }
+                    }
+                })
+                .fail(function(){
+                    if ($feedback.length && teqcidbAdmin.error){
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                    }
+                })
+                .always(function(){
+                    if ($spinner.length){
+                        setTimeout(function(){
+                            $spinner.removeClass('is-active');
+                        }, 150);
+                    }
+                });
+        });
     }
 
     $('.teqcidb-accordion').on('click','.item-header',function(){

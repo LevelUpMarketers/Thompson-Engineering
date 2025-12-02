@@ -780,9 +780,7 @@ class TEQCIDB_Admin {
             'studentSearchMinLength' => __( 'Type at least two characters to search students.', 'teqcidb' ),
             'studentSearchPlaceholder' => __( 'Start typing a name or email...', 'teqcidb' ),
             'studentSearchNoResults' => __( 'No matching students found.', 'teqcidb' ),
-            'classEditHeading' => __( 'View Class Details', 'teqcidb' ),
-            'classEditingDisabled' => __( 'Editing coming soon', 'teqcidb' ),
-            'classEditingNotAvailable' => __( 'Editing will be available in a future update.', 'teqcidb' ),
+            'classEditHeading' => __( 'Edit Class Details', 'teqcidb' ),
         ) );
     }
 
