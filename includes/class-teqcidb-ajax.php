@@ -2563,6 +2563,17 @@ class TEQCIDB_Ajax {
 
             if ( is_array( $decoded ) ) {
                 $value = $decoded;
+            } else {
+                $split_values = array_filter(
+                    array_map( 'trim', explode( ',', $value ) ),
+                    static function ( $item ) {
+                        return '' !== $item;
+                    }
+                );
+
+                if ( ! empty( $split_values ) ) {
+                    $value = array_values( $split_values );
+                }
             }
         }
 
@@ -2661,6 +2672,7 @@ class TEQCIDB_Ajax {
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),
+            'inperson'  => __( 'In Person', 'teqcidb' ),
             'virtual'   => __( 'Virtual', 'teqcidb' ),
             'hybrid'    => __( 'Hybrid', 'teqcidb' ),
         );
