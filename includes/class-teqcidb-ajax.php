@@ -12,6 +12,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
+        add_action( 'wp_ajax_teqcidb_read_class', array( $this, 'read_class' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
         add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
         add_action( 'wp_ajax_teqcidb_upload_legacy_student', array( $this, 'upload_legacy_records' ) );
@@ -870,6 +871,146 @@ class TEQCIDB_Ajax {
         $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
         $this->maybe_delay( $start );
         wp_send_json_success( array( 'message' => __( 'Deleted', 'teqcidb' ) ) );
+    }
+
+    public function read_class() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+        global $wpdb;
+        $table    = $wpdb->prefix . 'teqcidb_classes';
+        $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+        $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 10;
+
+        if ( $per_page <= 0 ) {
+            $per_page = 10;
+        }
+
+        $per_page = min( $per_page, 100 );
+
+        $raw_search = isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : array();
+
+        if ( ! is_array( $raw_search ) ) {
+            $raw_search = array();
+        }
+
+        $search_terms = array();
+
+        foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
+            if ( isset( $raw_search[ $column ] ) ) {
+                $value = sanitize_text_field( $raw_search[ $column ] );
+
+                if ( '' !== $value ) {
+                    $search_terms[ $column ] = $value;
+                }
+            }
+        }
+
+        $where_clauses = array();
+        $where_params  = array();
+
+        foreach ( $search_terms as $key => $value ) {
+            $like_value = '%' . $wpdb->esc_like( $value ) . '%';
+
+            if ( 'placeholder_1' === $key ) {
+                $where_clauses[] = 'classname LIKE %s';
+                $where_params[]  = $like_value;
+                continue;
+            }
+
+            if ( 'placeholder_2' === $key ) {
+                $where_clauses[] = 'classformat LIKE %s';
+                $where_params[]  = $like_value;
+                continue;
+            }
+
+            if ( 'placeholder_3' === $key ) {
+                $where_clauses[] = 'classtype LIKE %s';
+                $where_params[]  = $like_value;
+            }
+        }
+
+        $where_sql = '';
+
+        if ( $where_clauses ) {
+            $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+        }
+
+        $total_query = "SELECT COUNT(*) FROM $table";
+
+        if ( $where_sql ) {
+            $total_query .= ' ' . $where_sql;
+        }
+
+        if ( $where_params ) {
+            $total = (int) $wpdb->get_var( $wpdb->prepare( $total_query, $where_params ) );
+        } else {
+            $total = (int) $wpdb->get_var( $total_query );
+        }
+
+        $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+
+        if ( $total_pages < 1 ) {
+            $total_pages = 1;
+        }
+
+        if ( $page > $total_pages ) {
+            $page = $total_pages;
+        }
+
+        $offset = ( $page - 1 ) * $per_page;
+
+        if ( $offset < 0 ) {
+            $offset = 0;
+        }
+
+        $entities = array();
+
+        if ( $total > 0 ) {
+            $select_query = "SELECT * FROM $table";
+
+            if ( $where_sql ) {
+                $select_query .= ' ' . $where_sql;
+            }
+
+            $select_query .= ' ORDER BY classstartdate ASC, classname ASC, id ASC LIMIT %d OFFSET %d';
+
+            $select_params   = $where_params;
+            $select_params[] = $per_page;
+            $select_params[] = $offset;
+
+            $entities = $wpdb->get_results(
+                $wpdb->prepare(
+                    $select_query,
+                    $select_params
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $entities ) ) {
+                foreach ( $entities as &$entity ) {
+                    if ( ! is_array( $entity ) ) {
+                        $entity = array();
+                        continue;
+                    }
+
+                    $entity = $this->prepare_class_entity( $entity );
+                }
+                unset( $entity );
+            } else {
+                $entities = array();
+            }
+        }
+
+        $this->maybe_delay( $start, 0 );
+        wp_send_json_success(
+            array(
+                'entities'    => $entities,
+                'page'        => $page,
+                'per_page'    => $per_page,
+                'total'       => $total,
+                'total_pages' => $total_pages,
+            )
+        );
     }
 
     public function read_student() {
@@ -2357,6 +2498,75 @@ class TEQCIDB_Ajax {
         }
 
         return wp_kses_post( $value );
+    }
+
+    private function prepare_class_entity( array $entity ) {
+        $entity['classstartdate'] = $this->format_date_for_response( isset( $entity['classstartdate'] ) ? $entity['classstartdate'] : '' );
+        $entity['classstarttime'] = $this->format_time_for_response( isset( $entity['classstarttime'] ) ? $entity['classstarttime'] : '' );
+        $entity['classendtime']   = $this->format_time_for_response( isset( $entity['classendtime'] ) ? $entity['classendtime'] : '' );
+        $entity['classcost']      = $this->format_decimal_for_response( isset( $entity['classcost'] ) ? $entity['classcost'] : '' );
+        $entity['classhide']      = isset( $entity['classhide'] ) ? (string) ( (int) $entity['classhide'] ) : '0';
+
+        $address = $this->decode_class_address_field( isset( $entity['classsaddress'] ) ? $entity['classsaddress'] : '' );
+        $entity['class_address_street_1']    = $address['street_1'];
+        $entity['class_address_street_2']    = $address['street_2'];
+        $entity['class_address_city']        = $address['city'];
+        $entity['class_address_state']       = $address['state'];
+        $entity['class_address_postal_code'] = $address['postal_code'];
+
+        foreach ( array( 'coursestudentsallowed', 'quizstudentsallowed', 'coursestudentsrestricted', 'quizstudentsrestricted', 'instructors' ) as $list_field ) {
+            $entity[ $list_field ] = $this->format_json_field( isset( $entity[ $list_field ] ) ? $entity[ $list_field ] : '' );
+        }
+
+        $format_labels = array(
+            'in_person' => __( 'In Person', 'teqcidb' ),
+            'virtual'   => __( 'Virtual', 'teqcidb' ),
+            'hybrid'    => __( 'Hybrid', 'teqcidb' ),
+        );
+
+        $type_labels = array(
+            'initial'   => __( 'Initial', 'teqcidb' ),
+            'refresher' => __( 'Refresher', 'teqcidb' ),
+            'other'     => __( 'Other', 'teqcidb' ),
+        );
+
+        $format_value = isset( $entity['classformat'] ) ? $entity['classformat'] : '';
+        $type_value   = isset( $entity['classtype'] ) ? $entity['classtype'] : '';
+
+        $entity['placeholder_1'] = isset( $entity['classname'] ) ? $entity['classname'] : '';
+        $entity['placeholder_2'] = isset( $format_labels[ $format_value ] ) ? $format_labels[ $format_value ] : $format_value;
+        $entity['placeholder_3'] = isset( $type_labels[ $type_value ] ) ? $type_labels[ $type_value ] : $type_value;
+        $entity['placeholder_4'] = $entity['classstartdate'];
+        $entity['placeholder_5'] = $entity['classcost'];
+        $entity['name']          = $entity['placeholder_1'];
+
+        return $entity;
+    }
+
+    private function decode_class_address_field( $value ) {
+        $defaults = array(
+            'street_1'    => '',
+            'street_2'    => '',
+            'city'        => '',
+            'state'       => '',
+            'postal_code' => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        $decoded = json_decode( $value, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        if ( isset( $decoded['zip_code'] ) ) {
+            $decoded['postal_code'] = $decoded['zip_code'];
+        }
+
+        return array_merge( $defaults, $decoded );
     }
 
     private function prepare_student_entity( array $entity ) {

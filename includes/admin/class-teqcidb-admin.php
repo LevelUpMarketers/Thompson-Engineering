@@ -729,6 +729,8 @@ class TEQCIDB_Admin {
 
         $placeholder_labels = $this->get_placeholder_labels();
         $field_definitions  = $this->prepare_student_fields_for_js();
+        $class_placeholder_labels = $this->get_class_placeholder_labels();
+        $class_field_definitions  = $this->prepare_class_fields_for_js();
 
         wp_localize_script( 'teqcidb-admin', 'teqcidbAjax', array(
             'ajaxurl' => admin_url( 'admin-ajax.php' ),
@@ -737,6 +739,8 @@ class TEQCIDB_Admin {
         wp_localize_script( 'teqcidb-admin', 'teqcidbAdmin', array(
             'placeholders' => array_values( $placeholder_labels ),
             'placeholderMap' => $placeholder_labels,
+            'classPlaceholders' => array_values( $class_placeholder_labels ),
+            'classPlaceholderMap' => $class_placeholder_labels,
             'delete'       => __( 'Delete', 'teqcidb' ),
             'none'         => __( 'No entries found.', 'teqcidb' ),
             'mediaTitle'   => __( 'Select Image', 'teqcidb' ),
@@ -755,10 +759,12 @@ class TEQCIDB_Admin {
             'nextPage'     => __( 'Next page', 'teqcidb' ),
             'lastPage'     => __( 'Last page', 'teqcidb' ),
             'toggleDetails' => __( 'Toggle student details', 'teqcidb' ),
+            'classToggleDetails' => __( 'Toggle class details', 'teqcidb' ),
             'nameLabel'    => __( 'Name', 'teqcidb' ),
             'editAction'   => __( 'Edit', 'teqcidb' ),
             'saveChanges'  => __( 'Save Changes', 'teqcidb' ),
             'entityFields' => $field_definitions,
+            'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
             'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
             'previewEmptyMessage' => __( 'Enter a subject or body to generate the preview.', 'teqcidb' ),
@@ -770,9 +776,13 @@ class TEQCIDB_Admin {
             'emailLogEmpty'     => __( 'No email activity has been recorded yet.', 'teqcidb' ),
             'logDownloadReady'  => __( 'Log download ready.', 'teqcidb' ),
             'searchFiltersApplied' => __( 'Showing filtered results.', 'teqcidb' ),
+            'classSearchFiltersApplied' => __( 'Showing filtered class results.', 'teqcidb' ),
             'studentSearchMinLength' => __( 'Type at least two characters to search students.', 'teqcidb' ),
             'studentSearchPlaceholder' => __( 'Start typing a name or email...', 'teqcidb' ),
             'studentSearchNoResults' => __( 'No matching students found.', 'teqcidb' ),
+            'classEditHeading' => __( 'View Class Details', 'teqcidb' ),
+            'classEditingDisabled' => __( 'Editing coming soon', 'teqcidb' ),
+            'classEditingNotAvailable' => __( 'Editing will be available in a future update.', 'teqcidb' ),
         ) );
     }
 
@@ -805,6 +815,26 @@ class TEQCIDB_Admin {
              * @param array $labels Associative array of placeholder slugs to labels.
              */
             $labels = apply_filters( 'teqcidb_students_placeholder_labels', $defaults );
+
+            $labels = $this->sanitize_placeholder_label_map( $labels );
+        }
+
+        return $labels;
+    }
+
+    private function get_class_placeholder_labels() {
+        static $labels = null;
+
+        if ( null === $labels ) {
+            $defaults = array(
+                'placeholder_1' => __( 'Class Name', 'teqcidb' ),
+                'placeholder_2' => __( 'Format', 'teqcidb' ),
+                'placeholder_3' => __( 'Type', 'teqcidb' ),
+                'placeholder_4' => __( 'Start Date', 'teqcidb' ),
+                'placeholder_5' => __( 'Cost', 'teqcidb' ),
+            );
+
+            $labels = apply_filters( 'teqcidb_classes_placeholder_labels', $defaults );
 
             $labels = $this->sanitize_placeholder_label_map( $labels );
         }
@@ -1483,6 +1513,37 @@ class TEQCIDB_Admin {
         return $prepared;
     }
 
+    private function prepare_class_fields_for_js() {
+        $fields   = $this->get_class_fields();
+        $prepared = array();
+
+        foreach ( $fields as $field ) {
+            $prepared_field = array(
+                'name'      => $field['name'],
+                'type'      => $field['type'],
+                'label'     => $field['label'],
+                'tooltip'   => $field['tooltip'],
+                'fullWidth' => ! empty( $field['full_width'] ),
+            );
+
+            if ( isset( $field['options'] ) ) {
+                $prepared_field['options'] = $field['options'];
+            }
+
+            if ( isset( $field['attrs'] ) ) {
+                $prepared_field['attrs'] = $field['attrs'];
+            }
+
+            if ( isset( $field['autocomplete'] ) ) {
+                $prepared_field['autocomplete'] = $field['autocomplete'];
+            }
+
+            $prepared[] = $prepared_field;
+        }
+
+        return $prepared;
+    }
+
     private function get_inline_editor_settings() {
         $default_settings = array(
             'tinymce'   => array(
@@ -1683,9 +1744,84 @@ class TEQCIDB_Admin {
     }
 
     private function render_class_edit_tab() {
-        $this->render_communications_placeholder_tab(
-            __( 'Class editing and roster tools are coming soon.', 'teqcidb' )
+        $per_page     = 10;
+        $column_count = 6;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--classes">';
+        echo '<div class="teqcidb-entity-search" role="search">';
+        echo '<form id="teqcidb-class-search" class="teqcidb-entity-search__form" method="post">';
+        echo '<h3 class="teqcidb-entity-search__title">' . esc_html__( 'Search Classes', 'teqcidb' ) . '</h3>';
+        echo '<p class="teqcidb-entity-search__description">' . esc_html__( 'Locate saved sessions by name, format, or type to review their details.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-entity-search__fields">';
+
+        $search_fields = array(
+            array(
+                'key'   => 'placeholder_1',
+                'label' => __( 'Class Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'placeholder_2',
+                'label' => __( 'Class Format', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'placeholder_3',
+                'label' => __( 'Class Type', 'teqcidb' ),
+            ),
         );
+
+        foreach ( $search_fields as $field ) {
+            $field_id = 'teqcidb-class-search-' . $field['key'];
+
+            echo '<div class="teqcidb-entity-search__field">';
+            echo '<label class="teqcidb-entity-search__label" for="' . esc_attr( $field_id ) . '">';
+            echo esc_html( $field['label'] );
+            echo '</label>';
+            echo '<input type="text" id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $field['key'] ) . '" class="regular-text" />';
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__actions">';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-class-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+        echo '<span id="teqcidb-class-search-spinner" class="spinner" aria-hidden="true"></span>';
+        echo '<span id="teqcidb-class-search-feedback" role="status" aria-live="polite"></span>';
+        echo '</span>';
+        echo '</div>';
+        echo '</form>';
+        echo '</div>';
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="classes">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead>';
+        echo '<tr>';
+
+        $labels = $this->get_class_placeholder_labels();
+
+        for ( $i = 1; $i <= 5; $i++ ) {
+            $label = isset( $labels[ 'placeholder_' . $i ] ) ? $labels[ 'placeholder_' . $i ] : sprintf( __( 'Placeholder %d', 'teqcidb' ), $i );
+
+            printf(
+                '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-%1$d">%2$s</th>',
+                absint( $i ),
+                esc_html( $label )
+            );
+        }
+
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr>';
+        echo '</thead>';
+        printf(
+            '<tbody id="teqcidb-class-list" data-per-page="%1$d" data-column-count="%2$d">',
+            absint( $per_page ),
+            absint( $column_count )
+        );
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '<div class="tablenav"><div id="teqcidb-class-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-class-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }
 
     private function render_create_tab() {
