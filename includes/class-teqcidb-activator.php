@@ -79,6 +79,8 @@ class TEQCIDB_Activator {
             classcost decimal(10,2) DEFAULT NULL,
             classdescription longtext,
             classhide tinyint(1) NOT NULL DEFAULT 0,
+            allallowedcourse varchar(20) DEFAULT '',
+            allallowedquiz varchar(20) DEFAULT '',
             coursestudentsallowed longtext,
             quizstudentsallowed longtext,
             coursestudentsrestricted longtext,

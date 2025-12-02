@@ -37,6 +37,7 @@ jQuery(document).ready(function($){
         });
     }
     handleForm('#teqcidb-create-form','teqcidb_save_student');
+    handleForm('#teqcidb-class-create-form','teqcidb_save_class');
     handleForm('#teqcidb-general-settings-form','teqcidb_save_general_settings');
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
@@ -1266,6 +1267,152 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
+    function buildStudentDisplay(student){
+        var first = student.first_name || '';
+        var last = student.last_name || '';
+        var email = student.email || '';
+        var label = $.trim((first + ' ' + last).replace(/\s+/g, ' '));
+
+        if (email){
+            label = label ? label + ' (' + email + ')' : email;
+        }
+
+        return label;
+    }
+
+    function setHiddenStudentFields($input, studentData){
+        if (!$input || !$input.length){
+            return;
+        }
+
+        var baseName = ($input.attr('name') || '').replace(/\[\]$/, '');
+        var $row = $input.closest('.teqcidb-item-row');
+
+        if (!baseName || !$row.length){
+            return;
+        }
+
+        var setOrCreateHidden = function(name, value){
+            var $hidden = $row.find('input[name="' + name + '"]');
+
+            if (!$hidden.length){
+                $hidden = $('<input/>', {
+                    type: 'hidden',
+                    name: name,
+                    'class': 'teqcidb-student-meta'
+                });
+                $row.append($hidden);
+            }
+
+            $hidden.val(value);
+        };
+
+        var wpUserId = studentData.wpUserId || studentData.wpuserid || studentData.studentId || '';
+        var uniqueStudentId = studentData.uniqueId || studentData.uniquestudentid || '';
+
+        setOrCreateHidden(baseName + '_wpuserid[]', wpUserId);
+        setOrCreateHidden(baseName + '_uniquestudentid[]', uniqueStudentId);
+    }
+
+    function initStudentAutocomplete($input){
+        if (!$input || !$input.length || $input.data('autocompleteBound')){
+            return;
+        }
+
+        if (teqcidbAdmin.studentSearchPlaceholder){
+            $input.attr('placeholder', teqcidbAdmin.studentSearchPlaceholder);
+        }
+
+        $input.autocomplete({
+            minLength: 2,
+            delay: 200,
+            source: function(request, response){
+                if (!request || !request.term || request.term.length < 2){
+                    response([]);
+                    return;
+                }
+
+                $.ajax({
+                    url: teqcidbAjax.ajaxurl,
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        action: 'teqcidb_search_students',
+                        term: request.term,
+                        _ajax_nonce: teqcidbAjax.nonce
+                    }
+                }).done(function(data){
+                    if (!data || !data.success || !data.data || !Array.isArray(data.data.results)){
+                        response([]);
+                        return;
+                    }
+
+                    var suggestions = data.data.results.map(function(student){
+                        var label = student.display || buildStudentDisplay(student);
+                        var value = label;
+
+                        return {
+                            label: label,
+                            value: value,
+                            studentId: student.id,
+                            wpUserId: student.wpuserid,
+                            uniqueId: student.uniquestudentid,
+                            email: student.email,
+                            firstName: student.first_name,
+                            lastName: student.last_name
+                        };
+                    });
+
+                    if (!suggestions.length && teqcidbAdmin.studentSearchNoResults){
+                        suggestions.push({
+                            label: teqcidbAdmin.studentSearchNoResults,
+                            value: ''
+                        });
+                    }
+
+                    response(suggestions);
+                }).fail(function(){
+                    response([]);
+                });
+            },
+            select: function(event, ui){
+                if (!ui || !ui.item){
+                    return false;
+                }
+
+                if (!ui.item.value){
+                    $(this).val('');
+                    return false;
+                }
+
+                $(this).val(ui.item.value);
+                setHiddenStudentFields($(this), ui.item);
+                return false;
+            },
+            focus: function(event, ui){
+                if (ui && ui.item && ui.item.value){
+                    $(this).val(ui.item.value);
+                }
+
+                return false;
+            }
+        });
+
+        $input.data('autocompleteBound', true);
+    }
+
+    function initAutocompleteForScope($scope){
+        var $containers = ($scope || $(document)).find('.teqcidb-items-container[data-autocomplete="student"]');
+
+        $containers.each(function(){
+            $(this).find('.teqcidb-autocomplete-field').each(function(){
+                initStudentAutocomplete($(this));
+            });
+        });
+    }
+
+    initAutocompleteForScope($(document));
+
     $(document).on('click', '.teqcidb-add-item', function(e){
         e.preventDefault();
         e.stopPropagation();
@@ -1291,6 +1438,11 @@ jQuery(document).ready(function($){
             'class': 'regular-text teqcidb-item-field',
             placeholder: placeholderText
         });
+        var autocompleteType = $button.data('autocomplete') || $container.data('autocomplete');
+
+        if (autocompleteType === 'student'){
+            $input.addClass('teqcidb-autocomplete-field');
+        }
         var $removeButton = $('<button/>', {
             type: 'button',
             'class': 'teqcidb-delete-item',
@@ -1300,6 +1452,10 @@ jQuery(document).ready(function($){
 
         $row.append($input).append($removeButton);
         $container.append($row);
+
+        if (autocompleteType === 'student'){
+            initStudentAutocomplete($input);
+        }
     });
 
     $(document).on('click', '.teqcidb-delete-item', function(e){

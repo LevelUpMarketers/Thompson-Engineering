@@ -115,3 +115,14 @@
 112. 2025-11-20: Added activation-time creation of the teqcidb_classes table to store class metadata and enrollment counts.
 113. 2025-11-20: Expanded the upload tab with selectable legacy record types and backend support for importing legacy class rows alongside students.
 114. 2025-11-29: Added student allow/deny list columns to the initial classes table schema for course and quiz access controls.
+115. 2025-11-29: Added a Classes admin submenu with a Create tab UI that mirrors the student form and a placeholder edit/manage tab.
+116. 2025-11-29: Refined the Classes Create form by removing generated-only fields, splitting the address into discrete inputs, updating course/quiz access selectors, and adjusting schema types for those toggles.
+117. 2025-11-29: Renamed class access columns to match new allow-all wording, updated the Create Class form labels to clearer questions, and retained explicit course/quiz restriction lists in the schema and UI.
+118. 2025-11-29: Reworked class access controls with global allow toggles plus per-student allow and restrict lists for courses and quizzes.
+119. 2025-11-29: Reordered Create Class fields so Hide this Class follows cost and instructors sit at the end of the form.
+120. 2025-11-29: Added student autocomplete lookups for class access allow/restrict lists with a new AJAX endpoint to keep searches performant on large datasets.
+121. 2025-11-29: Simplified class access autocomplete selections to show only names/emails while storing hidden WordPress and unique IDs for each chosen student.
+122. 2025-11-29: Bound student autocomplete directly on newly added class access rows so dynamic fields offer lookup suggestions immediately.
+123. 2025-11-29: Wired the Create Class form to save via AJAX, generating unique class IDs, persisting address/access fields, and storing selected student allow/restrict lists with their hidden IDs.
+124. 2025-11-29: Moved the Class Description field below the quiz allow selector on the Create Class form to match the desired layout.
+125. 2025-11-29: Updated class access allow/restrict list storage to use wpuserid/uniquestudentid keys and affirmed the sanitation path keeps special characters user-friendly when saving.
