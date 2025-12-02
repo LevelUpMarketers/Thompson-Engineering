@@ -1307,8 +1307,11 @@ jQuery(document).ready(function($){
             $hidden.val(value);
         };
 
-        setOrCreateHidden(baseName + '_wpid[]', studentData.studentId || '');
-        setOrCreateHidden(baseName + '_uniqueid[]', studentData.uniqueId || '');
+        var wpUserId = studentData.wpUserId || studentData.wpuserid || studentData.studentId || '';
+        var uniqueStudentId = studentData.uniqueId || studentData.uniquestudentid || '';
+
+        setOrCreateHidden(baseName + '_wpuserid[]', wpUserId);
+        setOrCreateHidden(baseName + '_uniquestudentid[]', uniqueStudentId);
     }
 
     function initStudentAutocomplete($input){
@@ -1352,6 +1355,7 @@ jQuery(document).ready(function($){
                             label: label,
                             value: value,
                             studentId: student.id,
+                            wpUserId: student.wpuserid,
                             uniqueId: student.uniquestudentid,
                             email: student.email,
                             firstName: student.first_name,

@@ -279,7 +279,7 @@ class TEQCIDB_Ajax {
         $like  = '%' . $wpdb->esc_like( $term ) . '%';
 
         $query = $wpdb->prepare(
-            "SELECT id, uniquestudentid, first_name, last_name, email FROM $table WHERE first_name LIKE %s OR last_name LIKE %s OR email LIKE %s ORDER BY last_name ASC, first_name ASC LIMIT 15",
+            "SELECT id, wpuserid, uniquestudentid, first_name, last_name, email FROM $table WHERE first_name LIKE %s OR last_name LIKE %s OR email LIKE %s ORDER BY last_name ASC, first_name ASC LIMIT 15",
             $like,
             $like,
             $like
@@ -305,7 +305,8 @@ class TEQCIDB_Ajax {
             }
 
             $results[] = array(
-                'id'               => (int) $row->id,
+                'id'               => isset( $row->wpuserid ) ? (int) $row->wpuserid : 0,
+                'wpuserid'         => isset( $row->wpuserid ) ? (string) $row->wpuserid : '',
                 'uniquestudentid'  => (string) $row->uniquestudentid,
                 'first_name'       => (string) $row->first_name,
                 'last_name'        => (string) $row->last_name,
@@ -314,7 +315,7 @@ class TEQCIDB_Ajax {
                 'value'            => sprintf(
                     /* translators: 1: WordPress user ID, 2: unique student ID, 3: student name, 4: student email */
                     __( 'WP ID: %1$d | Unique ID: %2$s | %3$s (%4$s)', 'teqcidb' ),
-                    (int) $row->id,
+                    isset( $row->wpuserid ) ? (int) $row->wpuserid : 0,
                     (string) $row->uniquestudentid,
                     $name,
                     $email
@@ -2061,8 +2062,8 @@ class TEQCIDB_Ajax {
 
     private function sanitize_student_access_items( $key ) {
         $labels     = $this->get_post_value( $key );
-        $wp_ids     = $this->get_post_value( $key . '_wpid' );
-        $unique_ids = $this->get_post_value( $key . '_uniqueid' );
+        $wp_ids     = $this->get_post_value( $key . '_wpuserid' );
+        $unique_ids = $this->get_post_value( $key . '_uniquestudentid' );
 
         $labels     = null === $labels ? array() : ( is_array( $labels ) ? array_values( $labels ) : array( $labels ) );
         $wp_ids     = null === $wp_ids ? array() : ( is_array( $wp_ids ) ? array_values( $wp_ids ) : array( $wp_ids ) );
@@ -2081,9 +2082,9 @@ class TEQCIDB_Ajax {
             }
 
             $items[] = array(
-                'label'    => $label,
-                'wpid'     => $wp_id ? (string) $wp_id : '',
-                'uniqueid' => $uniqueid,
+                'label'          => $label,
+                'wpuserid'       => $wp_id ? (string) $wp_id : '',
+                'uniquestudentid' => $uniqueid,
             );
         }
 

@@ -125,3 +125,4 @@
 122. 2025-11-29: Bound student autocomplete directly on newly added class access rows so dynamic fields offer lookup suggestions immediately.
 123. 2025-11-29: Wired the Create Class form to save via AJAX, generating unique class IDs, persisting address/access fields, and storing selected student allow/restrict lists with their hidden IDs.
 124. 2025-11-29: Moved the Class Description field below the quiz allow selector on the Create Class form to match the desired layout.
+125. 2025-11-29: Updated class access allow/restrict list storage to use wpuserid/uniquestudentid keys and affirmed the sanitation path keeps special characters user-friendly when saving.
