@@ -1398,14 +1398,6 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['classhide'],
             ),
             array(
-                'name'       => 'classdescription',
-                'label'      => __( 'Class Description', 'teqcidb' ),
-                'type'       => 'textarea',
-                'tooltip'    => $tooltips['classdescription'],
-                'full_width' => true,
-                'attrs'      => ' rows="4"',
-            ),
-            array(
                 'name'    => 'allallowedcourse',
                 'label'   => __( 'Allow all students to access the associated Course?', 'teqcidb' ),
                 'type'    => 'select',
@@ -1418,6 +1410,14 @@ class TEQCIDB_Admin {
                 'type'    => 'select',
                 'options' => $access_options,
                 'tooltip' => $tooltips['allallowedquiz'],
+            ),
+            array(
+                'name'       => 'classdescription',
+                'label'      => __( 'Class Description', 'teqcidb' ),
+                'type'       => 'textarea',
+                'tooltip'    => $tooltips['classdescription'],
+                'full_width' => true,
+                'attrs'      => ' rows="4"',
             ),
             array(
                 'name'    => 'coursestudentsallowed',
