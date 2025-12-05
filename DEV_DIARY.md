@@ -130,3 +130,4 @@
 127. 2025-11-30: Corrected class edit UI to select saved states, surface student labels in allow/restrict lists, and add repeater buttons for all itemized fields including instructors.
 128. 2025-11-30: Enabled full class editing with populated accordions, student autocomplete retention for allow/restrict lists, and AJAX saves that update existing class records.
 129. 2025-11-30: Normalized legacy class uploads by mapping format labels and splitting comma-prefixed instructors so imported records display cleanly in the editor.
+130. 2025-12-05: Added activation-time creation of the teqcidb_studenthistory table to track class registrations, attendance, and course/quiz progress flags.
