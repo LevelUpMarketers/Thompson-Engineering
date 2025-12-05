@@ -131,3 +131,4 @@
 128. 2025-11-30: Enabled full class editing with populated accordions, student autocomplete retention for allow/restrict lists, and AJAX saves that update existing class records.
 129. 2025-11-30: Normalized legacy class uploads by mapping format labels and splitting comma-prefixed instructors so imported records display cleanly in the editor.
 130. 2025-12-05: Added activation-time creation of the teqcidb_studenthistory table to track class registrations, attendance, and course/quiz progress flags.
+131. 2025-12-05: Added legacy student history uploads with mapping for statuses, payments, and enrollment into the new teqcidb_studenthistory table and surfaced a Settings checkbox for the new import type.

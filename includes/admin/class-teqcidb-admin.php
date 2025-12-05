@@ -2198,7 +2198,7 @@ class TEQCIDB_Admin {
 
         echo '<form id="teqcidb-legacy-upload-form" class="teqcidb-settings-form">';
 
-        echo '<p>' . esc_html__( 'Paste a single row from the legacy teqcidb_students table exactly as it appears in the database export. The importer will map fields into the new schema and save the student.', 'teqcidb' ) . '</p>';
+        echo '<p>' . esc_html__( 'Paste a single row from the selected legacy table exactly as it appears in the database export. The importer will map fields into the new schema and store the record.', 'teqcidb' ) . '</p>';
 
         echo '<table class="form-table" role="presentation">';
         echo '<tr>';
@@ -2214,8 +2214,9 @@ class TEQCIDB_Admin {
         echo '<legend class="screen-reader-text">' . esc_html__( 'Legacy upload types', 'teqcidb' ) . '</legend>';
 
         $upload_types = array(
-            'student' => __( 'Upload Legacy Student Records', 'teqcidb' ),
-            'class'   => __( 'Upload Legacy Class Records', 'teqcidb' ),
+            'student'        => __( 'Upload Legacy Student Records', 'teqcidb' ),
+            'class'          => __( 'Upload Legacy Class Records', 'teqcidb' ),
+            'studenthistory' => __( 'Upload Legacy Student History Records', 'teqcidb' ),
         );
 
         foreach ( $upload_types as $type_value => $type_label ) {
