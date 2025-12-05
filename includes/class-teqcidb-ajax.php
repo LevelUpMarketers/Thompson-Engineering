@@ -1905,8 +1905,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_unique_id', __( 'A unique student ID is required.', 'teqcidb' ) );
         }
 
-        $wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
-        $wp_user_id = $wp_user_id > 0 ? $wp_user_id : null;
+        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['contactstreetaddress'] ) ? $legacy_record['contactstreetaddress'] : '' ),
@@ -2017,8 +2016,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_history_class_id', __( 'A unique class ID is required for student history records.', 'teqcidb' ) );
         }
 
-        $wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
-        $wp_user_id = $wp_user_id > 0 ? $wp_user_id : null;
+        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
 
         return array(
             'uniquestudentid'  => $unique_student_id,
@@ -2035,6 +2033,68 @@ class TEQCIDB_Ajax {
             'courseinprogress' => 'no',
             'quizinprogress'   => 'no',
         );
+    }
+
+    private function resolve_legacy_history_user_id( array $legacy_record ) {
+        $legacy_wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
+
+        if ( $legacy_wp_user_id > 0 ) {
+            $existing_user = get_user_by( 'id', $legacy_wp_user_id );
+
+            if ( $existing_user ) {
+                return (int) $existing_user->ID;
+            }
+        }
+
+        $unique_student_id = isset( $legacy_record['uniquestudentid'] ) ? $legacy_record['uniquestudentid'] : '';
+        $email             = $this->extract_email_from_unique_student_id( $unique_student_id );
+
+        if ( '' === $email ) {
+            return null;
+        }
+
+        $user = get_user_by( 'email', $email );
+
+        if ( ! $user ) {
+            return null;
+        }
+
+        return (int) $user->ID;
+    }
+
+    private function extract_email_from_unique_student_id( $unique_student_id ) {
+        $normalized = $this->normalize_legacy_value( $unique_student_id );
+
+        if ( '' === $normalized ) {
+            return '';
+        }
+
+        if ( preg_match( '/^(.+@.+?)(\d{5,})$/', $normalized, $matches ) ) {
+            $email = sanitize_email( $matches[1] );
+
+            if ( is_email( $email ) ) {
+                return $email;
+            }
+        }
+
+        $trimmed = $normalized;
+
+        while ( strlen( $trimmed ) > 0 && ctype_digit( substr( $trimmed, -1 ) ) ) {
+            $trimmed = substr( $trimmed, 0, -1 );
+            $email   = sanitize_email( $trimmed );
+
+            if ( is_email( $email ) ) {
+                return $email;
+            }
+        }
+
+        $fallback = sanitize_email( $normalized );
+
+        if ( is_email( $fallback ) ) {
+            return $fallback;
+        }
+
+        return '';
     }
 
     private function convert_legacy_date( $value ) {
