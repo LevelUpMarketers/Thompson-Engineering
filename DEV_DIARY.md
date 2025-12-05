@@ -126,3 +126,7 @@
 123. 2025-11-29: Wired the Create Class form to save via AJAX, generating unique class IDs, persisting address/access fields, and storing selected student allow/restrict lists with their hidden IDs.
 124. 2025-11-29: Moved the Class Description field below the quiz allow selector on the Create Class form to match the desired layout.
 125. 2025-11-29: Updated class access allow/restrict list storage to use wpuserid/uniquestudentid keys and affirmed the sanitation path keeps special characters user-friendly when saving.
+126. 2025-11-30: Built the Classes edit tab UI with search, accordion pagination, and read-only forms populated from saved class records while leaving editing functionality for a later update.
+127. 2025-11-30: Corrected class edit UI to select saved states, surface student labels in allow/restrict lists, and add repeater buttons for all itemized fields including instructors.
+128. 2025-11-30: Enabled full class editing with populated accordions, student autocomplete retention for allow/restrict lists, and AJAX saves that update existing class records.
+129. 2025-11-30: Normalized legacy class uploads by mapping format labels and splitting comma-prefixed instructors so imported records display cleanly in the editor.

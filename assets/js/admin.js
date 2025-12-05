@@ -1141,6 +1141,600 @@ jQuery(document).ready(function($){
         });
     }
 
+    if($('#teqcidb-class-list').length){
+        var $classTableBody = $('#teqcidb-class-list');
+        var classPerPage = parseInt($classTableBody.data('per-page'), 10) || 10;
+        var classColumnCount = parseInt($classTableBody.data('column-count'), 10) || 6;
+        var $classPagination = $('#teqcidb-class-pagination');
+        var $classPaginationContainer = $classPagination.closest('.tablenav');
+        var $classFeedback = $('#teqcidb-class-feedback');
+        var $classSearchForm = $('#teqcidb-class-search');
+        var $classSearchSpinner = $('#teqcidb-class-search-spinner');
+        var $classSearchFeedback = $('#teqcidb-class-search-feedback');
+        var $classClearSearchButton = $('#teqcidb-class-search-clear');
+        var classPlaceholderMap = teqcidbAdmin.classPlaceholderMap || {};
+        var classPlaceholderList = Array.isArray(teqcidbAdmin.classPlaceholders) ? teqcidbAdmin.classPlaceholders : [];
+        var classFields = Array.isArray(teqcidbAdmin.classFields) ? teqcidbAdmin.classFields : [];
+        var classCurrentPage = 1;
+        var classCurrentFilters = {
+            placeholder_1: '',
+            placeholder_2: '',
+            placeholder_3: ''
+        };
+        var classEmptyValue = '—';
+        var classPendingFeedbackMessage = '';
+
+        if ($classFeedback.length){
+            $classFeedback.hide().removeClass('is-visible');
+        }
+
+        if ($classPaginationContainer.length){
+            $classPaginationContainer.hide();
+        }
+
+        function classClearFeedback(){
+            if ($classFeedback.length){
+                $classFeedback.text('').hide().removeClass('is-visible');
+            }
+        }
+
+        function classShowFeedback(message){
+            if (!$classFeedback.length){
+                return;
+            }
+
+            if (message){
+                $classFeedback.text(message).show().addClass('is-visible');
+            } else {
+                classClearFeedback();
+            }
+        }
+
+        function classClearSearchFeedback(){
+            if ($classSearchFeedback.length){
+                $classSearchFeedback.removeClass('is-visible').text('');
+            }
+        }
+
+        function classShowSearchFeedback(message){
+            if (!$classSearchFeedback.length){
+                return;
+            }
+
+            if (message){
+                $classSearchFeedback.text(message).addClass('is-visible');
+            } else {
+                classClearSearchFeedback();
+            }
+        }
+
+        function setClassSearchLoading(isLoading){
+            if (!$classSearchSpinner.length){
+                return;
+            }
+
+            if (isLoading){
+                $classSearchSpinner.addClass('is-active');
+            } else {
+                $classSearchSpinner.removeClass('is-active');
+            }
+        }
+
+        function getClassPlaceholderLabel(index){
+            var mapKey = 'placeholder_' + index;
+
+            if (Object.prototype.hasOwnProperty.call(classPlaceholderMap, mapKey) && classPlaceholderMap[mapKey]){
+                return classPlaceholderMap[mapKey];
+            }
+
+            if (classPlaceholderList.length >= index){
+                return classPlaceholderList[index - 1];
+            }
+
+            return 'Placeholder ' + index;
+        }
+
+        function classFormatValue(value){
+            if (value === null || typeof value === 'undefined' || value === ''){
+                return classEmptyValue;
+            }
+
+            return String(value);
+        }
+
+        function normalizeClassItem(item){
+            var normalized = {
+                label: '',
+                wpuserid: '',
+                uniquestudentid: ''
+            };
+
+            if (item && typeof item === 'object'){
+                if (Object.prototype.hasOwnProperty.call(item, 'label') && item.label){
+                    normalized.label = String(item.label);
+                }
+
+                if (Object.prototype.hasOwnProperty.call(item, 'wpuserid') && item.wpuserid){
+                    normalized.wpuserid = String(item.wpuserid);
+                }
+
+                if (Object.prototype.hasOwnProperty.call(item, 'uniquestudentid') && item.uniquestudentid){
+                    normalized.uniquestudentid = String(item.uniquestudentid);
+                }
+            } else if (typeof item === 'string' || typeof item === 'number'){
+                normalized.label = String(item);
+            }
+
+            return normalized;
+        }
+
+        function parseClassItemsValue(value){
+            if (typeof value === 'string' && value){
+                try {
+                    var parsed = JSON.parse(value);
+
+                    if (Array.isArray(parsed)){
+                        value = parsed;
+                    }
+                } catch (error){
+                    // fall back to empty list
+                }
+            }
+
+            if (!Array.isArray(value)){
+                return [];
+            }
+
+            return value.map(normalizeClassItem).filter(function(item){
+                return item.label || item.wpuserid || item.uniquestudentid;
+            });
+        }
+
+        function appendClassField($container, field, value){
+            var fieldName = field.name || '';
+            var baseId = fieldName + '-class-' + Math.random().toString(36).substring(2, 8);
+            var wrapperClass = 'teqcidb-field' + (field.fullWidth ? ' teqcidb-field-full' : '');
+            var $wrapper = $('<div/>', { 'class': wrapperClass });
+            var $label = $('<label/>');
+            var stringValue = value === null || typeof value === 'undefined' ? '' : value;
+
+            if (field.tooltip){
+                $label.append($('<span/>', {
+                    'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
+                    'data-tooltip': field.tooltip
+                }));
+            }
+
+            $label.append(document.createTextNode(field.label || ''));
+            $wrapper.append($label);
+
+            switch (field.type){
+                case 'select':
+                case 'state':
+                    var $select = $('<select/>', { name: fieldName, id: baseId });
+                    var options = field.options || {};
+
+                    if (field.type === 'state'){
+                        options = options && Object.keys(options).length ? options : teqcidbAdmin.states || [];
+                    }
+
+                    if (field.type === 'state'){
+                        $select.append($('<option/>', { value: '', text: teqcidbAdmin.makeSelection || 'Make a Selection...', disabled: true, selected: !stringValue }));
+
+                        var stateOptions = Array.isArray(options) ? options : Object.keys(options).map(function(optionKey){
+                            return options[optionKey];
+                        });
+
+                        stateOptions.forEach(function(stateLabel){
+                            var $stateOption = $('<option/>', { value: stateLabel, text: stateLabel });
+
+                            if (String(stateLabel) === String(value)){
+                                $stateOption.prop('selected', true);
+                            }
+
+                            $select.append($stateOption);
+                        });
+                    } else {
+                        Object.keys(options).forEach(function(optionValue){
+                            var optionLabel = options[optionValue];
+                            var $option = $('<option/>', { value: optionValue, text: optionLabel });
+
+                            if (optionValue === ''){
+                                $option.prop('disabled', true);
+
+                                if (!String(stringValue)){
+                                    $option.prop('selected', true);
+                                }
+                            } else if (String(optionValue) === String(value)){
+                                $option.prop('selected', true);
+                            }
+
+                            $select.append($option);
+                        });
+                    }
+
+                    $wrapper.append($select);
+                    break;
+                case 'items':
+                    var items = parseClassItemsValue(value);
+
+                    if (!items.length){
+                        items = [{ label: '', wpuserid: '', uniquestudentid: '' }];
+                    }
+
+                    var itemsContainerId = 'teqcidb-items-container-' + baseId;
+                    var $itemsContainer = $('<div/>', { 'class': 'teqcidb-items-container', 'data-placeholder': fieldName, id: itemsContainerId });
+
+                    if (field.autocomplete){
+                        $itemsContainer.attr('data-autocomplete', field.autocomplete);
+                    }
+
+                    items.forEach(function(itemValue, index){
+                        var $row = $('<div/>', { 'class': 'teqcidb-item-row', style: 'margin-bottom:8px; display:flex; align-items:center;' });
+                        var placeholderText = teqcidbAdmin.itemPlaceholder ? formatString(teqcidbAdmin.itemPlaceholder, index + 1) : '';
+                        var $input = $('<input/>', {
+                            type: 'text',
+                            name: fieldName + '[]',
+                            'class': 'regular-text teqcidb-item-field',
+                            placeholder: placeholderText,
+                            value: itemValue && itemValue.label ? itemValue.label : ''
+                        });
+
+                        if (field.autocomplete === 'student'){
+                            $input.addClass('teqcidb-autocomplete-field');
+
+                            if ((itemValue.wpuserid && String(itemValue.wpuserid)) || (itemValue.uniquestudentid && String(itemValue.uniquestudentid))){
+                                setHiddenStudentFields($input, {
+                                    wpuserid: itemValue.wpuserid,
+                                    uniquestudentid: itemValue.uniquestudentid
+                                });
+                            }
+                        }
+
+                        $row.append($input);
+                        var $removeButton = $('<button/>', {
+                            type: 'button',
+                            'class': 'teqcidb-delete-item',
+                            'aria-label': 'Remove',
+                            style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
+                        }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
+
+                        $row.append($removeButton);
+                        $itemsContainer.append($row);
+                    });
+
+                    $wrapper.append($itemsContainer);
+
+                    var $addButton = $('<button/>', {
+                        type: 'button',
+                        'class': 'button teqcidb-add-item',
+                        'data-target': '#' + itemsContainerId,
+                        'data-field-name': fieldName,
+                        style: 'margin-top:8px;'
+                    }).text(teqcidbAdmin.addAnotherItem || '+ Add Another Item');
+
+                    if (field.autocomplete){
+                        $addButton.attr('data-autocomplete', field.autocomplete);
+                    }
+
+                    $wrapper.append($addButton);
+                    break;
+                case 'textarea':
+                    var $textareaField = $('<textarea/>', { name: fieldName, id: baseId }).text(stringValue || '');
+
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $textareaField.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
+                    $wrapper.append($textareaField);
+                    break;
+                default:
+                    var inputType = field.type === 'number' ? 'number' : (field.type || 'text');
+                    var $input = $('<input/>', { type: inputType, name: fieldName, id: baseId, value: stringValue || '' });
+
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $input.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
+                    $wrapper.append($input);
+                    break;
+            }
+
+            $container.append($wrapper);
+        }
+
+        function buildClassForm(entity){
+            var entityId = entity && entity.id ? entity.id : 0;
+            var $form = $('<form/>', { 'class': 'teqcidb-class-edit-form', 'data-entity-id': entityId });
+            var $flexForm = $('<div/>', { 'class': 'teqcidb-flex-form' });
+
+            $form.append($('<input/>', { type: 'hidden', name: 'id', value: entityId }));
+            $form.append($('<input/>', { type: 'hidden', name: 'name', value: entity && entity.name ? entity.name : '' }));
+
+            classFields.forEach(function(field){
+                var value = (entity && Object.prototype.hasOwnProperty.call(entity, field.name)) ? entity[field.name] : '';
+                appendClassField($flexForm, field, value);
+            });
+
+            $form.append($flexForm);
+
+            var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
+            var $button = $('<button/>', { type: 'submit', 'class': 'button button-primary teqcidb-class-save' }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+            var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
+            var $spinner = $('<span/>', { 'class': 'spinner teqcidb-class-spinner', 'aria-hidden': 'true' });
+            var $feedback = $('<span/>', { 'class': 'teqcidb-class-feedback', 'role': 'status', 'aria-live': 'polite' });
+            $feedbackArea.append($spinner).append($feedback);
+            $actions.append($button).append($feedbackArea);
+            $form.append($actions);
+
+            return $form;
+        }
+
+        function updateClassPagination(total, totalPages, page){
+            var totalSafe = parseInt(total, 10) || 0;
+            var totalPagesSafe = parseInt(totalPages, 10) || 1;
+            var pageSafe = parseInt(page, 10) || 1;
+            var html = '<span class="displaying-num">' + formatString(teqcidbAdmin.totalRecords, totalSafe) + '</span>';
+
+            if (totalPagesSafe > 1){
+                html += '<span class="pagination-links">';
+
+                if (pageSafe > 1){
+                    html += '<a class="first-page button teqcidb-class-page" href="#" data-page="1"><span class="screen-reader-text">' + teqcidbAdmin.firstPage + '</span><span aria-hidden="true">&laquo;</span></a>';
+                    html += '<a class="prev-page button teqcidb-class-page" href="#" data-page="' + (pageSafe - 1) + '"><span class="screen-reader-text">' + teqcidbAdmin.prevPage + '</span><span aria-hidden="true">&lsaquo;</span></a>';
+                } else {
+                    html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>';
+                    html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>';
+                }
+
+                html += '<span class="tablenav-paging-text">' + formatString(teqcidbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
+
+                if (pageSafe < totalPagesSafe){
+                    html += '<a class="next-page button teqcidb-class-page" href="#" data-page="' + (pageSafe + 1) + '"><span class="screen-reader-text">' + teqcidbAdmin.nextPage + '</span><span aria-hidden="true">&rsaquo;</span></a>';
+                    html += '<a class="last-page button teqcidb-class-page" href="#" data-page="' + totalPagesSafe + '"><span class="screen-reader-text">' + teqcidbAdmin.lastPage + '</span><span aria-hidden="true">&raquo;</span></a>';
+                } else {
+                    html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>';
+                    html += '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>';
+                }
+
+                html += '</span>';
+            } else {
+                html += '<span class="tablenav-paging-text">' + formatString(teqcidbAdmin.pageOf, pageSafe, totalPagesSafe) + '</span>';
+            }
+
+            $classPagination.html(html);
+
+            if ($classPaginationContainer.length){
+                $classPaginationContainer.show();
+            }
+        }
+
+        function renderClasses(data){
+            var entities = data && Array.isArray(data.entities) ? data.entities : [];
+            classCurrentPage = data && data.page ? data.page : 1;
+            var total = data && typeof data.total !== 'undefined' ? data.total : 0;
+            var totalPages = data && data.total_pages ? data.total_pages : 1;
+
+            $classTableBody.empty();
+
+            if (!entities.length){
+                var $emptyRow = $('<tr class="no-items"></tr>');
+                var $emptyCell = $('<td/>').attr('colspan', classColumnCount).text(teqcidbAdmin.none);
+                $emptyRow.append($emptyCell);
+                $classTableBody.append($emptyRow);
+                updateClassPagination(total, totalPages, classCurrentPage);
+                return;
+            }
+
+            entities.forEach(function(entity){
+                var entityId = entity.id || 0;
+                var headerId = 'teqcidb-class-' + entityId + '-header';
+                var panelId = 'teqcidb-class-' + entityId + '-panel';
+
+                var $summaryRow = $('<tr/>', {
+                    id: headerId,
+                    'class': 'teqcidb-accordion__summary-row',
+                    tabindex: 0,
+                    role: 'button',
+                    'aria-expanded': 'false',
+                    'aria-controls': panelId
+                });
+
+                var $titleCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--title'});
+                var $titleText = $('<span/>', {'class': 'teqcidb-accordion__title-text'}).text(classFormatValue(entity.placeholder_1));
+                $titleCell.append($titleText);
+                $summaryRow.append($titleCell);
+
+                for (var index = 2; index <= 5; index++) {
+                    var label = getClassPlaceholderLabel(index);
+                    var valueKey = 'placeholder_' + index;
+                    var value = classFormatValue(entity[valueKey]);
+                    var $metaCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--meta'});
+                    var $metaText = $('<span/>', {'class': 'teqcidb-accordion__meta-text'});
+                    $metaText.append($('<span/>', {'class': 'teqcidb-accordion__meta-label'}).text(label + ':'));
+                    $metaText.append(' ');
+                    $metaText.append($('<span/>', {'class': 'teqcidb-accordion__meta-value'}).text(value));
+                    $metaCell.append($metaText);
+                    $summaryRow.append($metaCell);
+                }
+
+                var $actionsCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--actions'});
+                var $editText = $('<span/>', {'class': 'teqcidb-accordion__action-link', 'aria-hidden': 'true'}).text(teqcidbAdmin.editAction);
+                var $icon = $('<span/>', {'class': 'dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon', 'aria-hidden': 'true'});
+                var $srText = $('<span/>', {'class': 'screen-reader-text'}).text(teqcidbAdmin.classToggleDetails || teqcidbAdmin.toggleDetails);
+                $actionsCell.append($editText);
+                $actionsCell.append($icon).append($srText);
+                $summaryRow.append($actionsCell);
+                $classTableBody.append($summaryRow);
+
+                var $panelRow = $('<tr/>', {
+                    id: panelId,
+                    'class': 'teqcidb-accordion__panel-row',
+                    role: 'region',
+                    'aria-labelledby': headerId,
+                    'aria-hidden': 'true'
+                }).hide();
+
+                var $panelCell = $('<td/>').attr('colspan', classColumnCount);
+                var $panel = $('<div/>', {'class': 'teqcidb-accordion__panel'}).hide();
+                var $form = buildClassForm(entity);
+
+                $panel.append($('<h3/>', {'class': 'teqcidb-entity__title'}).text(teqcidbAdmin.classEditHeading || ''));
+                $panel.append($form);
+                initAutocompleteForScope($panel);
+                $panelCell.append($panel);
+                $panelRow.append($panelCell);
+                $classTableBody.append($panelRow);
+            });
+
+            updateClassPagination(total, totalPages, classCurrentPage);
+        }
+
+        function fetchClasses(page){
+            var targetPage = page || 1;
+            classClearFeedback();
+            classClearSearchFeedback();
+            setClassSearchLoading(true);
+
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_read_class',
+                _ajax_nonce: teqcidbAjax.nonce,
+                page: targetPage,
+                per_page: classPerPage,
+                search: {
+                    placeholder_1: classCurrentFilters.placeholder_1,
+                    placeholder_2: classCurrentFilters.placeholder_2,
+                    placeholder_3: classCurrentFilters.placeholder_3
+                }
+            })
+                .done(function(response){
+                    if (response && response.success && response.data){
+                        renderClasses(response.data);
+
+                        if (classPendingFeedbackMessage){
+                            classShowFeedback(classPendingFeedbackMessage);
+                            classPendingFeedbackMessage = '';
+                        } else {
+                            classClearFeedback();
+                        }
+
+                        if (classCurrentFilters.placeholder_1 || classCurrentFilters.placeholder_2 || classCurrentFilters.placeholder_3){
+                            classShowSearchFeedback(teqcidbAdmin.classSearchFiltersApplied || '');
+                        } else {
+                            classClearSearchFeedback();
+                        }
+                    } else {
+                        classShowFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                        classShowSearchFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                    }
+                })
+                .fail(function(){
+                    classShowFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                    classShowSearchFeedback(teqcidbAdmin.loadError || teqcidbAdmin.error);
+                })
+                .always(function(){
+                    setClassSearchLoading(false);
+                });
+        }
+
+        fetchClasses(1);
+
+        if ($classPagination.length){
+            $classPagination.on('click', '.teqcidb-class-page', function(e){
+                e.preventDefault();
+                var targetPage = parseInt($(this).data('page'), 10);
+
+                if (!targetPage || targetPage === classCurrentPage){
+                    return;
+                }
+
+                fetchClasses(targetPage);
+            });
+        }
+
+        if ($classSearchForm.length){
+            $classSearchForm.on('submit', function(e){
+                e.preventDefault();
+
+                classCurrentFilters.placeholder_1 = $.trim($classSearchForm.find('input[name="placeholder_1"]').val());
+                classCurrentFilters.placeholder_2 = $.trim($classSearchForm.find('input[name="placeholder_2"]').val());
+                classCurrentFilters.placeholder_3 = $.trim($classSearchForm.find('input[name="placeholder_3"]').val());
+
+                fetchClasses(1);
+            });
+        }
+
+        if ($classClearSearchButton.length){
+            $classClearSearchButton.on('click', function(){
+                var hadActiveFilters = classCurrentFilters.placeholder_1 || classCurrentFilters.placeholder_2 || classCurrentFilters.placeholder_3;
+
+                classCurrentFilters.placeholder_1 = '';
+                classCurrentFilters.placeholder_2 = '';
+                classCurrentFilters.placeholder_3 = '';
+
+                $classSearchForm.find('input[name="placeholder_1"], input[name="placeholder_2"], input[name="placeholder_3"]').val('');
+
+                classClearSearchFeedback();
+
+                if (hadActiveFilters || classCurrentPage !== 1){
+                    fetchClasses(1);
+                }
+            });
+        }
+
+        $classTableBody.on('submit', '.teqcidb-class-edit-form', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $form = $(this);
+            var $spinner = $form.find('.teqcidb-class-spinner');
+            var $feedback = $form.find('.teqcidb-class-feedback');
+
+            if ($spinner.length){
+                $spinner.addClass('is-active');
+            }
+
+            if ($feedback.length){
+                $feedback.removeClass('is-visible').text('');
+            }
+
+            var formData = $form.serialize();
+            formData += '&action=teqcidb_save_class&_ajax_nonce=' + encodeURIComponent(teqcidbAjax.nonce);
+
+            $.post(teqcidbAjax.ajaxurl, formData)
+                .done(function(resp){
+                    if (resp && resp.success){
+                        classPendingFeedbackMessage = resp.data && resp.data.message ? resp.data.message : '';
+                        fetchClasses(classCurrentPage);
+                    } else {
+                        var message = resp && resp.data && resp.data.message ? resp.data.message : (teqcidbAdmin.error || '');
+
+                        if ($feedback.length && message){
+                            $feedback.text(message).addClass('is-visible');
+                        }
+                    }
+                })
+                .fail(function(){
+                    if ($feedback.length && teqcidbAdmin.error){
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                    }
+                })
+                .always(function(){
+                    if ($spinner.length){
+                        setTimeout(function(){
+                            $spinner.removeClass('is-active');
+                        }, 150);
+                    }
+                });
+        });
+    }
+
     $('.teqcidb-accordion').on('click','.item-header',function(){
         $(this).next('.item-content').slideToggle();
         $(this).parent().toggleClass('open');
