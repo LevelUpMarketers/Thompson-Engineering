@@ -130,3 +130,9 @@
 127. 2025-11-30: Corrected class edit UI to select saved states, surface student labels in allow/restrict lists, and add repeater buttons for all itemized fields including instructors.
 128. 2025-11-30: Enabled full class editing with populated accordions, student autocomplete retention for allow/restrict lists, and AJAX saves that update existing class records.
 129. 2025-11-30: Normalized legacy class uploads by mapping format labels and splitting comma-prefixed instructors so imported records display cleanly in the editor.
+130. 2025-12-05: Added activation-time creation of the teqcidb_studenthistory table to track class registrations, attendance, and course/quiz progress flags.
+131. 2025-12-05: Added legacy student history uploads with mapping for statuses, payments, and enrollment into the new teqcidb_studenthistory table and surfaced a Settings checkbox for the new import type.
+132. 2025-12-05: Enabled multi-record legacy uploads for classes, students, and student history entries with per-row skip tracking and summary messaging.
+133. 2025-12-05: Filled missing WordPress user IDs during legacy student history imports by deriving emails from unique student IDs and matching existing accounts.
+134. 2025-12-05: Allowed legacy uploads with empty date/time fields to insert cleanly by normalizing those values to null instead of empty strings.
+135. 2025-12-05: Removed duplicate detection for legacy student history uploads so admins can reinsert matching rows when needed.

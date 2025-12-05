@@ -534,7 +534,7 @@ class TEQCIDB_Ajax {
             $requested_types = array( 'student' );
         }
 
-        $allowed_types  = array( 'student', 'class' );
+        $allowed_types  = array( 'student', 'class', 'studenthistory' );
         $selected_types = array_values( array_intersect( $requested_types, $allowed_types ) );
 
         if ( empty( $selected_types ) ) {
@@ -562,232 +562,398 @@ class TEQCIDB_Ajax {
             return;
         }
 
+        if ( 'studenthistory' === $upload_type ) {
+            $this->process_legacy_student_history_upload( $raw_record, $start );
+            return;
+        }
+
         $this->process_legacy_student_upload( $raw_record, $start );
     }
 
-    private function process_legacy_student_upload( $raw_record, $start ) {
-        $parsed = $this->parse_legacy_student_record( $raw_record );
+    private function process_legacy_student_history_upload( $raw_record, $start ) {
+        $records = $this->split_legacy_rows( $raw_record );
 
-        if ( is_wp_error( $parsed ) ) {
+        if ( empty( $records ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => $parsed->get_error_message(),
-                )
-            );
-        }
-
-        $mapped = $this->map_legacy_student_record( $parsed );
-
-        if ( is_wp_error( $mapped ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => $mapped->get_error_message(),
+                    'message' => __( 'Please paste a legacy student history row before uploading.', 'teqcidb' ),
                 )
             );
         }
 
         global $wpdb;
 
-        $table = $wpdb->prefix . 'teqcidb_students';
+        $table             = $wpdb->prefix . 'teqcidb_studenthistory';
+        $inserted          = 0;
+        $skipped_messages  = array();
 
-        if ( $this->legacy_student_value_exists( $table, 'email', $mapped['email'] ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'A student with this email already exists.', 'teqcidb' ),
-                )
-            );
-        }
+        foreach ( $records as $record ) {
+            $parsed = $this->parse_legacy_student_history_record( $record );
 
-        if ( $this->legacy_student_value_exists( $table, 'uniquestudentid', $mapped['uniquestudentid'] ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'A student with this unique ID already exists.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $data = array(
-            'wpuserid'              => $mapped['wpuserid'],
-            'uniquestudentid'       => $mapped['uniquestudentid'],
-            'first_name'            => $mapped['first_name'],
-            'last_name'             => $mapped['last_name'],
-            'company'               => $mapped['company'],
-            'old_companies'         => $mapped['old_companies'],
-            'student_address'       => $mapped['student_address'],
-            'phone_cell'            => $mapped['phone_cell'],
-            'phone_office'          => $mapped['phone_office'],
-            'fax'                   => $mapped['fax'],
-            'email'                 => $mapped['email'],
-            'initial_training_date' => $mapped['initial_training_date'],
-            'last_refresher_date'   => $mapped['last_refresher_date'],
-            'is_a_representative'   => $mapped['is_a_representative'],
-            'their_representative'  => $mapped['their_representative'],
-            'new_class_signup_flag' => $mapped['new_class_signup_flag'],
-            'associations'          => $mapped['associations'],
-            'expiration_date'       => $mapped['expiration_date'],
-            'qcinumber'             => $mapped['qcinumber'],
-            'comments'              => $mapped['comments'],
-        );
-
-        $formats = array(
-            'wpuserid'              => '%d',
-            'uniquestudentid'       => '%s',
-            'first_name'            => '%s',
-            'last_name'             => '%s',
-            'company'               => '%s',
-            'old_companies'         => '%s',
-            'student_address'       => '%s',
-            'phone_cell'            => '%s',
-            'phone_office'          => '%s',
-            'fax'                   => '%s',
-            'email'                 => '%s',
-            'initial_training_date' => '%s',
-            'last_refresher_date'   => '%s',
-            'is_a_representative'   => '%d',
-            'their_representative'  => '%s',
-            'new_class_signup_flag' => '%d',
-            'associations'          => '%s',
-            'expiration_date'       => '%s',
-            'qcinumber'             => '%s',
-            'comments'              => '%s',
-        );
-
-        foreach ( $data as $key => $value ) {
-            if ( null === $value ) {
-                unset( $data[ $key ], $formats[ $key ] );
+            if ( is_wp_error( $parsed ) ) {
+                $skipped_messages[] = $parsed->get_error_message();
+                continue;
             }
-        }
 
-        $insert_formats = array();
+            $mapped = $this->map_legacy_student_history_record( $parsed );
 
-        foreach ( $data as $key => $_value ) {
-            if ( isset( $formats[ $key ] ) ) {
-                $insert_formats[] = $formats[ $key ];
+            if ( is_wp_error( $mapped ) ) {
+                $skipped_messages[] = $mapped->get_error_message();
+                continue;
             }
-        }
 
-        $result = $wpdb->insert( $table, $data, $insert_formats );
-
-        if ( false === $result ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' ),
-                )
+            $data = array(
+                'uniquestudentid' => $mapped['uniquestudentid'],
+                'wpuserid'        => $mapped['wpuserid'],
+                'classname'       => $mapped['classname'],
+                'uniqueclassid'   => $mapped['uniqueclassid'],
+                'registered'      => $mapped['registered'],
+                'attended'        => $mapped['attended'],
+                'outcome'         => $mapped['outcome'],
+                'paymentstatus'   => $mapped['paymentstatus'],
+                'amountpaid'      => $mapped['amountpaid'],
+                'enrollmentdate'  => $mapped['enrollmentdate'],
+                'registeredby'    => $mapped['registeredby'],
+                'courseinprogress' => $mapped['courseinprogress'],
+                'quizinprogress'   => $mapped['quizinprogress'],
             );
+
+            $formats = array(
+                'uniquestudentid' => '%s',
+                'wpuserid'        => '%d',
+                'classname'       => '%s',
+                'uniqueclassid'   => '%s',
+                'registered'      => '%s',
+                'attended'        => '%s',
+                'outcome'         => '%s',
+                'paymentstatus'   => '%s',
+                'amountpaid'      => '%f',
+                'enrollmentdate'  => '%s',
+                'registeredby'    => '%d',
+                'courseinprogress' => '%s',
+                'quizinprogress'   => '%s',
+            );
+
+            foreach ( $data as $key => $value ) {
+                if ( null === $value ) {
+                    unset( $data[ $key ], $formats[ $key ] );
+                }
+            }
+
+            $insert_formats = array();
+
+            foreach ( $data as $key => $_value ) {
+                if ( isset( $formats[ $key ] ) ) {
+                    $insert_formats[] = $formats[ $key ];
+                }
+            }
+
+            $result = $wpdb->insert( $table, $data, $insert_formats );
+
+            if ( false === $result ) {
+                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                continue;
+            }
+
+            $inserted++; 
         }
 
         $this->maybe_delay( $start );
-        wp_send_json_success(
+
+        if ( $inserted > 0 ) {
+            $message = __( 'Legacy student history uploaded successfully.', 'teqcidb' );
+
+            if ( ! empty( $skipped_messages ) ) {
+                $message = sprintf(
+                    /* translators: 1: inserted count, 2: skipped count. */
+                    __( 'Uploaded %1$d record(s); %2$d skipped.', 'teqcidb' ),
+                    $inserted,
+                    count( $skipped_messages )
+                );
+            }
+
+            wp_send_json_success(
+                array(
+                    'message' => $message,
+                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                )
+            );
+        }
+
+        wp_send_json_error(
             array(
-                'message' => __( 'Legacy student uploaded successfully.', 'teqcidb' ),
+                'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
+                'skipped' => array_values( array_unique( $skipped_messages ) ),
+            )
+        );
+    }
+
+    private function process_legacy_student_upload( $raw_record, $start ) {
+        $records = $this->split_legacy_rows( $raw_record );
+
+        if ( empty( $records ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please paste a legacy student row before uploading.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table            = $wpdb->prefix . 'teqcidb_students';
+        $inserted         = 0;
+        $skipped_messages = array();
+
+        foreach ( $records as $record ) {
+            $parsed = $this->parse_legacy_student_record( $record );
+
+            if ( is_wp_error( $parsed ) ) {
+                $skipped_messages[] = $parsed->get_error_message();
+                continue;
+            }
+
+            $mapped = $this->map_legacy_student_record( $parsed );
+
+            if ( is_wp_error( $mapped ) ) {
+                $skipped_messages[] = $mapped->get_error_message();
+                continue;
+            }
+
+            if ( $this->legacy_student_value_exists( $table, 'email', $mapped['email'] ) ) {
+                $skipped_messages[] = __( 'A student with this email already exists.', 'teqcidb' );
+                continue;
+            }
+
+            if ( $this->legacy_student_value_exists( $table, 'uniquestudentid', $mapped['uniquestudentid'] ) ) {
+                $skipped_messages[] = __( 'A student with this unique ID already exists.', 'teqcidb' );
+                continue;
+            }
+
+            $data = array(
+                'wpuserid'              => $mapped['wpuserid'],
+                'uniquestudentid'       => $mapped['uniquestudentid'],
+                'first_name'            => $mapped['first_name'],
+                'last_name'             => $mapped['last_name'],
+                'company'               => $mapped['company'],
+                'old_companies'         => $mapped['old_companies'],
+                'student_address'       => $mapped['student_address'],
+                'phone_cell'            => $mapped['phone_cell'],
+                'phone_office'          => $mapped['phone_office'],
+                'fax'                   => $mapped['fax'],
+                'email'                 => $mapped['email'],
+                'initial_training_date' => $mapped['initial_training_date'],
+                'last_refresher_date'   => $mapped['last_refresher_date'],
+                'is_a_representative'   => $mapped['is_a_representative'],
+                'their_representative'  => $mapped['their_representative'],
+                'new_class_signup_flag' => $mapped['new_class_signup_flag'],
+                'associations'          => $mapped['associations'],
+                'expiration_date'       => $mapped['expiration_date'],
+                'qcinumber'             => $mapped['qcinumber'],
+                'comments'              => $mapped['comments'],
+            );
+
+            $formats = array(
+                'wpuserid'              => '%d',
+                'uniquestudentid'       => '%s',
+                'first_name'            => '%s',
+                'last_name'             => '%s',
+                'company'               => '%s',
+                'old_companies'         => '%s',
+                'student_address'       => '%s',
+                'phone_cell'            => '%s',
+                'phone_office'          => '%s',
+                'fax'                   => '%s',
+                'email'                 => '%s',
+                'initial_training_date' => '%s',
+                'last_refresher_date'   => '%s',
+                'is_a_representative'   => '%d',
+                'their_representative'  => '%s',
+                'new_class_signup_flag' => '%d',
+                'associations'          => '%s',
+                'expiration_date'       => '%s',
+                'qcinumber'             => '%s',
+                'comments'              => '%s',
+            );
+
+            foreach ( $data as $key => $value ) {
+                if ( null === $value ) {
+                    unset( $data[ $key ], $formats[ $key ] );
+                }
+            }
+
+            $insert_formats = array();
+
+            foreach ( $data as $key => $_value ) {
+                if ( isset( $formats[ $key ] ) ) {
+                    $insert_formats[] = $formats[ $key ];
+                }
+            }
+
+            $result = $wpdb->insert( $table, $data, $insert_formats );
+
+            if ( false === $result ) {
+                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                continue;
+            }
+
+            $inserted++;
+        }
+
+        $this->maybe_delay( $start );
+
+        if ( $inserted > 0 ) {
+            $message = __( 'Legacy student uploaded successfully.', 'teqcidb' );
+
+            if ( ! empty( $skipped_messages ) ) {
+                $message = sprintf(
+                    /* translators: 1: inserted count, 2: skipped count. */
+                    __( 'Uploaded %1$d record(s); %2$d skipped.', 'teqcidb' ),
+                    $inserted,
+                    count( $skipped_messages )
+                );
+            }
+
+            wp_send_json_success(
+                array(
+                    'message' => $message,
+                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                )
+            );
+        }
+
+        wp_send_json_error(
+            array(
+                'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
+                'skipped' => array_values( array_unique( $skipped_messages ) ),
             )
         );
     }
 
     private function process_legacy_class_upload( $raw_record, $start ) {
-        $parsed = $this->parse_legacy_class_record( $raw_record );
+        $records = $this->split_legacy_rows( $raw_record );
 
-        if ( is_wp_error( $parsed ) ) {
+        if ( empty( $records ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => $parsed->get_error_message(),
-                )
-            );
-        }
-
-        $mapped = $this->map_legacy_class_record( $parsed );
-
-        if ( is_wp_error( $mapped ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => $mapped->get_error_message(),
+                    'message' => __( 'Please paste a legacy class row before uploading.', 'teqcidb' ),
                 )
             );
         }
 
         global $wpdb;
 
-        $table = $wpdb->prefix . 'teqcidb_classes';
+        $table            = $wpdb->prefix . 'teqcidb_classes';
+        $inserted         = 0;
+        $skipped_messages = array();
 
-        if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'A class with this unique ID already exists.', 'teqcidb' ),
-                )
-            );
-        }
+        foreach ( $records as $record ) {
+            $parsed = $this->parse_legacy_class_record( $record );
 
-        $data = array(
-            'uniqueclassid'         => $mapped['uniqueclassid'],
-            'classname'             => $mapped['classname'],
-            'classformat'           => $mapped['classformat'],
-            'classtype'             => $mapped['classtype'],
-            'classsize'             => $mapped['classsize'],
-            'classregistrantnumber' => $mapped['classregistrantnumber'],
-            'instructors'           => $mapped['instructors'],
-            'classsaddress'         => $mapped['classsaddress'],
-            'classstartdate'        => $mapped['classstartdate'],
-            'classstarttime'        => $mapped['classstarttime'],
-            'classendtime'          => $mapped['classendtime'],
-            'classcost'             => $mapped['classcost'],
-            'classdescription'      => $mapped['classdescription'],
-            'classhide'             => $mapped['classhide'],
-        );
-
-        $formats = array(
-            'uniqueclassid'         => '%s',
-            'classname'             => '%s',
-            'classformat'           => '%s',
-            'classtype'             => '%s',
-            'classsize'             => '%d',
-            'classregistrantnumber' => '%d',
-            'instructors'           => '%s',
-            'classsaddress'         => '%s',
-            'classstartdate'        => '%s',
-            'classstarttime'        => '%s',
-            'classendtime'          => '%s',
-            'classcost'             => '%s',
-            'classdescription'      => '%s',
-            'classhide'             => '%d',
-        );
-
-        foreach ( $data as $key => $value ) {
-            if ( null === $value ) {
-                unset( $data[ $key ], $formats[ $key ] );
+            if ( is_wp_error( $parsed ) ) {
+                $skipped_messages[] = $parsed->get_error_message();
+                continue;
             }
-        }
 
-        $insert_formats = array();
+            $mapped = $this->map_legacy_class_record( $parsed );
 
-        foreach ( $data as $key => $_value ) {
-            if ( isset( $formats[ $key ] ) ) {
-                $insert_formats[] = $formats[ $key ];
+            if ( is_wp_error( $mapped ) ) {
+                $skipped_messages[] = $mapped->get_error_message();
+                continue;
             }
-        }
 
-        $result = $wpdb->insert( $table, $data, $insert_formats );
+            if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
+                $skipped_messages[] = __( 'A class with this unique ID already exists.', 'teqcidb' );
+                continue;
+            }
 
-        if ( false === $result ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' ),
-                )
+            $data = array(
+                'uniqueclassid'         => $mapped['uniqueclassid'],
+                'classname'             => $mapped['classname'],
+                'classformat'           => $mapped['classformat'],
+                'classtype'             => $mapped['classtype'],
+                'classsize'             => $mapped['classsize'],
+                'classregistrantnumber' => $mapped['classregistrantnumber'],
+                'instructors'           => $mapped['instructors'],
+                'classsaddress'         => $mapped['classsaddress'],
+                'classstartdate'        => $mapped['classstartdate'],
+                'classstarttime'        => $mapped['classstarttime'],
+                'classendtime'          => $mapped['classendtime'],
+                'classcost'             => $mapped['classcost'],
+                'classdescription'      => $mapped['classdescription'],
+                'classhide'             => $mapped['classhide'],
             );
+
+            $formats = array(
+                'uniqueclassid'         => '%s',
+                'classname'             => '%s',
+                'classformat'           => '%s',
+                'classtype'             => '%s',
+                'classsize'             => '%d',
+                'classregistrantnumber' => '%d',
+                'instructors'           => '%s',
+                'classsaddress'         => '%s',
+                'classstartdate'        => '%s',
+                'classstarttime'        => '%s',
+                'classendtime'          => '%s',
+                'classcost'             => '%s',
+                'classdescription'      => '%s',
+                'classhide'             => '%d',
+            );
+
+            foreach ( $data as $key => $value ) {
+                if ( null === $value ) {
+                    unset( $data[ $key ], $formats[ $key ] );
+                }
+            }
+
+            $insert_formats = array();
+
+            foreach ( $data as $key => $_value ) {
+                if ( isset( $formats[ $key ] ) ) {
+                    $insert_formats[] = $formats[ $key ];
+                }
+            }
+
+            $result = $wpdb->insert( $table, $data, $insert_formats );
+
+            if ( false === $result ) {
+                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                continue;
+            }
+
+            $inserted++;
         }
 
         $this->maybe_delay( $start );
-        wp_send_json_success(
+
+        if ( $inserted > 0 ) {
+            $message = __( 'Legacy class uploaded successfully.', 'teqcidb' );
+
+            if ( ! empty( $skipped_messages ) ) {
+                $message = sprintf(
+                    /* translators: 1: inserted count, 2: skipped count. */
+                    __( 'Uploaded %1$d record(s); %2$d skipped.', 'teqcidb' ),
+                    $inserted,
+                    count( $skipped_messages )
+                );
+            }
+
+            wp_send_json_success(
+                array(
+                    'message' => $message,
+                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                )
+            );
+        }
+
+        wp_send_json_error(
             array(
-                'message' => __( 'Legacy class uploaded successfully.', 'teqcidb' ),
+                'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
+                'skipped' => array_values( array_unique( $skipped_messages ) ),
             )
         );
     }
@@ -1496,6 +1662,23 @@ class TEQCIDB_Ajax {
         return $date->format( 'Y-m-d' );
     }
 
+    private function split_legacy_rows( $raw_record ) {
+        $normalized = trim( (string) $raw_record );
+
+        if ( '' === $normalized ) {
+            return array();
+        }
+
+        $matches = array();
+        preg_match_all( '/\([^()]*\)/', $normalized, $matches );
+
+        if ( ! empty( $matches[0] ) ) {
+            return $matches[0];
+        }
+
+        return array( $normalized );
+    }
+
     private function parse_legacy_student_record( $raw_record ) {
         $normalized = trim( (string) $raw_record );
 
@@ -1641,6 +1824,69 @@ class TEQCIDB_Ajax {
         return $record;
     }
 
+    private function parse_legacy_student_history_record( $raw_record ) {
+        $normalized = trim( (string) $raw_record );
+
+        if ( '' === $normalized ) {
+            return new WP_Error( 'teqcidb_legacy_history_empty', __( 'Please paste a legacy student history row before uploading.', 'teqcidb' ) );
+        }
+
+        $normalized = trim( $normalized, "; \t\n\r\0\x0B" );
+
+        if ( '(' === substr( $normalized, 0, 1 ) && ')' === substr( $normalized, -1 ) ) {
+            $normalized = substr( $normalized, 1, -1 );
+        }
+
+        $normalized = trim( $normalized );
+
+        $values = str_getcsv( $normalized, ',', "'" );
+
+        if ( ! is_array( $values ) || empty( $values ) ) {
+            return new WP_Error( 'teqcidb_legacy_history_parse', __( 'The legacy record could not be parsed. Please verify the comma-separated format.', 'teqcidb' ) );
+        }
+
+        $columns = array(
+            'ID',
+            'uniquestudentid',
+            'classname',
+            'wpuserid',
+            'uniqueclassid',
+            'registered',
+            'adminapproved',
+            'attended',
+            'outcome',
+            'paymentstatus',
+            'amountpaid',
+            'enrollmentdate',
+            'credentialsdate',
+            'referencenumber',
+            'transactionid',
+            'lastupdated',
+        );
+
+        if ( count( $values ) < count( $columns ) ) {
+            return new WP_Error(
+                'teqcidb_legacy_history_columns',
+                sprintf(
+                    /* translators: 1: expected column count, 2: provided column count. */
+                    __( 'The legacy record is missing columns. Expected %1$d values but found %2$d.', 'teqcidb' ),
+                    count( $columns ),
+                    count( $values )
+                )
+            );
+        }
+
+        $values = array_slice( $values, 0, count( $columns ) );
+
+        $record = array();
+
+        foreach ( $columns as $index => $column_key ) {
+            $record[ $column_key ] = isset( $values[ $index ] ) ? $this->normalize_legacy_value( $values[ $index ] ) : '';
+        }
+
+        return $record;
+    }
+
     private function map_legacy_student_record( array $legacy_record ) {
         $email = sanitize_email( isset( $legacy_record['email'] ) ? $legacy_record['email'] : '' );
 
@@ -1654,8 +1900,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_unique_id', __( 'A unique student ID is required.', 'teqcidb' ) );
         }
 
-        $wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
-        $wp_user_id = $wp_user_id > 0 ? $wp_user_id : null;
+        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['contactstreetaddress'] ) ? $legacy_record['contactstreetaddress'] : '' ),
@@ -1747,11 +1992,111 @@ class TEQCIDB_Ajax {
         );
     }
 
+    private function map_legacy_student_history_record( array $legacy_record ) {
+        $unique_student_id = isset( $legacy_record['uniquestudentid'] ) ? sanitize_text_field( $legacy_record['uniquestudentid'] ) : '';
+
+        if ( '' === $unique_student_id ) {
+            return new WP_Error( 'teqcidb_legacy_history_unique_id', __( 'A unique student ID is required.', 'teqcidb' ) );
+        }
+
+        $class_name = isset( $legacy_record['classname'] ) ? sanitize_text_field( $legacy_record['classname'] ) : '';
+
+        if ( '' === $class_name ) {
+            return new WP_Error( 'teqcidb_legacy_history_class', __( 'A class name is required for student history records.', 'teqcidb' ) );
+        }
+
+        $unique_class_id = isset( $legacy_record['uniqueclassid'] ) ? sanitize_text_field( $legacy_record['uniqueclassid'] ) : '';
+
+        if ( '' === $unique_class_id ) {
+            return new WP_Error( 'teqcidb_legacy_history_class_id', __( 'A unique class ID is required for student history records.', 'teqcidb' ) );
+        }
+
+        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
+
+        return array(
+            'uniquestudentid'  => $unique_student_id,
+            'wpuserid'         => $wp_user_id,
+            'classname'        => $class_name,
+            'uniqueclassid'    => $unique_class_id,
+            'registered'       => $this->convert_legacy_history_status( isset( $legacy_record['registered'] ) ? $legacy_record['registered'] : '', array( 'yes' => 'Yes', 'no' => 'No', 'pending' => 'Pending' ), 'Pending' ),
+            'attended'         => $this->convert_legacy_history_status( isset( $legacy_record['attended'] ) ? $legacy_record['attended'] : '', array( 'yes' => 'Yes', 'no' => 'No', 'upcoming' => 'Upcoming' ), 'Upcoming' ),
+            'outcome'          => $this->convert_legacy_history_status( isset( $legacy_record['outcome'] ) ? $legacy_record['outcome'] : '', array( 'upcoming' => 'Upcoming', 'passed' => 'Passed', 'deferred' => 'Deferred', 'failed' => 'Failed' ), 'Upcoming' ),
+            'paymentstatus'    => $this->convert_legacy_history_payment_status( isset( $legacy_record['paymentstatus'] ) ? $legacy_record['paymentstatus'] : '' ),
+            'amountpaid'       => $this->convert_legacy_cost( isset( $legacy_record['amountpaid'] ) ? $legacy_record['amountpaid'] : '' ),
+            'enrollmentdate'   => $this->convert_legacy_date( isset( $legacy_record['enrollmentdate'] ) ? $legacy_record['enrollmentdate'] : '' ),
+            'registeredby'     => $wp_user_id,
+            'courseinprogress' => 'no',
+            'quizinprogress'   => 'no',
+        );
+    }
+
+    private function resolve_legacy_history_user_id( array $legacy_record ) {
+        $legacy_wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
+
+        if ( $legacy_wp_user_id > 0 ) {
+            $existing_user = get_user_by( 'id', $legacy_wp_user_id );
+
+            if ( $existing_user ) {
+                return (int) $existing_user->ID;
+            }
+        }
+
+        $unique_student_id = isset( $legacy_record['uniquestudentid'] ) ? $legacy_record['uniquestudentid'] : '';
+        $email             = $this->extract_email_from_unique_student_id( $unique_student_id );
+
+        if ( '' === $email ) {
+            return null;
+        }
+
+        $user = get_user_by( 'email', $email );
+
+        if ( ! $user ) {
+            return null;
+        }
+
+        return (int) $user->ID;
+    }
+
+    private function extract_email_from_unique_student_id( $unique_student_id ) {
+        $normalized = $this->normalize_legacy_value( $unique_student_id );
+
+        if ( '' === $normalized ) {
+            return '';
+        }
+
+        if ( preg_match( '/^(.+@.+?)(\d{5,})$/', $normalized, $matches ) ) {
+            $email = sanitize_email( $matches[1] );
+
+            if ( is_email( $email ) ) {
+                return $email;
+            }
+        }
+
+        $trimmed = $normalized;
+
+        while ( strlen( $trimmed ) > 0 && ctype_digit( substr( $trimmed, -1 ) ) ) {
+            $trimmed = substr( $trimmed, 0, -1 );
+            $email   = sanitize_email( $trimmed );
+
+            if ( is_email( $email ) ) {
+                return $email;
+            }
+        }
+
+        $fallback = sanitize_email( $normalized );
+
+        if ( is_email( $fallback ) ) {
+            return $fallback;
+        }
+
+        return '';
+    }
+
     private function convert_legacy_date( $value ) {
         $value = $this->normalize_legacy_value( $value );
 
         if ( '' === $value ) {
-            return '';
+            return null;
         }
 
         $value = str_replace( '.', '-', $value );
@@ -1759,7 +2104,7 @@ class TEQCIDB_Ajax {
         $parsed = date_create( $value );
 
         if ( ! $parsed ) {
-            return '';
+            return null;
         }
 
         return $parsed->format( 'Y-m-d' );
@@ -1769,7 +2114,7 @@ class TEQCIDB_Ajax {
         $value = $this->normalize_legacy_value( $value );
 
         if ( '' === $value ) {
-            return '';
+            return null;
         }
 
         $value = str_replace( array( '.', ' ' ), ':', $value );
@@ -1801,6 +2146,26 @@ class TEQCIDB_Ajax {
         }
 
         return number_format( (float) $numeric, 2, '.', '' );
+    }
+
+    private function convert_legacy_history_status( $value, array $mapping, $default ) {
+        $normalized = strtolower( $this->normalize_legacy_value( $value ) );
+
+        return isset( $mapping[ $normalized ] ) ? $mapping[ $normalized ] : $default;
+    }
+
+    private function convert_legacy_history_payment_status( $value ) {
+        $normalized = strtolower( $this->normalize_legacy_value( $value ) );
+
+        if ( 'paidinfull' === $normalized || 'paid' === $normalized ) {
+            return 'Paid in Full';
+        }
+
+        if ( 'nopaymentmade' === $normalized || 'none' === $normalized ) {
+            return 'No Payment Made';
+        }
+
+        return 'Pending';
     }
 
     private function sanitize_legacy_select_value( $value, array $allowed ) {
