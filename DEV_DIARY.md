@@ -135,3 +135,4 @@
 132. 2025-12-05: Enabled multi-record legacy uploads for classes, students, and student history entries with per-row skip tracking and summary messaging.
 133. 2025-12-05: Filled missing WordPress user IDs during legacy student history imports by deriving emails from unique student IDs and matching existing accounts.
 134. 2025-12-05: Allowed legacy uploads with empty date/time fields to insert cleanly by normalizing those values to null instead of empty strings.
+135. 2025-12-05: Removed duplicate detection for legacy student history uploads so admins can reinsert matching rows when needed.

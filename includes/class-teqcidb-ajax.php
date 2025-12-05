@@ -603,11 +603,6 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
-            if ( $this->legacy_student_history_exists( $table, $mapped['uniquestudentid'], $mapped['uniqueclassid'] ) ) {
-                $skipped_messages[] = __( 'A student history entry for this student and class already exists.', 'teqcidb' );
-                continue;
-            }
-
             $data = array(
                 'uniquestudentid' => $mapped['uniquestudentid'],
                 'wpuserid'        => $mapped['wpuserid'],
@@ -2378,22 +2373,6 @@ class TEQCIDB_Ajax {
         $result = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE $column = %s LIMIT 1", $value ) );
 
         return ! empty( $result );
-    }
-
-    private function legacy_student_history_exists( $table, $unique_student_id, $unique_class_id ) {
-        if ( '' === $unique_student_id || '' === $unique_class_id ) {
-            return false;
-        }
-
-        global $wpdb;
-
-        return (bool) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id FROM $table WHERE uniquestudentid = %s AND uniqueclassid = %s LIMIT 1",
-                $unique_student_id,
-                $unique_class_id
-            )
-        );
     }
 
     private function find_user_id_by_email( $email ) {
