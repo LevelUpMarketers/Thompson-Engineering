@@ -2101,7 +2101,7 @@ class TEQCIDB_Ajax {
         $value = $this->normalize_legacy_value( $value );
 
         if ( '' === $value ) {
-            return '';
+            return null;
         }
 
         $value = str_replace( '.', '-', $value );
@@ -2109,7 +2109,7 @@ class TEQCIDB_Ajax {
         $parsed = date_create( $value );
 
         if ( ! $parsed ) {
-            return '';
+            return null;
         }
 
         return $parsed->format( 'Y-m-d' );
@@ -2119,7 +2119,7 @@ class TEQCIDB_Ajax {
         $value = $this->normalize_legacy_value( $value );
 
         if ( '' === $value ) {
-            return '';
+            return null;
         }
 
         $value = str_replace( array( '.', ' ' ), ':', $value );
