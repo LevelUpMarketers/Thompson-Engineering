@@ -2563,7 +2563,7 @@ class TEQCIDB_Ajax {
         if ( false === $contents ) {
             return new WP_Error(
                 'teqcidb_legacy_upload_file_read',
-                __( 'Unable to process the uploaded legacy file. Please ensure it is a valid CSV or text export.', 'teqcidb' )
+                __( 'Unable to process the uploaded legacy file. Please ensure it is a valid .sql or text export.', 'teqcidb' )
             );
         }
 
