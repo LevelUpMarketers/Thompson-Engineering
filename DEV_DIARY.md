@@ -138,3 +138,4 @@
 135. 2025-12-05: Removed duplicate detection for legacy student history uploads so admins can reinsert matching rows when needed.
 136. 2025-12-05: Added an adminapproved column to the student history table schema with a default Pending Approval status.
 137. 2025-12-05: Set adminapproved to default to null in the student history schema and mapped legacy student history uploads to import existing admin approval values.
+138. 2025-12-05: Added CSV/text legacy upload support with higher execution limits so thousands of student history rows (and future bulk imports) can be processed from the Upload tab.

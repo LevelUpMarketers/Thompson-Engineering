@@ -524,7 +524,19 @@ class TEQCIDB_Ajax {
             );
         }
 
+        $this->extend_legacy_upload_limits();
+
         $raw_record = isset( $_POST['legacy_record'] ) ? wp_unslash( $_POST['legacy_record'] ) : '';
+        $raw_record = $this->get_legacy_upload_payload( $raw_record );
+
+        if ( is_wp_error( $raw_record ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => $raw_record->get_error_message(),
+                )
+            );
+        }
         $requested  = isset( $_POST['legacy_types'] ) ? (array) $_POST['legacy_types'] : array();
         $action     = isset( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
 
@@ -1678,6 +1690,13 @@ class TEQCIDB_Ajax {
             return $matches[0];
         }
 
+        $lines = preg_split( '/\r\n|\r|\n/', $normalized );
+        $lines = array_filter( array_map( 'trim', (array) $lines ) );
+
+        if ( count( $lines ) > 1 ) {
+            return $lines;
+        }
+
         return array( $normalized );
     }
 
@@ -2491,6 +2510,47 @@ class TEQCIDB_Ajax {
         }
 
         return '';
+    }
+
+    private function get_legacy_upload_payload( $raw_record ) {
+        if ( empty( $_FILES['legacy_file'] ) || ! isset( $_FILES['legacy_file']['tmp_name'] ) ) {
+            return $raw_record;
+        }
+
+        $file = $_FILES['legacy_file'];
+        $error = isset( $file['error'] ) ? absint( $file['error'] ) : UPLOAD_ERR_OK;
+
+        if ( UPLOAD_ERR_NO_FILE === $error ) {
+            return $raw_record;
+        }
+
+        if ( UPLOAD_ERR_OK !== $error || empty( $file['tmp_name'] ) ) {
+            return new WP_Error(
+                'teqcidb_legacy_upload_file_error',
+                __( 'Unable to read the uploaded legacy file. Please try again.', 'teqcidb' )
+            );
+        }
+
+        $contents = file_get_contents( $file['tmp_name'] );
+
+        if ( false === $contents ) {
+            return new WP_Error(
+                'teqcidb_legacy_upload_file_read',
+                __( 'Unable to process the uploaded legacy file. Please ensure it is a valid CSV or text export.', 'teqcidb' )
+            );
+        }
+
+        return $contents;
+    }
+
+    private function extend_legacy_upload_limits() {
+        if ( function_exists( 'wp_raise_memory_limit' ) ) {
+            wp_raise_memory_limit( 'admin' );
+        }
+
+        if ( function_exists( 'set_time_limit' ) ) {
+            @set_time_limit( 0 );
+        }
     }
 
     private function sanitize_decimal_value( $key ) {

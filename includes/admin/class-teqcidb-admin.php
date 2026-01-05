@@ -2198,7 +2198,7 @@ class TEQCIDB_Admin {
 
         echo '<form id="teqcidb-legacy-upload-form" class="teqcidb-settings-form">';
 
-        echo '<p>' . esc_html__( 'Paste a single row from the selected legacy table exactly as it appears in the database export. The importer will map fields into the new schema and store the record.', 'teqcidb' ) . '</p>';
+        echo '<p>' . esc_html__( 'Paste a row (or many rows) from the selected legacy table exactly as it appears in the database export, or upload a CSV/text file that contains multiple rows. The importer will map fields into the new schema and store the record.', 'teqcidb' ) . '</p>';
 
         echo '<table class="form-table" role="presentation">';
         echo '<tr>';
@@ -2207,7 +2207,11 @@ class TEQCIDB_Admin {
         echo '</th>';
         echo '<td>';
         echo '<textarea id="teqcidb-legacy-record" name="legacy_record" rows="8" class="large-text code" placeholder="' . esc_attr( $example_record ) . '"></textarea>';
-        echo '<p class="description">' . esc_html__( 'Include the full comma-separated row, with or without wrapping parentheses. Leave out multiple rows; this tool uploads one student at a time.', 'teqcidb' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Include full comma-separated rows, with or without wrapping parentheses. Multiple rows can be pasted at once; separate them with commas or new lines.', 'teqcidb' ) . '</p>';
+
+        echo '<label for="teqcidb-legacy-file" class="screen-reader-text">' . esc_html__( 'Legacy upload file', 'teqcidb' ) . '</label>';
+        echo '<input type="file" id="teqcidb-legacy-file" name="legacy_file" accept=".csv,.txt" />';
+        echo '<p class="description">' . esc_html__( 'For thousands of legacy rows, choose a CSV/text export from the legacy table to import in one request.', 'teqcidb' ) . '</p>';
 
         echo '<p class="description">' . esc_html__( 'Choose what type of legacy record you are uploading.', 'teqcidb' ) . '</p>';
         echo '<fieldset class="teqcidb-legacy-upload__types">';

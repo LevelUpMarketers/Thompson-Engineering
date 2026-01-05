@@ -91,31 +91,39 @@ jQuery(document).ready(function($){
                 return;
             }
 
-            var data = $form.serialize();
+            var formData = new FormData(this);
+            formData.append('action', 'teqcidb_upload_legacy_records');
+            formData.append('_ajax_nonce', teqcidbAjax.nonce);
 
-            $.post(teqcidbAjax.ajaxurl, data + '&action=teqcidb_upload_legacy_records&_ajax_nonce=' + teqcidbAjax.nonce)
-                .done(function(response){
-                    if ($feedback.length && response && response.data){
-                        var message = response.data.message || response.data.error;
+            $.ajax({
+                url: teqcidbAjax.ajaxurl,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false
+            })
+            .done(function(response){
+                if ($feedback.length && response && response.data){
+                    var message = response.data.message || response.data.error;
 
-                        if (message){
-                            $feedback.text(message).addClass('is-visible');
-                        }
+                    if (message){
+                        $feedback.text(message).addClass('is-visible');
                     }
-                })
-                .fail(function(){
-                    if ($feedback.length){
-                        $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+                }
+            })
+            .fail(function(){
+                if ($feedback.length){
+                    $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+                }
+            })
+            .always(function(){
+                spinnerHideTimer = setTimeout(function(){
+                    if ($spinner.length){
+                        $spinner.removeClass('is-active');
                     }
-                })
-                .always(function(){
-                    spinnerHideTimer = setTimeout(function(){
-                        if ($spinner.length){
-                            $spinner.removeClass('is-active');
-                        }
-                    }, 150);
-                    $form.data('spinnerHideTimer', spinnerHideTimer);
-                });
+                }, 150);
+                $form.data('spinnerHideTimer', spinnerHideTimer);
+            });
         });
     }
 
