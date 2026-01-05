@@ -1693,7 +1693,14 @@ class TEQCIDB_Ajax {
         }
 
         $lines = preg_split( '/\r\n|\r|\n/', $normalized );
-        $lines = array_filter( array_map( 'trim', (array) $lines ) );
+        $lines = array_filter(
+            array_map(
+                function ( $line ) {
+                    return trim( (string) $line, ",; \t\n\r\0\x0B" );
+                },
+                (array) $lines
+            )
+        );
 
         if ( count( $lines ) > 1 ) {
             return $lines;
