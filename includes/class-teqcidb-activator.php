@@ -98,6 +98,7 @@ class TEQCIDB_Activator {
             classname varchar(191) NOT NULL DEFAULT '',
             uniqueclassid varchar(255) NOT NULL,
             registered varchar(20) NOT NULL DEFAULT 'Pending',
+            adminapproved varchar(20) NOT NULL DEFAULT 'Pending Approval',
             attended varchar(20) NOT NULL DEFAULT 'Upcoming',
             outcome varchar(20) NOT NULL DEFAULT 'Upcoming',
             paymentstatus varchar(20) NOT NULL DEFAULT 'Pending',

@@ -136,3 +136,4 @@
 133. 2025-12-05: Filled missing WordPress user IDs during legacy student history imports by deriving emails from unique student IDs and matching existing accounts.
 134. 2025-12-05: Allowed legacy uploads with empty date/time fields to insert cleanly by normalizing those values to null instead of empty strings.
 135. 2025-12-05: Removed duplicate detection for legacy student history uploads so admins can reinsert matching rows when needed.
+136. 2025-12-05: Added an adminapproved column to the student history table schema with a default Pending Approval status.
