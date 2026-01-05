@@ -600,18 +600,20 @@ class TEQCIDB_Ajax {
         $inserted          = 0;
         $skipped_messages  = array();
 
-        foreach ( $records as $record ) {
+        foreach ( $records as $index => $record ) {
+            $row_number = $index + 1;
+
             $parsed = $this->parse_legacy_student_history_record( $record );
 
             if ( is_wp_error( $parsed ) ) {
-                $skipped_messages[] = $parsed->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $parsed->get_error_message() );
                 continue;
             }
 
             $mapped = $this->map_legacy_student_history_record( $parsed );
 
             if ( is_wp_error( $mapped ) ) {
-                $skipped_messages[] = $mapped->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped->get_error_message() );
                 continue;
             }
 
@@ -666,7 +668,8 @@ class TEQCIDB_Ajax {
             $result = $wpdb->insert( $table, $data, $insert_formats );
 
             if ( false === $result ) {
-                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
 
@@ -690,7 +693,7 @@ class TEQCIDB_Ajax {
             wp_send_json_success(
                 array(
                     'message' => $message,
-                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                    'skipped' => array_values( $skipped_messages ),
                 )
             );
         }
@@ -698,7 +701,7 @@ class TEQCIDB_Ajax {
         wp_send_json_error(
             array(
                 'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
-                'skipped' => array_values( array_unique( $skipped_messages ) ),
+                'skipped' => array_values( $skipped_messages ),
             )
         );
     }
@@ -721,28 +724,30 @@ class TEQCIDB_Ajax {
         $inserted         = 0;
         $skipped_messages = array();
 
-        foreach ( $records as $record ) {
+        foreach ( $records as $index => $record ) {
+            $row_number = $index + 1;
+
             $parsed = $this->parse_legacy_student_record( $record );
 
             if ( is_wp_error( $parsed ) ) {
-                $skipped_messages[] = $parsed->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $parsed->get_error_message() );
                 continue;
             }
 
             $mapped = $this->map_legacy_student_record( $parsed );
 
             if ( is_wp_error( $mapped ) ) {
-                $skipped_messages[] = $mapped->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped->get_error_message() );
                 continue;
             }
 
             if ( $this->legacy_student_value_exists( $table, 'email', $mapped['email'] ) ) {
-                $skipped_messages[] = __( 'A student with this email already exists.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'A student with this email already exists.', 'teqcidb' ) );
                 continue;
             }
 
             if ( $this->legacy_student_value_exists( $table, 'uniquestudentid', $mapped['uniquestudentid'] ) ) {
-                $skipped_messages[] = __( 'A student with this unique ID already exists.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'A student with this unique ID already exists.', 'teqcidb' ) );
                 continue;
             }
 
@@ -809,7 +814,8 @@ class TEQCIDB_Ajax {
             $result = $wpdb->insert( $table, $data, $insert_formats );
 
             if ( false === $result ) {
-                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
 
@@ -833,7 +839,7 @@ class TEQCIDB_Ajax {
             wp_send_json_success(
                 array(
                     'message' => $message,
-                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                    'skipped' => array_values( $skipped_messages ),
                 )
             );
         }
@@ -841,7 +847,7 @@ class TEQCIDB_Ajax {
         wp_send_json_error(
             array(
                 'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
-                'skipped' => array_values( array_unique( $skipped_messages ) ),
+                'skipped' => array_values( $skipped_messages ),
             )
         );
     }
@@ -864,23 +870,25 @@ class TEQCIDB_Ajax {
         $inserted         = 0;
         $skipped_messages = array();
 
-        foreach ( $records as $record ) {
+        foreach ( $records as $index => $record ) {
+            $row_number = $index + 1;
+
             $parsed = $this->parse_legacy_class_record( $record );
 
             if ( is_wp_error( $parsed ) ) {
-                $skipped_messages[] = $parsed->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $parsed->get_error_message() );
                 continue;
             }
 
             $mapped = $this->map_legacy_class_record( $parsed );
 
             if ( is_wp_error( $mapped ) ) {
-                $skipped_messages[] = $mapped->get_error_message();
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped->get_error_message() );
                 continue;
             }
 
             if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
-                $skipped_messages[] = __( 'A class with this unique ID already exists.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'A class with this unique ID already exists.', 'teqcidb' ) );
                 continue;
             }
 
@@ -935,7 +943,8 @@ class TEQCIDB_Ajax {
             $result = $wpdb->insert( $table, $data, $insert_formats );
 
             if ( false === $result ) {
-                $skipped_messages[] = __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
 
@@ -959,7 +968,7 @@ class TEQCIDB_Ajax {
             wp_send_json_success(
                 array(
                     'message' => $message,
-                    'skipped' => array_values( array_unique( $skipped_messages ) ),
+                    'skipped' => array_values( $skipped_messages ),
                 )
             );
         }
@@ -967,7 +976,7 @@ class TEQCIDB_Ajax {
         wp_send_json_error(
             array(
                 'message' => __( 'Unable to upload any legacy records. Please review the data and try again.', 'teqcidb' ),
-                'skipped' => array_values( array_unique( $skipped_messages ) ),
+                'skipped' => array_values( $skipped_messages ),
             )
         );
     }
@@ -1698,6 +1707,24 @@ class TEQCIDB_Ajax {
         }
 
         return array( $normalized );
+    }
+
+    private function add_legacy_skipped_row_message( array &$messages, $row_number, $reason ) {
+        $reason = (string) $reason;
+
+        $row = absint( $row_number );
+
+        if ( $row > 0 ) {
+            $messages[] = sprintf(
+                /* translators: %d: legacy upload row number. */
+                __( 'Row %d: %s', 'teqcidb' ),
+                $row,
+                $reason
+            );
+            return;
+        }
+
+        $messages[] = $reason;
     }
 
     private function parse_legacy_student_record( $raw_record ) {

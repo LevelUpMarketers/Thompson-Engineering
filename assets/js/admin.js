@@ -103,12 +103,32 @@ jQuery(document).ready(function($){
                 contentType: false
             })
             .done(function(response){
-                if ($feedback.length && response && response.data){
-                    var message = response.data.message || response.data.error;
+                if (!$feedback.length){
+                    return;
+                }
 
-                    if (message){
-                        $feedback.text(message).addClass('is-visible');
-                    }
+                $feedback.empty();
+
+                var data = response && response.data ? response.data : {};
+                var message = data.message || data.error;
+                var skipped = Array.isArray(data.skipped) ? data.skipped : [];
+
+                if (message){
+                    $feedback.append(document.createTextNode(message));
+                }
+
+                if (skipped.length){
+                    var $list = $('<ul/>', { 'class': 'teqcidb-legacy-skipped-list' });
+
+                    skipped.forEach(function(reason){
+                        $('<li/>').text(reason).appendTo($list);
+                    });
+
+                    $feedback.append($list);
+                }
+
+                if (message || skipped.length){
+                    $feedback.addClass('is-visible');
                 }
             })
             .fail(function(){
