@@ -609,6 +609,7 @@ class TEQCIDB_Ajax {
                 'classname'       => $mapped['classname'],
                 'uniqueclassid'   => $mapped['uniqueclassid'],
                 'registered'      => $mapped['registered'],
+                'adminapproved'   => $mapped['adminapproved'],
                 'attended'        => $mapped['attended'],
                 'outcome'         => $mapped['outcome'],
                 'paymentstatus'   => $mapped['paymentstatus'],
@@ -625,6 +626,7 @@ class TEQCIDB_Ajax {
                 'classname'       => '%s',
                 'uniqueclassid'   => '%s',
                 'registered'      => '%s',
+                'adminapproved'   => '%s',
                 'attended'        => '%s',
                 'outcome'         => '%s',
                 'paymentstatus'   => '%s',
@@ -2019,6 +2021,7 @@ class TEQCIDB_Ajax {
             'classname'        => $class_name,
             'uniqueclassid'    => $unique_class_id,
             'registered'       => $this->convert_legacy_history_status( isset( $legacy_record['registered'] ) ? $legacy_record['registered'] : '', array( 'yes' => 'Yes', 'no' => 'No', 'pending' => 'Pending' ), 'Pending' ),
+            'adminapproved'    => $this->convert_legacy_admin_approval( isset( $legacy_record['adminapproved'] ) ? $legacy_record['adminapproved'] : '' ),
             'attended'         => $this->convert_legacy_history_status( isset( $legacy_record['attended'] ) ? $legacy_record['attended'] : '', array( 'yes' => 'Yes', 'no' => 'No', 'upcoming' => 'Upcoming' ), 'Upcoming' ),
             'outcome'          => $this->convert_legacy_history_status( isset( $legacy_record['outcome'] ) ? $legacy_record['outcome'] : '', array( 'upcoming' => 'Upcoming', 'passed' => 'Passed', 'deferred' => 'Deferred', 'failed' => 'Failed' ), 'Upcoming' ),
             'paymentstatus'    => $this->convert_legacy_history_payment_status( isset( $legacy_record['paymentstatus'] ) ? $legacy_record['paymentstatus'] : '' ),
@@ -2152,6 +2155,28 @@ class TEQCIDB_Ajax {
         $normalized = strtolower( $this->normalize_legacy_value( $value ) );
 
         return isset( $mapping[ $normalized ] ) ? $mapping[ $normalized ] : $default;
+    }
+
+    private function convert_legacy_admin_approval( $value ) {
+        $normalized = strtolower( $this->normalize_legacy_value( $value ) );
+
+        if ( '' === $normalized || 'null' === $normalized ) {
+            return null;
+        }
+
+        if ( in_array( $normalized, array( 'pending', 'pendingapproval', 'pending approval' ), true ) ) {
+            return 'Pending Approval';
+        }
+
+        if ( in_array( $normalized, array( 'yes', 'approved', 'approve' ), true ) ) {
+            return 'Yes';
+        }
+
+        if ( in_array( $normalized, array( 'no', 'denied', 'declined' ), true ) ) {
+            return 'No';
+        }
+
+        return null;
     }
 
     private function convert_legacy_history_payment_status( $value ) {
