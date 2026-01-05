@@ -141,3 +141,4 @@
 138. 2025-12-05: Added CSV/text legacy upload support with higher execution limits so thousands of student history rows (and future bulk imports) can be processed from the Upload tab.
 139. 2025-12-05: Surfaced per-row skipped reasons for legacy uploads and displayed the full skip list inline on the Upload tab feedback area.
 140. 2025-12-05: Switched legacy upload guidance to use .sql/text exports containing parenthesized rows so bulk student history imports match the expected file format.
+141. 2025-12-05: Fixed legacy upload parsing to handle lines with inner parentheses and trailing commas so .sql student history rows no longer get skipped for missing column counts.

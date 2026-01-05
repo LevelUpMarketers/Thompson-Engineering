@@ -1692,18 +1692,18 @@ class TEQCIDB_Ajax {
             return array();
         }
 
-        $matches = array();
-        preg_match_all( '/\([^()]*\)/', $normalized, $matches );
-
-        if ( ! empty( $matches[0] ) ) {
-            return $matches[0];
-        }
-
         $lines = preg_split( '/\r\n|\r|\n/', $normalized );
         $lines = array_filter( array_map( 'trim', (array) $lines ) );
 
         if ( count( $lines ) > 1 ) {
             return $lines;
+        }
+
+        $matches = array();
+        preg_match_all( '/\([^()]*\)/', $normalized, $matches );
+
+        if ( ! empty( $matches[0] ) ) {
+            return $matches[0];
         }
 
         return array( $normalized );
@@ -1734,7 +1734,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_empty', __( 'Please paste a legacy student row before uploading.', 'teqcidb' ) );
         }
 
-        $normalized = trim( $normalized, "; \t\n\r\0\x0B" );
+        $normalized = trim( $normalized, ",; \t\n\r\0\x0B" );
 
         if ( '(' === substr( $normalized, 0, 1 ) && ')' === substr( $normalized, -1 ) ) {
             $normalized = substr( $normalized, 1, -1 );
@@ -1814,7 +1814,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_class_empty', __( 'Please paste a legacy class row before uploading.', 'teqcidb' ) );
         }
 
-        $normalized = trim( $normalized, "; \t\n\r\0\x0B" );
+        $normalized = trim( $normalized, ",; \t\n\r\0\x0B" );
 
         if ( '(' === substr( $normalized, 0, 1 ) && ')' === substr( $normalized, -1 ) ) {
             $normalized = substr( $normalized, 1, -1 );
@@ -1879,7 +1879,7 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_legacy_history_empty', __( 'Please paste a legacy student history row before uploading.', 'teqcidb' ) );
         }
 
-        $normalized = trim( $normalized, "; \t\n\r\0\x0B" );
+        $normalized = trim( $normalized, ",; \t\n\r\0\x0B" );
 
         if ( '(' === substr( $normalized, 0, 1 ) && ')' === substr( $normalized, -1 ) ) {
             $normalized = substr( $normalized, 1, -1 );
