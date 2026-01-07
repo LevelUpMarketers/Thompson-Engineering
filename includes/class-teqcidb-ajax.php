@@ -734,7 +734,7 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
-            $mapped = $this->map_legacy_student_record( $parsed );
+            $mapped = $this->map_legacy_student_record( $parsed, $row_number );
 
             if ( is_wp_error( $mapped ) ) {
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped->get_error_message() );
@@ -742,8 +742,7 @@ class TEQCIDB_Ajax {
             }
 
             if ( $this->legacy_student_value_exists( $table, 'email', $mapped['email'] ) ) {
-                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'A student with this email already exists.', 'teqcidb' ) );
-                continue;
+                $mapped['email'] = $this->generate_unique_legacy_student_email( $parsed, $row_number, $table, $mapped['email'] );
             }
 
             if ( $this->legacy_student_value_exists( $table, 'uniquestudentid', $mapped['uniquestudentid'] ) ) {
@@ -1942,17 +1941,21 @@ class TEQCIDB_Ajax {
         return $record;
     }
 
-    private function map_legacy_student_record( array $legacy_record ) {
-        $email = sanitize_email( isset( $legacy_record['email'] ) ? $legacy_record['email'] : '' );
-
-        if ( '' === $email ) {
-            return new WP_Error( 'teqcidb_legacy_email', __( 'A valid email address is required.', 'teqcidb' ) );
-        }
-
+    private function map_legacy_student_record( array $legacy_record, $row_number = 0 ) {
         $unique_id = isset( $legacy_record['uniquestudentid'] ) ? sanitize_text_field( $legacy_record['uniquestudentid'] ) : '';
 
         if ( '' === $unique_id ) {
             return new WP_Error( 'teqcidb_legacy_unique_id', __( 'A unique student ID is required.', 'teqcidb' ) );
+        }
+
+        $email = sanitize_email( isset( $legacy_record['email'] ) ? $legacy_record['email'] : '' );
+
+        if ( '' === $email ) {
+            $email = $this->extract_email_from_unique_student_id( $unique_id );
+        }
+
+        if ( '' === $email ) {
+            $email = $this->generate_legacy_placeholder_email( $legacy_record, $row_number );
         }
 
         $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
@@ -2451,6 +2454,50 @@ class TEQCIDB_Ajax {
         $result = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE $column = %s LIMIT 1", $value ) );
 
         return ! empty( $result );
+    }
+
+    private function generate_legacy_placeholder_email( array $legacy_record, $row_number = 0, $suffix = '' ) {
+        $seed = sanitize_key( (string) $suffix );
+
+        if ( '' === $seed && ! empty( $legacy_record['uniquestudentid'] ) ) {
+            $seed = sanitize_key( (string) $legacy_record['uniquestudentid'] );
+        }
+
+        if ( '' === $seed && ! empty( $legacy_record['ID'] ) ) {
+            $seed = 'id-' . absint( $legacy_record['ID'] );
+        }
+
+        if ( '' === $seed && $row_number ) {
+            $seed = 'row-' . absint( $row_number );
+        }
+
+        if ( '' === $seed ) {
+            $seed = sanitize_key( wp_generate_uuid4() );
+        }
+
+        return sprintf( 'legacy-student-%s@example.invalid', $seed );
+    }
+
+    private function generate_unique_legacy_student_email( array $legacy_record, $row_number, $table, $current_email = '' ) {
+        $candidate = $this->generate_legacy_placeholder_email( $legacy_record, $row_number );
+
+        if ( '' !== $current_email && $candidate === $current_email ) {
+            $candidate = $this->generate_legacy_placeholder_email( $legacy_record, $row_number, 1 );
+        }
+
+        $counter = 2;
+
+        while ( $this->legacy_student_value_exists( $table, 'email', $candidate ) ) {
+            $candidate = $this->generate_legacy_placeholder_email( $legacy_record, $row_number, $counter );
+            $counter++;
+
+            if ( $counter > 25 ) {
+                $candidate = $this->generate_legacy_placeholder_email( $legacy_record, $row_number, wp_generate_uuid4() );
+                break;
+            }
+        }
+
+        return $candidate;
     }
 
     private function find_user_id_by_email( $email ) {

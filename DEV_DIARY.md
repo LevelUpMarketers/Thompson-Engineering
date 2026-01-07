@@ -143,3 +143,4 @@
 140. 2025-12-05: Switched legacy upload guidance to use .sql/text exports containing parenthesized rows so bulk student history imports match the expected file format.
 141. 2025-12-05: Fixed legacy upload parsing to handle lines with inner parentheses and trailing commas so .sql student history rows no longer get skipped for missing column counts.
 142. 2025-12-05: Trimmed newline-split legacy upload rows to remove trailing commas/whitespace so large .sql student datasets import cleanly alongside history records.
+143. 2025-12-05: Relaxed legacy student uploads to auto-generate unique placeholder emails when missing or duplicated so bulk imports continue without validation skips.
