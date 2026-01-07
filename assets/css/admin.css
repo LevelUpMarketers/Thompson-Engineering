@@ -165,6 +165,7 @@
 
 #teqcidb-spinner,
 .teqcidb-entity-spinner,
+.teqcidb-history-spinner,
 .teqcidb-template-spinner {
     display: inline-block;
     flex-shrink: 0;
@@ -175,6 +176,7 @@
 
 #teqcidb-spinner.is-active,
 .teqcidb-entity-spinner.is-active,
+.teqcidb-history-spinner.is-active,
 .teqcidb-template-spinner.is-active {
     opacity: 1;
     visibility: visible;
@@ -182,6 +184,7 @@
 
 #teqcidb-feedback,
 .teqcidb-entity-feedback,
+.teqcidb-history-feedback,
 .teqcidb-template-feedback {
     min-height: 1em;
     opacity: 0;
@@ -190,6 +193,7 @@
 
 #teqcidb-feedback.is-visible,
 .teqcidb-entity-feedback.is-visible,
+.teqcidb-history-feedback.is-visible,
 .teqcidb-template-feedback.is-visible {
     opacity: 1;
     transition-delay: 0.1s;
@@ -197,6 +201,7 @@
 
 #teqcidb-feedback:not(.is-visible),
 .teqcidb-entity-feedback:not(.is-visible),
+.teqcidb-history-feedback:not(.is-visible),
 .teqcidb-template-feedback:not(.is-visible) {
     transition-delay: 0s;
 }
