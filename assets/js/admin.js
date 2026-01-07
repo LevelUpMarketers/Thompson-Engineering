@@ -796,6 +796,8 @@ jQuery(document).ready(function($){
 
                             if (String(optionValue) === String(stringValue)){
                                 $option.prop('selected', true);
+                            } else if (String(optionValue).toLowerCase() === String(stringValue).toLowerCase()){
+                                $option.prop('selected', true);
                             }
 
                             $select.append($option);

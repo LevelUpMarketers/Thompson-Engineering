@@ -148,3 +148,4 @@
 145. 2026-01-07: Refined student history edit fields with class dropdowns and updated status selections for registration, attendance, and outcomes.
 146. 2026-01-07: Added admin approval dropdown options and default selection placeholders for student history selects.
 147. 2026-01-07: Updated student history labels, status dropdowns, and removed the registered-by field.
+148. 2026-01-07: Normalized student history select matching to handle lowercase saved values like "no".
