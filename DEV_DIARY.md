@@ -157,3 +157,4 @@
 154. 2026-01-07: Added new history entry creation flow and auto-filled class metadata on selection.
 155. 2026-01-07: Enabled new history entries to save and updated the new-entry notice text.
 156. 2026-01-07: Added duplicate history grouping, class metadata autofill, and currency formatting for amounts.
+157. 2026-01-07: Standardized the student name column to use labeled meta text in the edit accordion.

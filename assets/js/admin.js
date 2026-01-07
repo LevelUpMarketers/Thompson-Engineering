@@ -1299,7 +1299,11 @@ jQuery(document).ready(function($){
                 });
 
                 var $titleCell = $('<td/>', {'class': 'teqcidb-accordion__cell teqcidb-accordion__cell--title'});
-                var $titleText = $('<span/>', {'class': 'teqcidb-accordion__title-text'}).text(formatValue(entity.placeholder_1));
+                var $titleText = $('<span/>', {'class': 'teqcidb-accordion__title-text'});
+                var nameLabel = teqcidbAdmin.studentNameLabel || teqcidbAdmin.nameLabel || '';
+                $titleText.append($('<span/>', {'class': 'teqcidb-accordion__meta-label'}).text(nameLabel + ':'));
+                $titleText.append(' ');
+                $titleText.append($('<span/>', {'class': 'teqcidb-accordion__meta-value'}).text(formatValue(entity.placeholder_1)));
                 $titleCell.append($titleText);
                 $summaryRow.append($titleCell);
 

@@ -763,6 +763,7 @@ class TEQCIDB_Admin {
             'toggleDetails' => __( 'Toggle student details', 'teqcidb' ),
             'classToggleDetails' => __( 'Toggle class details', 'teqcidb' ),
             'nameLabel'    => __( 'Name', 'teqcidb' ),
+            'studentNameLabel' => __( 'First & Last Name', 'teqcidb' ),
             'editAction'   => __( 'Edit', 'teqcidb' ),
             'saveChanges'  => __( 'Save Changes', 'teqcidb' ),
             'entityFields' => $field_definitions,
