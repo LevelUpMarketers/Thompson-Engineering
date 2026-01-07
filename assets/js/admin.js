@@ -843,11 +843,91 @@ jQuery(document).ready(function($){
             }
         }
 
+        function buildHistoryEntry(entry, entityId, historyKey, entryTitle, historyFields){
+            var $entryWrapper = $('<div/>', {
+                'class': 'teqcidb-student-history__entry',
+                'data-history-id': historyKey,
+                'data-entity-id': entityId || ''
+            });
+            var $entryFields = $('<div/>', { 'class': 'teqcidb-flex-form teqcidb-student-history__fields' });
+
+            $entryWrapper.append($('<h5/>', { 'class': 'teqcidb-student-history__entry-title' }).text(entryTitle));
+
+            $entryWrapper.append($('<input/>', {
+                type: 'hidden',
+                name: 'studenthistory[' + historyKey + '][id]',
+                value: entry && entry.id ? entry.id : ''
+            }));
+
+            if (entry && entry.uniquestudentid){
+                $entryWrapper.append($('<input/>', {
+                    type: 'hidden',
+                    name: 'studenthistory[' + historyKey + '][uniquestudentid]',
+                    value: entry.uniquestudentid
+                }));
+            }
+
+            if (entry && entry.wpuserid){
+                $entryWrapper.append($('<input/>', {
+                    type: 'hidden',
+                    name: 'studenthistory[' + historyKey + '][wpuserid]',
+                    value: entry.wpuserid
+                }));
+            }
+
+            if (entry && entry.uniqueclassid){
+                $entryWrapper.append($('<input/>', {
+                    type: 'hidden',
+                    name: 'studenthistory[' + historyKey + '][uniqueclassid]',
+                    value: entry.uniqueclassid
+                }));
+            }
+
+            historyFields.forEach(function(field){
+                if (!field || !field.name){
+                    return;
+                }
+
+                var value = entry && typeof entry[field.name] !== 'undefined' ? entry[field.name] : '';
+                var $fieldWrapper = $('<div/>', { 'class': 'teqcidb-field' });
+                var $label = $('<label/>');
+
+                $label.append(document.createTextNode(field.label || ''));
+                $fieldWrapper.append($label);
+                appendHistoryFieldInput($fieldWrapper, field, value, 'studenthistory[' + historyKey + '][' + field.name + ']');
+                $entryFields.append($fieldWrapper);
+            });
+
+            $entryWrapper.append($entryFields);
+            var $entryActions = $('<div/>', { 'class': 'teqcidb-student-history__actions' });
+            var $saveButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-primary teqcidb-history-save'
+            }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+            var $deleteButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-secondary teqcidb-history-delete'
+            }).text(teqcidbAdmin.delete || 'Delete');
+            var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
+            var $spinner = $('<span/>', { 'class': 'spinner teqcidb-history-spinner', 'aria-hidden': 'true' });
+            var $feedback = $('<span/>', { 'class': 'teqcidb-history-feedback', 'role': 'status', 'aria-live': 'polite' });
+            $feedbackArea.append($spinner).append($feedback);
+            $entryActions.append($saveButton).append(' ').append($deleteButton).append($feedbackArea);
+            $entryWrapper.append($entryActions);
+
+            return $entryWrapper;
+        }
+
         function buildStudentHistorySection(entity){
             var historyFields = teqcidbAdmin.studentHistoryFields || [];
             var historyEntries = entity && entity.studenthistory ? entity.studenthistory : [];
-            var $section = $('<div/>', { 'class': 'teqcidb-student-history' });
+            var $section = $('<div/>', {
+                'class': 'teqcidb-student-history',
+                'data-uniquestudentid': entity && entity.uniquestudentid ? entity.uniquestudentid : '',
+                'data-wpuserid': entity && entity.wpuserid ? entity.wpuserid : ''
+            });
             var headingText = teqcidbAdmin.studentHistoryHeading || '';
+            var entityId = entity && entity.id ? entity.id : '';
 
             if (headingText){
                 $section.append($('<h4/>', { 'class': 'teqcidb-student-history__title' }).text(headingText));
@@ -859,8 +939,6 @@ jQuery(document).ready(function($){
                 if (emptyText){
                     $section.append($('<p/>', { 'class': 'description teqcidb-student-history__empty' }).text(emptyText));
                 }
-
-                return $section;
             }
 
             historyEntries.forEach(function(entry, index){
@@ -868,78 +946,15 @@ jQuery(document).ready(function($){
                 var entryTitle = teqcidbAdmin.studentHistoryEntryTitle ?
                     formatString(teqcidbAdmin.studentHistoryEntryTitle, index + 1) :
                     formatString('History Entry %s', index + 1);
-                var $entryWrapper = $('<div/>', {
-                    'class': 'teqcidb-student-history__entry',
-                    'data-history-id': historyKey,
-                    'data-entity-id': entity && entity.id ? entity.id : ''
-                });
-                var $entryFields = $('<div/>', { 'class': 'teqcidb-flex-form teqcidb-student-history__fields' });
-
-                $entryWrapper.append($('<h5/>', { 'class': 'teqcidb-student-history__entry-title' }).text(entryTitle));
-
-                $entryWrapper.append($('<input/>', {
-                    type: 'hidden',
-                    name: 'studenthistory[' + historyKey + '][id]',
-                    value: entry && entry.id ? entry.id : ''
-                }));
-
-                if (entry && entry.uniquestudentid){
-                    $entryWrapper.append($('<input/>', {
-                        type: 'hidden',
-                        name: 'studenthistory[' + historyKey + '][uniquestudentid]',
-                        value: entry.uniquestudentid
-                    }));
-                }
-
-                if (entry && entry.wpuserid){
-                    $entryWrapper.append($('<input/>', {
-                        type: 'hidden',
-                        name: 'studenthistory[' + historyKey + '][wpuserid]',
-                        value: entry.wpuserid
-                    }));
-                }
-
-                if (entry && entry.uniqueclassid){
-                    $entryWrapper.append($('<input/>', {
-                        type: 'hidden',
-                        name: 'studenthistory[' + historyKey + '][uniqueclassid]',
-                        value: entry.uniqueclassid
-                    }));
-                }
-
-                historyFields.forEach(function(field){
-                    if (!field || !field.name){
-                        return;
-                    }
-
-                    var value = entry && typeof entry[field.name] !== 'undefined' ? entry[field.name] : '';
-                    var $fieldWrapper = $('<div/>', { 'class': 'teqcidb-field' });
-                    var $label = $('<label/>');
-
-                    $label.append(document.createTextNode(field.label || ''));
-                    $fieldWrapper.append($label);
-                    appendHistoryFieldInput($fieldWrapper, field, value, 'studenthistory[' + historyKey + '][' + field.name + ']');
-                    $entryFields.append($fieldWrapper);
-                });
-
-                $entryWrapper.append($entryFields);
-                var $entryActions = $('<div/>', { 'class': 'teqcidb-student-history__actions' });
-                var $saveButton = $('<button/>', {
-                    type: 'button',
-                    'class': 'button button-primary teqcidb-history-save'
-                }).text(teqcidbAdmin.saveChanges || 'Save Changes');
-                var $deleteButton = $('<button/>', {
-                    type: 'button',
-                    'class': 'button button-secondary teqcidb-history-delete'
-                }).text(teqcidbAdmin.delete || 'Delete');
-                var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
-                var $spinner = $('<span/>', { 'class': 'spinner teqcidb-history-spinner', 'aria-hidden': 'true' });
-                var $feedback = $('<span/>', { 'class': 'teqcidb-history-feedback', 'role': 'status', 'aria-live': 'polite' });
-                $feedbackArea.append($spinner).append($feedback);
-                $entryActions.append($saveButton).append(' ').append($deleteButton).append($feedbackArea);
-                $entryWrapper.append($entryActions);
-                $section.append($entryWrapper);
+                $section.append(buildHistoryEntry(entry, entityId, historyKey, entryTitle, historyFields));
             });
+
+            var $addButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-secondary teqcidb-history-add'
+            }).text(teqcidbAdmin.studentHistoryAdd || 'Add Student History Entry');
+
+            $section.append($addButton);
 
             return $section;
         }
@@ -1107,13 +1122,27 @@ jQuery(document).ready(function($){
 
             if (state && state.entityId){
                 var $header = $('#teqcidb-entity-' + state.entityId + '-header');
+                var panelId = 'teqcidb-entity-' + state.entityId + '-panel';
+                var $panelRow = $('#' + panelId);
+                var $panel = $panelRow.find('.teqcidb-accordion__panel');
 
                 if ($header.length){
                     $header.trigger('click');
                     $header.addClass('teqcidb-restore-highlight');
                     setTimeout(function(){
                         $header.removeClass('teqcidb-restore-highlight');
-                    }, 1200);
+                    }, 1600);
+                }
+
+                if ($panelRow.length){
+                    setTimeout(function(){
+                        $panelRow.addClass('teqcidb-restore-panel-highlight');
+                        $panel.addClass('teqcidb-restore-highlight');
+                        setTimeout(function(){
+                            $panelRow.removeClass('teqcidb-restore-panel-highlight');
+                            $panel.removeClass('teqcidb-restore-highlight');
+                        }, 1600);
+                    }, 350);
                 }
             }
 
@@ -1395,6 +1424,8 @@ jQuery(document).ready(function($){
             var $spinner = $entry.find('.teqcidb-history-spinner');
             var $feedback = $entry.find('.teqcidb-history-feedback');
             var $buttons = $entry.find('.teqcidb-history-save, .teqcidb-history-delete');
+            var historyId = payload.history_id ? String(payload.history_id) : '';
+            var isNewEntry = !historyId || historyId.indexOf('new_') === 0;
 
             if ($spinner.length){
                 $spinner.addClass('is-active');
@@ -1402,6 +1433,23 @@ jQuery(document).ready(function($){
 
             if ($feedback.length){
                 $feedback.removeClass('is-visible').text('');
+            }
+
+            if (isNewEntry){
+                if (actionType === 'teqcidb_delete_studenthistory'){
+                    $entry.remove();
+                } else if ($feedback.length){
+                    var notice = teqcidbAdmin.studentHistoryCreateNotice || '';
+                    if (notice){
+                        $feedback.text(notice).addClass('is-visible');
+                    }
+                }
+
+                if ($spinner.length){
+                    $spinner.removeClass('is-active');
+                }
+
+                return;
             }
 
             $buttons.prop('disabled', true);
@@ -1445,6 +1493,36 @@ jQuery(document).ready(function($){
             e.preventDefault();
             var $entry = $(this).closest('.teqcidb-student-history__entry');
             handleHistoryAction($entry, 'teqcidb_delete_studenthistory');
+        });
+
+        $entityTableBody.on('click', '.teqcidb-history-add', function(e){
+            e.preventDefault();
+            var $section = $(this).closest('.teqcidb-student-history');
+            var entityId = $section.closest('.teqcidb-entity-edit-form').data('entity-id') || '';
+            var uniqueStudentId = $section.data('uniquestudentid') || '';
+            var wpUserId = $section.data('wpuserid') || '';
+            var historyFields = teqcidbAdmin.studentHistoryFields || [];
+            var newKey = 'new_' + Date.now();
+            var entryTitle = teqcidbAdmin.studentHistoryNewEntryTitle || 'New History Entry';
+            var newCount = $section.find('.teqcidb-student-history__entry').length + 1;
+
+            if (newCount > 1){
+                entryTitle = entryTitle + ' ' + newCount;
+            }
+
+            var entryData = {
+                id: '',
+                uniquestudentid: uniqueStudentId,
+                wpuserid: wpUserId,
+                uniqueclassid: ''
+            };
+
+            var $newEntry = buildHistoryEntry(entryData, entityId, newKey, entryTitle, historyFields);
+            $newEntry.insertBefore($(this));
+            $newEntry.addClass('teqcidb-restore-highlight');
+            setTimeout(function(){
+                $newEntry.removeClass('teqcidb-restore-highlight');
+            }, 1600);
         });
 
         $entityTableBody.on('submit', '.teqcidb-entity-edit-form', function(e){

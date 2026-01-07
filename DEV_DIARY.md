@@ -152,3 +152,5 @@
 149. 2026-01-07: Added read-only class date and class type fields to student history entries.
 150. 2026-01-07: Added per-entry save/delete actions for student history with stateful reloads.
 151. 2026-01-07: Smoothed student history reload UX with action spacing and restore animations.
+152. 2026-01-07: Added inline history entry creation UI and strengthened reload highlight animations.
+153. 2026-01-07: Tuned highlight timing for newly added history entry animations.

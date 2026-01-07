@@ -769,7 +769,10 @@ class TEQCIDB_Admin {
             'studentHistoryHeading' => __( 'Student History', 'teqcidb' ),
             /* translators: %s: history entry number */
             'studentHistoryEntryTitle' => __( 'History Entry %s', 'teqcidb' ),
+            'studentHistoryNewEntryTitle' => __( 'New History Entry', 'teqcidb' ),
             'studentHistoryEmpty' => __( 'No history entries found for this student.', 'teqcidb' ),
+            'studentHistoryAdd' => __( 'Add Student History Entry', 'teqcidb' ),
+            'studentHistoryCreateNotice' => __( 'New history entries cannot be saved yet.', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
             'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
