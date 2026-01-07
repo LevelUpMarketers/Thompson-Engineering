@@ -764,6 +764,139 @@ jQuery(document).ready(function($){
             }
         }
 
+        function appendHistoryFieldInput($container, field, value, fieldName){
+            if (!field || !fieldName){
+                return;
+            }
+
+            var type = field.type || 'text';
+            var stringValue = typeof value === 'undefined' || value === null ? '' : value;
+
+            switch (type){
+                case 'select':
+                    var $select = $('<select/>', { name: fieldName });
+
+                    if (field.options){
+                        Object.keys(field.options).forEach(function(optionValue){
+                            var label = field.options[optionValue];
+                            var $option = $('<option/>', {
+                                value: optionValue
+                            }).text(label);
+
+                            if (String(optionValue) === String(stringValue)){
+                                $option.prop('selected', true);
+                            }
+
+                            $select.append($option);
+                        });
+                    }
+
+                    $container.append($select);
+                    break;
+                case 'textarea':
+                    var $textareaField = $('<textarea/>', { name: fieldName }).val(stringValue);
+
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $textareaField.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
+                    $container.append($textareaField);
+                    break;
+                default:
+                    var $inputField = $('<input/>', {
+                        type: type,
+                        name: fieldName
+                    }).val(stringValue);
+
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $inputField.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
+                    $container.append($inputField);
+                    break;
+            }
+        }
+
+        function buildStudentHistorySection(entity){
+            var historyFields = teqcidbAdmin.studentHistoryFields || [];
+            var historyEntries = entity && entity.studenthistory ? entity.studenthistory : [];
+            var $section = $('<div/>', { 'class': 'teqcidb-student-history' });
+            var headingText = teqcidbAdmin.studentHistoryHeading || '';
+
+            if (headingText){
+                $section.append($('<h4/>', { 'class': 'teqcidb-student-history__title' }).text(headingText));
+            }
+
+            if (!historyEntries.length){
+                var emptyText = teqcidbAdmin.studentHistoryEmpty || '';
+
+                if (emptyText){
+                    $section.append($('<p/>', { 'class': 'description teqcidb-student-history__empty' }).text(emptyText));
+                }
+
+                return $section;
+            }
+
+            historyEntries.forEach(function(entry, index){
+                var historyKey = entry && entry.id ? entry.id : 'row_' + index;
+                var entryTitle = teqcidbAdmin.studentHistoryEntryTitle ?
+                    formatString(teqcidbAdmin.studentHistoryEntryTitle, index + 1) :
+                    formatString('History Entry %s', index + 1);
+                var $entryWrapper = $('<div/>', { 'class': 'teqcidb-student-history__entry' });
+                var $entryFields = $('<div/>', { 'class': 'teqcidb-flex-form teqcidb-student-history__fields' });
+
+                $entryWrapper.append($('<h5/>', { 'class': 'teqcidb-student-history__entry-title' }).text(entryTitle));
+
+                $entryWrapper.append($('<input/>', {
+                    type: 'hidden',
+                    name: 'studenthistory[' + historyKey + '][id]',
+                    value: entry && entry.id ? entry.id : ''
+                }));
+
+                if (entry && entry.uniquestudentid){
+                    $entryWrapper.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'studenthistory[' + historyKey + '][uniquestudentid]',
+                        value: entry.uniquestudentid
+                    }));
+                }
+
+                if (entry && entry.wpuserid){
+                    $entryWrapper.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'studenthistory[' + historyKey + '][wpuserid]',
+                        value: entry.wpuserid
+                    }));
+                }
+
+                historyFields.forEach(function(field){
+                    if (!field || !field.name){
+                        return;
+                    }
+
+                    var value = entry && typeof entry[field.name] !== 'undefined' ? entry[field.name] : '';
+                    var $fieldWrapper = $('<div/>', { 'class': 'teqcidb-field' });
+                    var $label = $('<label/>');
+
+                    $label.append(document.createTextNode(field.label || ''));
+                    $fieldWrapper.append($label);
+                    appendHistoryFieldInput($fieldWrapper, field, value, 'studenthistory[' + historyKey + '][' + field.name + ']');
+                    $entryFields.append($fieldWrapper);
+                });
+
+                $entryWrapper.append($entryFields);
+                $section.append($entryWrapper);
+            });
+
+            return $section;
+        }
+
         function buildEntityForm(entity){
             var entityId = entity && entity.id ? entity.id : 0;
             var $form = $('<form/>', {
@@ -801,6 +934,12 @@ jQuery(document).ready(function($){
             });
 
             $form.append($flex);
+
+            var $historySection = buildStudentHistorySection(entity);
+
+            if ($historySection && $historySection.children().length){
+                $form.append($historySection);
+            }
 
             var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
             var $saveButton = $('<button/>', {

@@ -144,3 +144,4 @@
 141. 2025-12-05: Fixed legacy upload parsing to handle lines with inner parentheses and trailing commas so .sql student history rows no longer get skipped for missing column counts.
 142. 2025-12-05: Trimmed newline-split legacy upload rows to remove trailing commas/whitespace so large .sql student datasets import cleanly alongside history records.
 143. 2025-12-05: Relaxed legacy student uploads to auto-generate unique placeholder emails when missing or duplicated so bulk imports continue without validation skips.
+144. 2026-01-07: Displayed student history entries beneath edit-student comment fields so admins can review and edit related history details inline.

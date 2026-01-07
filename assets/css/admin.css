@@ -139,6 +139,30 @@
     margin-top: 12px;
 }
 
+.teqcidb-student-history {
+    margin: 16px 0 8px;
+}
+
+.teqcidb-student-history__title {
+    margin: 0 0 12px;
+    font-size: 16px;
+    color: #1d2327;
+}
+
+.teqcidb-student-history__entry {
+    background: #ffffff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.teqcidb-student-history__entry-title {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #1d2327;
+}
+
 #teqcidb-spinner,
 .teqcidb-entity-spinner,
 .teqcidb-template-spinner {

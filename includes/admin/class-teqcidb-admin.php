@@ -729,6 +729,7 @@ class TEQCIDB_Admin {
 
         $placeholder_labels = $this->get_placeholder_labels();
         $field_definitions  = $this->prepare_student_fields_for_js();
+        $student_history_definitions = $this->prepare_student_history_fields_for_js();
         $class_placeholder_labels = $this->get_class_placeholder_labels();
         $class_field_definitions  = $this->prepare_class_fields_for_js();
 
@@ -764,6 +765,11 @@ class TEQCIDB_Admin {
             'editAction'   => __( 'Edit', 'teqcidb' ),
             'saveChanges'  => __( 'Save Changes', 'teqcidb' ),
             'entityFields' => $field_definitions,
+            'studentHistoryFields' => $student_history_definitions,
+            'studentHistoryHeading' => __( 'Student History', 'teqcidb' ),
+            /* translators: %s: history entry number */
+            'studentHistoryEntryTitle' => __( 'History Entry %s', 'teqcidb' ),
+            'studentHistoryEmpty' => __( 'No history entries found for this student.', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
             'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
@@ -1500,6 +1506,93 @@ class TEQCIDB_Admin {
             if ( isset( $field['options'] ) ) {
                 $prepared_field['options'] = $field['options'];
             }
+
+            if ( isset( $field['attrs'] ) ) {
+                $prepared_field['attrs'] = $field['attrs'];
+            }
+
+            $prepared[] = $prepared_field;
+        }
+
+        return $prepared;
+    }
+
+    private function get_student_history_fields() {
+        return array(
+            array(
+                'name'  => 'classname',
+                'label' => __( 'Class Name', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'uniqueclassid',
+                'label' => __( 'Unique Class ID', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'registered',
+                'label' => __( 'Registered Status', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'adminapproved',
+                'label' => __( 'Admin Approval', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'attended',
+                'label' => __( 'Attendance Status', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'outcome',
+                'label' => __( 'Outcome', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'paymentstatus',
+                'label' => __( 'Payment Status', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'amountpaid',
+                'label' => __( 'Amount Paid', 'teqcidb' ),
+                'type'  => 'number',
+                'attrs' => ' min="0" step="0.01"',
+            ),
+            array(
+                'name'  => 'enrollmentdate',
+                'label' => __( 'Enrollment Date', 'teqcidb' ),
+                'type'  => 'date',
+            ),
+            array(
+                'name'  => 'registeredby',
+                'label' => __( 'Registered By (User ID)', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'courseinprogress',
+                'label' => __( 'Course In Progress', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+            array(
+                'name'  => 'quizinprogress',
+                'label' => __( 'Quiz In Progress', 'teqcidb' ),
+                'type'  => 'text',
+            ),
+        );
+    }
+
+    private function prepare_student_history_fields_for_js() {
+        $fields   = $this->get_student_history_fields();
+        $prepared = array();
+
+        foreach ( $fields as $field ) {
+            $prepared_field = array(
+                'name'  => $field['name'],
+                'type'  => $field['type'],
+                'label' => $field['label'],
+            );
 
             if ( isset( $field['attrs'] ) ) {
                 $prepared_field['attrs'] = $field['attrs'];

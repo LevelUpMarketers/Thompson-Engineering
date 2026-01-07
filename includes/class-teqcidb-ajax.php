@@ -1355,6 +1355,28 @@ class TEQCIDB_Ajax {
             }
         }
 
+        if ( $entities ) {
+            $unique_ids = array();
+
+            foreach ( $entities as $entity ) {
+                if ( isset( $entity['uniquestudentid'] ) && is_scalar( $entity['uniquestudentid'] ) ) {
+                    $unique_id = sanitize_text_field( (string) $entity['uniquestudentid'] );
+
+                    if ( '' !== $unique_id ) {
+                        $unique_ids[] = $unique_id;
+                    }
+                }
+            }
+
+            $history_map = $this->get_student_history_entries( array_unique( $unique_ids ) );
+
+            foreach ( $entities as &$entity ) {
+                $unique_id = isset( $entity['uniquestudentid'] ) && is_scalar( $entity['uniquestudentid'] ) ? (string) $entity['uniquestudentid'] : '';
+                $entity['studenthistory'] = isset( $history_map[ $unique_id ] ) ? array_values( $history_map[ $unique_id ] ) : array();
+            }
+            unset( $entity );
+        }
+
         $this->maybe_delay( $start, 0 );
         wp_send_json_success(
             array(
@@ -3287,6 +3309,50 @@ class TEQCIDB_Ajax {
         $entity['name']          = $entity['placeholder_1'];
 
         return $entity;
+    }
+
+    private function get_student_history_entries( array $unique_ids ) {
+        $unique_ids = array_values(
+            array_filter(
+                $unique_ids,
+                static function( $value ) {
+                    return is_string( $value ) && '' !== $value;
+                }
+            )
+        );
+
+        if ( empty( $unique_ids ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table        = $wpdb->prefix . 'teqcidb_studenthistory';
+        $placeholders = implode( ', ', array_fill( 0, count( $unique_ids ), '%s' ) );
+        $query        = "SELECT * FROM $table WHERE uniquestudentid IN ($placeholders) ORDER BY enrollmentdate DESC, id DESC";
+        $results      = $wpdb->get_results( $wpdb->prepare( $query, $unique_ids ), ARRAY_A );
+        $grouped      = array();
+
+        if ( is_array( $results ) ) {
+            foreach ( $results as $row ) {
+                if ( ! is_array( $row ) || empty( $row['uniquestudentid'] ) ) {
+                    continue;
+                }
+
+                $unique_id = sanitize_text_field( (string) $row['uniquestudentid'] );
+
+                if ( '' === $unique_id ) {
+                    continue;
+                }
+
+                if ( ! isset( $grouped[ $unique_id ] ) ) {
+                    $grouped[ $unique_id ] = array();
+                }
+
+                $grouped[ $unique_id ][] = $row;
+            }
+        }
+
+        return $grouped;
     }
 
     private function decode_student_address_field( $value ) {
