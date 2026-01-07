@@ -3331,6 +3331,7 @@ class TEQCIDB_Ajax {
         $query        = "SELECT * FROM $table WHERE uniquestudentid IN ($placeholders) ORDER BY enrollmentdate DESC, id DESC";
         $results      = $wpdb->get_results( $wpdb->prepare( $query, $unique_ids ), ARRAY_A );
         $grouped      = array();
+        $class_map    = $this->get_student_history_class_map( $results );
 
         if ( is_array( $results ) ) {
             foreach ( $results as $row ) {
@@ -3348,11 +3349,76 @@ class TEQCIDB_Ajax {
                     $grouped[ $unique_id ] = array();
                 }
 
+                $unique_class_id = isset( $row['uniqueclassid'] ) && is_scalar( $row['uniqueclassid'] ) ? (string) $row['uniqueclassid'] : '';
+
+                if ( $unique_class_id && isset( $class_map[ $unique_class_id ] ) ) {
+                    $class_data = $class_map[ $unique_class_id ];
+                    $row['classname']  = isset( $class_data['classname'] ) ? $class_data['classname'] : $row['classname'];
+                    $row['classdate']  = isset( $class_data['classdate'] ) ? $class_data['classdate'] : '';
+                    $row['classtype']  = isset( $class_data['classtype'] ) ? $class_data['classtype'] : '';
+                } else {
+                    $row['classdate'] = '';
+                    $row['classtype'] = '';
+                }
+
                 $grouped[ $unique_id ][] = $row;
             }
         }
 
         return $grouped;
+    }
+
+    private function get_student_history_class_map( array $history_rows ) {
+        $unique_class_ids = array();
+
+        foreach ( $history_rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            if ( isset( $row['uniqueclassid'] ) && is_scalar( $row['uniqueclassid'] ) ) {
+                $unique_id = sanitize_text_field( (string) $row['uniqueclassid'] );
+
+                if ( '' !== $unique_id ) {
+                    $unique_class_ids[] = $unique_id;
+                }
+            }
+        }
+
+        $unique_class_ids = array_values( array_unique( $unique_class_ids ) );
+
+        if ( empty( $unique_class_ids ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table        = $wpdb->prefix . 'teqcidb_classes';
+        $placeholders = implode( ', ', array_fill( 0, count( $unique_class_ids ), '%s' ) );
+        $query        = "SELECT uniqueclassid, classname, classstartdate, classtype FROM $table WHERE uniqueclassid IN ($placeholders)";
+        $results      = $wpdb->get_results( $wpdb->prepare( $query, $unique_class_ids ), ARRAY_A );
+        $map          = array();
+
+        if ( is_array( $results ) ) {
+            foreach ( $results as $row ) {
+                if ( ! is_array( $row ) || empty( $row['uniqueclassid'] ) ) {
+                    continue;
+                }
+
+                $unique_id = sanitize_text_field( (string) $row['uniqueclassid'] );
+
+                if ( '' === $unique_id ) {
+                    continue;
+                }
+
+                $map[ $unique_id ] = array(
+                    'classname' => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+                    'classdate' => $this->format_date_for_response( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+                    'classtype' => isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '',
+                );
+            }
+        }
+
+        return $map;
     }
 
     private function decode_student_address_field( $value ) {

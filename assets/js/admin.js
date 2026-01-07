@@ -787,6 +787,13 @@ jQuery(document).ready(function($){
 
                     $select.append($placeholder);
 
+                    if (field.attrs){
+                        field.attrs.replace(/([\w-]+)="([^"]*)"/g, function(match, attrName, attrValue){
+                            $select.attr(attrName, attrValue);
+                            return match;
+                        });
+                    }
+
                     if (field.options){
                         Object.keys(field.options).forEach(function(optionValue){
                             var label = field.options[optionValue];

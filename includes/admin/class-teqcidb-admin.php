@@ -1528,6 +1528,24 @@ class TEQCIDB_Admin {
                 'options' => $class_options,
             ),
             array(
+                'name'  => 'classdate',
+                'label' => __( 'Class Date', 'teqcidb' ),
+                'type'  => 'date',
+                'attrs' => ' disabled="disabled"',
+            ),
+            array(
+                'name'  => 'classtype',
+                'label' => __( 'Class Type', 'teqcidb' ),
+                'type'  => 'select',
+                'options' => array(
+                    'Initial'   => __( 'Initial', 'teqcidb' ),
+                    'Refresher' => __( 'Refresher', 'teqcidb' ),
+                    'Hybrid'    => __( 'Hybrid', 'teqcidb' ),
+                    'Other'     => __( 'Other', 'teqcidb' ),
+                ),
+                'attrs' => ' disabled="disabled"',
+            ),
+            array(
                 'name'  => 'registered',
                 'label' => __( 'Registered?', 'teqcidb' ),
                 'type'  => 'select',
