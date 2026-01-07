@@ -147,3 +147,4 @@
 144. 2026-01-07: Displayed student history entries beneath edit-student comment fields so admins can review and edit related history details inline.
 145. 2026-01-07: Refined student history edit fields with class dropdowns and updated status selections for registration, attendance, and outcomes.
 146. 2026-01-07: Added admin approval dropdown options and default selection placeholders for student history selects.
+147. 2026-01-07: Updated student history labels, status dropdowns, and removed the registered-by field.

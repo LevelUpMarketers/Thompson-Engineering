@@ -1539,7 +1539,7 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'  => 'adminapproved',
-                'label' => __( 'Admin Approval', 'teqcidb' ),
+                'label' => __( 'Admin Approved?', 'teqcidb' ),
                 'type'  => 'select',
                 'options' => array(
                     'Yes'             => __( 'Yes', 'teqcidb' ),
@@ -1559,7 +1559,7 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'  => 'outcome',
-                'label' => __( 'Outcome', 'teqcidb' ),
+                'label' => __( 'Class Outcome', 'teqcidb' ),
                 'type'  => 'select',
                 'options' => array(
                     'Upcoming' => __( 'Class is Upcoming', 'teqcidb' ),
@@ -1571,7 +1571,13 @@ class TEQCIDB_Admin {
             array(
                 'name'  => 'paymentstatus',
                 'label' => __( 'Payment Status', 'teqcidb' ),
-                'type'  => 'text',
+                'type'  => 'select',
+                'options' => array(
+                    'Payment Pending' => __( 'Payment Pending', 'teqcidb' ),
+                    'Paid in Full' => __( 'Paid in Full', 'teqcidb' ),
+                    'No Payment Made' => __( 'No Payment Made', 'teqcidb' ),
+                    'Payment Waived' => __( 'Payment Waived', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'amountpaid',
@@ -1585,19 +1591,22 @@ class TEQCIDB_Admin {
                 'type'  => 'date',
             ),
             array(
-                'name'  => 'registeredby',
-                'label' => __( 'Registered By (User ID)', 'teqcidb' ),
-                'type'  => 'text',
-            ),
-            array(
                 'name'  => 'courseinprogress',
-                'label' => __( 'Course In Progress', 'teqcidb' ),
-                'type'  => 'text',
+                'label' => __( 'Course In Progress?', 'teqcidb' ),
+                'type'  => 'select',
+                'options' => array(
+                    'Yes' => __( 'Yes', 'teqcidb' ),
+                    'No'  => __( 'No', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'quizinprogress',
-                'label' => __( 'Quiz In Progress', 'teqcidb' ),
-                'type'  => 'text',
+                'label' => __( 'Quiz In Progress?', 'teqcidb' ),
+                'type'  => 'select',
+                'options' => array(
+                    'Yes' => __( 'Yes', 'teqcidb' ),
+                    'No'  => __( 'No', 'teqcidb' ),
+                ),
             ),
         );
     }
