@@ -1110,12 +1110,19 @@ jQuery(document).ready(function($){
 
                 if ($header.length){
                     $header.trigger('click');
+                    $header.addClass('teqcidb-restore-highlight');
+                    setTimeout(function(){
+                        $header.removeClass('teqcidb-restore-highlight');
+                    }, 1200);
                 }
             }
 
             if (state && typeof state.scrollTop === 'number'){
                 setTimeout(function(){
-                    window.scrollTo(0, state.scrollTop);
+                    window.scrollTo({
+                        top: state.scrollTop,
+                        behavior: 'smooth'
+                    });
                 }, 250);
             }
         }

@@ -151,3 +151,4 @@
 148. 2026-01-07: Normalized student history select matching to handle lowercase saved values like "no".
 149. 2026-01-07: Added read-only class date and class type fields to student history entries.
 150. 2026-01-07: Added per-entry save/delete actions for student history with stateful reloads.
+151. 2026-01-07: Smoothed student history reload UX with action spacing and restore animations.
