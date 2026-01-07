@@ -775,6 +775,8 @@ class TEQCIDB_Admin {
             'studentHistoryEmpty' => __( 'No history entries found for this student.', 'teqcidb' ),
             'studentHistoryAdd' => __( 'Add Student History Entry', 'teqcidb' ),
             'studentHistoryCreateNotice' => __( 'Please save or delete the new history entry.', 'teqcidb' ),
+            'studentHistoryAddLabel' => __( 'Add This New Student History Record', 'teqcidb' ),
+            'studentHistoryDuplicateNotice' => __( 'Duplicate records found. Click here to view them', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
             'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
@@ -1605,8 +1607,8 @@ class TEQCIDB_Admin {
             array(
                 'name'  => 'amountpaid',
                 'label' => __( 'Amount Paid', 'teqcidb' ),
-                'type'  => 'number',
-                'attrs' => ' min="0" step="0.01"',
+                'type'  => 'text',
+                'attrs' => ' inputmode="decimal"',
             ),
             array(
                 'name'  => 'enrollmentdate',

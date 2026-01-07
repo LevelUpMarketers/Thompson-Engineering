@@ -227,6 +227,7 @@ class TEQCIDB_Ajax {
         $quizinprogress = isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '';
         $enrollmentdate = isset( $entry['enrollmentdate'] ) ? sanitize_text_field( (string) $entry['enrollmentdate'] ) : '';
         $amountpaid = isset( $entry['amountpaid'] ) ? sanitize_text_field( (string) $entry['amountpaid'] ) : '';
+        $amountpaid = str_replace( array( '$', ',' ), '', $amountpaid );
 
         $amount_value = null;
 
@@ -411,6 +412,7 @@ class TEQCIDB_Ajax {
         $quizinprogress = isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '';
         $enrollmentdate = isset( $entry['enrollmentdate'] ) ? sanitize_text_field( (string) $entry['enrollmentdate'] ) : '';
         $amountpaid = isset( $entry['amountpaid'] ) ? sanitize_text_field( (string) $entry['amountpaid'] ) : '';
+        $amountpaid = str_replace( array( '$', ',' ), '', $amountpaid );
 
         $amount_value = null;
 

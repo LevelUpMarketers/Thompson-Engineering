@@ -171,6 +171,19 @@
     margin-top: 12px;
 }
 
+.teqcidb-student-history__duplicate-notice {
+    margin: 8px 0 12px;
+}
+
+.teqcidb-history-duplicate-toggle {
+    padding: 0;
+    text-decoration: underline;
+}
+
+.teqcidb-student-history__entry--duplicate {
+    border-left: 4px solid #ffb900;
+}
+
 .teqcidb-restore-highlight {
     animation: teqcidb-restore-highlight 1.6s ease-out;
 }
