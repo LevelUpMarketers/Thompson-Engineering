@@ -17,6 +17,7 @@ class TEQCIDB_Activator {
         $settings_table  = $wpdb->prefix . 'teqcidb_settings';
         $content_log     = $wpdb->prefix . 'teqcidb_content_log';
         $classes_table   = $wpdb->prefix . 'teqcidb_classes';
+        $student_history = $wpdb->prefix . 'teqcidb_studenthistory';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -90,9 +91,32 @@ class TEQCIDB_Activator {
             KEY classname (classname)
         ) $charset_collate;";
 
+        $sql_student_history = "CREATE TABLE $student_history (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            uniquestudentid varchar(255) NOT NULL,
+            wpuserid bigint(20) unsigned DEFAULT NULL,
+            classname varchar(191) NOT NULL DEFAULT '',
+            uniqueclassid varchar(255) NOT NULL,
+            registered varchar(20) NOT NULL DEFAULT 'Pending',
+            adminapproved varchar(20) DEFAULT NULL,
+            attended varchar(20) NOT NULL DEFAULT 'Upcoming',
+            outcome varchar(20) NOT NULL DEFAULT 'Upcoming',
+            paymentstatus varchar(20) NOT NULL DEFAULT 'Pending',
+            amountpaid decimal(10,2) DEFAULT NULL,
+            enrollmentdate date DEFAULT NULL,
+            registeredby bigint(20) unsigned DEFAULT NULL,
+            courseinprogress varchar(255) NOT NULL DEFAULT 'no',
+            quizinprogress varchar(255) NOT NULL DEFAULT 'no',
+            PRIMARY KEY  (id),
+            KEY uniquestudentid (uniquestudentid),
+            KEY wpuserid (wpuserid),
+            KEY uniqueclassid (uniqueclassid)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
         dbDelta( $sql_classes );
+        dbDelta( $sql_student_history );
     }
 }
