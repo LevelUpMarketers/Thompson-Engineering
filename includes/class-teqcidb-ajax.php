@@ -11,6 +11,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
+        add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_delete_studenthistory', array( $this, 'delete_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
@@ -345,6 +346,147 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => __( 'Student history entry deleted.', 'teqcidb' ),
+            )
+        );
+    }
+
+    public function create_studenthistory() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $history_key = isset( $_POST['history_id'] ) ? sanitize_key( wp_unslash( $_POST['history_id'] ) ) : '';
+
+        if ( '' === $history_key ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid student history entry.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $history_data = isset( $_POST['studenthistory'] ) ? wp_unslash( $_POST['studenthistory'] ) : array();
+
+        if ( ! is_array( $history_data ) || ! isset( $history_data[ $history_key ] ) || ! is_array( $history_data[ $history_key ] ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Missing student history details.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $entry = $history_data[ $history_key ];
+
+        $unique_student_id = isset( $entry['uniquestudentid'] ) ? sanitize_text_field( (string) $entry['uniquestudentid'] ) : '';
+
+        if ( '' === $unique_student_id ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'A unique student ID is required to create a history entry.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $wp_user_id = isset( $entry['wpuserid'] ) ? absint( $entry['wpuserid'] ) : 0;
+        $wp_user_id = $wp_user_id > 0 ? $wp_user_id : null;
+
+        $classname = isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '';
+        $registered = isset( $entry['registered'] ) ? sanitize_text_field( (string) $entry['registered'] ) : '';
+        $adminapproved = isset( $entry['adminapproved'] ) ? sanitize_text_field( (string) $entry['adminapproved'] ) : '';
+        $attended = isset( $entry['attended'] ) ? sanitize_text_field( (string) $entry['attended'] ) : '';
+        $outcome = isset( $entry['outcome'] ) ? sanitize_text_field( (string) $entry['outcome'] ) : '';
+        $paymentstatus = isset( $entry['paymentstatus'] ) ? sanitize_text_field( (string) $entry['paymentstatus'] ) : '';
+        $courseinprogress = isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '';
+        $quizinprogress = isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '';
+        $enrollmentdate = isset( $entry['enrollmentdate'] ) ? sanitize_text_field( (string) $entry['enrollmentdate'] ) : '';
+        $amountpaid = isset( $entry['amountpaid'] ) ? sanitize_text_field( (string) $entry['amountpaid'] ) : '';
+
+        $amount_value = null;
+
+        if ( '' !== $amountpaid && is_numeric( $amountpaid ) ) {
+            $amount_value = (float) $amountpaid;
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $class_table = $wpdb->prefix . 'teqcidb_classes';
+        $unique_class_id = isset( $entry['uniqueclassid'] ) ? sanitize_text_field( (string) $entry['uniqueclassid'] ) : '';
+
+        if ( '' !== $classname ) {
+            $class_row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT uniqueclassid, classname FROM $class_table WHERE LOWER(classname) = LOWER(%s) LIMIT 1",
+                    $classname
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $class_row ) && ! empty( $class_row['uniqueclassid'] ) ) {
+                $unique_class_id = sanitize_text_field( (string) $class_row['uniqueclassid'] );
+                $classname = sanitize_text_field( (string) $class_row['classname'] );
+            }
+        }
+
+        $data = array(
+            'uniquestudentid'  => $unique_student_id,
+            'wpuserid'         => $wp_user_id,
+            'classname'        => $classname,
+            'uniqueclassid'    => $unique_class_id,
+            'registered'       => $registered,
+            'adminapproved'    => $adminapproved,
+            'attended'         => $attended,
+            'outcome'          => $outcome,
+            'paymentstatus'    => $paymentstatus,
+            'amountpaid'       => $amount_value,
+            'enrollmentdate'   => '' !== $enrollmentdate ? $enrollmentdate : null,
+            'registeredby'     => null,
+            'courseinprogress' => $courseinprogress,
+            'quizinprogress'   => $quizinprogress,
+        );
+
+        $formats = array(
+            '%s',
+            $wp_user_id === null ? '%s' : '%d',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            $amount_value === null ? '%s' : '%f',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+        );
+
+        $result = $wpdb->insert( $table, $data, $formats );
+
+        if ( false === $result ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to create the student history entry. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Student history entry created.', 'teqcidb' ),
             )
         );
     }

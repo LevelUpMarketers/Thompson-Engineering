@@ -918,6 +918,39 @@ jQuery(document).ready(function($){
             return $entryWrapper;
         }
 
+        function updateHistoryClassMeta($entry, className){
+            var classMap = teqcidbAdmin.studentHistoryClassMap || {};
+            var classInfo = classMap[className] || null;
+            var $classDate = $entry.find('input[name$="[classdate]"]');
+            var $classType = $entry.find('select[name$="[classtype]"]');
+            var $uniqueClassId = $entry.find('input[name$="[uniqueclassid]"]');
+
+            if (!classInfo){
+                if ($classDate.length){
+                    $classDate.val('');
+                }
+                if ($classType.length){
+                    $classType.val('');
+                }
+                if ($uniqueClassId.length){
+                    $uniqueClassId.val('');
+                }
+                return;
+            }
+
+            if ($classDate.length && classInfo.classdate){
+                $classDate.val(classInfo.classdate);
+            }
+
+            if ($classType.length && classInfo.classtype){
+                $classType.val(classInfo.classtype);
+            }
+
+            if ($uniqueClassId.length){
+                $uniqueClassId.val(classInfo.uniqueclassid || '');
+            }
+        }
+
         function buildStudentHistorySection(entity){
             var historyFields = teqcidbAdmin.studentHistoryFields || [];
             var historyEntries = entity && entity.studenthistory ? entity.studenthistory : [];
@@ -1438,18 +1471,25 @@ jQuery(document).ready(function($){
             if (isNewEntry){
                 if (actionType === 'teqcidb_delete_studenthistory'){
                     $entry.remove();
+                    return;
+                }
+
+                if (actionType === 'teqcidb_save_studenthistory'){
+                    payload.action = 'teqcidb_create_studenthistory';
                 } else if ($feedback.length){
                     var notice = teqcidbAdmin.studentHistoryCreateNotice || '';
                     if (notice){
                         $feedback.text(notice).addClass('is-visible');
                     }
+
+                    if ($spinner.length){
+                        $spinner.removeClass('is-active');
+                    }
+
+                    return;
                 }
 
-                if ($spinner.length){
-                    $spinner.removeClass('is-active');
-                }
-
-                return;
+                $buttons.prop('disabled', true);
             }
 
             $buttons.prop('disabled', true);
@@ -1523,6 +1563,12 @@ jQuery(document).ready(function($){
             setTimeout(function(){
                 $newEntry.removeClass('teqcidb-restore-highlight');
             }, 1600);
+        });
+
+        $entityTableBody.on('change', '.teqcidb-student-history__entry select[name$="[classname]"]', function(){
+            var $entry = $(this).closest('.teqcidb-student-history__entry');
+            var className = $(this).val();
+            updateHistoryClassMeta($entry, className);
         });
 
         $entityTableBody.on('submit', '.teqcidb-entity-edit-form', function(e){

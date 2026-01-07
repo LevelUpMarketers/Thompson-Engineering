@@ -730,6 +730,7 @@ class TEQCIDB_Admin {
         $placeholder_labels = $this->get_placeholder_labels();
         $field_definitions  = $this->prepare_student_fields_for_js();
         $student_history_definitions = $this->prepare_student_history_fields_for_js();
+        $student_history_class_map = $this->get_student_history_class_map();
         $class_placeholder_labels = $this->get_class_placeholder_labels();
         $class_field_definitions  = $this->prepare_class_fields_for_js();
 
@@ -766,13 +767,14 @@ class TEQCIDB_Admin {
             'saveChanges'  => __( 'Save Changes', 'teqcidb' ),
             'entityFields' => $field_definitions,
             'studentHistoryFields' => $student_history_definitions,
+            'studentHistoryClassMap' => $student_history_class_map,
             'studentHistoryHeading' => __( 'Student History', 'teqcidb' ),
             /* translators: %s: history entry number */
             'studentHistoryEntryTitle' => __( 'History Entry %s', 'teqcidb' ),
             'studentHistoryNewEntryTitle' => __( 'New History Entry', 'teqcidb' ),
             'studentHistoryEmpty' => __( 'No history entries found for this student.', 'teqcidb' ),
             'studentHistoryAdd' => __( 'Add Student History Entry', 'teqcidb' ),
-            'studentHistoryCreateNotice' => __( 'New history entries cannot be saved yet.', 'teqcidb' ),
+            'studentHistoryCreateNotice' => __( 'Please save or delete the new history entry.', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
             'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
@@ -1680,6 +1682,46 @@ class TEQCIDB_Admin {
         }
 
         return $options;
+    }
+
+    private function get_student_history_class_map() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_classes';
+        $results = $wpdb->get_results( "SELECT classname, uniqueclassid, classstartdate, classtype FROM $table ORDER BY classname ASC", ARRAY_A );
+        $map = array();
+
+        $type_map = array(
+            'initial'   => __( 'Initial', 'teqcidb' ),
+            'refresher' => __( 'Refresher', 'teqcidb' ),
+            'hybrid'    => __( 'Hybrid', 'teqcidb' ),
+            'other'     => __( 'Other', 'teqcidb' ),
+        );
+
+        if ( is_array( $results ) ) {
+            foreach ( $results as $row ) {
+                if ( empty( $row['classname'] ) ) {
+                    continue;
+                }
+
+                $classname = sanitize_text_field( (string) $row['classname'] );
+
+                if ( '' === $classname ) {
+                    continue;
+                }
+
+                $class_type = isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '';
+                $class_type_key = strtolower( $class_type );
+                $class_type_label = isset( $type_map[ $class_type_key ] ) ? $type_map[ $class_type_key ] : $class_type;
+
+                $map[ $classname ] = array(
+                    'uniqueclassid' => isset( $row['uniqueclassid'] ) ? sanitize_text_field( (string) $row['uniqueclassid'] ) : '',
+                    'classdate'     => isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '',
+                    'classtype'     => $class_type_label,
+                );
+            }
+        }
+
+        return $map;
     }
 
     private function prepare_class_fields_for_js() {
