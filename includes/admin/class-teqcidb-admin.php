@@ -1518,21 +1518,24 @@ class TEQCIDB_Admin {
     }
 
     private function get_student_history_fields() {
+        $class_options = $this->get_class_name_options();
+
         return array(
             array(
                 'name'  => 'classname',
                 'label' => __( 'Class Name', 'teqcidb' ),
-                'type'  => 'text',
-            ),
-            array(
-                'name'  => 'uniqueclassid',
-                'label' => __( 'Unique Class ID', 'teqcidb' ),
-                'type'  => 'text',
+                'type'  => 'select',
+                'options' => $class_options,
             ),
             array(
                 'name'  => 'registered',
-                'label' => __( 'Registered Status', 'teqcidb' ),
-                'type'  => 'text',
+                'label' => __( 'Registered?', 'teqcidb' ),
+                'type'  => 'select',
+                'options' => array(
+                    'Yes'     => __( 'Yes', 'teqcidb' ),
+                    'No'      => __( 'No', 'teqcidb' ),
+                    'Pending' => __( 'Pending', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'adminapproved',
@@ -1541,13 +1544,24 @@ class TEQCIDB_Admin {
             ),
             array(
                 'name'  => 'attended',
-                'label' => __( 'Attendance Status', 'teqcidb' ),
-                'type'  => 'text',
+                'label' => __( 'Attended This Class?', 'teqcidb' ),
+                'type'  => 'select',
+                'options' => array(
+                    'Upcoming' => __( 'Class is Upcoming', 'teqcidb' ),
+                    'Yes'      => __( 'Yes', 'teqcidb' ),
+                    'No'       => __( 'No', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'outcome',
                 'label' => __( 'Outcome', 'teqcidb' ),
-                'type'  => 'text',
+                'type'  => 'select',
+                'options' => array(
+                    'Upcoming' => __( 'Class is Upcoming', 'teqcidb' ),
+                    'Passed'   => __( 'Passed', 'teqcidb' ),
+                    'Failed'   => __( 'Failed', 'teqcidb' ),
+                    'Deferred/Delayed' => __( 'Deferred/Delayed', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'paymentstatus',
@@ -1594,6 +1608,10 @@ class TEQCIDB_Admin {
                 'label' => $field['label'],
             );
 
+            if ( isset( $field['options'] ) ) {
+                $prepared_field['options'] = $field['options'];
+            }
+
             if ( isset( $field['attrs'] ) ) {
                 $prepared_field['attrs'] = $field['attrs'];
             }
@@ -1602,6 +1620,31 @@ class TEQCIDB_Admin {
         }
 
         return $prepared;
+    }
+
+    private function get_class_name_options() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_classes';
+        $rows  = $wpdb->get_col( "SELECT DISTINCT classname FROM $table ORDER BY classname ASC" );
+        $options = array();
+
+        if ( $rows ) {
+            foreach ( $rows as $classname ) {
+                if ( ! is_scalar( $classname ) ) {
+                    continue;
+                }
+
+                $label = sanitize_text_field( (string) $classname );
+
+                if ( '' === $label ) {
+                    continue;
+                }
+
+                $options[ $label ] = $label;
+            }
+        }
+
+        return $options;
     }
 
     private function prepare_class_fields_for_js() {
