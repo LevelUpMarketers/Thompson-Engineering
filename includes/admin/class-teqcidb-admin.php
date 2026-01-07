@@ -1540,7 +1540,12 @@ class TEQCIDB_Admin {
             array(
                 'name'  => 'adminapproved',
                 'label' => __( 'Admin Approval', 'teqcidb' ),
-                'type'  => 'text',
+                'type'  => 'select',
+                'options' => array(
+                    'Yes'             => __( 'Yes', 'teqcidb' ),
+                    'No'              => __( 'No', 'teqcidb' ),
+                    'Pending Approval' => __( 'Pending Approval', 'teqcidb' ),
+                ),
             ),
             array(
                 'name'  => 'attended',

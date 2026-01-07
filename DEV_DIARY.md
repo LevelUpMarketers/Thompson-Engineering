@@ -146,3 +146,4 @@
 143. 2025-12-05: Relaxed legacy student uploads to auto-generate unique placeholder emails when missing or duplicated so bulk imports continue without validation skips.
 144. 2026-01-07: Displayed student history entries beneath edit-student comment fields so admins can review and edit related history details inline.
 145. 2026-01-07: Refined student history edit fields with class dropdowns and updated status selections for registration, attendance, and outcomes.
+146. 2026-01-07: Added admin approval dropdown options and default selection placeholders for student history selects.

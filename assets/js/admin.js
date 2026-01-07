@@ -775,6 +775,17 @@ jQuery(document).ready(function($){
             switch (type){
                 case 'select':
                     var $select = $('<select/>', { name: fieldName });
+                    var placeholderLabel = teqcidbAdmin.makeSelection || 'Make a Selection...';
+                    var $placeholder = $('<option/>', {
+                        value: '',
+                        disabled: true
+                    }).text(placeholderLabel);
+
+                    if (stringValue === '' || stringValue === null){
+                        $placeholder.prop('selected', true);
+                    }
+
+                    $select.append($placeholder);
 
                     if (field.options){
                         Object.keys(field.options).forEach(function(optionValue){
