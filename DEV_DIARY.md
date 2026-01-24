@@ -168,3 +168,4 @@
 165. 2026-01-07: Wired the student dashboard create form to submit through the same student save flow as the admin form.
 166. 2026-01-07: Updated student dashboard auth section styling and reset link behavior.
 167. 2026-01-07: Aligned student dashboard state selection values with backend validation so states save correctly.
+168. 2026-01-07: Updated the student dashboard create-account description copy.

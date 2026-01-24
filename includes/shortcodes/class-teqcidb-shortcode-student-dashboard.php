@@ -136,7 +136,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     <p class="teqcidb-auth-description">
                         <?php
                         echo esc_html_x(
-                            'Create a free account below. Sign up for one of our memberships to gain access to special perks and discounts.',
+                            'Create your QCI account by completing the form below.',
                             'Create account form description text',
                             'teqcidb'
                         );
