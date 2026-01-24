@@ -170,6 +170,134 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $unique_student_id = '';
+        $wp_user_id = null;
+
+        if ( $creating_new_student ) {
+            $unique_student_id = isset( $data['uniquestudentid'] ) ? $data['uniquestudentid'] : '';
+            $wp_user_id = isset( $data['wpuserid'] ) ? absint( $data['wpuserid'] ) : null;
+        } else {
+            $unique_student_id = (string) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT uniquestudentid FROM $table WHERE id = %d",
+                    $id
+                )
+            );
+            $wp_user_id = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT wpuserid FROM $table WHERE id = %d",
+                    $id
+                )
+            );
+            $wp_user_id = $wp_user_id ? absint( $wp_user_id ) : null;
+        }
+
+        $history_data = isset( $_POST['studenthistory'] ) ? wp_unslash( $_POST['studenthistory'] ) : array();
+
+        if ( is_array( $history_data ) && $unique_student_id ) {
+            $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+            $class_table   = $wpdb->prefix . 'teqcidb_classes';
+
+            foreach ( $history_data as $history_key => $entry ) {
+                if ( ! is_array( $entry ) ) {
+                    continue;
+                }
+
+                $history_id = isset( $entry['id'] ) ? absint( $entry['id'] ) : 0;
+                $classname = isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '';
+                $registered = isset( $entry['registered'] ) ? sanitize_text_field( (string) $entry['registered'] ) : '';
+                $adminapproved = isset( $entry['adminapproved'] ) ? sanitize_text_field( (string) $entry['adminapproved'] ) : '';
+                $attended = isset( $entry['attended'] ) ? sanitize_text_field( (string) $entry['attended'] ) : '';
+                $outcome = isset( $entry['outcome'] ) ? sanitize_text_field( (string) $entry['outcome'] ) : '';
+                $paymentstatus = isset( $entry['paymentstatus'] ) ? sanitize_text_field( (string) $entry['paymentstatus'] ) : '';
+                $courseinprogress = isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '';
+                $quizinprogress = isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '';
+                $enrollmentdate = isset( $entry['enrollmentdate'] ) ? sanitize_text_field( (string) $entry['enrollmentdate'] ) : '';
+                $amountpaid = isset( $entry['amountpaid'] ) ? sanitize_text_field( (string) $entry['amountpaid'] ) : '';
+                $amountpaid = str_replace( array( '$', ',' ), '', $amountpaid );
+
+                $amount_value = null;
+
+                if ( '' !== $amountpaid && is_numeric( $amountpaid ) ) {
+                    $amount_value = (float) $amountpaid;
+                }
+
+                $entry_unique_student_id = isset( $entry['uniquestudentid'] ) ? sanitize_text_field( (string) $entry['uniquestudentid'] ) : '';
+                $entry_unique_student_id = $entry_unique_student_id ? $entry_unique_student_id : $unique_student_id;
+                $entry_wp_user_id = isset( $entry['wpuserid'] ) ? absint( $entry['wpuserid'] ) : 0;
+                $entry_wp_user_id = $entry_wp_user_id > 0 ? $entry_wp_user_id : $wp_user_id;
+
+                $unique_class_id = isset( $entry['uniqueclassid'] ) ? sanitize_text_field( (string) $entry['uniqueclassid'] ) : '';
+
+                if ( '' !== $classname ) {
+                    $class_row = $wpdb->get_row(
+                        $wpdb->prepare(
+                            "SELECT uniqueclassid, classname FROM $class_table WHERE LOWER(classname) = LOWER(%s) LIMIT 1",
+                            $classname
+                        ),
+                        ARRAY_A
+                    );
+
+                    if ( is_array( $class_row ) && ! empty( $class_row['uniqueclassid'] ) ) {
+                        $unique_class_id = sanitize_text_field( (string) $class_row['uniqueclassid'] );
+                        $classname = sanitize_text_field( (string) $class_row['classname'] );
+                    }
+                }
+
+                $has_content = '' !== $classname || '' !== $registered || '' !== $adminapproved || '' !== $attended || '' !== $outcome || '' !== $paymentstatus || '' !== $courseinprogress || '' !== $quizinprogress || '' !== $enrollmentdate || null !== $amount_value;
+
+                if ( ! $has_content && ! $history_id ) {
+                    continue;
+                }
+
+                $history_row = array(
+                    'uniquestudentid'  => $entry_unique_student_id,
+                    'wpuserid'         => $entry_wp_user_id,
+                    'classname'        => $classname,
+                    'uniqueclassid'    => $unique_class_id,
+                    'registered'       => $registered,
+                    'adminapproved'    => $adminapproved,
+                    'attended'         => $attended,
+                    'outcome'          => $outcome,
+                    'paymentstatus'    => $paymentstatus,
+                    'amountpaid'       => $amount_value,
+                    'enrollmentdate'   => '' !== $enrollmentdate ? $enrollmentdate : null,
+                    'registeredby'     => null,
+                    'courseinprogress' => $courseinprogress,
+                    'quizinprogress'   => $quizinprogress,
+                );
+
+                $history_formats = array(
+                    '%s',
+                    $entry_wp_user_id ? '%d' : '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    $amount_value === null ? '%s' : '%f',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                );
+
+                if ( $history_id > 0 ) {
+                    $wpdb->update(
+                        $history_table,
+                        $history_row,
+                        array( 'id' => $history_id ),
+                        $history_formats,
+                        array( '%d' )
+                    );
+                } else {
+                    $wpdb->insert( $history_table, $history_row, $history_formats );
+                }
+            }
+        }
+
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(

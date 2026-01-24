@@ -402,6 +402,10 @@
     text-align: right;
 }
 
+.teqcidb-accordion__title-text .teqcidb-accordion__meta-value {
+    font-weight: 400;
+}
+
 .teqcidb-accordion__cell--category {
     color: #3c434a;
     min-width: 160px;

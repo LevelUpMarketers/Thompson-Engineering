@@ -372,7 +372,7 @@ jQuery(document).ready(function($){
         var entityFields = Array.isArray(teqcidbAdmin.entityFields) ? teqcidbAdmin.entityFields : [];
         var pendingFeedbackMessage = '';
         var currentPage = 1;
-        var emptyValue = '—';
+        var emptyValue = 'N/A';
         var currentFilters = {
             placeholder_1: '',
             placeholder_2: '',

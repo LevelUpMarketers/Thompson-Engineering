@@ -158,3 +158,4 @@
 155. 2026-01-07: Enabled new history entries to save and updated the new-entry notice text.
 156. 2026-01-07: Added duplicate history grouping, class metadata autofill, and currency formatting for amounts.
 157. 2026-01-07: Standardized the student name column to use labeled meta text in the edit accordion.
+158. 2026-01-07: Updated main student save to persist history entries and normalized empty meta display.
