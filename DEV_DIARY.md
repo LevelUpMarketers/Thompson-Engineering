@@ -160,3 +160,4 @@
 157. 2026-01-07: Standardized the student name column to use labeled meta text in the edit accordion.
 158. 2026-01-07: Updated main student save to persist history entries and normalized empty meta display.
 159. 2026-01-07: Added the student dashboard template with responsive login and create account forms for unauthenticated visitors.
+160. 2026-01-07: Moved the student dashboard auth layout into a dedicated shortcode with matching frontend styling.

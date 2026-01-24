@@ -1,25 +1,26 @@
 <?php
 /**
- * Template Name: Student Dashboard
- * Template Post Type: page
+ * Shortcode for displaying the student dashboard auth section.
  *
- * @package TEQCIDB
+ * @package Thompson_Engineering_QCI_Database
  */
 
-get_header();
+class TEQCIDB_Shortcode_Student_Dashboard {
 
-wp_enqueue_style(
-    'teqcidb-student-dashboard',
-    TEQCIDB_PLUGIN_URL . 'assets/css/templates/student-dashboard.css',
-    array(),
-    TEQCIDB_VERSION
-);
+    const SHORTCODE_TAG = 'teqcidb_student_dashboard_shortcode';
 
-$show_auth_section = ! is_user_logged_in();
-?>
+    public function register() {
+        add_shortcode( self::SHORTCODE_TAG, array( $this, 'render' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+    }
 
-<div class="teqcidb-student-dashboard">
-    <?php if ( $show_auth_section ) : ?>
+    public function render( $atts = array(), $content = '' ) {
+        if ( is_user_logged_in() ) {
+            return '';
+        }
+
+        ob_start();
+        ?>
         <section class="teqcidb-auth-section">
             <div class="teqcidb-auth-grid">
                 <article class="teqcidb-auth-card">
@@ -526,8 +527,29 @@ $show_auth_section = ! is_user_logged_in();
                 </article>
             </div>
         </section>
-    <?php endif; ?>
-</div>
+        <?php
 
-<?php
-get_footer();
+        return ob_get_clean();
+    }
+
+    public function enqueue_assets() {
+        if ( ! is_singular() ) {
+            return;
+        }
+
+        global $post;
+
+        if ( ! $post instanceof WP_Post ) {
+            return;
+        }
+
+        if ( has_shortcode( $post->post_content, self::SHORTCODE_TAG ) ) {
+            wp_enqueue_style(
+                'teqcidb-shortcode-student-dashboard',
+                TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/student-dashboard.css',
+                array(),
+                TEQCIDB_VERSION
+            );
+        }
+    }
+}
