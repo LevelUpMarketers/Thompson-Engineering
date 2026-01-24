@@ -179,6 +179,10 @@
         return data;
     };
 
+    const shouldReload = (form) => {
+        return Boolean(form.closest('[data-teqcidb-dashboard="true"]'));
+    };
+
     const submitForm = (form) => {
         if (!settings.ajaxUrl) {
             showFeedback(form, settings.messageUnknown, false);
@@ -198,7 +202,11 @@
                         : '';
 
                 if (payload && payload.success) {
-                    window.location.reload();
+                    if (shouldReload(form)) {
+                        window.location.reload();
+                        return;
+                    }
+                    showFeedback(form, message || '', false);
                 } else {
                     showFeedback(
                         form,
@@ -329,7 +337,11 @@
             .then((response) => response.json())
             .then((payload) => {
                 if (payload && payload.success) {
-                    window.location.reload();
+                    if (shouldReload(form)) {
+                        window.location.reload();
+                        return;
+                    }
+                    showFeedback(form, '', false);
                 } else {
                     showFeedback(
                         form,

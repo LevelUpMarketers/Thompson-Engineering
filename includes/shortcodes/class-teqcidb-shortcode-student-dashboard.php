@@ -21,7 +21,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
         ob_start();
         ?>
-        <section class="teqcidb-auth-section">
+        <section class="teqcidb-auth-section" data-teqcidb-dashboard="true">
             <div class="teqcidb-auth-grid">
                 <article class="teqcidb-auth-card">
                     <h2 class="teqcidb-auth-title">
