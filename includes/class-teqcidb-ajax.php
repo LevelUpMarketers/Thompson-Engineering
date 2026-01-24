@@ -10,6 +10,8 @@ class TEQCIDB_Ajax {
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_nopriv_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_teqcidb_login_user', array( $this, 'login_user' ) );
+        add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
@@ -139,6 +141,9 @@ class TEQCIDB_Ajax {
                     )
                 );
             }
+
+            wp_set_current_user( $new_wp_user_id );
+            wp_set_auth_cookie( $new_wp_user_id, true );
         }
 
         $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
@@ -328,6 +333,49 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    public function login_user() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        $username = isset( $_POST['log'] ) ? sanitize_text_field( wp_unslash( $_POST['log'] ) ) : '';
+        $password = isset( $_POST['pwd'] ) ? wp_unslash( $_POST['pwd'] ) : '';
+        $remember = isset( $_POST['rememberme'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['rememberme'] ) );
+
+        if ( '' === $username || '' === $password ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please enter your username/email and password.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $user = wp_signon(
+            array(
+                'user_login'    => $username,
+                'user_password' => $password,
+                'remember'      => $remember,
+            ),
+            false
+        );
+
+        if ( is_wp_error( $user ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'We could not log you in with those credentials. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Logged in.', 'teqcidb' ),
             )
         );
     }

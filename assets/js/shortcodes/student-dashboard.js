@@ -198,7 +198,7 @@
                         : '';
 
                 if (payload && payload.success) {
-                    showFeedback(form, message || '', false);
+                    window.location.reload();
                 } else {
                     showFeedback(
                         form,
@@ -289,6 +289,66 @@
             }
 
             submitForm(form);
+        });
+    });
+
+    const loginForms = document.querySelectorAll('.teqcidb-login-form');
+
+    const submitLogin = (form) => {
+        if (!settings.ajaxUrl) {
+            showFeedback(form, settings.messageLoginFailed, false);
+            return;
+        }
+
+        const username = form.querySelector('#teqcidb-login-username');
+        const password = form.querySelector('#teqcidb-login-password');
+        const remember = form.querySelector('#teqcidb-login-remember');
+
+        if (
+            !username ||
+            !password ||
+            !username.value.trim() ||
+            !password.value.trim()
+        ) {
+            showFeedback(form, settings.messageLoginRequired, false);
+            return;
+        }
+
+        const data = new FormData();
+        data.append('action', settings.ajaxLoginAction || 'teqcidb_login_user');
+        data.append('_ajax_nonce', settings.ajaxNonce || '');
+        data.append('log', username.value.trim());
+        data.append('pwd', password.value);
+        data.append('rememberme', remember && remember.checked ? '1' : '0');
+
+        fetch(settings.ajaxUrl, {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                if (payload && payload.success) {
+                    window.location.reload();
+                } else {
+                    showFeedback(
+                        form,
+                        (payload && payload.data && payload.data.message) ||
+                            settings.messageLoginFailed,
+                        false
+                    );
+                }
+            })
+            .catch(() => {
+                showFeedback(form, settings.messageLoginFailed, false);
+            });
+    };
+
+    loginForms.forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            showFeedback(form, '', true);
+            submitLogin(form);
         });
     });
 })();

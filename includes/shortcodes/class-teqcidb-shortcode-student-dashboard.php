@@ -110,6 +110,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                             );
                             ?>
                         </button>
+                        <div class="teqcidb-form-feedback" aria-live="polite">
+                            <span class="teqcidb-spinner" aria-hidden="true"></span>
+                            <span class="teqcidb-form-message"></span>
+                        </div>
 
                         <a class="teqcidb-auth-link" href="<?php echo esc_url( wp_lostpassword_url() ); ?>">
                             <?php
@@ -641,11 +645,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'ajaxUrl'         => esc_url( admin_url( 'admin-ajax.php' ) ),
                     'ajaxNonce'       => wp_create_nonce( 'teqcidb_ajax_nonce' ),
                     'ajaxAction'      => 'teqcidb_save_student',
+                    'ajaxLoginAction' => 'teqcidb_login_user',
                     'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
                     'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
                     'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),
                     'messageStrength' => esc_html_x( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'Create account form validation message', 'teqcidb' ),
                     'messageUnknown'  => esc_html_x( 'Something went wrong while creating the account. Please try again.', 'Create account form validation message', 'teqcidb' ),
+                    'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
+                    'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
                 )
             );
         }
