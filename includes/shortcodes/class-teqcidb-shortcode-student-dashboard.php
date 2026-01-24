@@ -394,7 +394,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                     );
                                     ?>
                                 </label>
-                                <select id="teqcidb-create-state" name="teqcidb_create_state" autocomplete="address-level1">
+                                <select id="teqcidb-create-state" name="teqcidb_create_state" autocomplete="address-level1" required>
                                     <option value="">
                                         <?php
                                         echo esc_html_x(
@@ -404,56 +404,56 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                         );
                                         ?>
                                     </option>
-                                    <option value="AL"><?php echo esc_html_x( 'Alabama', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="AK"><?php echo esc_html_x( 'Alaska', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="AZ"><?php echo esc_html_x( 'Arizona', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="AR"><?php echo esc_html_x( 'Arkansas', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="CA"><?php echo esc_html_x( 'California', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="CO"><?php echo esc_html_x( 'Colorado', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="CT"><?php echo esc_html_x( 'Connecticut', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="DE"><?php echo esc_html_x( 'Delaware', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="FL"><?php echo esc_html_x( 'Florida', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="GA"><?php echo esc_html_x( 'Georgia', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="HI"><?php echo esc_html_x( 'Hawaii', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="ID"><?php echo esc_html_x( 'Idaho', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="IL"><?php echo esc_html_x( 'Illinois', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="IN"><?php echo esc_html_x( 'Indiana', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="IA"><?php echo esc_html_x( 'Iowa', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="KS"><?php echo esc_html_x( 'Kansas', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="KY"><?php echo esc_html_x( 'Kentucky', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="LA"><?php echo esc_html_x( 'Louisiana', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="ME"><?php echo esc_html_x( 'Maine', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MD"><?php echo esc_html_x( 'Maryland', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MA"><?php echo esc_html_x( 'Massachusetts', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MI"><?php echo esc_html_x( 'Michigan', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MN"><?php echo esc_html_x( 'Minnesota', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MS"><?php echo esc_html_x( 'Mississippi', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MO"><?php echo esc_html_x( 'Missouri', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="MT"><?php echo esc_html_x( 'Montana', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NE"><?php echo esc_html_x( 'Nebraska', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NV"><?php echo esc_html_x( 'Nevada', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NH"><?php echo esc_html_x( 'New Hampshire', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NJ"><?php echo esc_html_x( 'New Jersey', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NM"><?php echo esc_html_x( 'New Mexico', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NY"><?php echo esc_html_x( 'New York', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="NC"><?php echo esc_html_x( 'North Carolina', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="ND"><?php echo esc_html_x( 'North Dakota', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="OH"><?php echo esc_html_x( 'Ohio', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="OK"><?php echo esc_html_x( 'Oklahoma', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="OR"><?php echo esc_html_x( 'Oregon', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="PA"><?php echo esc_html_x( 'Pennsylvania', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="RI"><?php echo esc_html_x( 'Rhode Island', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="SC"><?php echo esc_html_x( 'South Carolina', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="SD"><?php echo esc_html_x( 'South Dakota', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="TN"><?php echo esc_html_x( 'Tennessee', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="TX"><?php echo esc_html_x( 'Texas', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="UT"><?php echo esc_html_x( 'Utah', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="VT"><?php echo esc_html_x( 'Vermont', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="VA"><?php echo esc_html_x( 'Virginia', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="WA"><?php echo esc_html_x( 'Washington', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="WV"><?php echo esc_html_x( 'West Virginia', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="WI"><?php echo esc_html_x( 'Wisconsin', 'State option label', 'teqcidb' ); ?></option>
-                                    <option value="WY"><?php echo esc_html_x( 'Wyoming', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Alabama"><?php echo esc_html_x( 'Alabama', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Alaska"><?php echo esc_html_x( 'Alaska', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Arizona"><?php echo esc_html_x( 'Arizona', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Arkansas"><?php echo esc_html_x( 'Arkansas', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="California"><?php echo esc_html_x( 'California', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Colorado"><?php echo esc_html_x( 'Colorado', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Connecticut"><?php echo esc_html_x( 'Connecticut', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Delaware"><?php echo esc_html_x( 'Delaware', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Florida"><?php echo esc_html_x( 'Florida', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Georgia"><?php echo esc_html_x( 'Georgia', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Hawaii"><?php echo esc_html_x( 'Hawaii', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Idaho"><?php echo esc_html_x( 'Idaho', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Illinois"><?php echo esc_html_x( 'Illinois', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Indiana"><?php echo esc_html_x( 'Indiana', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Iowa"><?php echo esc_html_x( 'Iowa', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Kansas"><?php echo esc_html_x( 'Kansas', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Kentucky"><?php echo esc_html_x( 'Kentucky', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Louisiana"><?php echo esc_html_x( 'Louisiana', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Maine"><?php echo esc_html_x( 'Maine', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Maryland"><?php echo esc_html_x( 'Maryland', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Massachusetts"><?php echo esc_html_x( 'Massachusetts', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Michigan"><?php echo esc_html_x( 'Michigan', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Minnesota"><?php echo esc_html_x( 'Minnesota', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Mississippi"><?php echo esc_html_x( 'Mississippi', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Missouri"><?php echo esc_html_x( 'Missouri', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Montana"><?php echo esc_html_x( 'Montana', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Nebraska"><?php echo esc_html_x( 'Nebraska', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Nevada"><?php echo esc_html_x( 'Nevada', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="New Hampshire"><?php echo esc_html_x( 'New Hampshire', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="New Jersey"><?php echo esc_html_x( 'New Jersey', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="New Mexico"><?php echo esc_html_x( 'New Mexico', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="New York"><?php echo esc_html_x( 'New York', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="North Carolina"><?php echo esc_html_x( 'North Carolina', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="North Dakota"><?php echo esc_html_x( 'North Dakota', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Ohio"><?php echo esc_html_x( 'Ohio', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Oklahoma"><?php echo esc_html_x( 'Oklahoma', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Oregon"><?php echo esc_html_x( 'Oregon', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Pennsylvania"><?php echo esc_html_x( 'Pennsylvania', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Rhode Island"><?php echo esc_html_x( 'Rhode Island', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="South Carolina"><?php echo esc_html_x( 'South Carolina', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="South Dakota"><?php echo esc_html_x( 'South Dakota', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Tennessee"><?php echo esc_html_x( 'Tennessee', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Texas"><?php echo esc_html_x( 'Texas', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Utah"><?php echo esc_html_x( 'Utah', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Vermont"><?php echo esc_html_x( 'Vermont', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Virginia"><?php echo esc_html_x( 'Virginia', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Washington"><?php echo esc_html_x( 'Washington', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="West Virginia"><?php echo esc_html_x( 'West Virginia', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Wisconsin"><?php echo esc_html_x( 'Wisconsin', 'State option label', 'teqcidb' ); ?></option>
+                                    <option value="Wyoming"><?php echo esc_html_x( 'Wyoming', 'State option label', 'teqcidb' ); ?></option>
                                 </select>
                             </div>
 

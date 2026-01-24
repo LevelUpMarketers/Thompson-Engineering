@@ -170,6 +170,10 @@
             });
 
             const hasEmptyRequired = requiredFields.some((field) => {
+                if (field.tagName === 'SELECT') {
+                    return !field.value || !field.value.trim();
+                }
+
                 return !field.value || !field.value.trim();
             });
 
