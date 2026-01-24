@@ -1,0 +1,150 @@
+.teqcidb-student-dashboard {
+    background: #f7f6f3;
+    padding: 60px 16px;
+}
+
+.teqcidb-auth-section {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.teqcidb-auth-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+}
+
+.teqcidb-auth-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 18px 30px rgba(24, 24, 24, 0.08);
+}
+
+.teqcidb-auth-title {
+    color: #9d4b36;
+    font-size: clamp(1.6rem, 2vw, 2.2rem);
+    font-weight: 700;
+    margin: 0 0 16px;
+    text-align: center;
+}
+
+.teqcidb-auth-description {
+    color: #4d4d4d;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0 0 24px;
+}
+
+.teqcidb-login-form,
+.teqcidb-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.teqcidb-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.teqcidb-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.teqcidb-form-field label,
+.teqcidb-form-field legend {
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+.teqcidb-form-field input,
+.teqcidb-form-field select {
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.teqcidb-form-field input:focus,
+.teqcidb-form-field select:focus {
+    border-color: #9d4b36;
+    outline: none;
+}
+
+.teqcidb-form-checkbox label {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.teqcidb-form-fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.teqcidb-checkbox-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    margin-top: 10px;
+}
+
+.teqcidb-checkbox {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+}
+
+.teqcidb-button {
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 14px 20px;
+    text-transform: uppercase;
+}
+
+.teqcidb-button-primary {
+    background: #9d4b36;
+    color: #fff;
+    max-width: 240px;
+}
+
+.teqcidb-auth-link {
+    color: #9d4b36;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.teqcidb-auth-link:hover,
+.teqcidb-auth-link:focus {
+    text-decoration: underline;
+}
+
+@media (max-width: 980px) {
+    .teqcidb-auth-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .teqcidb-auth-card {
+        padding: 24px;
+    }
+
+    .teqcidb-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .teqcidb-button-primary {
+        width: 100%;
+        max-width: none;
+    }
+}
