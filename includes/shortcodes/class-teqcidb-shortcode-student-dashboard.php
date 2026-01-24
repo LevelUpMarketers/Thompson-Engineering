@@ -291,7 +291,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                         </span>
                                     </button>
                                 </div>
-                                <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-password"></span>
                             </div>
 
                             <div class="teqcidb-form-field">
@@ -326,7 +325,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                         </span>
                                     </button>
                                 </div>
-                                <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-verify-password"></span>
                             </div>
 
                             <div class="teqcidb-form-field">
@@ -593,6 +591,18 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                             );
                             ?>
                         </button>
+                        <div class="teqcidb-form-feedback" aria-live="polite">
+                            <span class="teqcidb-spinner" aria-hidden="true"></span>
+                            <span class="teqcidb-form-message">
+                                <?php
+                                echo esc_html_x(
+                                    'Messages will appear here after you submit the form.',
+                                    'Create account feedback placeholder text',
+                                    'teqcidb'
+                                );
+                                ?>
+                            </span>
+                        </div>
                     </form>
                 </article>
             </div>
@@ -636,10 +646,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'toggleHideLabel' => esc_html_x( 'Hide', 'Password field toggle button text', 'teqcidb' ),
                     'toggleShowAria'  => esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ),
                     'toggleHideAria'  => esc_attr_x( 'Hide password', 'Password field toggle button label', 'teqcidb' ),
-                    'strengthEmpty'   => esc_html_x( 'Strength: ', 'Password strength label prefix', 'teqcidb' ),
-                    'strengthWeak'    => esc_html_x( 'Strength: weak', 'Password strength label', 'teqcidb' ),
-                    'strengthGood'    => esc_html_x( 'Strength: good', 'Password strength label', 'teqcidb' ),
-                    'strengthStrong'  => esc_html_x( 'Strength: strong', 'Password strength label', 'teqcidb' ),
                 )
             );
         }

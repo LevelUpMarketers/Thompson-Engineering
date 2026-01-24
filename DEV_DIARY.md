@@ -163,3 +163,4 @@
 160. 2026-01-07: Moved the student dashboard auth layout into a dedicated shortcode with matching frontend styling.
 161. 2026-01-07: Updated the student dashboard shortcode copy and added password creation fields with visibility toggles.
 162. 2026-01-07: Switched the student dashboard password toggles to inline dashicon controls.
+163. 2026-01-07: Added a dedicated student dashboard form feedback section with an inline spinner placeholder.

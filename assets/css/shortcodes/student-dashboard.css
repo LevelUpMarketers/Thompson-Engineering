@@ -101,12 +101,6 @@
     width: 32px;
 }
 
-.teqcidb-password-strength {
-    color: #6a3b2e;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
 .teqcidb-form-checkbox label {
     align-items: center;
     display: flex;
@@ -146,6 +140,33 @@
     background: #9d4b36;
     color: #fff;
     max-width: 240px;
+}
+
+.teqcidb-form-feedback {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: #4d4d4d;
+}
+
+.teqcidb-spinner {
+    animation: teqcidb-spin 0.8s linear infinite;
+    border: 2px solid #d8d8d8;
+    border-radius: 50%;
+    border-top-color: #9d4b36;
+    display: inline-block;
+    height: 18px;
+    width: 18px;
+}
+
+@keyframes teqcidb-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .teqcidb-auth-link {
