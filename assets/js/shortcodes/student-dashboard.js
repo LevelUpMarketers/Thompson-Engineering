@@ -55,15 +55,31 @@
 
         const isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
-        button.textContent = isPassword
-            ? settings.toggleHideLabel || 'Hide'
-            : settings.toggleShowLabel || 'Show';
+        const screenReaderText = button.querySelector('.screen-reader-text');
+        if (screenReaderText) {
+            screenReaderText.textContent = isPassword
+                ? settings.toggleHideLabel || 'Hide'
+                : settings.toggleShowLabel || 'Show';
+        }
         button.setAttribute(
             'aria-label',
             isPassword
                 ? settings.toggleHideAria || 'Hide password'
                 : settings.toggleShowAria || 'Show password'
         );
+        button.setAttribute(
+            'title',
+            isPassword
+                ? settings.toggleHideAria || 'Hide password'
+                : settings.toggleShowAria || 'Show password'
+        );
+        button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+
+        const icon = button.querySelector('.dashicons');
+        if (icon) {
+            icon.classList.toggle('dashicons-visibility', !isPassword);
+            icon.classList.toggle('dashicons-hidden', isPassword);
+        }
     };
 
     document.addEventListener('click', (event) => {

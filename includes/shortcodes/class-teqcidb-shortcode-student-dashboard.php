@@ -281,9 +281,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                         class="teqcidb-password-toggle"
                                         type="button"
                                         data-teqcidb-toggle-target="teqcidb-create-password"
+                                        aria-pressed="false"
                                         aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                        title="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
                                     >
-                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                        <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                                        <span class="screen-reader-text">
+                                            <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                        </span>
                                     </button>
                                 </div>
                                 <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-password"></span>
@@ -311,9 +316,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                         class="teqcidb-password-toggle"
                                         type="button"
                                         data-teqcidb-toggle-target="teqcidb-create-verify-password"
+                                        aria-pressed="false"
                                         aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                        title="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
                                     >
-                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                        <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                                        <span class="screen-reader-text">
+                                            <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                        </span>
                                     </button>
                                 </div>
                                 <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-verify-password"></span>
@@ -610,6 +620,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 array(),
                 TEQCIDB_VERSION
             );
+            wp_enqueue_style( 'dashicons' );
             wp_enqueue_script(
                 'teqcidb-shortcode-student-dashboard',
                 TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/student-dashboard.js',
