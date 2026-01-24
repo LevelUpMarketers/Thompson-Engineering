@@ -80,7 +80,11 @@ class TEQCIDB_Ajax {
                 $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
-                        'message' => __( 'A WordPress user already exists with that email address.', 'teqcidb' ),
+                        'message' => sprintf(
+                            /* translators: %s: submitted email address. */
+                            __( 'Whoops! Looks like a student with the email address of %s already exists! Please try creating an account with a different email address.', 'teqcidb' ),
+                            $email
+                        ),
                     )
                 );
             }

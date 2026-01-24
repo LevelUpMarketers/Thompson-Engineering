@@ -50,6 +50,75 @@
         handleToggle(button);
     });
 
+    const extractPhoneDigits = (value) => {
+        let digits = (value || '').replace(/\D/g, '');
+
+        if (digits.length > 10 && digits.charAt(0) === '1') {
+            digits = digits.substring(1);
+        }
+
+        return digits.substring(0, 10);
+    };
+
+    const formatDigitsAsPhone = (digits) => {
+        if (!digits) {
+            return '';
+        }
+
+        const area = digits.substring(0, 3);
+        const prefix = digits.substring(3, 6);
+        const line = digits.substring(6, 10);
+        let formatted = '';
+
+        if (area) {
+            formatted = `(${area}`;
+
+            if (area.length === 3) {
+                formatted += ')';
+            }
+        }
+
+        if (prefix) {
+            formatted += area.length === 3 ? ` ${prefix}` : prefix;
+
+            if (prefix.length === 3 && line) {
+                formatted += '-';
+            }
+        }
+
+        if (line) {
+            formatted += line;
+        }
+
+        return formatted;
+    };
+
+    const applyPhoneMask = (input) => {
+        if (!input) {
+            return;
+        }
+
+        const digits = extractPhoneDigits(input.value);
+        input.value = formatDigitsAsPhone(digits);
+    };
+
+    const phoneSelectors = [
+        '#teqcidb-create-cell-phone',
+        '#teqcidb-create-office-phone',
+        '#teqcidb-create-rep-phone',
+    ];
+
+    phoneSelectors.forEach((selector) => {
+        const input = document.querySelector(selector);
+        if (!input) {
+            return;
+        }
+
+        applyPhoneMask(input);
+        input.addEventListener('input', () => applyPhoneMask(input));
+        input.addEventListener('blur', () => applyPhoneMask(input));
+    });
+
     const forms = document.querySelectorAll('.teqcidb-create-form');
 
     const isStrongPassword = (value) => {

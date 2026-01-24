@@ -169,3 +169,4 @@
 166. 2026-01-07: Updated student dashboard auth section styling and reset link behavior.
 167. 2026-01-07: Aligned student dashboard state selection values with backend validation so states save correctly.
 168. 2026-01-07: Updated the student dashboard create-account description copy.
+169. 2026-01-07: Added front-end phone masking and improved duplicate email messaging for dashboard signups.
