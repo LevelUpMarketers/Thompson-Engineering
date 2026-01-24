@@ -159,3 +159,17 @@
 156. 2026-01-07: Added duplicate history grouping, class metadata autofill, and currency formatting for amounts.
 157. 2026-01-07: Standardized the student name column to use labeled meta text in the edit accordion.
 158. 2026-01-07: Updated main student save to persist history entries and normalized empty meta display.
+159. 2026-01-07: Added the student dashboard template with responsive login and create account forms for unauthenticated visitors.
+160. 2026-01-07: Moved the student dashboard auth layout into a dedicated shortcode with matching frontend styling.
+161. 2026-01-07: Updated the student dashboard shortcode copy and added password creation fields with visibility toggles.
+162. 2026-01-07: Switched the student dashboard password toggles to inline dashicon controls.
+163. 2026-01-07: Added a dedicated student dashboard form feedback section with an inline spinner placeholder.
+164. 2026-01-07: Added client-side validation and conditional feedback display for student dashboard account creation.
+165. 2026-01-07: Wired the student dashboard create form to submit through the same student save flow as the admin form.
+166. 2026-01-07: Updated student dashboard auth section styling and reset link behavior.
+167. 2026-01-07: Aligned student dashboard state selection values with backend validation so states save correctly.
+168. 2026-01-07: Updated the student dashboard create-account description copy.
+169. 2026-01-07: Added front-end phone masking and improved duplicate email messaging for dashboard signups.
+170. 2026-01-07: Added login and post-signup auto-login flows for the student dashboard forms.
+171. 2026-01-07: Scoped dashboard auth reload behavior to the dashboard shortcode wrapper.
+172. 2026-01-07: Updated the frontend spinner brand color for student dashboard feedback.

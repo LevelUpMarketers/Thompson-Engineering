@@ -10,6 +10,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 ## Usage
 
  - Use the shortcode `[teqcidb-student]` to display student information on the front-end.
+ - Use the shortcode `[teqcidb_student_dashboard_shortcode]` to render the student dashboard login/create-account section.
  - Add the **Student** block in the block editor.
 - Manage entities under **Students**, switching between **Create a Student** and **Edit Students** tabs.
 - The creation form showcases twenty-seven demo fields (**Placeholder 1**–**Placeholder 27**) with varied inputs (text, textarea, select, radio, checkbox, color), tooltips, and an image selector that opens the media library.

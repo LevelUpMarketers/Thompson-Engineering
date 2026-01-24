@@ -9,6 +9,9 @@ class TEQCIDB_Ajax {
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_nopriv_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_teqcidb_login_user', array( $this, 'login_user' ) );
+        add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
@@ -69,6 +72,8 @@ class TEQCIDB_Ajax {
 
         $creating_new_student = ( 0 === $id );
         $new_wp_user_id       = 0;
+        $password             = $this->sanitize_text_value( 'password' );
+        $verify_password      = $this->sanitize_text_value( 'verify_password' );
 
         if ( $creating_new_student ) {
             $existing_user = get_user_by( 'email', $email );
@@ -77,7 +82,11 @@ class TEQCIDB_Ajax {
                 $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
-                        'message' => __( 'A WordPress user already exists with that email address.', 'teqcidb' ),
+                        'message' => sprintf(
+                            /* translators: %s: submitted email address. */
+                            __( 'Whoops! Looks like a student with the email address of %s already exists! Please try creating an account with a different email address.', 'teqcidb' ),
+                            $email
+                        ),
                     )
                 );
             }
@@ -89,7 +98,26 @@ class TEQCIDB_Ajax {
             }
 
             $user_login = $this->generate_user_login( $email );
-            $user_pass  = wp_generate_password( 20, true, true );
+            $user_pass  = $password;
+
+            if ( '' === $user_pass ) {
+                $user_pass = wp_generate_password( 20, true, true );
+            } elseif ( $password !== $verify_password ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'The passwords do not match.', 'teqcidb' ),
+                    )
+                );
+            } elseif ( ! $this->is_strong_password( $user_pass ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'teqcidb' ),
+                    )
+                );
+            }
+
             $user_args  = array(
                 'user_login'   => $user_login,
                 'user_pass'    => $user_pass,
@@ -113,6 +141,9 @@ class TEQCIDB_Ajax {
                     )
                 );
             }
+
+            wp_set_current_user( $new_wp_user_id );
+            wp_set_auth_cookie( $new_wp_user_id, true );
         }
 
         $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
@@ -304,6 +335,62 @@ class TEQCIDB_Ajax {
                 'message' => $message,
             )
         );
+    }
+
+    public function login_user() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        $username = isset( $_POST['log'] ) ? sanitize_text_field( wp_unslash( $_POST['log'] ) ) : '';
+        $password = isset( $_POST['pwd'] ) ? wp_unslash( $_POST['pwd'] ) : '';
+        $remember = isset( $_POST['rememberme'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['rememberme'] ) );
+
+        if ( '' === $username || '' === $password ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please enter your username/email and password.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $user = wp_signon(
+            array(
+                'user_login'    => $username,
+                'user_password' => $password,
+                'remember'      => $remember,
+            ),
+            false
+        );
+
+        if ( is_wp_error( $user ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'We could not log you in with those credentials. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Logged in.', 'teqcidb' ),
+            )
+        );
+    }
+
+    private function is_strong_password( $password ) {
+        if ( strlen( $password ) < 12 ) {
+            return false;
+        }
+
+        $has_upper   = preg_match( '/[A-Z]/', $password );
+        $has_lower   = preg_match( '/[a-z]/', $password );
+        $has_number  = preg_match( '/\\d/', $password );
+        $has_special = preg_match( '/[^A-Za-z0-9]/', $password );
+
+        return ( $has_upper && $has_lower && $has_number && $has_special );
     }
 
     public function save_studenthistory() {
