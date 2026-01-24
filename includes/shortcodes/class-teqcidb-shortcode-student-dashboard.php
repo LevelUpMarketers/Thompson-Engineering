@@ -111,10 +111,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                             ?>
                         </button>
 
-                        <a class="teqcidb-auth-link" href="#">
+                        <a class="teqcidb-auth-link" href="<?php echo esc_url( wp_lostpassword_url() ); ?>">
                             <?php
                             echo esc_html_x(
-                                'Forgot your password?',
+                                'Forgot your password? Reset it here!',
                                 'Login form password reset link label',
                                 'teqcidb'
                             );

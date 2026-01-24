@@ -166,3 +166,4 @@
 163. 2026-01-07: Added a dedicated student dashboard form feedback section with an inline spinner placeholder.
 164. 2026-01-07: Added client-side validation and conditional feedback display for student dashboard account creation.
 165. 2026-01-07: Wired the student dashboard create form to submit through the same student save flow as the admin form.
+166. 2026-01-07: Updated student dashboard auth section styling and reset link behavior.

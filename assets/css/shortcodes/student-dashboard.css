@@ -1,6 +1,9 @@
 .teqcidb-auth-section {
     background: #f7f6f3;
     padding: 60px 16px;
+    width: 100vw;
+    margin-left: 50%;
+    transform: translateX(-50%);
 }
 
 .teqcidb-auth-grid {
@@ -16,14 +19,6 @@
     border-radius: 16px;
     padding: 32px;
     box-shadow: 0 18px 30px rgba(24, 24, 24, 0.08);
-}
-
-.teqcidb-auth-title {
-    color: #9d4b36;
-    font-size: clamp(1.6rem, 2vw, 2.2rem);
-    font-weight: 700;
-    margin: 0 0 16px;
-    text-align: center;
 }
 
 .teqcidb-auth-description {
@@ -136,12 +131,6 @@
     text-transform: uppercase;
 }
 
-.teqcidb-button-primary {
-    background: #9d4b36;
-    color: #fff;
-    max-width: 240px;
-}
-
 .teqcidb-form-feedback {
     align-items: center;
     display: none;
@@ -192,9 +181,7 @@
 }
 
 .teqcidb-auth-link {
-    color: #9d4b36;
-    font-weight: 600;
-    text-decoration: none;
+    font-weight: bold;
 }
 
 .teqcidb-auth-link:hover,
