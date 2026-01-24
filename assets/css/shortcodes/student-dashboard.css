@@ -73,6 +73,31 @@
     outline: none;
 }
 
+.teqcidb-password-input {
+    display: flex;
+    gap: 10px;
+}
+
+.teqcidb-password-input input {
+    flex: 1;
+}
+
+.teqcidb-password-toggle {
+    background: #f0e6dc;
+    border: 1px solid #d8c5b1;
+    border-radius: 8px;
+    color: #6a3b2e;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 10px 16px;
+}
+
+.teqcidb-password-strength {
+    color: #6a3b2e;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
 .teqcidb-form-checkbox label {
     align-items: center;
     display: flex;

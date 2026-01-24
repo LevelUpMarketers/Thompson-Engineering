@@ -27,7 +27,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     <h2 class="teqcidb-auth-title">
                         <?php
                         echo esc_html_x(
-                            'Already Have an Account? Log In Below!',
+                            'Already a registered QCI Student or Alternate Contact/Representative? Log in below!',
                             'Login form headline',
                             'teqcidb'
                         );
@@ -36,7 +36,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     <p class="teqcidb-auth-description">
                         <?php
                         echo esc_html_x(
-                            'Log in to sign up for events, see upcoming events, and check membership status & perks. Don\'t have a membership? Join here!',
+                            'Log in below to view your profile information, including important QCI dates & deadlines, your QCI Certificate, Wallet Cards, and more!',
                             'Login form description text',
                             'teqcidb'
                         );
@@ -127,7 +127,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     <h2 class="teqcidb-auth-title">
                         <?php
                         echo esc_html_x(
-                            'Don\'t Have an Account? Create One Below!',
+                            'Don\'t Have a QCI Account Yet? Create One Below!',
                             'Create account form headline',
                             'teqcidb'
                         );
@@ -257,6 +257,66 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                     autocomplete="email"
                                     placeholder="<?php echo esc_attr_x( 'Verify your email address', 'Create account field placeholder', 'teqcidb' ); ?>"
                                 />
+                            </div>
+
+                            <div class="teqcidb-form-field">
+                                <label for="teqcidb-create-password">
+                                    <?php
+                                    echo esc_html_x(
+                                        'Password',
+                                        'Create account field label',
+                                        'teqcidb'
+                                    );
+                                    ?>
+                                </label>
+                                <div class="teqcidb-password-input">
+                                    <input
+                                        type="password"
+                                        id="teqcidb-create-password"
+                                        name="teqcidb_create_password"
+                                        autocomplete="new-password"
+                                        placeholder="<?php echo esc_attr_x( 'Create a strong password', 'Create account field placeholder', 'teqcidb' ); ?>"
+                                    />
+                                    <button
+                                        class="teqcidb-password-toggle"
+                                        type="button"
+                                        data-teqcidb-toggle-target="teqcidb-create-password"
+                                        aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                    >
+                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                    </button>
+                                </div>
+                                <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-password"></span>
+                            </div>
+
+                            <div class="teqcidb-form-field">
+                                <label for="teqcidb-create-verify-password">
+                                    <?php
+                                    echo esc_html_x(
+                                        'Verify Password',
+                                        'Create account field label',
+                                        'teqcidb'
+                                    );
+                                    ?>
+                                </label>
+                                <div class="teqcidb-password-input">
+                                    <input
+                                        type="password"
+                                        id="teqcidb-create-verify-password"
+                                        name="teqcidb_create_verify_password"
+                                        autocomplete="new-password"
+                                        placeholder="<?php echo esc_attr_x( 'Verify your password', 'Create account field placeholder', 'teqcidb' ); ?>"
+                                    />
+                                    <button
+                                        class="teqcidb-password-toggle"
+                                        type="button"
+                                        data-teqcidb-toggle-target="teqcidb-create-verify-password"
+                                        aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                    >
+                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                    </button>
+                                </div>
+                                <span class="teqcidb-password-strength" data-teqcidb-strength-for="teqcidb-create-verify-password"></span>
                             </div>
 
                             <div class="teqcidb-form-field">
@@ -549,6 +609,27 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/student-dashboard.css',
                 array(),
                 TEQCIDB_VERSION
+            );
+            wp_enqueue_script(
+                'teqcidb-shortcode-student-dashboard',
+                TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/student-dashboard.js',
+                array( 'password-strength-meter' ),
+                TEQCIDB_VERSION,
+                true
+            );
+            wp_localize_script(
+                'teqcidb-shortcode-student-dashboard',
+                'teqcidbStudentDashboard',
+                array(
+                    'toggleShowLabel' => esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ),
+                    'toggleHideLabel' => esc_html_x( 'Hide', 'Password field toggle button text', 'teqcidb' ),
+                    'toggleShowAria'  => esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ),
+                    'toggleHideAria'  => esc_attr_x( 'Hide password', 'Password field toggle button label', 'teqcidb' ),
+                    'strengthEmpty'   => esc_html_x( 'Strength: ', 'Password strength label prefix', 'teqcidb' ),
+                    'strengthWeak'    => esc_html_x( 'Strength: weak', 'Password strength label', 'teqcidb' ),
+                    'strengthGood'    => esc_html_x( 'Strength: good', 'Password strength label', 'teqcidb' ),
+                    'strengthStrong'  => esc_html_x( 'Strength: strong', 'Password strength label', 'teqcidb' ),
+                )
             );
         }
     }
