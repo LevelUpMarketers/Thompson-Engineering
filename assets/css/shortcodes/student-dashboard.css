@@ -46,15 +46,15 @@
 
 .teqcidb-dashboard-tab:hover,
 .teqcidb-dashboard-tab:focus {
-    border-color: #9d4b36;
-    color: #6a3b2e;
+    border-color: var(--wpex-accent);
+    color: #000;
     outline: none;
 }
 
 .teqcidb-dashboard-tab.is-active {
-    background: #f0e7df;
-    border-color: #9d4b36;
-    color: #6a3b2e;
+    background: var(--wpex-accent);
+    border-color: var(--wpex-accent);
+    color: #fff;
 }
 
 .teqcidb-dashboard-panels {
