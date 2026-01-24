@@ -173,3 +173,4 @@
 170. 2026-01-07: Added login and post-signup auto-login flows for the student dashboard forms.
 171. 2026-01-07: Scoped dashboard auth reload behavior to the dashboard shortcode wrapper.
 172. 2026-01-07: Updated the frontend spinner brand color for student dashboard feedback.
+173. 2026-01-24: Added the logged-in student dashboard tab layout with representative-only navigation and responsive styling.

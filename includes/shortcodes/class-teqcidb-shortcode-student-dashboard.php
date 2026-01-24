@@ -16,7 +16,119 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
     public function render( $atts = array(), $content = '' ) {
         if ( is_user_logged_in() ) {
-            return '';
+            $is_representative = false;
+            $current_user      = wp_get_current_user();
+
+            if ( $current_user instanceof WP_User && $current_user->exists() ) {
+                global $wpdb;
+
+                $table_name = $wpdb->prefix . 'teqcidb_students';
+                $like       = $wpdb->esc_like( $table_name );
+                $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+                if ( $found === $table_name ) {
+                    $is_representative = (bool) $wpdb->get_var(
+                        $wpdb->prepare(
+                            "SELECT is_a_representative FROM $table_name WHERE wpuserid = %d LIMIT 1",
+                            $current_user->ID
+                        )
+                    );
+                }
+            }
+
+            $tabs = array(
+                'profile-info' => array(
+                    'label' => esc_html_x( 'Profile Info', 'Student dashboard tab label', 'teqcidb' ),
+                ),
+                'class-history' => array(
+                    'label' => esc_html_x( 'Class History', 'Student dashboard tab label', 'teqcidb' ),
+                ),
+                'certificates-dates' => array(
+                    'label' => esc_html_x( 'Certificates & Important Dates', 'Student dashboard tab label', 'teqcidb' ),
+                ),
+                'payment-history' => array(
+                    'label' => esc_html_x( 'Payment History', 'Student dashboard tab label', 'teqcidb' ),
+                ),
+            );
+
+            if ( $is_representative ) {
+                $tabs['your-students'] = array(
+                    'label' => esc_html_x( 'Your Students', 'Student dashboard tab label', 'teqcidb' ),
+                );
+                $tabs['register-students'] = array(
+                    'label' => esc_html_x( 'Register Students & Pay Online', 'Student dashboard tab label', 'teqcidb' ),
+                );
+            }
+
+            ob_start();
+            ?>
+            <section class="teqcidb-dashboard" data-teqcidb-dashboard="true">
+                <div class="teqcidb-dashboard-inner">
+                    <div class="teqcidb-dashboard-layout">
+                        <nav
+                            class="teqcidb-dashboard-tabs"
+                            role="tablist"
+                            aria-label="<?php echo esc_attr_x( 'Student dashboard navigation', 'Student dashboard tab list label', 'teqcidb' ); ?>"
+                        >
+                            <?php
+                            $is_first_tab = true;
+                            foreach ( $tabs as $tab_key => $tab_data ) :
+                                $tab_id = 'teqcidb-dashboard-tab-' . $tab_key;
+                                $panel_id = 'teqcidb-dashboard-panel-' . $tab_key;
+                                ?>
+                                <button
+                                    class="teqcidb-dashboard-tab<?php echo $is_first_tab ? ' is-active' : ''; ?>"
+                                    type="button"
+                                    role="tab"
+                                    id="<?php echo esc_attr( $tab_id ); ?>"
+                                    aria-selected="<?php echo $is_first_tab ? 'true' : 'false'; ?>"
+                                    aria-controls="<?php echo esc_attr( $panel_id ); ?>"
+                                    tabindex="<?php echo $is_first_tab ? '0' : '-1'; ?>"
+                                    data-teqcidb-tab="<?php echo esc_attr( $tab_key ); ?>"
+                                >
+                                    <?php echo esc_html( $tab_data['label'] ); ?>
+                                </button>
+                                <?php
+                                $is_first_tab = false;
+                            endforeach;
+                            ?>
+                        </nav>
+
+                        <div class="teqcidb-dashboard-panels">
+                            <?php
+                            $is_first_panel = true;
+                            foreach ( $tabs as $tab_key => $tab_data ) :
+                                $tab_id = 'teqcidb-dashboard-tab-' . $tab_key;
+                                $panel_id = 'teqcidb-dashboard-panel-' . $tab_key;
+                                ?>
+                                <div
+                                    class="teqcidb-dashboard-panel<?php echo $is_first_panel ? ' is-active' : ''; ?>"
+                                    role="tabpanel"
+                                    id="<?php echo esc_attr( $panel_id ); ?>"
+                                    aria-labelledby="<?php echo esc_attr( $tab_id ); ?>"
+                                    <?php echo $is_first_panel ? '' : 'hidden'; ?>
+                                >
+                                    <p class="teqcidb-dashboard-placeholder">
+                                        <?php
+                                        echo esc_html_x(
+                                            'Content coming soon.',
+                                            'Student dashboard placeholder text',
+                                            'teqcidb'
+                                        );
+                                        ?>
+                                    </p>
+                                </div>
+                                <?php
+                                $is_first_panel = false;
+                            endforeach;
+                            ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <?php
+
+            return ob_get_clean();
         }
 
         ob_start();
