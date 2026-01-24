@@ -76,6 +76,73 @@
         feedback.classList.toggle('is-loading', Boolean(isLoading));
     };
 
+    const collectFormData = (form) => {
+        const data = new FormData();
+        const getValue = (selector) => {
+            const field = form.querySelector(selector);
+            return field ? field.value.trim() : '';
+        };
+
+        data.append('action', settings.ajaxAction || 'teqcidb_save_student');
+        data.append('_ajax_nonce', settings.ajaxNonce || '');
+        data.append('first_name', getValue('#teqcidb-create-first-name'));
+        data.append('last_name', getValue('#teqcidb-create-last-name'));
+        data.append('company', getValue('#teqcidb-create-company'));
+        data.append('phone_cell', getValue('#teqcidb-create-cell-phone'));
+        data.append('email', getValue('#teqcidb-create-email'));
+        data.append('phone_office', getValue('#teqcidb-create-office-phone'));
+        data.append('student_address_street_1', getValue('#teqcidb-create-street-address'));
+        data.append('student_address_city', getValue('#teqcidb-create-city'));
+        data.append('student_address_state', getValue('#teqcidb-create-state'));
+        data.append('student_address_postal_code', getValue('#teqcidb-create-zip'));
+        data.append('representative_first_name', getValue('#teqcidb-create-rep-first-name'));
+        data.append('representative_last_name', getValue('#teqcidb-create-rep-last-name'));
+        data.append('representative_email', getValue('#teqcidb-create-rep-email'));
+        data.append('representative_phone', getValue('#teqcidb-create-rep-phone'));
+        data.append('password', getValue('#teqcidb-create-password'));
+        data.append('verify_password', getValue('#teqcidb-create-verify-password'));
+
+        form.querySelectorAll('input[name="teqcidb_create_associations[]"]:checked')
+            .forEach((input) => {
+                data.append('associations[]', input.value);
+            });
+
+        return data;
+    };
+
+    const submitForm = (form) => {
+        if (!settings.ajaxUrl) {
+            showFeedback(form, settings.messageUnknown, false);
+            return;
+        }
+
+        fetch(settings.ajaxUrl, {
+            method: 'POST',
+            body: collectFormData(form),
+            credentials: 'same-origin',
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                const message =
+                    payload && payload.data
+                        ? payload.data.message || payload.data.error
+                        : '';
+
+                if (payload && payload.success) {
+                    showFeedback(form, message || '', false);
+                } else {
+                    showFeedback(
+                        form,
+                        message || settings.messageUnknown,
+                        false
+                    );
+                }
+            })
+            .catch(() => {
+                showFeedback(form, settings.messageUnknown, false);
+            });
+    };
+
     forms.forEach((form) => {
         form.addEventListener('submit', (event) => {
             event.preventDefault();
@@ -148,7 +215,7 @@
                 return;
             }
 
-            form.submit();
+            submitForm(form);
         });
     });
 })();

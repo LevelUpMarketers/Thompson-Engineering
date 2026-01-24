@@ -9,6 +9,7 @@ class TEQCIDB_Ajax {
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
+        add_action( 'wp_ajax_nopriv_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
@@ -69,6 +70,8 @@ class TEQCIDB_Ajax {
 
         $creating_new_student = ( 0 === $id );
         $new_wp_user_id       = 0;
+        $password             = $this->sanitize_text_value( 'password' );
+        $verify_password      = $this->sanitize_text_value( 'verify_password' );
 
         if ( $creating_new_student ) {
             $existing_user = get_user_by( 'email', $email );
@@ -89,7 +92,26 @@ class TEQCIDB_Ajax {
             }
 
             $user_login = $this->generate_user_login( $email );
-            $user_pass  = wp_generate_password( 20, true, true );
+            $user_pass  = $password;
+
+            if ( '' === $user_pass ) {
+                $user_pass = wp_generate_password( 20, true, true );
+            } elseif ( $password !== $verify_password ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'The passwords do not match.', 'teqcidb' ),
+                    )
+                );
+            } elseif ( ! $this->is_strong_password( $user_pass ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'teqcidb' ),
+                    )
+                );
+            }
+
             $user_args  = array(
                 'user_login'   => $user_login,
                 'user_pass'    => $user_pass,
@@ -304,6 +326,19 @@ class TEQCIDB_Ajax {
                 'message' => $message,
             )
         );
+    }
+
+    private function is_strong_password( $password ) {
+        if ( strlen( $password ) < 12 ) {
+            return false;
+        }
+
+        $has_upper   = preg_match( '/[A-Z]/', $password );
+        $has_lower   = preg_match( '/[a-z]/', $password );
+        $has_number  = preg_match( '/\\d/', $password );
+        $has_special = preg_match( '/[^A-Za-z0-9]/', $password );
+
+        return ( $has_upper && $has_lower && $has_number && $has_special );
     }
 
     public function save_studenthistory() {
