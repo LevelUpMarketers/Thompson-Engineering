@@ -413,4 +413,26 @@
             });
         });
     });
+
+    const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
+
+    profileForms.forEach((form) => {
+        const editButton = form.querySelector('[data-teqcidb-profile-edit]');
+        const saveButton = form.querySelector('[data-teqcidb-profile-save]');
+        const fields = Array.from(
+            form.querySelectorAll('input, select, textarea')
+        );
+
+        if (!editButton || !saveButton || !fields.length) {
+            return;
+        }
+
+        editButton.addEventListener('click', () => {
+            fields.forEach((field) => {
+                field.disabled = false;
+            });
+            editButton.disabled = true;
+            saveButton.disabled = false;
+        });
+    });
 })();

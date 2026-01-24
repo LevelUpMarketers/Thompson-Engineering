@@ -18,6 +18,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         if ( is_user_logged_in() ) {
             $is_representative = false;
             $current_user      = wp_get_current_user();
+            $student_row       = array();
 
             if ( $current_user instanceof WP_User && $current_user->exists() ) {
                 global $wpdb;
@@ -27,12 +28,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
 
                 if ( $found === $table_name ) {
-                    $is_representative = (bool) $wpdb->get_var(
+                    $student_row = $wpdb->get_row(
                         $wpdb->prepare(
-                            "SELECT is_a_representative FROM $table_name WHERE wpuserid = %d LIMIT 1",
+                            "SELECT * FROM $table_name WHERE wpuserid = %d LIMIT 1",
                             $current_user->ID
-                        )
+                        ),
+                        ARRAY_A
                     );
+
+                    if ( ! is_array( $student_row ) ) {
+                        $student_row = array();
+                    }
+
+                    $is_representative = ! empty( $student_row['is_a_representative'] );
                 }
             }
 
@@ -59,6 +67,83 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'label' => esc_html_x( 'Register Students & Pay Online', 'Student dashboard tab label', 'teqcidb' ),
                 );
             }
+
+            $address = $this->decode_student_address_field(
+                isset( $student_row['student_address'] ) ? $student_row['student_address'] : ''
+            );
+            $representative = $this->decode_representative_field(
+                isset( $student_row['their_representative'] ) ? $student_row['their_representative'] : ''
+            );
+            $profile = array(
+                'first_name' => isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '',
+                'last_name'  => isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '',
+                'company'    => isset( $student_row['company'] ) ? sanitize_text_field( (string) $student_row['company'] ) : '',
+                'phone_cell' => isset( $student_row['phone_cell'] ) ? sanitize_text_field( (string) $student_row['phone_cell'] ) : '',
+                'phone_office' => isset( $student_row['phone_office'] ) ? sanitize_text_field( (string) $student_row['phone_office'] ) : '',
+                'email'      => isset( $student_row['email'] ) ? sanitize_email( (string) $student_row['email'] ) : '',
+                'address_street_1' => $address['street_1'],
+                'address_street_2' => $address['street_2'],
+                'address_city' => $address['city'],
+                'address_state' => $address['state'],
+                'address_postal_code' => $address['postal_code'],
+                'representative_first_name' => $representative['first_name'],
+                'representative_last_name' => $representative['last_name'],
+                'representative_email' => $representative['email'],
+                'representative_phone' => $representative['phone'],
+            );
+
+            $states = array(
+                'Alabama',
+                'Alaska',
+                'Arizona',
+                'Arkansas',
+                'California',
+                'Colorado',
+                'Connecticut',
+                'Delaware',
+                'Florida',
+                'Georgia',
+                'Hawaii',
+                'Idaho',
+                'Illinois',
+                'Indiana',
+                'Iowa',
+                'Kansas',
+                'Kentucky',
+                'Louisiana',
+                'Maine',
+                'Maryland',
+                'Massachusetts',
+                'Michigan',
+                'Minnesota',
+                'Mississippi',
+                'Missouri',
+                'Montana',
+                'Nebraska',
+                'Nevada',
+                'New Hampshire',
+                'New Jersey',
+                'New Mexico',
+                'New York',
+                'North Carolina',
+                'North Dakota',
+                'Ohio',
+                'Oklahoma',
+                'Oregon',
+                'Pennsylvania',
+                'Rhode Island',
+                'South Carolina',
+                'South Dakota',
+                'Tennessee',
+                'Texas',
+                'Utah',
+                'Vermont',
+                'Virginia',
+                'Washington',
+                'West Virginia',
+                'Wisconsin',
+                'Wyoming',
+            );
 
             ob_start();
             ?>
@@ -108,15 +193,256 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                     aria-labelledby="<?php echo esc_attr( $tab_id ); ?>"
                                     <?php echo $is_first_panel ? '' : 'hidden'; ?>
                                 >
-                                    <p class="teqcidb-dashboard-placeholder">
-                                        <?php
-                                        echo esc_html_x(
-                                            'Content coming soon.',
-                                            'Student dashboard placeholder text',
-                                            'teqcidb'
-                                        );
-                                        ?>
-                                    </p>
+                                    <?php if ( 'profile-info' === $tab_key ) : ?>
+                                        <form class="teqcidb-profile-form" data-teqcidb-profile-form>
+                                            <div class="teqcidb-form-grid">
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-first-name">
+                                                        <?php echo esc_html_x( 'First Name', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-first-name"
+                                                        name="teqcidb_profile_first_name"
+                                                        value="<?php echo esc_attr( $profile['first_name'] ); ?>"
+                                                        autocomplete="given-name"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-last-name">
+                                                        <?php echo esc_html_x( 'Last Name', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-last-name"
+                                                        name="teqcidb_profile_last_name"
+                                                        value="<?php echo esc_attr( $profile['last_name'] ); ?>"
+                                                        autocomplete="family-name"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-company">
+                                                        <?php echo esc_html_x( 'Company', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-company"
+                                                        name="teqcidb_profile_company"
+                                                        value="<?php echo esc_attr( $profile['company'] ); ?>"
+                                                        autocomplete="organization"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-cell-phone">
+                                                        <?php echo esc_html_x( 'Cell Phone', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="tel"
+                                                        id="teqcidb-profile-cell-phone"
+                                                        name="teqcidb_profile_cell_phone"
+                                                        value="<?php echo esc_attr( $profile['phone_cell'] ); ?>"
+                                                        autocomplete="tel"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-office-phone">
+                                                        <?php echo esc_html_x( 'Office Phone', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="tel"
+                                                        id="teqcidb-profile-office-phone"
+                                                        name="teqcidb_profile_office_phone"
+                                                        value="<?php echo esc_attr( $profile['phone_office'] ); ?>"
+                                                        autocomplete="tel"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-email">
+                                                        <?php echo esc_html_x( 'Email', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        id="teqcidb-profile-email"
+                                                        name="teqcidb_profile_email"
+                                                        value="<?php echo esc_attr( $profile['email'] ); ?>"
+                                                        autocomplete="email"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-street-address">
+                                                        <?php echo esc_html_x( 'Street Address', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-street-address"
+                                                        name="teqcidb_profile_street_address"
+                                                        value="<?php echo esc_attr( $profile['address_street_1'] ); ?>"
+                                                        autocomplete="street-address"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-street-address-2">
+                                                        <?php echo esc_html_x( 'Address Line 2', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-street-address-2"
+                                                        name="teqcidb_profile_street_address_2"
+                                                        value="<?php echo esc_attr( $profile['address_street_2'] ); ?>"
+                                                        autocomplete="address-line2"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-city">
+                                                        <?php echo esc_html_x( 'City', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-city"
+                                                        name="teqcidb_profile_city"
+                                                        value="<?php echo esc_attr( $profile['address_city'] ); ?>"
+                                                        autocomplete="address-level2"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-state">
+                                                        <?php echo esc_html_x( 'State', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <select
+                                                        id="teqcidb-profile-state"
+                                                        name="teqcidb_profile_state"
+                                                        autocomplete="address-level1"
+                                                        disabled
+                                                    >
+                                                        <option value="">
+                                                            <?php echo esc_html_x( 'Select a state', 'Profile form state placeholder option', 'teqcidb' ); ?>
+                                                        </option>
+                                                        <?php foreach ( $states as $state ) : ?>
+                                                            <option value="<?php echo esc_attr( $state ); ?>" <?php selected( $profile['address_state'], $state ); ?>>
+                                                                <?php echo esc_html( $state ); ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-zip">
+                                                        <?php echo esc_html_x( 'Zip Code', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-zip"
+                                                        name="teqcidb_profile_zip"
+                                                        value="<?php echo esc_attr( $profile['address_postal_code'] ); ?>"
+                                                        autocomplete="postal-code"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-rep-first-name">
+                                                        <?php echo esc_html_x( 'Representative/Alternate Contact First Name', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-rep-first-name"
+                                                        name="teqcidb_profile_rep_first_name"
+                                                        value="<?php echo esc_attr( $profile['representative_first_name'] ); ?>"
+                                                        autocomplete="given-name"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-rep-last-name">
+                                                        <?php echo esc_html_x( 'Representative/Alternate Contact Last Name', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="teqcidb-profile-rep-last-name"
+                                                        name="teqcidb_profile_rep_last_name"
+                                                        value="<?php echo esc_attr( $profile['representative_last_name'] ); ?>"
+                                                        autocomplete="family-name"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-rep-email">
+                                                        <?php echo esc_html_x( 'Representative/Alternate Contact Email', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        id="teqcidb-profile-rep-email"
+                                                        name="teqcidb_profile_rep_email"
+                                                        value="<?php echo esc_attr( $profile['representative_email'] ); ?>"
+                                                        autocomplete="email"
+                                                        disabled
+                                                    />
+                                                </div>
+
+                                                <div class="teqcidb-form-field">
+                                                    <label for="teqcidb-profile-rep-phone">
+                                                        <?php echo esc_html_x( 'Representative/Alternate Contact Phone', 'Profile form field label', 'teqcidb' ); ?>
+                                                    </label>
+                                                    <input
+                                                        type="tel"
+                                                        id="teqcidb-profile-rep-phone"
+                                                        name="teqcidb_profile_rep_phone"
+                                                        value="<?php echo esc_attr( $profile['representative_phone'] ); ?>"
+                                                        autocomplete="tel"
+                                                        disabled
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div class="teqcidb-profile-actions">
+                                                <button
+                                                    class="teqcidb-button teqcidb-button-primary"
+                                                    type="button"
+                                                    data-teqcidb-profile-edit
+                                                >
+                                                    <?php echo esc_html_x( 'Edit Profile Info', 'Profile form edit button label', 'teqcidb' ); ?>
+                                                </button>
+                                                <button
+                                                    class="teqcidb-button teqcidb-button-secondary"
+                                                    type="button"
+                                                    data-teqcidb-profile-save
+                                                    disabled
+                                                >
+                                                    <?php echo esc_html_x( 'Save Profile Info', 'Profile form save button label', 'teqcidb' ); ?>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    <?php else : ?>
+                                        <p class="teqcidb-dashboard-placeholder">
+                                            <?php
+                                            echo esc_html_x(
+                                                'Content coming soon.',
+                                                'Student dashboard placeholder text',
+                                                'teqcidb'
+                                            );
+                                            ?>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
                                 <?php
                                 $is_first_panel = false;
@@ -768,5 +1094,77 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 )
             );
         }
+    }
+
+    private function decode_student_address_field( $value ) {
+        $defaults = array(
+            'street_1'    => '',
+            'street_2'    => '',
+            'city'        => '',
+            'state'       => '',
+            'postal_code' => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        if ( is_array( $value ) ) {
+            $decoded = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+        }
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        foreach ( array( 'street_1', 'street_2', 'city', 'state', 'postal_code' ) as $key ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        return $defaults;
+    }
+
+    private function decode_representative_field( $value ) {
+        $defaults = array(
+            'first_name' => '',
+            'last_name'  => '',
+            'email'      => '',
+            'phone'      => '',
+        );
+
+        if ( empty( $value ) ) {
+            return $defaults;
+        }
+
+        if ( is_array( $value ) ) {
+            $decoded = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+        }
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        foreach ( array( 'first_name', 'last_name' ) as $key ) {
+            if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
+            }
+        }
+
+        if ( isset( $decoded['phone'] ) && is_scalar( $decoded['phone'] ) ) {
+            $defaults['phone'] = sanitize_text_field( (string) $decoded['phone'] );
+        }
+
+        if ( isset( $decoded['email'] ) ) {
+            $email = sanitize_email( $decoded['email'] );
+            $defaults['email'] = $email ? $email : '';
+        }
+
+        return $defaults;
     }
 }

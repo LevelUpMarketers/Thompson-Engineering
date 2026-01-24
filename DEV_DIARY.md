@@ -175,3 +175,4 @@
 172. 2026-01-07: Updated the frontend spinner brand color for student dashboard feedback.
 173. 2026-01-24: Added the logged-in student dashboard tab layout with representative-only navigation and responsive styling.
 174. 2026-01-24: Updated active and hover tab colors for the student dashboard navigation.
+175. 2026-01-24: Built the profile info tab layout with read-only fields and edit/save controls.
