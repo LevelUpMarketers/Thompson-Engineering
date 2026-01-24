@@ -50,4 +50,105 @@
         handleToggle(button);
     });
 
+    const forms = document.querySelectorAll('.teqcidb-create-form');
+
+    const isStrongPassword = (value) => {
+        if (!window.wp || !window.wp.passwordStrength) {
+            return value.length >= 12;
+        }
+
+        const strength = window.wp.passwordStrength.meter(value, [], value);
+        return strength >= 4;
+    };
+
+    const showFeedback = (form, message, isLoading) => {
+        const feedback = form.querySelector('.teqcidb-form-feedback');
+        if (!feedback) {
+            return;
+        }
+
+        const messageEl = feedback.querySelector('.teqcidb-form-message');
+        if (messageEl) {
+            messageEl.textContent = message || '';
+        }
+
+        feedback.classList.toggle('is-visible', Boolean(message) || isLoading);
+        feedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    forms.forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            showFeedback(form, '', true);
+
+            const requiredFields = Array.from(
+                form.querySelectorAll('input, select, textarea')
+            ).filter((field) => {
+                if (field.closest('.teqcidb-form-checkbox')) {
+                    return false;
+                }
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    return false;
+                }
+
+                return ![
+                    'teqcidb_create_office_phone',
+                    'teqcidb_create_rep_first_name',
+                    'teqcidb_create_rep_last_name',
+                    'teqcidb_create_rep_email',
+                    'teqcidb_create_rep_phone',
+                ].includes(field.name);
+            });
+
+            const hasEmptyRequired = requiredFields.some((field) => {
+                return !field.value || !field.value.trim();
+            });
+
+            if (hasEmptyRequired) {
+                showFeedback(form, settings.messageRequired, false);
+                return;
+            }
+
+            const email = form.querySelector('#teqcidb-create-email');
+            const verifyEmail = form.querySelector('#teqcidb-create-verify-email');
+
+            if (
+                email &&
+                verifyEmail &&
+                email.value.trim().toLowerCase() !==
+                    verifyEmail.value.trim().toLowerCase()
+            ) {
+                showFeedback(form, settings.messageEmail, false);
+                return;
+            }
+
+            const password = form.querySelector('#teqcidb-create-password');
+            const verifyPassword = form.querySelector(
+                '#teqcidb-create-verify-password'
+            );
+
+            if (
+                password &&
+                verifyPassword &&
+                password.value !== verifyPassword.value
+            ) {
+                showFeedback(form, settings.messagePassword, false);
+                return;
+            }
+
+            if (
+                password &&
+                verifyPassword &&
+                (!isStrongPassword(password.value) ||
+                    !isStrongPassword(verifyPassword.value))
+            ) {
+                showFeedback(form, settings.messageStrength, false);
+                return;
+            }
+
+            form.submit();
+        });
+    });
 })();

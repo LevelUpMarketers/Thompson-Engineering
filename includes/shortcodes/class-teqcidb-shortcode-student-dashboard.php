@@ -593,15 +593,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         </button>
                         <div class="teqcidb-form-feedback" aria-live="polite">
                             <span class="teqcidb-spinner" aria-hidden="true"></span>
-                            <span class="teqcidb-form-message">
-                                <?php
-                                echo esc_html_x(
-                                    'Messages will appear here after you submit the form.',
-                                    'Create account feedback placeholder text',
-                                    'teqcidb'
-                                );
-                                ?>
-                            </span>
+                            <span class="teqcidb-form-message"></span>
                         </div>
                     </form>
                 </article>
@@ -646,6 +638,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'toggleHideLabel' => esc_html_x( 'Hide', 'Password field toggle button text', 'teqcidb' ),
                     'toggleShowAria'  => esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ),
                     'toggleHideAria'  => esc_attr_x( 'Hide password', 'Password field toggle button label', 'teqcidb' ),
+                    'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
+                    'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
+                    'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),
+                    'messageStrength' => esc_html_x( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'Create account form validation message', 'teqcidb' ),
                 )
             );
         }

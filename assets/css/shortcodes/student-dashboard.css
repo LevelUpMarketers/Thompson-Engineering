@@ -144,10 +144,32 @@
 
 .teqcidb-form-feedback {
     align-items: center;
-    display: flex;
+    display: none;
     gap: 12px;
     font-size: 0.95rem;
     color: #4d4d4d;
+}
+
+.teqcidb-form-feedback.is-visible {
+    display: flex;
+}
+
+.teqcidb-form-feedback .teqcidb-spinner {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.teqcidb-form-feedback.is-loading .teqcidb-spinner {
+    opacity: 1;
+}
+
+.teqcidb-form-feedback .teqcidb-form-message {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.teqcidb-form-feedback.is-visible .teqcidb-form-message {
+    opacity: 1;
 }
 
 .teqcidb-spinner {

@@ -164,3 +164,4 @@
 161. 2026-01-07: Updated the student dashboard shortcode copy and added password creation fields with visibility toggles.
 162. 2026-01-07: Switched the student dashboard password toggles to inline dashicon controls.
 163. 2026-01-07: Added a dedicated student dashboard form feedback section with an inline spinner placeholder.
+164. 2026-01-07: Added client-side validation and conditional feedback display for student dashboard account creation.
