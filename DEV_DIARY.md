@@ -144,3 +144,18 @@
 141. 2025-12-05: Fixed legacy upload parsing to handle lines with inner parentheses and trailing commas so .sql student history rows no longer get skipped for missing column counts.
 142. 2025-12-05: Trimmed newline-split legacy upload rows to remove trailing commas/whitespace so large .sql student datasets import cleanly alongside history records.
 143. 2025-12-05: Relaxed legacy student uploads to auto-generate unique placeholder emails when missing or duplicated so bulk imports continue without validation skips.
+144. 2026-01-07: Displayed student history entries beneath edit-student comment fields so admins can review and edit related history details inline.
+145. 2026-01-07: Refined student history edit fields with class dropdowns and updated status selections for registration, attendance, and outcomes.
+146. 2026-01-07: Added admin approval dropdown options and default selection placeholders for student history selects.
+147. 2026-01-07: Updated student history labels, status dropdowns, and removed the registered-by field.
+148. 2026-01-07: Normalized student history select matching to handle lowercase saved values like "no".
+149. 2026-01-07: Added read-only class date and class type fields to student history entries.
+150. 2026-01-07: Added per-entry save/delete actions for student history with stateful reloads.
+151. 2026-01-07: Smoothed student history reload UX with action spacing and restore animations.
+152. 2026-01-07: Added inline history entry creation UI and strengthened reload highlight animations.
+153. 2026-01-07: Tuned highlight timing for newly added history entry animations.
+154. 2026-01-07: Added new history entry creation flow and auto-filled class metadata on selection.
+155. 2026-01-07: Enabled new history entries to save and updated the new-entry notice text.
+156. 2026-01-07: Added duplicate history grouping, class metadata autofill, and currency formatting for amounts.
+157. 2026-01-07: Standardized the student name column to use labeled meta text in the edit accordion.
+158. 2026-01-07: Updated main student save to persist history entries and normalized empty meta display.
