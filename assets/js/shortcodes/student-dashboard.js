@@ -363,4 +363,76 @@
             submitLogin(form);
         });
     });
+
+    const activateDashboardTab = (dashboard, tab) => {
+        if (!dashboard || !tab) {
+            return;
+        }
+
+        const tabId = tab.getAttribute('id');
+        const panelId = tab.getAttribute('aria-controls');
+        const tabs = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-tab')
+        );
+        const panels = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-panel')
+        );
+
+        tabs.forEach((item) => {
+            const isActive = item === tab;
+            item.classList.toggle('is-active', isActive);
+            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            item.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+
+        panels.forEach((panel) => {
+            const isActive = panel.getAttribute('id') === panelId;
+            panel.classList.toggle('is-active', isActive);
+            panel.toggleAttribute('hidden', !isActive);
+            panel.setAttribute(
+                'aria-labelledby',
+                tabId || panel.getAttribute('aria-labelledby') || ''
+            );
+        });
+    };
+
+    const dashboards = document.querySelectorAll('.teqcidb-dashboard');
+
+    dashboards.forEach((dashboard) => {
+        const tabs = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-tab')
+        );
+
+        if (!tabs.length) {
+            return;
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activateDashboardTab(dashboard, tab);
+            });
+        });
+    });
+
+    const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
+
+    profileForms.forEach((form) => {
+        const editButton = form.querySelector('[data-teqcidb-profile-edit]');
+        const saveButton = form.querySelector('[data-teqcidb-profile-save]');
+        const fields = Array.from(
+            form.querySelectorAll('input, select, textarea')
+        );
+
+        if (!editButton || !saveButton || !fields.length) {
+            return;
+        }
+
+        editButton.addEventListener('click', () => {
+            fields.forEach((field) => {
+                field.disabled = false;
+            });
+            editButton.disabled = true;
+            saveButton.disabled = false;
+        });
+    });
 })();
