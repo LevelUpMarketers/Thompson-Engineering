@@ -181,3 +181,4 @@
 178. 2026-01-24: Added profile editing save flow with validation and cancel support on the student dashboard.
 179. 2026-01-24: Fixed profile zip code population and enabled phone masking on profile edits.
 180. 2026-01-24: Tweaked mobile dashboard tab behavior, save button sizing, and smooth scroll on tab selection.
+181. 2026-01-24: Added a student dashboard Class History tab layout populated from student history records for logged-in users.

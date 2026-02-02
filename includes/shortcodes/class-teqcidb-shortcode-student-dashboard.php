@@ -95,6 +95,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'representative_phone' => $representative['phone'],
             );
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
+            $student_history_entries = $this->get_student_history_entries( $current_user->ID );
 
             $states = array(
                 'Alabama',
@@ -465,6 +466,177 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             </div>
                                         </form>
+                                    <?php elseif ( 'class-history' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Class History',
+                                                        'Student dashboard class history heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Review your QCI class registrations, attendance, outcomes, and progress in one place.',
+                                                        'Student dashboard class history description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+
+                                            <?php if ( empty( $student_history_entries ) ) : ?>
+                                                <p class="teqcidb-dashboard-empty">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'No class history entries are available yet.',
+                                                        'Student dashboard class history empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            <?php else : ?>
+                                                <div class="teqcidb-class-history-list">
+                                                    <?php foreach ( $student_history_entries as $history_entry ) : ?>
+                                                        <article class="teqcidb-class-history-card">
+                                                            <div class="teqcidb-class-history-card-header">
+                                                                <div>
+                                                                    <p class="teqcidb-class-history-eyebrow">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Class Name',
+                                                                            'Student dashboard class history class name label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </p>
+                                                                    <h3 class="teqcidb-class-history-title">
+                                                                        <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                    </h3>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-date">
+                                                                    <span class="teqcidb-class-history-eyebrow">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Enrollment Date',
+                                                                            'Student dashboard class history enrollment date label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </span>
+                                                                    <span class="teqcidb-class-history-value">
+                                                                        <?php echo $this->format_history_display_value( $history_entry['enrollmentdate'] ); ?>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <dl class="teqcidb-class-history-meta">
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Registration Status',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['registered'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Attendance',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['attended'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Outcome',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['outcome'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Payment Status',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['paymentstatus'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Amount Paid',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['amountpaid'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Registered By',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['registeredby'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Course Progress',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['courseinprogress'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Quiz Progress',
+                                                                            'Student dashboard class history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['quizinprogress'] ); ?></dd>
+                                                                </div>
+                                                            </dl>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     <?php else : ?>
                                         <p class="teqcidb-dashboard-placeholder">
                                             <?php
@@ -1212,6 +1384,90 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return $defaults;
+    }
+
+    private function get_student_history_entries( $user_id ) {
+        $user_id = (int) $user_id;
+        if ( $user_id <= 0 ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'teqcidb_studenthistory';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT classname, registered, attended, outcome, paymentstatus, amountpaid, enrollmentdate, registeredby, courseinprogress, quizinprogress, id
+                FROM $table_name
+                WHERE wpuserid = %d
+                ORDER BY enrollmentdate DESC, id DESC",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $results ) ) {
+            return array();
+        }
+
+        $prepared = array();
+        foreach ( $results as $entry ) {
+            $amount_paid = '';
+            if ( isset( $entry['amountpaid'] ) && '' !== $entry['amountpaid'] && null !== $entry['amountpaid'] ) {
+                $amount_paid = sprintf(
+                    /* translators: %s is the formatted amount. */
+                    _x( '$%s', 'Student dashboard amount paid format', 'teqcidb' ),
+                    number_format_i18n( (float) $entry['amountpaid'], 2 )
+                );
+            }
+
+            $enrollment_date = '';
+            if ( ! empty( $entry['enrollmentdate'] ) ) {
+                $timestamp = strtotime( (string) $entry['enrollmentdate'] );
+                if ( false !== $timestamp ) {
+                    $enrollment_date = date_i18n( get_option( 'date_format' ), $timestamp );
+                }
+            }
+
+            $registered_by = '';
+            if ( ! empty( $entry['registeredby'] ) ) {
+                $registered_user = get_user_by( 'id', (int) $entry['registeredby'] );
+                if ( $registered_user instanceof WP_User ) {
+                    $registered_by = $registered_user->display_name;
+                } else {
+                    $registered_by = (string) $entry['registeredby'];
+                }
+            }
+
+            $prepared[] = array(
+                'classname' => isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '',
+                'registered' => isset( $entry['registered'] ) ? sanitize_text_field( (string) $entry['registered'] ) : '',
+                'attended' => isset( $entry['attended'] ) ? sanitize_text_field( (string) $entry['attended'] ) : '',
+                'outcome' => isset( $entry['outcome'] ) ? sanitize_text_field( (string) $entry['outcome'] ) : '',
+                'paymentstatus' => isset( $entry['paymentstatus'] ) ? sanitize_text_field( (string) $entry['paymentstatus'] ) : '',
+                'amountpaid' => $amount_paid,
+                'enrollmentdate' => $enrollment_date,
+                'registeredby' => sanitize_text_field( (string) $registered_by ),
+                'courseinprogress' => isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '',
+                'quizinprogress' => isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '',
+            );
+        }
+
+        return $prepared;
+    }
+
+    private function format_history_display_value( $value ) {
+        if ( '' === $value || null === $value ) {
+            return esc_html_x( '—', 'Student dashboard empty field placeholder', 'teqcidb' );
+        }
+
+        return esc_html( (string) $value );
     }
 
     private function decode_list_field( $value ) {
