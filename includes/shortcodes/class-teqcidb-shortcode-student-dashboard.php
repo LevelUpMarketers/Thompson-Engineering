@@ -74,6 +74,9 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $representative = $this->decode_representative_field(
                 isset( $student_row['their_representative'] ) ? $student_row['their_representative'] : ''
             );
+            $associations = $this->decode_list_field(
+                isset( $student_row['associations'] ) ? $student_row['associations'] : ''
+            );
             $profile = array(
                 'first_name' => isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '',
                 'last_name'  => isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '',
@@ -91,6 +94,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'representative_email' => $representative['email'],
                 'representative_phone' => $representative['phone'],
             );
+            $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
 
             $states = array(
                 'Alabama',
@@ -413,6 +417,31 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     />
                                                 </div>
                                             </div>
+
+                                            <fieldset class="teqcidb-form-fieldset">
+                                                <legend>
+                                                    <?php echo esc_html_x( 'Affiliated Associations', 'Profile form associations legend', 'teqcidb' ); ?>
+                                                </legend>
+                                                <div class="teqcidb-checkbox-grid">
+                                                    <?php foreach ( $association_options as $association ) : ?>
+                                                        <?php
+                                                        $field_id = 'teqcidb-profile-association-' . strtolower( $association );
+                                                        $is_checked = in_array( $association, $associations, true );
+                                                        ?>
+                                                        <label class="teqcidb-checkbox" for="<?php echo esc_attr( $field_id ); ?>">
+                                                            <input
+                                                                type="checkbox"
+                                                                id="<?php echo esc_attr( $field_id ); ?>"
+                                                                name="teqcidb_profile_associations[]"
+                                                                value="<?php echo esc_attr( $association ); ?>"
+                                                                <?php checked( $is_checked ); ?>
+                                                                disabled
+                                                            />
+                                                            <span><?php echo esc_html( $association ); ?></span>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </fieldset>
 
                                             <div class="teqcidb-profile-actions">
                                                 <button
@@ -1166,5 +1195,34 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return $defaults;
+    }
+
+    private function decode_list_field( $value ) {
+        if ( is_array( $value ) ) {
+            $items = $value;
+        } else {
+            $decoded = json_decode( (string) $value, true );
+            $items   = is_array( $decoded ) ? $decoded : array();
+        }
+
+        if ( empty( $items ) ) {
+            return array();
+        }
+
+        $sanitized = array();
+
+        foreach ( $items as $item ) {
+            if ( ! is_scalar( $item ) ) {
+                continue;
+            }
+
+            $normalized = wp_kses_post( (string) $item );
+
+            if ( '' !== $normalized ) {
+                $sanitized[] = $normalized;
+            }
+        }
+
+        return $sanitized;
     }
 }
