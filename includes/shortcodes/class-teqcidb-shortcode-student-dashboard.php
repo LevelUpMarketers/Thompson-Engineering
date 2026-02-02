@@ -552,7 +552,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <dt>
                                                                         <?php
                                                                         echo esc_html_x(
-                                                                            'Registration Status',
+                                                                            'Registered?',
                                                                             'Student dashboard class history field label',
                                                                             'teqcidb'
                                                                         );
@@ -564,7 +564,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <dt>
                                                                         <?php
                                                                         echo esc_html_x(
-                                                                            'Attendance',
+                                                                            'Attended?',
                                                                             'Student dashboard class history field label',
                                                                             'teqcidb'
                                                                         );
@@ -624,7 +624,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <dt>
                                                                         <?php
                                                                         echo esc_html_x(
-                                                                            'Course Progress',
+                                                                            'Course in Progress?',
                                                                             'Student dashboard class history field label',
                                                                             'teqcidb'
                                                                         );
@@ -1470,7 +1470,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
     private function format_registered_by( array $entry, $current_user_id ) {
         $registered_by_id = isset( $entry['registeredby'] ) ? (int) $entry['registeredby'] : 0;
         if ( $registered_by_id <= 0 ) {
-            return '';
+            return _x( 'Self-Registered', 'Student dashboard class history registered by label', 'teqcidb' );
         }
 
         if ( $registered_by_id === (int) $current_user_id ) {
