@@ -79,8 +79,10 @@
 }
 
 .teqcidb-dashboard-section-title {
+    color: #000;
     font-size: 1.6rem;
     margin: 0 0 8px;
+    text-transform: capitalize;
 }
 
 .teqcidb-dashboard-section-description {

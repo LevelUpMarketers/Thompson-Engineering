@@ -199,6 +199,18 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                     <?php echo $is_first_panel ? '' : 'hidden'; ?>
                                 >
                                     <?php if ( 'profile-info' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Your Profile Info',
+                                                        'Student dashboard profile info heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                            </div>
                                         <form class="teqcidb-profile-form" data-teqcidb-profile-form>
                                             <div class="teqcidb-form-grid">
                                                 <div class="teqcidb-form-field">
@@ -466,13 +478,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             </div>
                                         </form>
+                                        </div>
                                     <?php elseif ( 'class-history' === $tab_key ) : ?>
                                         <div class="teqcidb-dashboard-section">
                                             <div class="teqcidb-dashboard-section-header">
                                                 <h2 class="teqcidb-dashboard-section-title">
                                                     <?php
                                                     echo esc_html_x(
-                                                        'Class History',
+                                                        'Your Class History',
                                                         'Student dashboard class history heading',
                                                         'teqcidb'
                                                     );
@@ -481,7 +494,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 <p class="teqcidb-dashboard-section-description">
                                                     <?php
                                                     echo esc_html_x(
-                                                        'Review your QCI class registrations, attendance, outcomes, and progress in one place.',
+                                                        'Below are all of the classes you\'re registered for, including past and upcoming classes.',
                                                         'Student dashboard class history description',
                                                         'teqcidb'
                                                     );
