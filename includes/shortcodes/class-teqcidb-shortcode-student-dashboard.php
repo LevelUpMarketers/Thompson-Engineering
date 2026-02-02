@@ -211,7 +211,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     ?>
                                                 </h2>
                                             </div>
-                                        <form class="teqcidb-profile-form" data-teqcidb-profile-form>
+                                            <form class="teqcidb-profile-form" data-teqcidb-profile-form>
                                             <div class="teqcidb-form-grid">
                                                 <div class="teqcidb-form-field">
                                                     <label for="teqcidb-profile-first-name">
@@ -477,7 +477,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     <span class="teqcidb-form-message"></span>
                                                 </div>
                                             </div>
-                                        </form>
+                                            </form>
                                         </div>
                                     <?php elseif ( 'class-history' === $tab_key ) : ?>
                                         <div class="teqcidb-dashboard-section">
@@ -1448,15 +1448,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 }
             }
 
-            $registered_by = '';
-            if ( ! empty( $entry['registeredby'] ) ) {
-                $registered_user = get_user_by( 'id', (int) $entry['registeredby'] );
-                if ( $registered_user instanceof WP_User ) {
-                    $registered_by = $registered_user->display_name;
-                } else {
-                    $registered_by = (string) $entry['registeredby'];
-                }
-            }
+            $registered_by = $this->format_registered_by( $entry, $user_id );
 
             $prepared[] = array(
                 'classname' => isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '',
@@ -1473,6 +1465,57 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return $prepared;
+    }
+
+    private function format_registered_by( array $entry, $current_user_id ) {
+        $registered_by_id = isset( $entry['registeredby'] ) ? (int) $entry['registeredby'] : 0;
+        if ( $registered_by_id <= 0 ) {
+            return '';
+        }
+
+        if ( $registered_by_id === (int) $current_user_id ) {
+            return _x( 'Self-Registered', 'Student dashboard class history registered by label', 'teqcidb' );
+        }
+
+        $registered_user = get_user_by( 'id', $registered_by_id );
+        if ( ! $registered_user instanceof WP_User ) {
+            return '';
+        }
+
+        $first_name = get_user_meta( $registered_by_id, 'first_name', true );
+        $last_name  = get_user_meta( $registered_by_id, 'last_name', true );
+        $email      = $registered_user->user_email;
+
+        $first_name = is_string( $first_name ) ? $first_name : '';
+        $last_name  = is_string( $last_name ) ? $last_name : '';
+        $email      = is_string( $email ) ? $email : '';
+
+        $name_parts = array_filter(
+            array( $first_name, $last_name ),
+            static function ( $value ) {
+                return '' !== $value;
+            }
+        );
+        $name = implode( ' ', $name_parts );
+
+        if ( '' === $name && '' === $email ) {
+            return '';
+        }
+
+        if ( '' === $name ) {
+            return sanitize_email( $email );
+        }
+
+        if ( '' === $email ) {
+            return sanitize_text_field( $name );
+        }
+
+        return sprintf(
+            /* translators: 1: first and last name, 2: email address. */
+            _x( '%1$s (%2$s)', 'Student dashboard class history registered by format', 'teqcidb' ),
+            sanitize_text_field( $name ),
+            sanitize_email( $email )
+        );
     }
 
     private function format_history_display_value( $value ) {

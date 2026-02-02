@@ -183,3 +183,5 @@
 180. 2026-01-24: Tweaked mobile dashboard tab behavior, save button sizing, and smooth scroll on tab selection.
 181. 2026-01-24: Added a student dashboard Class History tab layout populated from student history records for logged-in users.
 182. 2026-01-24: Updated student dashboard tab headings and class history description copy with new styling.
+183. 2026-01-24: Refined class history registered-by labels to show self-registration or registrar contact details.
+184. 2026-01-24: Fixed formatting in the student dashboard class history registrar helper.
