@@ -1144,6 +1144,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             'city'        => '',
             'state'       => '',
             'postal_code' => '',
+            'zip_code'    => '',
         );
 
         if ( empty( $value ) ) {
@@ -1164,6 +1165,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
                 $defaults[ $key ] = sanitize_text_field( (string) $decoded[ $key ] );
             }
+        }
+
+        if ( isset( $decoded['zip_code'] ) && is_scalar( $decoded['zip_code'] ) ) {
+            $defaults['postal_code'] = sanitize_text_field( (string) $decoded['zip_code'] );
         }
 
         return $defaults;

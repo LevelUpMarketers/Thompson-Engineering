@@ -106,6 +106,9 @@
         '#teqcidb-create-cell-phone',
         '#teqcidb-create-office-phone',
         '#teqcidb-create-rep-phone',
+        '#teqcidb-profile-cell-phone',
+        '#teqcidb-profile-office-phone',
+        '#teqcidb-profile-rep-phone',
     ];
 
     phoneSelectors.forEach((selector) => {
