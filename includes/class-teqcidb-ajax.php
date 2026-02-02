@@ -12,6 +12,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_nopriv_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
+        add_action( 'wp_ajax_teqcidb_update_profile', array( $this, 'update_profile' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
@@ -142,8 +143,10 @@ class TEQCIDB_Ajax {
                 );
             }
 
-            wp_set_current_user( $new_wp_user_id );
-            wp_set_auth_cookie( $new_wp_user_id, true );
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_set_current_user( $new_wp_user_id );
+                wp_set_auth_cookie( $new_wp_user_id, true );
+            }
         }
 
         $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
@@ -372,10 +375,150 @@ class TEQCIDB_Ajax {
             );
         }
 
+        wp_send_json_success();
+    }
+
+    public function update_profile() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You must be logged in to update your profile.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $current_user = wp_get_current_user();
+
+        if ( ! ( $current_user instanceof WP_User ) || ! $current_user->exists() ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to locate your account.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $first_name = $this->sanitize_text_value( 'first_name' );
+        $last_name  = $this->sanitize_text_value( 'last_name' );
+        $company    = $this->sanitize_text_value( 'company' );
+        $email      = $this->sanitize_email_value( 'email' );
+
+        if ( '' === $first_name || '' === $last_name || '' === $company || '' === $email ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please complete all required fields.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_students';
+        $row   = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, email FROM $table WHERE wpuserid = %d LIMIT 1",
+                $current_user->ID
+            ),
+            ARRAY_A
+        );
+
+        if ( ! $row ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to locate your student record.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $existing_email = isset( $row['email'] ) ? sanitize_email( (string) $row['email'] ) : '';
+        $email_changed  = strtolower( $existing_email ) !== strtolower( $email );
+
+        if ( $email_changed ) {
+            $existing_user = get_user_by( 'email', $email );
+
+            if ( $existing_user instanceof WP_User && (int) $existing_user->ID !== (int) $current_user->ID ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Whoops! It looks like that email address is already in use by another user! Please double-check your email address, or use a different one.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            $existing_student = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $table WHERE email = %s AND id != %d LIMIT 1",
+                    $email,
+                    (int) $row['id']
+                )
+            );
+
+            if ( $existing_student ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Whoops! It looks like that email address is already in use by another user! Please double-check your email address, or use a different one.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            $user_update = wp_update_user(
+                array(
+                    'ID'         => $current_user->ID,
+                    'user_email' => $email,
+                )
+            );
+
+            if ( is_wp_error( $user_update ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unable to update your email address. Please try again.', 'teqcidb' ),
+                    )
+                );
+            }
+        }
+
+        $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
+        $data = array(
+            'first_name'           => $first_name,
+            'last_name'            => $last_name,
+            'company'              => $company,
+            'student_address'      => $this->sanitize_student_address(),
+            'phone_cell'           => $this->sanitize_phone_value( 'phone_cell' ),
+            'phone_office'         => $this->sanitize_phone_value( 'phone_office' ),
+            'email'                => $email,
+            'their_representative' => $this->sanitize_representative_contact(),
+            'associations'         => $this->sanitize_associations_value( 'associations', $association_options ),
+        );
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            array( 'id' => (int) $row['id'] ),
+            array_fill( 0, count( $data ), '%s' ),
+            array( '%d' )
+        );
+
+        if ( false === $result && $wpdb->last_error ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to save your profile. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
-                'message' => __( 'Logged in.', 'teqcidb' ),
+                'message' => __( 'Profile saved.', 'teqcidb' ),
             )
         );
     }
@@ -3498,12 +3641,41 @@ class TEQCIDB_Ajax {
     }
 
     private function sanitize_representative_contact() {
+        global $wpdb;
+
         $contact = array(
             'first_name' => $this->sanitize_text_value( 'representative_first_name' ),
             'last_name'  => $this->sanitize_text_value( 'representative_last_name' ),
             'email'      => $this->sanitize_email_value( 'representative_email' ),
             'phone'      => $this->sanitize_phone_value( 'representative_phone' ),
+            'wpid'       => '',
+            'uniquestudentid' => '',
         );
+
+        if ( '' !== $contact['email'] ) {
+            $user = get_user_by( 'email', $contact['email'] );
+
+            if ( $user instanceof WP_User ) {
+                $contact['wpid'] = (string) $user->ID;
+            }
+
+            $students_table = $wpdb->prefix . 'teqcidb_students';
+            $like           = $wpdb->esc_like( $students_table );
+            $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+            if ( $found === $students_table ) {
+                $unique_id = $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT uniquestudentid FROM $students_table WHERE email = %s LIMIT 1",
+                        $contact['email']
+                    )
+                );
+
+                if ( $unique_id ) {
+                    $contact['uniquestudentid'] = sanitize_text_field( (string) $unique_id );
+                }
+            }
+        }
 
         $has_value = false;
 

@@ -173,3 +173,11 @@
 170. 2026-01-07: Added login and post-signup auto-login flows for the student dashboard forms.
 171. 2026-01-07: Scoped dashboard auth reload behavior to the dashboard shortcode wrapper.
 172. 2026-01-07: Updated the frontend spinner brand color for student dashboard feedback.
+173. 2026-01-24: Added the logged-in student dashboard tab layout with representative-only navigation and responsive styling.
+174. 2026-01-24: Updated active and hover tab colors for the student dashboard navigation.
+175. 2026-01-24: Built the profile info tab layout with read-only fields and edit/save controls.
+176. 2026-01-24: Added affiliated association checkboxes to the profile info tab.
+177. 2026-01-24: Prevented admin-created students from auto-login and enriched representative metadata with WP and student IDs.
+178. 2026-01-24: Added profile editing save flow with validation and cancel support on the student dashboard.
+179. 2026-01-24: Fixed profile zip code population and enabled phone masking on profile edits.
+180. 2026-01-24: Tweaked mobile dashboard tab behavior, save button sizing, and smooth scroll on tab selection.

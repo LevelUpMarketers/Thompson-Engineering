@@ -106,6 +106,9 @@
         '#teqcidb-create-cell-phone',
         '#teqcidb-create-office-phone',
         '#teqcidb-create-rep-phone',
+        '#teqcidb-profile-cell-phone',
+        '#teqcidb-profile-office-phone',
+        '#teqcidb-profile-rep-phone',
     ];
 
     phoneSelectors.forEach((selector) => {
@@ -361,6 +364,252 @@
             event.preventDefault();
             showFeedback(form, '', true);
             submitLogin(form);
+        });
+    });
+
+    const activateDashboardTab = (dashboard, tab) => {
+        if (!dashboard || !tab) {
+            return;
+        }
+
+        const tabId = tab.getAttribute('id');
+        const panelId = tab.getAttribute('aria-controls');
+        const tabs = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-tab')
+        );
+        const panels = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-panel')
+        );
+
+        tabs.forEach((item) => {
+            const isActive = item === tab;
+            item.classList.toggle('is-active', isActive);
+            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            item.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+
+        panels.forEach((panel) => {
+            const isActive = panel.getAttribute('id') === panelId;
+            panel.classList.toggle('is-active', isActive);
+            panel.toggleAttribute('hidden', !isActive);
+            panel.setAttribute(
+                'aria-labelledby',
+                tabId || panel.getAttribute('aria-labelledby') || ''
+            );
+        });
+    };
+
+    const dashboards = document.querySelectorAll('.teqcidb-dashboard');
+
+    dashboards.forEach((dashboard) => {
+        const tabs = Array.from(
+            dashboard.querySelectorAll('.teqcidb-dashboard-tab')
+        );
+
+        if (!tabs.length) {
+            return;
+        }
+
+        const scrollToPanel = (tab) => {
+            if (!window.matchMedia('(max-width: 980px)').matches) {
+                return;
+            }
+
+            const panelId = tab.getAttribute('aria-controls');
+            if (!panelId) {
+                return;
+            }
+
+            const panel = dashboard.querySelector(`#${panelId}`);
+            if (!panel) {
+                return;
+            }
+
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activateDashboardTab(dashboard, tab);
+                scrollToPanel(tab);
+            });
+        });
+    });
+
+    const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
+
+    const getProfileSnapshot = (fields) => {
+        return fields.map((field) => {
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                return { field, checked: field.checked };
+            }
+
+            return { field, value: field.value };
+        });
+    };
+
+    const restoreProfileSnapshot = (snapshot) => {
+        snapshot.forEach((entry) => {
+            if ('checked' in entry) {
+                entry.field.checked = entry.checked;
+            } else {
+                entry.field.value = entry.value;
+            }
+        });
+    };
+
+    const setProfileFieldsDisabled = (fields, disabled) => {
+        fields.forEach((field) => {
+            field.disabled = disabled;
+        });
+    };
+
+    const collectProfileFormData = (form) => {
+        const data = new FormData();
+        const getValue = (selector) => {
+            const field = form.querySelector(selector);
+            return field ? field.value.trim() : '';
+        };
+
+        data.append('action', settings.profileUpdateAction || 'teqcidb_update_profile');
+        data.append('_ajax_nonce', settings.ajaxNonce || '');
+        data.append('first_name', getValue('#teqcidb-profile-first-name'));
+        data.append('last_name', getValue('#teqcidb-profile-last-name'));
+        data.append('company', getValue('#teqcidb-profile-company'));
+        data.append('phone_cell', getValue('#teqcidb-profile-cell-phone'));
+        data.append('phone_office', getValue('#teqcidb-profile-office-phone'));
+        data.append('email', getValue('#teqcidb-profile-email'));
+        data.append('student_address_street_1', getValue('#teqcidb-profile-street-address'));
+        data.append('student_address_street_2', getValue('#teqcidb-profile-street-address-2'));
+        data.append('student_address_city', getValue('#teqcidb-profile-city'));
+        data.append('student_address_state', getValue('#teqcidb-profile-state'));
+        data.append('student_address_postal_code', getValue('#teqcidb-profile-zip'));
+        data.append('representative_first_name', getValue('#teqcidb-profile-rep-first-name'));
+        data.append('representative_last_name', getValue('#teqcidb-profile-rep-last-name'));
+        data.append('representative_email', getValue('#teqcidb-profile-rep-email'));
+        data.append('representative_phone', getValue('#teqcidb-profile-rep-phone'));
+
+        form.querySelectorAll('input[name="teqcidb_profile_associations[]"]:checked')
+            .forEach((input) => {
+                data.append('associations[]', input.value);
+            });
+
+        return data;
+    };
+
+    const handleProfileSave = (form, fields, editButton, saveButton, snapshotRef) => {
+        const requiredSelectors = [
+            '#teqcidb-profile-first-name',
+            '#teqcidb-profile-last-name',
+            '#teqcidb-profile-company',
+            '#teqcidb-profile-email',
+        ];
+
+        const hasEmptyRequired = requiredSelectors.some((selector) => {
+            const field = form.querySelector(selector);
+            return !field || !field.value || !field.value.trim();
+        });
+
+        if (hasEmptyRequired) {
+            showFeedback(form, settings.profileMessageRequired, false);
+            return;
+        }
+
+        if (!settings.ajaxUrl) {
+            showFeedback(form, settings.profileMessageSaveError, false);
+            return;
+        }
+
+        showFeedback(form, '', true);
+
+        fetch(settings.ajaxUrl, {
+            method: 'POST',
+            body: collectProfileFormData(form),
+            credentials: 'same-origin',
+        })
+            .then((response) => response.json())
+            .then((payload) => {
+                if (payload && payload.success) {
+                    showFeedback(
+                        form,
+                        (payload.data && payload.data.message) ||
+                            settings.profileMessageSaved,
+                        false
+                    );
+                    snapshotRef.current = getProfileSnapshot(fields);
+                    setProfileFieldsDisabled(fields, true);
+                    editButton.dataset.editing = 'false';
+                    editButton.textContent =
+                        settings.profileEditLabel || 'Edit Profile Info';
+                    saveButton.disabled = true;
+                } else {
+                    const message =
+                        payload && payload.data && payload.data.message
+                            ? payload.data.message
+                            : settings.profileMessageSaveError;
+                    showFeedback(form, message, false);
+                }
+            })
+            .catch(() => {
+                showFeedback(form, settings.profileMessageSaveError, false);
+            });
+    };
+
+    profileForms.forEach((form) => {
+        const editButton = form.querySelector('[data-teqcidb-profile-edit]');
+        const saveButton = form.querySelector('[data-teqcidb-profile-save]');
+        const fields = Array.from(
+            form.querySelectorAll('input, select, textarea')
+        );
+
+        if (!editButton || !saveButton || !fields.length) {
+            return;
+        }
+
+        const snapshotRef = { current: getProfileSnapshot(fields) };
+
+        editButton.addEventListener('click', () => {
+            const isEditing = editButton.dataset.editing === 'true';
+
+            if (isEditing) {
+                restoreProfileSnapshot(snapshotRef.current);
+                setProfileFieldsDisabled(fields, true);
+                editButton.dataset.editing = 'false';
+                editButton.textContent =
+                    settings.profileEditLabel || 'Edit Profile Info';
+                saveButton.disabled = true;
+                showFeedback(form, '', false);
+                return;
+            }
+
+            setProfileFieldsDisabled(fields, false);
+            editButton.dataset.editing = 'true';
+            editButton.textContent =
+                settings.profileCancelLabel || 'Cancel Editing';
+            saveButton.disabled = false;
+        });
+
+        saveButton.addEventListener('click', () => {
+            handleProfileSave(
+                form,
+                fields,
+                editButton,
+                saveButton,
+                snapshotRef
+            );
+        });
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!saveButton.disabled) {
+                handleProfileSave(
+                    form,
+                    fields,
+                    editButton,
+                    saveButton,
+                    snapshotRef
+                );
+            }
         });
     });
 })();
