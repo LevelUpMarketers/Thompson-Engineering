@@ -180,3 +180,4 @@
 177. 2026-01-24: Prevented admin-created students from auto-login and enriched representative metadata with WP and student IDs.
 178. 2026-01-24: Added profile editing save flow with validation and cancel support on the student dashboard.
 179. 2026-01-24: Fixed profile zip code population and enabled phone masking on profile edits.
+180. 2026-01-24: Tweaked mobile dashboard tab behavior, save button sizing, and smooth scroll on tab selection.

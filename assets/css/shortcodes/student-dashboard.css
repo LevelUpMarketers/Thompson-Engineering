@@ -279,7 +279,6 @@
     }
 
     .teqcidb-dashboard-tabs {
-        flex-direction: row;
         flex-wrap: nowrap;
         overflow-x: auto;
         padding-bottom: 8px;
@@ -304,5 +303,9 @@
     .teqcidb-button-primary {
         width: 100%;
         max-width: none;
+    }
+
+    .teqcidb-profile-actions .teqcidb-button-secondary {
+        width: 100%;
     }
 }

@@ -410,9 +410,28 @@
             return;
         }
 
+        const scrollToPanel = (tab) => {
+            if (!window.matchMedia('(max-width: 980px)').matches) {
+                return;
+            }
+
+            const panelId = tab.getAttribute('aria-controls');
+            if (!panelId) {
+                return;
+            }
+
+            const panel = dashboard.querySelector(`#${panelId}`);
+            if (!panel) {
+                return;
+            }
+
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
         tabs.forEach((tab) => {
             tab.addEventListener('click', () => {
                 activateDashboardTab(dashboard, tab);
+                scrollToPanel(tab);
             });
         });
     });
