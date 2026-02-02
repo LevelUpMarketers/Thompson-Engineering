@@ -178,3 +178,4 @@
 175. 2026-01-24: Built the profile info tab layout with read-only fields and edit/save controls.
 176. 2026-01-24: Added affiliated association checkboxes to the profile info tab.
 177. 2026-01-24: Prevented admin-created students from auto-login and enriched representative metadata with WP and student IDs.
+178. 2026-01-24: Added profile editing save flow with validation and cancel support on the student dashboard.

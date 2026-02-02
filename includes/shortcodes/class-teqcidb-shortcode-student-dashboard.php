@@ -459,6 +459,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 >
                                                     <?php echo esc_html_x( 'Save Profile Info', 'Profile form save button label', 'teqcidb' ); ?>
                                                 </button>
+                                                <div class="teqcidb-form-feedback" aria-live="polite">
+                                                    <span class="teqcidb-spinner" aria-hidden="true"></span>
+                                                    <span class="teqcidb-form-message"></span>
+                                                </div>
                                             </div>
                                         </form>
                                     <?php else : ?>
@@ -1120,6 +1124,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'messageUnknown'  => esc_html_x( 'Something went wrong while creating the account. Please try again.', 'Create account form validation message', 'teqcidb' ),
                     'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
                     'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
+                    'profileEditLabel' => esc_html_x( 'Edit Profile Info', 'Profile form edit button label', 'teqcidb' ),
+                    'profileCancelLabel' => esc_html_x( 'Cancel Editing', 'Profile form edit button label', 'teqcidb' ),
+                    'profileSaveLabel' => esc_html_x( 'Save Profile Info', 'Profile form save button label', 'teqcidb' ),
+                    'profileMessageRequired' => esc_html_x( 'Please complete all required fields.', 'Profile form validation message', 'teqcidb' ),
+                    'profileMessageEmailInUse' => esc_html_x( 'Whoops! It looks like that email address is already in use by another user! Please double-check your email address, or use a different one.', 'Profile form validation message', 'teqcidb' ),
+                    'profileMessageSaveError' => esc_html_x( 'Unable to save your profile. Please try again.', 'Profile form validation message', 'teqcidb' ),
+                    'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
+                    'profileUpdateAction' => 'teqcidb_update_profile',
                 )
             );
         }
