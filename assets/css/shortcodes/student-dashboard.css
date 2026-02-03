@@ -19,6 +19,14 @@
     padding: 60px 16px;
 }
 
+.teqcidb-dashboard-welcome {
+    color: #2c2c2c;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
 .teqcidb-dashboard-layout {
     display: grid;
     grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -70,6 +78,96 @@
 }
 
 .teqcidb-dashboard-placeholder {
+    color: #4d4d4d;
+    margin: 0;
+}
+
+.teqcidb-dashboard-section-header {
+    margin-bottom: 24px;
+}
+
+.teqcidb-dashboard-section-title {
+    color: #000;
+    font-size: 1.6rem;
+    margin: 0 0 8px;
+    text-transform: capitalize;
+}
+
+.teqcidb-dashboard-section-description {
+    color: #4d4d4d;
+    margin: 0;
+}
+
+.teqcidb-dashboard-empty {
+    color: #4d4d4d;
+    margin: 0;
+}
+
+.teqcidb-class-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.teqcidb-class-history-card {
+    background: #fafafa;
+    border: 1px solid #e1e1e1;
+    border-radius: 14px;
+    padding: 20px;
+}
+
+.teqcidb-class-history-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.teqcidb-class-history-title {
+    font-size: 1.2rem;
+    margin: 6px 0 0;
+}
+
+.teqcidb-class-history-eyebrow {
+    color: #6a6a6a;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.teqcidb-class-history-date {
+    text-align: right;
+}
+
+.teqcidb-class-history-value {
+    color: #2c2c2c;
+    display: block;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.teqcidb-class-history-meta {
+    display: grid;
+    gap: 12px 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+}
+
+.teqcidb-class-history-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.teqcidb-class-history-meta-item dt {
+    color: #2c2c2c;
+    font-weight: 600;
+    margin: 0;
+}
+
+.teqcidb-class-history-meta-item dd {
     color: #4d4d4d;
     margin: 0;
 }
@@ -189,6 +287,22 @@
     padding: 0;
 }
 
+.teqcidb-profile-old-companies {
+    margin-top: 30px;
+}
+
+.teqcidb-profile-old-companies legend {
+    margin-bottom: 15px;
+}
+
+.teqcidb-profile-associations {
+    margin-top: 30px;
+}
+
+.teqcidb-profile-old-companies-add {
+    margin-top: 20px;
+}
+
 .teqcidb-checkbox-grid {
     display: flex;
     flex-wrap: wrap;
@@ -270,6 +384,10 @@
 }
 
 @media (max-width: 980px) {
+    .teqcidb-dashboard-welcome {
+        text-align: center;
+    }
+
     .teqcidb-auth-grid {
         grid-template-columns: 1fr;
     }
@@ -307,5 +425,17 @@
 
     .teqcidb-profile-actions .teqcidb-button-secondary {
         width: 100%;
+    }
+
+    .teqcidb-profile-old-companies-add {
+        width: 100%;
+    }
+
+    .teqcidb-class-history-date {
+        text-align: left;
+    }
+
+    .teqcidb-class-history-meta {
+        grid-template-columns: 1fr;
     }
 }

@@ -400,6 +400,26 @@
     };
 
     const dashboards = document.querySelectorAll('.teqcidb-dashboard');
+    const tabAliases = {
+        profileinfo: 'profile-info',
+        classhistory: 'class-history',
+        certificatesdates: 'certificates-dates',
+        paymenthistory: 'payment-history',
+        yourstudents: 'your-students',
+        registerstudents: 'register-students',
+    };
+    const normalizeTabParam = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        const cleaned = value.toLowerCase().replace(/[^a-z]/g, '');
+        if (tabAliases[cleaned]) {
+            return tabAliases[cleaned];
+        }
+
+        return value.toLowerCase();
+    };
 
     dashboards.forEach((dashboard) => {
         const tabs = Array.from(
@@ -434,6 +454,19 @@
                 scrollToPanel(tab);
             });
         });
+
+        const queryTab = normalizeTabParam(
+            new URLSearchParams(window.location.search).get('tab')
+        );
+        if (queryTab) {
+            const matchedTab = tabs.find(
+                (tab) => tab.dataset.teqcidbTab === queryTab
+            );
+            if (matchedTab) {
+                activateDashboardTab(dashboard, matchedTab);
+                scrollToPanel(matchedTab);
+            }
+        }
     });
 
     const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
@@ -471,6 +504,9 @@
             return field ? field.value.trim() : '';
         };
 
+        const originalCompany = form.dataset.originalCompany || '';
+        const updatedCompany = getValue('#teqcidb-profile-company');
+
         data.append('action', settings.profileUpdateAction || 'teqcidb_update_profile');
         data.append('_ajax_nonce', settings.ajaxNonce || '');
         data.append('first_name', getValue('#teqcidb-profile-first-name'));
@@ -494,6 +530,32 @@
                 data.append('associations[]', input.value);
             });
 
+        const oldCompanies = [];
+        form.querySelectorAll('input[name="teqcidb_profile_old_companies[]"]')
+            .forEach((input) => {
+                const value = input.value.trim();
+                if (value) {
+                    oldCompanies.push(value);
+                }
+            });
+
+        if (
+            originalCompany &&
+            updatedCompany &&
+            originalCompany.toLowerCase() !== updatedCompany.toLowerCase()
+        ) {
+            const exists = oldCompanies.some(
+                (value) => value.toLowerCase() === originalCompany.toLowerCase()
+            );
+            if (!exists) {
+                oldCompanies.push(originalCompany);
+            }
+        }
+
+        oldCompanies.forEach((value) => {
+            data.append('old_companies[]', value);
+        });
+
         return data;
     };
 
@@ -504,6 +566,8 @@
             '#teqcidb-profile-company',
             '#teqcidb-profile-email',
         ];
+        const companyField = form.querySelector('#teqcidb-profile-company');
+        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
             const field = form.querySelector(selector);
@@ -542,6 +606,12 @@
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
                     saveButton.disabled = true;
+                    if (addOldCompanyButton) {
+                        addOldCompanyButton.disabled = true;
+                    }
+                    if (companyField) {
+                        form.dataset.originalCompany = companyField.value.trim();
+                    }
                 } else {
                     const message =
                         payload && payload.data && payload.data.message
@@ -558,6 +628,8 @@
     profileForms.forEach((form) => {
         const editButton = form.querySelector('[data-teqcidb-profile-edit]');
         const saveButton = form.querySelector('[data-teqcidb-profile-save]');
+        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
+        const oldCompaniesGrid = form.querySelector('[data-teqcidb-old-companies]');
         const fields = Array.from(
             form.querySelectorAll('input, select, textarea')
         );
@@ -567,6 +639,13 @@
         }
 
         const snapshotRef = { current: getProfileSnapshot(fields) };
+        const companyField = form.querySelector('#teqcidb-profile-company');
+        if (companyField) {
+            form.dataset.originalCompany = companyField.value.trim();
+        }
+        if (addOldCompanyButton) {
+            addOldCompanyButton.disabled = true;
+        }
 
         editButton.addEventListener('click', () => {
             const isEditing = editButton.dataset.editing === 'true';
@@ -578,6 +657,9 @@
                 editButton.textContent =
                     settings.profileEditLabel || 'Edit Profile Info';
                 saveButton.disabled = true;
+                if (addOldCompanyButton) {
+                    addOldCompanyButton.disabled = true;
+                }
                 showFeedback(form, '', false);
                 return;
             }
@@ -587,6 +669,9 @@
             editButton.textContent =
                 settings.profileCancelLabel || 'Cancel Editing';
             saveButton.disabled = false;
+            if (addOldCompanyButton) {
+                addOldCompanyButton.disabled = false;
+            }
         });
 
         saveButton.addEventListener('click', () => {
@@ -611,5 +696,43 @@
                 );
             }
         });
+
+        if (addOldCompanyButton && oldCompaniesGrid) {
+            addOldCompanyButton.addEventListener('click', () => {
+                const countValue = parseInt(
+                    oldCompaniesGrid.dataset.oldCompanyCount || '0',
+                    10
+                );
+                const nextIndex = Number.isNaN(countValue) ? 1 : countValue + 1;
+                oldCompaniesGrid.dataset.oldCompanyCount = nextIndex.toString();
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'teqcidb-form-field';
+
+                const label = document.createElement('label');
+                label.className = 'screen-reader-text';
+                label.setAttribute('for', `teqcidb-profile-old-company-${nextIndex}`);
+                const labelBase =
+                    settings.oldCompanyLabel || 'Previous Company';
+                label.textContent = `${labelBase} ${nextIndex}`;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `teqcidb-profile-old-company-${nextIndex}`;
+                input.name = 'teqcidb_profile_old_companies[]';
+                input.autocomplete = 'organization';
+
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                oldCompaniesGrid.appendChild(wrapper);
+
+                const emptyMessage = form.querySelector(
+                    '.teqcidb-profile-old-companies .teqcidb-dashboard-empty'
+                );
+                if (emptyMessage) {
+                    emptyMessage.remove();
+                }
+            });
+        }
     });
 })();

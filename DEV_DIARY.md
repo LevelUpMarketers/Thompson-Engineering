@@ -181,3 +181,16 @@
 178. 2026-01-24: Added profile editing save flow with validation and cancel support on the student dashboard.
 179. 2026-01-24: Fixed profile zip code population and enabled phone masking on profile edits.
 180. 2026-01-24: Tweaked mobile dashboard tab behavior, save button sizing, and smooth scroll on tab selection.
+181. 2026-01-24: Added a student dashboard Class History tab layout populated from student history records for logged-in users.
+182. 2026-01-24: Updated student dashboard tab headings and class history description copy with new styling.
+183. 2026-01-24: Refined class history registered-by labels to show self-registration or registrar contact details.
+184. 2026-01-24: Fixed formatting in the student dashboard class history registrar helper.
+185. 2026-01-24: Updated class history labels and self-registration handling for null registrars.
+186. 2026-01-24: Added profile info tab description copy for the student dashboard.
+187. 2026-01-24: Added student dashboard deep-link handling for tab query parameters.
+188. 2026-01-24: Added editable old company entries to the student profile dashboard tab when available.
+189. 2026-01-24: Adjusted profile fieldset spacing and label visibility for previous companies and associations.
+190. 2026-01-24: Captured original company values to append to old companies when students change their company.
+191. 2026-01-24: Added editable previous company rows with an add button and empty-state message.
+192. 2026-01-24: Added a personalized welcome line with QCI number to the student dashboard.
+193. 2026-01-24: Added spacing and mobile sizing for the previous companies add button.

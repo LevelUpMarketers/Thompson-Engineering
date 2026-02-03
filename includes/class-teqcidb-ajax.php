@@ -490,6 +490,7 @@ class TEQCIDB_Ajax {
             'first_name'           => $first_name,
             'last_name'            => $last_name,
             'company'              => $company,
+            'old_companies'        => $this->sanitize_items_value( 'old_companies' ),
             'student_address'      => $this->sanitize_student_address(),
             'phone_cell'           => $this->sanitize_phone_value( 'phone_cell' ),
             'phone_office'         => $this->sanitize_phone_value( 'phone_office' ),
