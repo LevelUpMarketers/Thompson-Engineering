@@ -567,6 +567,7 @@
             '#teqcidb-profile-email',
         ];
         const companyField = form.querySelector('#teqcidb-profile-company');
+        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
             const field = form.querySelector(selector);
@@ -605,6 +606,9 @@
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
                     saveButton.disabled = true;
+                    if (addOldCompanyButton) {
+                        addOldCompanyButton.disabled = true;
+                    }
                     if (companyField) {
                         form.dataset.originalCompany = companyField.value.trim();
                     }
@@ -624,6 +628,8 @@
     profileForms.forEach((form) => {
         const editButton = form.querySelector('[data-teqcidb-profile-edit]');
         const saveButton = form.querySelector('[data-teqcidb-profile-save]');
+        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
+        const oldCompaniesGrid = form.querySelector('[data-teqcidb-old-companies]');
         const fields = Array.from(
             form.querySelectorAll('input, select, textarea')
         );
@@ -637,6 +643,9 @@
         if (companyField) {
             form.dataset.originalCompany = companyField.value.trim();
         }
+        if (addOldCompanyButton) {
+            addOldCompanyButton.disabled = true;
+        }
 
         editButton.addEventListener('click', () => {
             const isEditing = editButton.dataset.editing === 'true';
@@ -648,6 +657,9 @@
                 editButton.textContent =
                     settings.profileEditLabel || 'Edit Profile Info';
                 saveButton.disabled = true;
+                if (addOldCompanyButton) {
+                    addOldCompanyButton.disabled = true;
+                }
                 showFeedback(form, '', false);
                 return;
             }
@@ -657,6 +669,9 @@
             editButton.textContent =
                 settings.profileCancelLabel || 'Cancel Editing';
             saveButton.disabled = false;
+            if (addOldCompanyButton) {
+                addOldCompanyButton.disabled = false;
+            }
         });
 
         saveButton.addEventListener('click', () => {
@@ -681,5 +696,43 @@
                 );
             }
         });
+
+        if (addOldCompanyButton && oldCompaniesGrid) {
+            addOldCompanyButton.addEventListener('click', () => {
+                const countValue = parseInt(
+                    oldCompaniesGrid.dataset.oldCompanyCount || '0',
+                    10
+                );
+                const nextIndex = Number.isNaN(countValue) ? 1 : countValue + 1;
+                oldCompaniesGrid.dataset.oldCompanyCount = nextIndex.toString();
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'teqcidb-form-field';
+
+                const label = document.createElement('label');
+                label.className = 'screen-reader-text';
+                label.setAttribute('for', `teqcidb-profile-old-company-${nextIndex}`);
+                const labelBase =
+                    settings.oldCompanyLabel || 'Previous Company';
+                label.textContent = `${labelBase} ${nextIndex}`;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `teqcidb-profile-old-company-${nextIndex}`;
+                input.name = 'teqcidb_profile_old_companies[]';
+                input.autocomplete = 'organization';
+
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                oldCompaniesGrid.appendChild(wrapper);
+
+                const emptyMessage = form.querySelector(
+                    '.teqcidb-profile-old-companies .teqcidb-dashboard-empty'
+                );
+                if (emptyMessage) {
+                    emptyMessage.remove();
+                }
+            });
+        }
     });
 })();

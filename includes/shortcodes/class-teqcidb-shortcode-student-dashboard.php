@@ -443,48 +443,69 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             </div>
 
-                                            <?php if ( ! empty( $old_companies ) ) : ?>
-                                                <fieldset class="teqcidb-form-fieldset teqcidb-profile-old-companies">
-                                                    <legend>
+                                            <fieldset class="teqcidb-form-fieldset teqcidb-profile-old-companies">
+                                                <legend>
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Previous Companies',
+                                                        'Profile form old companies legend',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </legend>
+                                                <?php if ( empty( $old_companies ) ) : ?>
+                                                    <p class="teqcidb-dashboard-empty">
                                                         <?php
                                                         echo esc_html_x(
-                                                            'Previous Companies',
-                                                            'Profile form old companies legend',
+                                                            'No previous companies.',
+                                                            'Profile form old companies empty state',
                                                             'teqcidb'
                                                         );
                                                         ?>
-                                                    </legend>
-                                                    <div class="teqcidb-form-grid">
-                                                        <?php foreach ( array_values( $old_companies ) as $index => $old_company ) : ?>
-                                                            <div class="teqcidb-form-field">
-                                                                <label class="screen-reader-text" for="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>">
-                                                                    <?php
-                                                                    echo esc_html(
-                                                                        sprintf(
-                                                                            /* translators: %d is the previous company number. */
-                                                                            _x(
-                                                                                'Previous Company %d',
-                                                                                'Profile form old company field label',
-                                                                                'teqcidb'
-                                                                            ),
-                                                                            $index + 1
-                                                                        )
-                                                                    );
-                                                                    ?>
-                                                                </label>
-                                                                <input
-                                                                    type="text"
-                                                                    id="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>"
-                                                                    name="teqcidb_profile_old_companies[]"
-                                                                    value="<?php echo esc_attr( $old_company ); ?>"
-                                                                    autocomplete="organization"
-                                                                    disabled
-                                                                />
-                                                            </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                </fieldset>
-                                            <?php endif; ?>
+                                                    </p>
+                                                <?php endif; ?>
+                                                <div
+                                                    class="teqcidb-form-grid"
+                                                    data-teqcidb-old-companies
+                                                    data-old-company-count="<?php echo esc_attr( count( $old_companies ) ); ?>"
+                                                >
+                                                    <?php foreach ( array_values( $old_companies ) as $index => $old_company ) : ?>
+                                                        <div class="teqcidb-form-field">
+                                                            <label class="screen-reader-text" for="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>">
+                                                                <?php
+                                                                echo esc_html(
+                                                                    sprintf(
+                                                                        /* translators: %d is the previous company number. */
+                                                                        _x(
+                                                                            'Previous Company %d',
+                                                                            'Profile form old company field label',
+                                                                            'teqcidb'
+                                                                        ),
+                                                                        $index + 1
+                                                                    )
+                                                                );
+                                                                ?>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                id="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>"
+                                                                name="teqcidb_profile_old_companies[]"
+                                                                value="<?php echo esc_attr( $old_company ); ?>"
+                                                                autocomplete="organization"
+                                                                disabled
+                                                            />
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                <button
+                                                    class="teqcidb-button teqcidb-button-secondary teqcidb-profile-old-companies-add"
+                                                    type="button"
+                                                    data-teqcidb-add-old-company
+                                                    disabled
+                                                >
+                                                    <?php echo esc_html_x( 'Add a Previous Company', 'Profile form old companies add button', 'teqcidb' ); ?>
+                                                </button>
+                                            </fieldset>
 
                                             <fieldset class="teqcidb-form-fieldset teqcidb-profile-associations">
                                                 <legend>
@@ -1372,6 +1393,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaveError' => esc_html_x( 'Unable to save your profile. Please try again.', 'Profile form validation message', 'teqcidb' ),
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
+                    'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
                 )
             );
         }
