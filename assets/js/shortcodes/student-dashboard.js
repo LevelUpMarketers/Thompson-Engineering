@@ -918,4 +918,208 @@
     };
 
     initCountdowns();
+
+    const walletCardSettings = settings.walletCard || {};
+
+    const loadWalletCardImage = (url) => {
+        if (!url) {
+            return Promise.resolve(null);
+        }
+
+        return fetch(url)
+            .then((response) => response.blob())
+            .then(
+                (blob) =>
+                    new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    })
+            )
+            .catch(() => null);
+    };
+
+    const getWalletCardValue = (value) => {
+        const emptyValue = walletCardSettings.emptyValue || '—';
+        if (!value || (typeof value === 'string' && !value.trim())) {
+            return emptyValue;
+        }
+        return value;
+    };
+
+    const parseWalletCardData = (element) => {
+        if (!element) {
+            return null;
+        }
+
+        const rawData = element.dataset.teqcidbWalletCard;
+        if (!rawData) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(rawData);
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const renderWalletCardPdf = async (data) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const [ademLogo, thompsonLogo] = await Promise.all([
+            loadWalletCardImage(walletCardSettings.ademLogoUrl),
+            loadWalletCardImage(walletCardSettings.thompsonLogoUrl),
+        ]);
+
+        const doc = new jsPDF({ unit: 'in', format: 'letter' });
+        const pageWidth = 8.5;
+        const cardWidth = 3.375;
+        const cardHeight = 2.125;
+        const gap = 0.5;
+        const startX = (pageWidth - cardWidth) / 2;
+        const frontY = 1.0;
+        const backY = frontY + cardHeight + gap;
+
+        const drawCardBorder = (y) => {
+            doc.setLineWidth(0.01);
+            doc.rect(startX, y, cardWidth, cardHeight);
+        };
+
+        const drawCenteredText = (text, y, size, style = 'normal') => {
+            doc.setFont('times', style);
+            doc.setFontSize(size);
+            doc.text(text, startX + cardWidth / 2, y, { align: 'center' });
+        };
+
+        drawCardBorder(frontY);
+
+        if (ademLogo) {
+            const logoWidth = 1.4;
+            const logoHeight = 0.45;
+            doc.addImage(
+                ademLogo,
+                'JPEG',
+                startX + (cardWidth - logoWidth) / 2,
+                frontY + 0.18,
+                logoWidth,
+                logoHeight
+            );
+        }
+
+        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.9, 9);
+        drawCenteredText(getWalletCardValue(data.name), frontY + 1.1, 11, 'bold');
+        drawCenteredText(getWalletCardValue(data.company), frontY + 1.3, 9, 'bold');
+        drawCenteredText(
+            `${walletCardSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`,
+            frontY + 1.48,
+            9
+        );
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(8.5);
+
+        const leftX = startX + 0.2;
+        const rightX = startX + cardWidth / 2 + 0.05;
+        const baseY = frontY + 1.65;
+
+        const addressLines = [
+            data.address_line_1,
+            data.address_line_2,
+            data.phone,
+            data.email,
+        ]
+            .map((line) => (line ? line.trim() : ''))
+            .filter((line) => line.length);
+
+        addressLines.forEach((line, index) => {
+            doc.text(line, leftX, baseY + index * 0.18);
+        });
+
+        const rightLines = [
+            `${walletCardSettings.expirationLabel || 'Expiration Date'}: ${getWalletCardValue(data.expiration_date)}`,
+            `${walletCardSettings.initialTrainingLabel || 'Initial Training'}: ${getWalletCardValue(data.initial_training_date)}`,
+            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}: ${getWalletCardValue(data.last_refresher_date)}`,
+        ];
+
+        rightLines.forEach((line, index) => {
+            doc.text(line, rightX, baseY + index * 0.18);
+        });
+
+        drawCardBorder(backY);
+        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.45, 9, 'bold');
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(8);
+
+        const bulletX = startX + 0.25;
+        let bulletY = backY + 0.7;
+        const bulletWidth = cardWidth - 0.5;
+        const bullets = walletCardSettings.backBullets || [];
+        bullets.forEach((bullet) => {
+            const lines = doc.splitTextToSize(`• ${bullet}`, bulletWidth);
+            lines.forEach((line) => {
+                doc.text(line, bulletX, bulletY);
+                bulletY += 0.16;
+            });
+            bulletY += 0.06;
+        });
+
+        if (thompsonLogo) {
+            const logoSize = 0.7;
+            doc.addImage(
+                thompsonLogo,
+                'JPEG',
+                startX + cardWidth - logoSize - 0.2,
+                backY + cardHeight - logoSize - 0.2,
+                logoSize,
+                logoSize
+            );
+        }
+
+        return doc;
+    };
+
+    const handleWalletCardAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-wallet-card-action]');
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbWalletCardAction;
+        const wrapper = button.closest('[data-teqcidb-wallet-card]');
+        const data = parseWalletCardData(wrapper);
+
+        if (!data) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            const doc = await renderWalletCardPdf(data);
+            if (action === 'print') {
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } else {
+                doc.save(walletCardSettings.downloadFileName || 'wallet-card.pdf');
+            }
+        } catch (error) {
+            const message =
+                walletCardSettings.missingPdfMessage ||
+                'Unable to generate the wallet card right now. Please try again.';
+            window.alert(message);
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
+    document.addEventListener('click', handleWalletCardAction);
 })();
