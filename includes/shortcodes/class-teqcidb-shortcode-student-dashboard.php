@@ -444,7 +444,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                             </div>
 
                                             <?php if ( ! empty( $old_companies ) ) : ?>
-                                                <fieldset class="teqcidb-form-fieldset">
+                                                <fieldset class="teqcidb-form-fieldset teqcidb-profile-old-companies">
                                                     <legend>
                                                         <?php
                                                         echo esc_html_x(
@@ -457,7 +457,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     <div class="teqcidb-form-grid">
                                                         <?php foreach ( array_values( $old_companies ) as $index => $old_company ) : ?>
                                                             <div class="teqcidb-form-field">
-                                                                <label for="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>">
+                                                                <label class="screen-reader-text" for="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>">
                                                                     <?php
                                                                     echo esc_html(
                                                                         sprintf(
@@ -486,7 +486,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </fieldset>
                                             <?php endif; ?>
 
-                                            <fieldset class="teqcidb-form-fieldset">
+                                            <fieldset class="teqcidb-form-fieldset teqcidb-profile-associations">
                                                 <legend>
                                                     <?php echo esc_html_x( 'Affiliated Associations', 'Profile form associations legend', 'teqcidb' ); ?>
                                                 </legend>

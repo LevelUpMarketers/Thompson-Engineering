@@ -279,6 +279,18 @@
     padding: 0;
 }
 
+.teqcidb-profile-old-companies {
+    margin-top: 30px;
+}
+
+.teqcidb-profile-old-companies legend {
+    margin-bottom: 15px;
+}
+
+.teqcidb-profile-associations {
+    margin-top: 30px;
+}
+
 .teqcidb-checkbox-grid {
     display: flex;
     flex-wrap: wrap;

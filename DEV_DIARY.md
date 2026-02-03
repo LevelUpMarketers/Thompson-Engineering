@@ -189,3 +189,4 @@
 186. 2026-01-24: Added profile info tab description copy for the student dashboard.
 187. 2026-01-24: Added student dashboard deep-link handling for tab query parameters.
 188. 2026-01-24: Added editable old company entries to the student profile dashboard tab when available.
+189. 2026-01-24: Adjusted profile fieldset spacing and label visibility for previous companies and associations.
