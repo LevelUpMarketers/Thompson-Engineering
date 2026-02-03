@@ -19,6 +19,14 @@
     padding: 60px 16px;
 }
 
+.teqcidb-dashboard-welcome {
+    color: #2c2c2c;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
 .teqcidb-dashboard-layout {
     display: grid;
     grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -372,6 +380,10 @@
 }
 
 @media (max-width: 980px) {
+    .teqcidb-dashboard-welcome {
+        text-align: center;
+    }
+
     .teqcidb-auth-grid {
         grid-template-columns: 1fr;
     }

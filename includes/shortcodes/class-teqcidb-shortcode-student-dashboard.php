@@ -97,6 +97,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'representative_email' => $representative['email'],
                 'representative_phone' => $representative['phone'],
             );
+            $qci_number = isset( $student_row['qcinumber'] ) ? sanitize_text_field( (string) $student_row['qcinumber'] ) : '';
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
 
@@ -157,6 +158,18 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             ?>
             <section class="teqcidb-dashboard" data-teqcidb-dashboard="true">
                 <div class="teqcidb-dashboard-inner">
+                    <div class="teqcidb-dashboard-welcome">
+                        <?php
+                        echo esc_html(
+                            sprintf(
+                                /* translators: 1: student first name, 2: QCI number. */
+                                __( 'Welcome to your QCI Dashboard, %1$s! Your QCI Number is %2$s', 'teqcidb' ),
+                                $profile['first_name'],
+                                $qci_number
+                            )
+                        );
+                        ?>
+                    </div>
                     <div class="teqcidb-dashboard-layout">
                         <nav
                             class="teqcidb-dashboard-tabs"
