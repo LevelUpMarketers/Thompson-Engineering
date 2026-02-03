@@ -400,6 +400,26 @@
     };
 
     const dashboards = document.querySelectorAll('.teqcidb-dashboard');
+    const tabAliases = {
+        profileinfo: 'profile-info',
+        classhistory: 'class-history',
+        certificatesdates: 'certificates-dates',
+        paymenthistory: 'payment-history',
+        yourstudents: 'your-students',
+        registerstudents: 'register-students',
+    };
+    const normalizeTabParam = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        const cleaned = value.toLowerCase().replace(/[^a-z]/g, '');
+        if (tabAliases[cleaned]) {
+            return tabAliases[cleaned];
+        }
+
+        return value.toLowerCase();
+    };
 
     dashboards.forEach((dashboard) => {
         const tabs = Array.from(
@@ -434,6 +454,19 @@
                 scrollToPanel(tab);
             });
         });
+
+        const queryTab = normalizeTabParam(
+            new URLSearchParams(window.location.search).get('tab')
+        );
+        if (queryTab) {
+            const matchedTab = tabs.find(
+                (tab) => tab.dataset.teqcidbTab === queryTab
+            );
+            if (matchedTab) {
+                activateDashboardTab(dashboard, matchedTab);
+                scrollToPanel(matchedTab);
+            }
+        }
     });
 
     const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
