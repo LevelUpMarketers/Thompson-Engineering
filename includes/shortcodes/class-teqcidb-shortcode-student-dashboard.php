@@ -210,6 +210,15 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     );
                                                     ?>
                                                 </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Below is your profile info, including info about yourself and your Representative, if you have one. All information below can be edited if needed.',
+                                                        'Student dashboard profile info description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
                                             </div>
                                             <form class="teqcidb-profile-form" data-teqcidb-profile-form>
                                             <div class="teqcidb-form-grid">

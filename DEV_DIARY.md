@@ -186,3 +186,4 @@
 183. 2026-01-24: Refined class history registered-by labels to show self-registration or registrar contact details.
 184. 2026-01-24: Fixed formatting in the student dashboard class history registrar helper.
 185. 2026-01-24: Updated class history labels and self-registration handling for null registrars.
+186. 2026-01-24: Added profile info tab description copy for the student dashboard.
