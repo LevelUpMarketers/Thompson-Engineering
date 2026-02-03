@@ -1000,8 +1000,8 @@
         drawCardBorder(frontY);
 
         if (ademLogo) {
-            const logoWidth = 1.15;
-            const logoHeight = 0.38;
+            const logoWidth = 1.0;
+            const logoHeight = 0.33;
             doc.addImage(
                 ademLogo,
                 'JPEG',
@@ -1012,22 +1012,22 @@
             );
         }
 
-        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.9, 9);
-        drawCenteredText(getWalletCardValue(data.name), frontY + 1.1, 11, 'bold');
-        drawCenteredText(getWalletCardValue(data.company), frontY + 1.3, 9, 'bold');
+        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.85, 9);
+        drawCenteredText(getWalletCardValue(data.name), frontY + 1.03, 11, 'bold');
+        drawCenteredText(getWalletCardValue(data.company), frontY + 1.22, 9, 'bold');
         drawCenteredText(
             `${walletCardSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`,
-            frontY + 1.48,
+            frontY + 1.4,
             9
         );
 
         doc.setFont('times', 'normal');
-        doc.setFontSize(8.5);
+        doc.setFontSize(8);
 
         const leftCenterX = startX + cardWidth * 0.25;
         const rightCenterX = startX + cardWidth * 0.75;
-        const baseY = frontY + 1.64;
-        const lineHeight = 0.15;
+        const baseY = frontY + 1.6;
+        const lineHeight = 0.14;
 
         const addressLines = [
             data.address_line_1,
@@ -1054,22 +1054,23 @@
         });
 
         drawCardBorder(backY);
-        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.45, 9, 'bold');
+        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.38, 9, 'bold');
 
         doc.setFont('times', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
 
         const bulletX = startX + cardWidth / 2;
-        let bulletY = backY + 0.7;
-        const bulletWidth = cardWidth - 0.6;
+        let bulletY = backY + 0.6;
+        const bulletWidth = cardWidth - 0.3;
+        const bulletLineHeight = 0.14;
         const bullets = walletCardSettings.backBullets || [];
         bullets.forEach((bullet) => {
             const lines = doc.splitTextToSize(`• ${bullet}`, bulletWidth);
             lines.forEach((line) => {
                 doc.text(line, bulletX, bulletY, { align: 'center' });
-                bulletY += 0.16;
+                bulletY += bulletLineHeight;
             });
-            bulletY += 0.06;
+            bulletY += 0.05;
         });
 
         if (thompsonLogo) {
@@ -1080,7 +1081,7 @@
                 thompsonLogo,
                 'JPEG',
                 startX + (cardWidth - logoWidth) / 2,
-                backY + cardHeight - logoHeight - 0.2,
+                Math.max(backY + cardHeight - logoHeight - 0.16, bulletY + 0.05),
                 logoWidth,
                 logoHeight
             );
