@@ -299,6 +299,10 @@
     margin-top: 30px;
 }
 
+.teqcidb-profile-old-companies-add {
+    margin-top: 20px;
+}
+
 .teqcidb-checkbox-grid {
     display: flex;
     flex-wrap: wrap;
@@ -420,6 +424,10 @@
     }
 
     .teqcidb-profile-actions .teqcidb-button-secondary {
+        width: 100%;
+    }
+
+    .teqcidb-profile-old-companies-add {
         width: 100%;
     }
 
