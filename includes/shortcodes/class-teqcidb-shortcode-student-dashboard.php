@@ -1561,8 +1561,8 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         ),
                     ),
                     'walletCard' => array(
-                        'ademLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/img/te-adem.jpg' ),
-                        'thompsonLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/img/te-square-logo.jpg' ),
+                        'ademLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-adem.jpg' ),
+                        'thompsonLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-square-logo.jpg' ),
                         'qualifiedLabel' => esc_html_x( 'Qualified Credentialed Inspector', 'Wallet card qualified label', 'teqcidb' ),
                         'qciNumberLabel' => esc_html_x( 'QCI No.', 'Wallet card QCI number label', 'teqcidb' ),
                         'expirationLabel' => esc_html_x( 'Expiration Date', 'Wallet card expiration label', 'teqcidb' ),
