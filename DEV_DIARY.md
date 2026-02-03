@@ -199,3 +199,4 @@
 196. 2026-01-24: Added wallet card PDF generation and actions to the certificates tab.
 197. 2026-02-12: Refined wallet card PDF layout spacing, centered contact/update blocks, and preserved logo aspect ratios to match legacy styling.
 198. 2026-02-12: Tightened wallet card PDF spacing, lifted front text, and repositioned the back logo below centered bullet content.
+199. 2026-02-12: Lifted wallet card front text blocks to tighten spacing beneath the top logo.

@@ -1012,12 +1012,12 @@
             );
         }
 
-        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.85, 9);
-        drawCenteredText(getWalletCardValue(data.name), frontY + 1.03, 11, 'bold');
-        drawCenteredText(getWalletCardValue(data.company), frontY + 1.22, 9, 'bold');
+        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.8, 9);
+        drawCenteredText(getWalletCardValue(data.name), frontY + 0.98, 11, 'bold');
+        drawCenteredText(getWalletCardValue(data.company), frontY + 1.17, 9, 'bold');
         drawCenteredText(
             `${walletCardSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`,
-            frontY + 1.4,
+            frontY + 1.34,
             9
         );
 
@@ -1026,7 +1026,7 @@
 
         const leftCenterX = startX + cardWidth * 0.25;
         const rightCenterX = startX + cardWidth * 0.75;
-        const baseY = frontY + 1.6;
+        const baseY = frontY + 1.53;
         const lineHeight = 0.14;
 
         const addressLines = [
