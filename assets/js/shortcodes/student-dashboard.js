@@ -527,6 +527,11 @@
                 data.append('associations[]', input.value);
             });
 
+        form.querySelectorAll('input[name="teqcidb_profile_old_companies[]"]')
+            .forEach((input) => {
+                data.append('old_companies[]', input.value);
+            });
+
         return data;
     };
 

@@ -77,6 +77,9 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $associations = $this->decode_list_field(
                 isset( $student_row['associations'] ) ? $student_row['associations'] : ''
             );
+            $old_companies = $this->decode_list_field(
+                isset( $student_row['old_companies'] ) ? $student_row['old_companies'] : ''
+            );
             $profile = array(
                 'first_name' => isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '',
                 'last_name'  => isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '',
@@ -439,6 +442,49 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     />
                                                 </div>
                                             </div>
+
+                                            <?php if ( ! empty( $old_companies ) ) : ?>
+                                                <fieldset class="teqcidb-form-fieldset">
+                                                    <legend>
+                                                        <?php
+                                                        echo esc_html_x(
+                                                            'Previous Companies',
+                                                            'Profile form old companies legend',
+                                                            'teqcidb'
+                                                        );
+                                                        ?>
+                                                    </legend>
+                                                    <div class="teqcidb-form-grid">
+                                                        <?php foreach ( array_values( $old_companies ) as $index => $old_company ) : ?>
+                                                            <div class="teqcidb-form-field">
+                                                                <label for="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>">
+                                                                    <?php
+                                                                    echo esc_html(
+                                                                        sprintf(
+                                                                            /* translators: %d is the previous company number. */
+                                                                            _x(
+                                                                                'Previous Company %d',
+                                                                                'Profile form old company field label',
+                                                                                'teqcidb'
+                                                                            ),
+                                                                            $index + 1
+                                                                        )
+                                                                    );
+                                                                    ?>
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    id="<?php echo esc_attr( 'teqcidb-profile-old-company-' . ( $index + 1 ) ); ?>"
+                                                                    name="teqcidb_profile_old_companies[]"
+                                                                    value="<?php echo esc_attr( $old_company ); ?>"
+                                                                    autocomplete="organization"
+                                                                    disabled
+                                                                />
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </fieldset>
+                                            <?php endif; ?>
 
                                             <fieldset class="teqcidb-form-fieldset">
                                                 <legend>
