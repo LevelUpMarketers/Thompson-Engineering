@@ -1000,8 +1000,8 @@
         drawCardBorder(frontY);
 
         if (ademLogo) {
-            const logoWidth = 1.4;
-            const logoHeight = 0.45;
+            const logoWidth = 1.15;
+            const logoHeight = 0.38;
             doc.addImage(
                 ademLogo,
                 'JPEG',
@@ -1024,9 +1024,10 @@
         doc.setFont('times', 'normal');
         doc.setFontSize(8.5);
 
-        const leftX = startX + 0.2;
-        const rightX = startX + cardWidth / 2 + 0.05;
-        const baseY = frontY + 1.65;
+        const leftCenterX = startX + cardWidth * 0.25;
+        const rightCenterX = startX + cardWidth * 0.75;
+        const baseY = frontY + 1.64;
+        const lineHeight = 0.15;
 
         const addressLines = [
             data.address_line_1,
@@ -1038,17 +1039,18 @@
             .filter((line) => line.length);
 
         addressLines.forEach((line, index) => {
-            doc.text(line, leftX, baseY + index * 0.18);
+            doc.text(line, leftCenterX, baseY + index * lineHeight, { align: 'center' });
         });
 
         const rightLines = [
             `${walletCardSettings.expirationLabel || 'Expiration Date'}: ${getWalletCardValue(data.expiration_date)}`,
             `${walletCardSettings.initialTrainingLabel || 'Initial Training'}: ${getWalletCardValue(data.initial_training_date)}`,
-            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}: ${getWalletCardValue(data.last_refresher_date)}`,
+            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}:`,
+            getWalletCardValue(data.last_refresher_date),
         ];
 
         rightLines.forEach((line, index) => {
-            doc.text(line, rightX, baseY + index * 0.18);
+            doc.text(line, rightCenterX, baseY + index * lineHeight, { align: 'center' });
         });
 
         drawCardBorder(backY);
@@ -1057,28 +1059,30 @@
         doc.setFont('times', 'normal');
         doc.setFontSize(8);
 
-        const bulletX = startX + 0.25;
+        const bulletX = startX + cardWidth / 2;
         let bulletY = backY + 0.7;
-        const bulletWidth = cardWidth - 0.5;
+        const bulletWidth = cardWidth - 0.6;
         const bullets = walletCardSettings.backBullets || [];
         bullets.forEach((bullet) => {
             const lines = doc.splitTextToSize(`• ${bullet}`, bulletWidth);
             lines.forEach((line) => {
-                doc.text(line, bulletX, bulletY);
+                doc.text(line, bulletX, bulletY, { align: 'center' });
                 bulletY += 0.16;
             });
             bulletY += 0.06;
         });
 
         if (thompsonLogo) {
-            const logoSize = 0.7;
+            const logoWidth = 0.52;
+            const { width: imageWidth, height: imageHeight } = doc.getImageProperties(thompsonLogo);
+            const logoHeight = imageWidth ? (logoWidth * imageHeight) / imageWidth : logoWidth;
             doc.addImage(
                 thompsonLogo,
                 'JPEG',
-                startX + cardWidth - logoSize - 0.2,
-                backY + cardHeight - logoSize - 0.2,
-                logoSize,
-                logoSize
+                startX + (cardWidth - logoWidth) / 2,
+                backY + cardHeight - logoHeight - 0.2,
+                logoWidth,
+                logoHeight
             );
         }
 
