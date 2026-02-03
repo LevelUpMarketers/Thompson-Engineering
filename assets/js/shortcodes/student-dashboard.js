@@ -504,6 +504,9 @@
             return field ? field.value.trim() : '';
         };
 
+        const originalCompany = form.dataset.originalCompany || '';
+        const updatedCompany = getValue('#teqcidb-profile-company');
+
         data.append('action', settings.profileUpdateAction || 'teqcidb_update_profile');
         data.append('_ajax_nonce', settings.ajaxNonce || '');
         data.append('first_name', getValue('#teqcidb-profile-first-name'));
@@ -527,10 +530,31 @@
                 data.append('associations[]', input.value);
             });
 
+        const oldCompanies = [];
         form.querySelectorAll('input[name="teqcidb_profile_old_companies[]"]')
             .forEach((input) => {
-                data.append('old_companies[]', input.value);
+                const value = input.value.trim();
+                if (value) {
+                    oldCompanies.push(value);
+                }
             });
+
+        if (
+            originalCompany &&
+            updatedCompany &&
+            originalCompany.toLowerCase() !== updatedCompany.toLowerCase()
+        ) {
+            const exists = oldCompanies.some(
+                (value) => value.toLowerCase() === originalCompany.toLowerCase()
+            );
+            if (!exists) {
+                oldCompanies.push(originalCompany);
+            }
+        }
+
+        oldCompanies.forEach((value) => {
+            data.append('old_companies[]', value);
+        });
 
         return data;
     };
@@ -542,6 +566,7 @@
             '#teqcidb-profile-company',
             '#teqcidb-profile-email',
         ];
+        const companyField = form.querySelector('#teqcidb-profile-company');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
             const field = form.querySelector(selector);
@@ -580,6 +605,9 @@
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
                     saveButton.disabled = true;
+                    if (companyField) {
+                        form.dataset.originalCompany = companyField.value.trim();
+                    }
                 } else {
                     const message =
                         payload && payload.data && payload.data.message
@@ -605,6 +633,10 @@
         }
 
         const snapshotRef = { current: getProfileSnapshot(fields) };
+        const companyField = form.querySelector('#teqcidb-profile-company');
+        if (companyField) {
+            form.dataset.originalCompany = companyField.value.trim();
+        }
 
         editButton.addEventListener('click', () => {
             const isEditing = editButton.dataset.editing === 'true';
