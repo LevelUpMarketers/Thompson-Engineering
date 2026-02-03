@@ -735,4 +735,184 @@
             });
         }
     });
+
+    const countdownLabels = settings.countdownLabels || {};
+
+    const resolveCountdownLabel = (unit, value) => {
+        const labels = countdownLabels[unit] || {};
+        const fallback = value === 1 ? unit.slice(0, -1) : unit;
+        if (value === 1) {
+            return labels.singular || fallback;
+        }
+        return labels.plural || `${fallback}s`;
+    };
+
+    const calculateCountdown = (targetDate, nowDate) => {
+        if (!(targetDate instanceof Date) || Number.isNaN(targetDate.getTime())) {
+            return null;
+        }
+
+        if (!(nowDate instanceof Date) || Number.isNaN(nowDate.getTime())) {
+            return null;
+        }
+
+        if (targetDate <= nowDate) {
+            return {
+                expired: true,
+                months: 0,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+                totalDays: 0,
+            };
+        }
+
+        const totalMs = targetDate.getTime() - nowDate.getTime();
+        const totalDays = Math.floor(totalMs / (1000 * 60 * 60 * 24));
+
+        let months =
+            (targetDate.getFullYear() - nowDate.getFullYear()) * 12 +
+            (targetDate.getMonth() - nowDate.getMonth());
+
+        if (months < 0) {
+            months = 0;
+        }
+
+        const anchor = new Date(nowDate.getTime());
+        anchor.setMonth(anchor.getMonth() + months);
+
+        if (anchor > targetDate) {
+            months -= 1;
+            anchor.setMonth(anchor.getMonth() - 1);
+        }
+
+        if (months < 0) {
+            months = 0;
+        }
+
+        let remainingMs = targetDate.getTime() - anchor.getTime();
+        if (remainingMs < 0) {
+            remainingMs = 0;
+        }
+
+        const dayMs = 1000 * 60 * 60 * 24;
+        const hourMs = 1000 * 60 * 60;
+        const minuteMs = 1000 * 60;
+        const secondMs = 1000;
+
+        const days = Math.floor(remainingMs / dayMs);
+        remainingMs -= days * dayMs;
+
+        const hours = Math.floor(remainingMs / hourMs);
+        remainingMs -= hours * hourMs;
+
+        const minutes = Math.floor(remainingMs / minuteMs);
+        remainingMs -= minutes * minuteMs;
+
+        const seconds = Math.floor(remainingMs / secondMs);
+
+        return {
+            expired: false,
+            months,
+            days,
+            hours,
+            minutes,
+            seconds,
+            totalDays,
+        };
+    };
+
+    const updateCountdownElement = (element) => {
+        const targetValue = element.dataset.teqcidbCountdownTarget;
+        if (!targetValue) {
+            return;
+        }
+
+        const targetDate = new Date(targetValue);
+        const nowDate = new Date();
+        const countdown = calculateCountdown(targetDate, nowDate);
+        if (!countdown) {
+            return;
+        }
+
+        const timer = element.querySelector('[data-teqcidb-countdown-timer]');
+        const expiredMessage = element.querySelector('[data-teqcidb-countdown-expired]');
+
+        if (countdown.expired) {
+            if (timer) {
+                timer.setAttribute('hidden', 'hidden');
+            }
+            if (expiredMessage) {
+                expiredMessage.removeAttribute('hidden');
+            }
+            element.classList.remove('is-warning');
+            return;
+        }
+
+        if (timer) {
+            timer.removeAttribute('hidden');
+            const units = [
+                'months',
+                'days',
+                'hours',
+                'minutes',
+                'seconds',
+            ];
+            units.forEach((unit) => {
+                const unitEl = timer.querySelector(
+                    `[data-teqcidb-countdown-unit="${unit}"]`
+                );
+                if (!unitEl) {
+                    return;
+                }
+                const value = countdown[unit];
+                const label = resolveCountdownLabel(unit, value);
+                unitEl.textContent = `${value} ${label}`;
+                const shouldHide =
+                    unit !== 'seconds' &&
+                    value === 0;
+                unitEl.toggleAttribute('hidden', shouldHide);
+            });
+        }
+
+        if (expiredMessage) {
+            expiredMessage.setAttribute('hidden', 'hidden');
+        }
+
+        const warningDays = parseInt(
+            element.dataset.teqcidbCountdownWarningDays || '45',
+            10
+        );
+        const warningThreshold = Number.isNaN(warningDays) ? 45 : warningDays;
+        element.classList.toggle(
+            'is-warning',
+            countdown.totalDays <= warningThreshold
+        );
+    };
+
+    const initCountdown = (element) => {
+        if (!element || element.dataset.teqcidbCountdownInitialized === 'true') {
+            return;
+        }
+
+        element.dataset.teqcidbCountdownInitialized = 'true';
+        updateCountdownElement(element);
+
+        const intervalId = window.setInterval(() => {
+            updateCountdownElement(element);
+        }, 1000);
+        element.dataset.teqcidbCountdownInterval = intervalId.toString();
+    };
+
+    const initCountdowns = (root = document) => {
+        const countdowns = root.querySelectorAll('[data-teqcidb-countdown]');
+        countdowns.forEach((element) => initCountdown(element));
+    };
+
+    window.TEQCIDBCountdown = window.TEQCIDBCountdown || {
+        init: initCountdowns,
+    };
+
+    initCountdowns();
 })();

@@ -100,6 +100,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $qci_number = isset( $student_row['qcinumber'] ) ? sanitize_text_field( (string) $student_row['qcinumber'] ) : '';
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
+            $expiration_date_raw = isset( $student_row['expiration_date'] )
+                ? sanitize_text_field( (string) $student_row['expiration_date'] )
+                : '';
+            $expiration_timestamp = $expiration_date_raw ? strtotime( $expiration_date_raw ) : false;
+            $expiration_date_display = $expiration_timestamp
+                ? wp_date( get_option( 'date_format' ), $expiration_timestamp )
+                : '';
+            $expiration_date_iso = $expiration_timestamp ? wp_date( 'c', $expiration_timestamp ) : '';
 
             $states = array(
                 'Alabama',
@@ -567,6 +575,79 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             </div>
                                             </form>
+                                        </div>
+                                    <?php elseif ( 'certificates-dates' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Certificates & Important Dates',
+                                                        'Student dashboard certificates tab heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Review your QCI expiration date and any important renewal reminders below.',
+                                                        'Student dashboard certificates tab description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+
+                                            <?php if ( ! $expiration_timestamp ) : ?>
+                                                <p class="teqcidb-dashboard-empty">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Your expiration date is not available yet.',
+                                                        'Student dashboard certificates tab empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            <?php else : ?>
+                                                <div
+                                                    class="teqcidb-countdown"
+                                                    data-teqcidb-countdown
+                                                    data-teqcidb-countdown-target="<?php echo esc_attr( $expiration_date_iso ); ?>"
+                                                    data-teqcidb-countdown-warning-days="45"
+                                                >
+                                                    <div class="teqcidb-countdown-meta">
+                                                        <p class="teqcidb-countdown-label">
+                                                            <?php
+                                                            echo esc_html_x(
+                                                                'QCI Expiration Date',
+                                                                'Student dashboard certificates expiration label',
+                                                                'teqcidb'
+                                                            );
+                                                            ?>
+                                                        </p>
+                                                        <p class="teqcidb-countdown-date">
+                                                            <?php echo esc_html( $expiration_date_display ); ?>
+                                                        </p>
+                                                    </div>
+                                                    <p class="teqcidb-countdown-timer" data-teqcidb-countdown-timer aria-live="polite">
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="months"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="days"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="hours"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="minutes"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="seconds"></span>
+                                                    </p>
+                                                    <p class="teqcidb-countdown-expired" data-teqcidb-countdown-expired hidden>
+                                                        <?php
+                                                        echo esc_html_x(
+                                                            'You\'re currently expired and required to take the Initial QCI Course once again.',
+                                                            'Student dashboard certificates expiration message',
+                                                            'teqcidb'
+                                                        );
+                                                        ?>
+                                                    </p>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php elseif ( 'class-history' === $tab_key ) : ?>
                                         <div class="teqcidb-dashboard-section">
@@ -1407,6 +1488,28 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
                     'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
+                    'countdownLabels' => array(
+                        'months' => array(
+                            'singular' => esc_html_x( 'month', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'months', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'days' => array(
+                            'singular' => esc_html_x( 'day', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'days', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'hours' => array(
+                            'singular' => esc_html_x( 'hour', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'hours', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'minutes' => array(
+                            'singular' => esc_html_x( 'minute', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'minutes', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'seconds' => array(
+                            'singular' => esc_html_x( 'second', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'seconds', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                    ),
                 )
             );
         }

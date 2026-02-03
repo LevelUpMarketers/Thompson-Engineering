@@ -194,3 +194,4 @@
 191. 2026-01-24: Added editable previous company rows with an add button and empty-state message.
 192. 2026-01-24: Added a personalized welcome line with QCI number to the student dashboard.
 193. 2026-01-24: Added spacing and mobile sizing for the previous companies add button.
+194. 2026-01-24: Added a portable countdown display for student QCI expiration dates in the certificates tab.
