@@ -735,4 +735,391 @@
             });
         }
     });
+
+    const countdownLabels = settings.countdownLabels || {};
+
+    const resolveCountdownLabel = (unit, value) => {
+        const labels = countdownLabels[unit] || {};
+        const fallback = value === 1 ? unit.slice(0, -1) : unit;
+        if (value === 1) {
+            return labels.singular || fallback;
+        }
+        return labels.plural || `${fallback}s`;
+    };
+
+    const calculateCountdown = (targetDate, nowDate) => {
+        if (!(targetDate instanceof Date) || Number.isNaN(targetDate.getTime())) {
+            return null;
+        }
+
+        if (!(nowDate instanceof Date) || Number.isNaN(nowDate.getTime())) {
+            return null;
+        }
+
+        if (targetDate <= nowDate) {
+            return {
+                expired: true,
+                months: 0,
+                weeks: 0,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+                totalDays: 0,
+            };
+        }
+
+        const totalMs = targetDate.getTime() - nowDate.getTime();
+        const totalDays = Math.floor(totalMs / (1000 * 60 * 60 * 24));
+
+        let months =
+            (targetDate.getFullYear() - nowDate.getFullYear()) * 12 +
+            (targetDate.getMonth() - nowDate.getMonth());
+
+        if (months < 0) {
+            months = 0;
+        }
+
+        const anchor = new Date(nowDate.getTime());
+        anchor.setMonth(anchor.getMonth() + months);
+
+        if (anchor > targetDate) {
+            months -= 1;
+            anchor.setMonth(anchor.getMonth() - 1);
+        }
+
+        if (months < 0) {
+            months = 0;
+        }
+
+        let remainingMs = targetDate.getTime() - anchor.getTime();
+        if (remainingMs < 0) {
+            remainingMs = 0;
+        }
+
+        const dayMs = 1000 * 60 * 60 * 24;
+        const hourMs = 1000 * 60 * 60;
+        const minuteMs = 1000 * 60;
+        const secondMs = 1000;
+
+        const daysTotal = Math.floor(remainingMs / dayMs);
+        const weeks = Math.floor(daysTotal / 7);
+        const days = daysTotal % 7;
+        remainingMs -= daysTotal * dayMs;
+
+        const hours = Math.floor(remainingMs / hourMs);
+        remainingMs -= hours * hourMs;
+
+        const minutes = Math.floor(remainingMs / minuteMs);
+        remainingMs -= minutes * minuteMs;
+
+        const seconds = Math.floor(remainingMs / secondMs);
+
+        return {
+            expired: false,
+            months,
+            weeks,
+            days,
+            hours,
+            minutes,
+            seconds,
+            totalDays,
+        };
+    };
+
+    const updateCountdownElement = (element) => {
+        const targetValue = element.dataset.teqcidbCountdownTarget;
+        if (!targetValue) {
+            return;
+        }
+
+        const targetDate = new Date(targetValue);
+        const nowDate = new Date();
+        const countdown = calculateCountdown(targetDate, nowDate);
+        if (!countdown) {
+            return;
+        }
+
+        const timer = element.querySelector('[data-teqcidb-countdown-timer]');
+        const expiredMessage = element.querySelector('[data-teqcidb-countdown-expired]');
+
+        if (countdown.expired) {
+            if (timer) {
+                timer.setAttribute('hidden', 'hidden');
+            }
+            if (expiredMessage) {
+                expiredMessage.removeAttribute('hidden');
+            }
+            element.classList.remove('is-warning');
+            return;
+        }
+
+        if (timer) {
+            timer.removeAttribute('hidden');
+            const units = [
+                'months',
+                'weeks',
+                'days',
+                'hours',
+                'minutes',
+                'seconds',
+            ];
+            units.forEach((unit) => {
+                const unitEl = timer.querySelector(
+                    `[data-teqcidb-countdown-unit="${unit}"]`
+                );
+                if (!unitEl) {
+                    return;
+                }
+                const value = countdown[unit];
+                const label = resolveCountdownLabel(unit, value);
+                unitEl.textContent = `${value} ${label}`;
+                const shouldHide = unit !== 'seconds' && value === 0;
+                unitEl.toggleAttribute('hidden', shouldHide);
+            });
+        }
+
+        if (expiredMessage) {
+            expiredMessage.setAttribute('hidden', 'hidden');
+        }
+
+        const warningDays = parseInt(
+            element.dataset.teqcidbCountdownWarningDays || '45',
+            10
+        );
+        const warningThreshold = Number.isNaN(warningDays) ? 45 : warningDays;
+        element.classList.toggle(
+            'is-warning',
+            countdown.totalDays <= warningThreshold
+        );
+    };
+
+    const initCountdown = (element) => {
+        if (!element || element.dataset.teqcidbCountdownInitialized === 'true') {
+            return;
+        }
+
+        element.dataset.teqcidbCountdownInitialized = 'true';
+        updateCountdownElement(element);
+
+        const intervalId = window.setInterval(() => {
+            updateCountdownElement(element);
+        }, 1000);
+        element.dataset.teqcidbCountdownInterval = intervalId.toString();
+    };
+
+    const initCountdowns = (root = document) => {
+        const countdowns = root.querySelectorAll('[data-teqcidb-countdown]');
+        countdowns.forEach((element) => initCountdown(element));
+    };
+
+    window.TEQCIDBCountdown = window.TEQCIDBCountdown || {
+        init: initCountdowns,
+    };
+
+    initCountdowns();
+
+    const walletCardSettings = settings.walletCard || {};
+
+    const loadWalletCardImage = (url) => {
+        if (!url) {
+            return Promise.resolve(null);
+        }
+
+        return fetch(url)
+            .then((response) => response.blob())
+            .then(
+                (blob) =>
+                    new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    })
+            )
+            .catch(() => null);
+    };
+
+    const getWalletCardValue = (value) => {
+        const emptyValue = walletCardSettings.emptyValue || '—';
+        if (!value || (typeof value === 'string' && !value.trim())) {
+            return emptyValue;
+        }
+        return value;
+    };
+
+    const parseWalletCardData = (element) => {
+        if (!element) {
+            return null;
+        }
+
+        const rawData = element.dataset.teqcidbWalletCard;
+        if (!rawData) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(rawData);
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const renderWalletCardPdf = async (data) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const [ademLogo, thompsonLogo] = await Promise.all([
+            loadWalletCardImage(walletCardSettings.ademLogoUrl),
+            loadWalletCardImage(walletCardSettings.thompsonLogoUrl),
+        ]);
+
+        const doc = new jsPDF({ unit: 'in', format: 'letter' });
+        const pageWidth = 8.5;
+        const cardWidth = 3.375;
+        const cardHeight = 2.125;
+        const gap = 0.5;
+        const startX = (pageWidth - cardWidth) / 2;
+        const frontY = 1.0;
+        const backY = frontY + cardHeight + gap;
+
+        const drawCardBorder = (y) => {
+            doc.setLineWidth(0.01);
+            doc.rect(startX, y, cardWidth, cardHeight);
+        };
+
+        const drawCenteredText = (text, y, size, style = 'normal') => {
+            doc.setFont('times', style);
+            doc.setFontSize(size);
+            doc.text(text, startX + cardWidth / 2, y, { align: 'center' });
+        };
+
+        drawCardBorder(frontY);
+
+        if (ademLogo) {
+            const logoWidth = 1.4;
+            const logoHeight = 0.45;
+            doc.addImage(
+                ademLogo,
+                'JPEG',
+                startX + (cardWidth - logoWidth) / 2,
+                frontY + 0.18,
+                logoWidth,
+                logoHeight
+            );
+        }
+
+        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.9, 9);
+        drawCenteredText(getWalletCardValue(data.name), frontY + 1.1, 11, 'bold');
+        drawCenteredText(getWalletCardValue(data.company), frontY + 1.3, 9, 'bold');
+        drawCenteredText(
+            `${walletCardSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`,
+            frontY + 1.48,
+            9
+        );
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(8.5);
+
+        const leftX = startX + 0.2;
+        const rightX = startX + cardWidth / 2 + 0.05;
+        const baseY = frontY + 1.65;
+
+        const addressLines = [
+            data.address_line_1,
+            data.address_line_2,
+            data.phone,
+            data.email,
+        ]
+            .map((line) => (line ? line.trim() : ''))
+            .filter((line) => line.length);
+
+        addressLines.forEach((line, index) => {
+            doc.text(line, leftX, baseY + index * 0.18);
+        });
+
+        const rightLines = [
+            `${walletCardSettings.expirationLabel || 'Expiration Date'}: ${getWalletCardValue(data.expiration_date)}`,
+            `${walletCardSettings.initialTrainingLabel || 'Initial Training'}: ${getWalletCardValue(data.initial_training_date)}`,
+            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}: ${getWalletCardValue(data.last_refresher_date)}`,
+        ];
+
+        rightLines.forEach((line, index) => {
+            doc.text(line, rightX, baseY + index * 0.18);
+        });
+
+        drawCardBorder(backY);
+        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.45, 9, 'bold');
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(8);
+
+        const bulletX = startX + 0.25;
+        let bulletY = backY + 0.7;
+        const bulletWidth = cardWidth - 0.5;
+        const bullets = walletCardSettings.backBullets || [];
+        bullets.forEach((bullet) => {
+            const lines = doc.splitTextToSize(`• ${bullet}`, bulletWidth);
+            lines.forEach((line) => {
+                doc.text(line, bulletX, bulletY);
+                bulletY += 0.16;
+            });
+            bulletY += 0.06;
+        });
+
+        if (thompsonLogo) {
+            const logoSize = 0.7;
+            doc.addImage(
+                thompsonLogo,
+                'JPEG',
+                startX + cardWidth - logoSize - 0.2,
+                backY + cardHeight - logoSize - 0.2,
+                logoSize,
+                logoSize
+            );
+        }
+
+        return doc;
+    };
+
+    const handleWalletCardAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-wallet-card-action]');
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbWalletCardAction;
+        const wrapper = button.closest('[data-teqcidb-wallet-card]');
+        const data = parseWalletCardData(wrapper);
+
+        if (!data) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            const doc = await renderWalletCardPdf(data);
+            if (action === 'print') {
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } else {
+                doc.save(walletCardSettings.downloadFileName || 'wallet-card.pdf');
+            }
+        } catch (error) {
+            const message =
+                walletCardSettings.missingPdfMessage ||
+                'Unable to generate the wallet card right now. Please try again.';
+            window.alert(message);
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
+    document.addEventListener('click', handleWalletCardAction);
 })();

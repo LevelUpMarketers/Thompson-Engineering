@@ -100,6 +100,25 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $qci_number = isset( $student_row['qcinumber'] ) ? sanitize_text_field( (string) $student_row['qcinumber'] ) : '';
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
+            $expiration_date_raw = isset( $student_row['expiration_date'] )
+                ? sanitize_text_field( (string) $student_row['expiration_date'] )
+                : '';
+            $expiration_timestamp = $expiration_date_raw ? strtotime( $expiration_date_raw ) : false;
+            $expiration_date_display = $expiration_timestamp
+                ? wp_date( get_option( 'date_format' ), $expiration_timestamp )
+                : '';
+            $expiration_date_iso = $expiration_timestamp ? wp_date( 'c', $expiration_timestamp ) : '';
+            $expiration_date_card = $expiration_timestamp ? wp_date( 'm-d-Y', $expiration_timestamp ) : '';
+            $initial_training_date_raw = isset( $student_row['initial_training_date'] )
+                ? sanitize_text_field( (string) $student_row['initial_training_date'] )
+                : '';
+            $initial_training_timestamp = $initial_training_date_raw ? strtotime( $initial_training_date_raw ) : false;
+            $initial_training_date_card = $initial_training_timestamp ? wp_date( 'm-d-Y', $initial_training_timestamp ) : '';
+            $last_refresher_date_raw = isset( $student_row['last_refresher_date'] )
+                ? sanitize_text_field( (string) $student_row['last_refresher_date'] )
+                : '';
+            $last_refresher_timestamp = $last_refresher_date_raw ? strtotime( $last_refresher_date_raw ) : false;
+            $last_refresher_date_card = $last_refresher_timestamp ? wp_date( 'm-d-Y', $last_refresher_timestamp ) : '';
 
             $states = array(
                 'Alabama',
@@ -567,6 +586,107 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             </div>
                                             </form>
+                                        </div>
+                                    <?php elseif ( 'certificates-dates' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Certificates & Important Dates',
+                                                        'Student dashboard certificates tab heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Review your QCI expiration date and any important renewal reminders below.',
+                                                        'Student dashboard certificates tab description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+
+                                            <?php if ( ! $expiration_timestamp ) : ?>
+                                                <p class="teqcidb-dashboard-empty">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Your expiration date is not available yet.',
+                                                        'Student dashboard certificates tab empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            <?php else : ?>
+                                                <?php
+                                                $wallet_card_data = array(
+                                                    'name' => trim( $profile['first_name'] . ' ' . $profile['last_name'] ),
+                                                    'company' => $profile['company'],
+                                                    'qci_number' => $qci_number,
+                                                    'address_line_1' => $profile['address_street_1'],
+                                                    'address_line_2' => trim(
+                                                        $profile['address_city']
+                                                        . ( $profile['address_state'] ? ', ' . $profile['address_state'] : '' )
+                                                        . ( $profile['address_postal_code'] ? ' ' . $profile['address_postal_code'] : '' )
+                                                    ),
+                                                    'phone' => $profile['phone_cell'] ? $profile['phone_cell'] : $profile['phone_office'],
+                                                    'email' => $profile['email'],
+                                                    'expiration_date' => $expiration_date_card,
+                                                    'initial_training_date' => $initial_training_date_card,
+                                                    'last_refresher_date' => $last_refresher_date_card,
+                                                );
+                                                ?>
+                                                <div
+                                                    class="teqcidb-countdown"
+                                                    data-teqcidb-countdown
+                                                    data-teqcidb-countdown-target="<?php echo esc_attr( $expiration_date_iso ); ?>"
+                                                    data-teqcidb-countdown-warning-days="45"
+                                                    data-teqcidb-wallet-card="<?php echo esc_attr( wp_json_encode( $wallet_card_data ) ); ?>"
+                                                >
+                                                    <div class="teqcidb-countdown-meta">
+                                                        <p class="teqcidb-countdown-label">
+                                                            <?php
+                                                            echo esc_html_x(
+                                                                'QCI Expiration Date',
+                                                                'Student dashboard certificates expiration label',
+                                                                'teqcidb'
+                                                            );
+                                                            ?>
+                                                        </p>
+                                                        <p class="teqcidb-countdown-date">
+                                                            <?php echo esc_html( $expiration_date_display ); ?>
+                                                        </p>
+                                                    </div>
+                                                    <p class="teqcidb-countdown-timer" data-teqcidb-countdown-timer aria-live="polite">
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="months"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="weeks"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="days"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="hours"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="minutes"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="seconds"></span>
+                                                    </p>
+                                                    <p class="teqcidb-countdown-expired" data-teqcidb-countdown-expired hidden>
+                                                        <?php
+                                                        echo esc_html_x(
+                                                            'You\'re currently expired and required to take the Initial QCI Course once again.',
+                                                            'Student dashboard certificates expiration message',
+                                                            'teqcidb'
+                                                        );
+                                                        ?>
+                                                    </p>
+                                                    <div class="teqcidb-wallet-card-actions" role="group" aria-label="<?php echo esc_attr_x( 'Wallet card actions', 'Student dashboard wallet card actions label', 'teqcidb' ); ?>">
+                                                        <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-wallet-card-action="print">
+                                                            <?php echo esc_html_x( 'Print Wallet Card', 'Student dashboard wallet card print button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                        <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-wallet-card-action="download">
+                                                            <?php echo esc_html_x( 'Download Wallet Card', 'Student dashboard wallet card download button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php elseif ( 'class-history' === $tab_key ) : ?>
                                         <div class="teqcidb-dashboard-section">
@@ -1373,9 +1493,16 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             );
             wp_enqueue_style( 'dashicons' );
             wp_enqueue_script(
+                'teqcidb-jspdf',
+                TEQCIDB_PLUGIN_URL . 'assets/js/vendor/jspdf.umd.min.js',
+                array(),
+                TEQCIDB_VERSION,
+                true
+            );
+            wp_enqueue_script(
                 'teqcidb-shortcode-student-dashboard',
                 TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/student-dashboard.js',
-                array( 'password-strength-meter' ),
+                array( 'password-strength-meter', 'teqcidb-jspdf' ),
                 TEQCIDB_VERSION,
                 true
             );
@@ -1407,6 +1534,62 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
                     'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
+                    'countdownLabels' => array(
+                        'months' => array(
+                            'singular' => esc_html_x( 'month', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'months', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'days' => array(
+                            'singular' => esc_html_x( 'day', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'days', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'weeks' => array(
+                            'singular' => esc_html_x( 'week', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'weeks', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'hours' => array(
+                            'singular' => esc_html_x( 'hour', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'hours', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'minutes' => array(
+                            'singular' => esc_html_x( 'minute', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'minutes', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'seconds' => array(
+                            'singular' => esc_html_x( 'second', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'seconds', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                    ),
+                    'walletCard' => array(
+                        'ademLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/img/te-adem.jpg' ),
+                        'thompsonLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/img/te-square-logo.jpg' ),
+                        'qualifiedLabel' => esc_html_x( 'Qualified Credentialed Inspector', 'Wallet card qualified label', 'teqcidb' ),
+                        'qciNumberLabel' => esc_html_x( 'QCI No.', 'Wallet card QCI number label', 'teqcidb' ),
+                        'expirationLabel' => esc_html_x( 'Expiration Date', 'Wallet card expiration label', 'teqcidb' ),
+                        'initialTrainingLabel' => esc_html_x( 'Initial Training', 'Wallet card initial training label', 'teqcidb' ),
+                        'mostRecentLabel' => esc_html_x( 'Most Recent Annual Update', 'Wallet card most recent update label', 'teqcidb' ),
+                        'backTitle' => esc_html_x( 'QCI Important Information', 'Wallet card back title', 'teqcidb' ),
+                        'backBullets' => array(
+                            esc_html_x(
+                                'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.',
+                                'Wallet card back bullet',
+                                'teqcidb'
+                            ),
+                            esc_html_x(
+                                'QCIs must recertify if they change employers or if their training provider is no longer certified.',
+                                'Wallet card back bullet',
+                                'teqcidb'
+                            ),
+                            esc_html_x(
+                                'For more information about QCI training, including class dates and locations, call 251.666.2443 or visit training.thompsonengineering.com.',
+                                'Wallet card back bullet',
+                                'teqcidb'
+                            ),
+                        ),
+                        'emptyValue' => esc_html_x( '—', 'Wallet card empty value placeholder', 'teqcidb' ),
+                        'downloadFileName' => esc_html_x( 'qci-wallet-card.pdf', 'Wallet card download file name', 'teqcidb' ),
+                        'missingPdfMessage' => esc_html_x( 'Unable to generate the wallet card right now. Please try again.', 'Wallet card missing PDF library message', 'teqcidb' ),
+                    ),
                 )
             );
         }

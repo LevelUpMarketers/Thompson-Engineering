@@ -103,6 +103,65 @@
     margin: 0;
 }
 
+.teqcidb-countdown {
+    background: #fafafa;
+    border: 1px solid #e1e1e1;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
+.teqcidb-countdown-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.teqcidb-countdown-label {
+    color: #6a6a6a;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.teqcidb-countdown-date {
+    color: #2c2c2c;
+    font-weight: 600;
+    margin: 0;
+}
+
+.teqcidb-countdown-timer {
+    color: #2c2c2c;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 0;
+}
+
+.teqcidb-countdown-unit[hidden] {
+    display: none;
+}
+
+.teqcidb-countdown-expired {
+    color: #b00020;
+    font-weight: 600;
+    margin: 0;
+}
+
+.teqcidb-countdown.is-warning .teqcidb-countdown-timer {
+    color: #d40000;
+}
+
+.teqcidb-wallet-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
 .teqcidb-class-history-list {
     display: flex;
     flex-direction: column;
