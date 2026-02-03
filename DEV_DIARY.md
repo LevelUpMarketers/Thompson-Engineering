@@ -195,3 +195,4 @@
 192. 2026-01-24: Added a personalized welcome line with QCI number to the student dashboard.
 193. 2026-01-24: Added spacing and mobile sizing for the previous companies add button.
 194. 2026-01-24: Added a portable countdown display for student QCI expiration dates in the certificates tab.
+195. 2026-01-24: Added weeks support to the student dashboard expiration countdown.

@@ -760,6 +760,7 @@
             return {
                 expired: true,
                 months: 0,
+                weeks: 0,
                 days: 0,
                 hours: 0,
                 minutes: 0,
@@ -801,8 +802,10 @@
         const minuteMs = 1000 * 60;
         const secondMs = 1000;
 
-        const days = Math.floor(remainingMs / dayMs);
-        remainingMs -= days * dayMs;
+        const daysTotal = Math.floor(remainingMs / dayMs);
+        const weeks = Math.floor(daysTotal / 7);
+        const days = daysTotal % 7;
+        remainingMs -= daysTotal * dayMs;
 
         const hours = Math.floor(remainingMs / hourMs);
         remainingMs -= hours * hourMs;
@@ -815,6 +818,7 @@
         return {
             expired: false,
             months,
+            weeks,
             days,
             hours,
             minutes,
@@ -854,6 +858,7 @@
             timer.removeAttribute('hidden');
             const units = [
                 'months',
+                'weeks',
                 'days',
                 'hours',
                 'minutes',
@@ -869,9 +874,7 @@
                 const value = countdown[unit];
                 const label = resolveCountdownLabel(unit, value);
                 unitEl.textContent = `${value} ${label}`;
-                const shouldHide =
-                    unit !== 'seconds' &&
-                    value === 0;
+                const shouldHide = unit !== 'seconds' && value === 0;
                 unitEl.toggleAttribute('hidden', shouldHide);
             });
         }

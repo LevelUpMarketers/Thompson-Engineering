@@ -632,6 +632,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     </div>
                                                     <p class="teqcidb-countdown-timer" data-teqcidb-countdown-timer aria-live="polite">
                                                         <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="months"></span>
+                                                        <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="weeks"></span>
                                                         <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="days"></span>
                                                         <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="hours"></span>
                                                         <span class="teqcidb-countdown-unit" data-teqcidb-countdown-unit="minutes"></span>
@@ -1496,6 +1497,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'days' => array(
                             'singular' => esc_html_x( 'day', 'Countdown unit singular label', 'teqcidb' ),
                             'plural' => esc_html_x( 'days', 'Countdown unit plural label', 'teqcidb' ),
+                        ),
+                        'weeks' => array(
+                            'singular' => esc_html_x( 'week', 'Countdown unit singular label', 'teqcidb' ),
+                            'plural' => esc_html_x( 'weeks', 'Countdown unit plural label', 'teqcidb' ),
                         ),
                         'hours' => array(
                             'singular' => esc_html_x( 'hour', 'Countdown unit singular label', 'teqcidb' ),
