@@ -939,38 +939,23 @@
                     titleText.className = 'teqcidb-accordion__title-text';
                     const nameLabel =
                         studentSearchSettings.summaryNameLabel || 'Name';
-                    const labelSpan = document.createElement('span');
-                    labelSpan.className = 'teqcidb-accordion__meta-label';
-                    labelSpan.textContent = `${nameLabel}:`;
                     const valueSpan = document.createElement('span');
                     valueSpan.className = 'teqcidb-accordion__meta-value';
                     valueSpan.textContent = formatStudentValue(
                         entity[fieldKey],
                         fieldKey
                     );
-                    titleText.appendChild(labelSpan);
-                    titleText.append(' ');
                     titleText.appendChild(valueSpan);
                     cell.appendChild(titleText);
                 } else {
                     const metaText = document.createElement('span');
                     metaText.className = 'teqcidb-accordion__meta-text';
-                    const labelSpan = document.createElement('span');
-                    labelSpan.className = 'teqcidb-accordion__meta-label';
-                    const label =
-                        studentSearchSettings.summaryLabels &&
-                        studentSearchSettings.summaryLabels[fieldKey]
-                            ? studentSearchSettings.summaryLabels[fieldKey]
-                            : fieldKey;
-                    labelSpan.textContent = `${label}:`;
                     const valueSpan = document.createElement('span');
                     valueSpan.className = 'teqcidb-accordion__meta-value';
                     valueSpan.textContent = formatStudentValue(
                         entity[fieldKey],
                         fieldKey
                     );
-                    metaText.appendChild(labelSpan);
-                    metaText.append(' ');
                     metaText.appendChild(valueSpan);
                     cell.appendChild(metaText);
                 }

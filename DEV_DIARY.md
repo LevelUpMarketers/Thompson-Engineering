@@ -202,3 +202,4 @@
 199. 2026-02-12: Lifted wallet card front text blocks to tighten spacing beneath the top logo.
 200. 2026-02-13: Added the student dashboard Your Students search accordion with detailed student and history displays.
 201. 2026-02-13: Hid the student search results until a search runs and reduced summary columns to name, email, and company.
+202. 2026-02-13: Removed summary meta labels from the Your Students search result rows.
