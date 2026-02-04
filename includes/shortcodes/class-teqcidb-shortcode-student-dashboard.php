@@ -1825,6 +1825,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         ),
                         'detailFields' => $this->get_student_dashboard_fields(),
                         'historyFields' => $this->get_student_dashboard_history_fields(),
+                        'assignAction' => 'teqcidb_assign_student_representative',
+                        'assignLabel' => esc_html_x( 'Add This Student', 'Student dashboard student search assign button label', 'teqcidb' ),
+                        'assignSuccess' => esc_html_x( 'Student added to your roster.', 'Student dashboard student search assign success message', 'teqcidb' ),
+                        'assignError' => esc_html_x( 'Unable to add this student right now. Please try again.', 'Student dashboard student search assign error message', 'teqcidb' ),
                         'detailsHeading' => esc_html_x( 'Student Information', 'Student dashboard student search details heading', 'teqcidb' ),
                         'historyHeading' => esc_html_x( 'Student History', 'Student dashboard student search history heading', 'teqcidb' ),
                         /* translators: %s: Student history entry count. */

@@ -30,6 +30,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
+        add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
@@ -2066,6 +2067,111 @@ class TEQCIDB_Ajax {
         );
     }
 
+    public function assign_student_representative() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You must be logged in to add a student.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $student_id = isset( $_POST['student_id'] ) ? absint( $_POST['student_id'] ) : 0;
+
+        if ( $student_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Missing student selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $current_user = wp_get_current_user();
+
+        if ( ! $current_user instanceof WP_User || ! $current_user->exists() ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to load your account details.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'teqcidb_students';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Student records are not available.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $student_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $table_name WHERE id = %d LIMIT 1",
+                $student_id
+            )
+        );
+
+        if ( ! $student_exists ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to locate the selected student.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $representative = $this->build_representative_contact_from_user( $current_user, $table_name );
+
+        if ( empty( $representative['email'] ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Representative details are incomplete.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $updated = $wpdb->update(
+            $table_name,
+            array(
+                'their_representative' => wp_json_encode( $representative ),
+            ),
+            array(
+                'id' => $student_id,
+            ),
+            array( '%s' ),
+            array( '%d' )
+        );
+
+        if ( false === $updated ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to update the student representative.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start, 0 );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Student representative updated.', 'teqcidb' ),
+            )
+        );
+    }
+
     public function save_email_template() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
@@ -3810,6 +3916,63 @@ class TEQCIDB_Ajax {
         }
 
         return wp_kses_post( $value );
+    }
+
+    private function build_representative_contact_from_user( WP_User $user, $students_table ) {
+        global $wpdb;
+
+        $contact = array(
+            'first_name'      => sanitize_text_field( (string) $user->first_name ),
+            'last_name'       => sanitize_text_field( (string) $user->last_name ),
+            'email'           => sanitize_email( (string) $user->user_email ),
+            'phone'           => '',
+            'wpid'            => (string) $user->ID,
+            'uniquestudentid' => '',
+        );
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT first_name, last_name, email, phone_cell, phone_office, uniquestudentid FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                $user->ID
+            ),
+            ARRAY_A
+        );
+
+        if ( is_array( $student_row ) ) {
+            if ( ! empty( $student_row['first_name'] ) ) {
+                $contact['first_name'] = sanitize_text_field( (string) $student_row['first_name'] );
+            }
+
+            if ( ! empty( $student_row['last_name'] ) ) {
+                $contact['last_name'] = sanitize_text_field( (string) $student_row['last_name'] );
+            }
+
+            if ( ! empty( $student_row['email'] ) ) {
+                $contact['email'] = sanitize_email( (string) $student_row['email'] );
+            }
+
+            if ( ! empty( $student_row['phone_cell'] ) ) {
+                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_cell'] );
+            } elseif ( ! empty( $student_row['phone_office'] ) ) {
+                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_office'] );
+            }
+
+            if ( ! empty( $student_row['uniquestudentid'] ) ) {
+                $contact['uniquestudentid'] = sanitize_text_field( (string) $student_row['uniquestudentid'] );
+            }
+        }
+
+        if ( '' === $contact['first_name'] && '' === $contact['last_name'] ) {
+            $display_name = sanitize_text_field( (string) $user->display_name );
+            $name_parts   = preg_split( '/\s+/', $display_name );
+
+            if ( $name_parts ) {
+                $contact['first_name'] = $name_parts[0];
+                $contact['last_name']  = count( $name_parts ) > 1 ? implode( ' ', array_slice( $name_parts, 1 ) ) : '';
+            }
+        }
+
+        return $contact;
     }
 
     private function format_class_student_list_for_response( $value ) {
