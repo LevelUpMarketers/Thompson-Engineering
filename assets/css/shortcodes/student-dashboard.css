@@ -471,7 +471,7 @@
 }
 
 .teqcidb-student-results.is-visible {
-    max-height: 2000px;
+    max-height: var(--teqcidb-results-max-height, none);
     opacity: 1;
     overflow: visible;
     transform: translateY(0);

@@ -1085,14 +1085,24 @@
             feedback.classList.toggle('is-loading', Boolean(isLoading));
         };
 
+        const updateResultsHeight = () => {
+            const height = results.scrollHeight || 0;
+            results.style.setProperty('--teqcidb-results-max-height', `${height}px`);
+        };
+
         const showResults = () => {
             results.classList.add('is-visible');
             results.setAttribute('aria-hidden', 'false');
+            updateResultsHeight();
+            window.requestAnimationFrame(() => {
+                updateResultsHeight();
+            });
         };
 
         const hideResults = () => {
             results.classList.remove('is-visible');
             results.setAttribute('aria-hidden', 'true');
+            results.style.setProperty('--teqcidb-results-max-height', '0px');
         };
 
         const runSearch = async () => {
@@ -1117,6 +1127,7 @@
             try {
                 const entities = await fetchAllStudents(filters);
                 renderStudentResults(tbody, entities, columnCount);
+                updateResultsHeight();
                 setFeedback('', false);
                 if (!entities.length && emptyMessage) {
                     emptyMessage.textContent =
@@ -1145,6 +1156,7 @@
             clearButton.addEventListener('click', () => {
                 form.reset();
                 tbody.innerHTML = '';
+                updateResultsHeight();
                 if (emptyMessage) {
                     emptyMessage.textContent =
                         studentSearchSettings.searchEmpty ||
@@ -1162,6 +1174,7 @@
                 return;
             }
             toggleStudentAccordion(row);
+            updateResultsHeight();
         });
 
         tbody.addEventListener('keydown', (event) => {
@@ -1174,6 +1187,7 @@
             }
             event.preventDefault();
             toggleStudentAccordion(row);
+            updateResultsHeight();
         });
 
         if (emptyMessage) {
@@ -1184,6 +1198,7 @@
         }
 
         hideResults();
+        updateResultsHeight();
     };
 
     document
