@@ -1017,6 +1017,87 @@
         });
     };
 
+    const setAssignFeedback = (wrapper, message, isLoading) => {
+        if (!wrapper) {
+            return;
+        }
+        const assignFeedback = wrapper.querySelector('.teqcidb-form-feedback');
+        if (!assignFeedback) {
+            return;
+        }
+        const assignMessage = assignFeedback.querySelector('.teqcidb-form-message');
+        if (assignMessage) {
+            assignMessage.textContent = message || '';
+        }
+        assignFeedback.classList.toggle('is-visible', Boolean(message) || isLoading);
+        assignFeedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const handleAssignStudent = async (button, afterUpdate) => {
+        const wrapper = button.closest('.teqcidb-student-assign');
+        const studentId = button.dataset.studentId || '';
+        const action = studentSearchSettings.assignAction || '';
+
+        if (!studentId || !action) {
+            setAssignFeedback(
+                wrapper,
+                studentSearchSettings.assignError ||
+                    'Unable to add this student right now. Please try again.',
+                false
+            );
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        setAssignFeedback(wrapper, '', true);
+
+        try {
+            const data = new FormData();
+            data.append('action', action);
+            data.append('_ajax_nonce', settings.ajaxNonce || '');
+            data.append('student_id', studentId);
+
+            const response = await fetch(settings.ajaxUrl || '', {
+                method: 'POST',
+                body: data,
+                credentials: 'same-origin',
+            });
+
+            const payload = await response.json();
+            if (payload && payload.success) {
+                setAssignFeedback(
+                    wrapper,
+                    (payload.data && payload.data.message) ||
+                        studentSearchSettings.assignSuccess ||
+                        'Student added.',
+                    false
+                );
+            } else {
+                setAssignFeedback(
+                    wrapper,
+                    (payload && payload.data && payload.data.message) ||
+                        studentSearchSettings.assignError ||
+                        'Unable to add this student right now. Please try again.',
+                    false
+                );
+            }
+        } catch (error) {
+            setAssignFeedback(
+                wrapper,
+                studentSearchSettings.assignError ||
+                    'Unable to add this student right now. Please try again.',
+                false
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            if (typeof afterUpdate === 'function') {
+                afterUpdate();
+            }
+        }
+    };
+
     const toggleStudentAccordion = (summaryRow) => {
         if (!summaryRow) {
             return;
@@ -1118,85 +1199,6 @@
             feedback.classList.toggle('is-loading', Boolean(isLoading));
         };
 
-        const setAssignFeedback = (wrapper, message, isLoading) => {
-            if (!wrapper) {
-                return;
-            }
-            const assignFeedback = wrapper.querySelector('.teqcidb-form-feedback');
-            if (!assignFeedback) {
-                return;
-            }
-            const assignMessage = assignFeedback.querySelector('.teqcidb-form-message');
-            if (assignMessage) {
-                assignMessage.textContent = message || '';
-            }
-            assignFeedback.classList.toggle('is-visible', Boolean(message) || isLoading);
-            assignFeedback.classList.toggle('is-loading', Boolean(isLoading));
-        };
-
-        const handleAssignStudent = async (button) => {
-            const wrapper = button.closest('.teqcidb-student-assign');
-            const studentId = button.dataset.studentId || '';
-            const action = studentSearchSettings.assignAction || '';
-
-            if (!studentId || !action) {
-                setAssignFeedback(
-                    wrapper,
-                    studentSearchSettings.assignError ||
-                        'Unable to add this student right now. Please try again.',
-                    false
-                );
-                return;
-            }
-
-            button.disabled = true;
-            button.setAttribute('aria-busy', 'true');
-            setAssignFeedback(wrapper, '', true);
-
-            try {
-                const data = new FormData();
-                data.append('action', action);
-                data.append('_ajax_nonce', settings.ajaxNonce || '');
-                data.append('student_id', studentId);
-
-                const response = await fetch(settings.ajaxUrl || '', {
-                    method: 'POST',
-                    body: data,
-                    credentials: 'same-origin',
-                });
-
-                const payload = await response.json();
-                if (payload && payload.success) {
-                    setAssignFeedback(
-                        wrapper,
-                        (payload.data && payload.data.message) ||
-                            studentSearchSettings.assignSuccess ||
-                            'Student added.',
-                        false
-                    );
-                } else {
-                    setAssignFeedback(
-                        wrapper,
-                        (payload && payload.data && payload.data.message) ||
-                            studentSearchSettings.assignError ||
-                            'Unable to add this student right now. Please try again.',
-                        false
-                    );
-                }
-            } catch (error) {
-                setAssignFeedback(
-                    wrapper,
-                    studentSearchSettings.assignError ||
-                        'Unable to add this student right now. Please try again.',
-                    false
-                );
-            } finally {
-                button.disabled = false;
-                button.removeAttribute('aria-busy');
-                updateResultsHeight();
-            }
-        };
-
         const updateResultsHeight = () => {
             const height = results.scrollHeight || 0;
             results.style.setProperty('--teqcidb-results-max-height', `${height}px`);
@@ -1295,7 +1297,7 @@
                 return;
             }
             event.preventDefault();
-            handleAssignStudent(button);
+            handleAssignStudent(button, updateResultsHeight);
         });
 
         tbody.addEventListener('keydown', (event) => {
@@ -1322,9 +1324,70 @@
         updateResultsHeight();
     };
 
+    const initAssignedStudents = () => {
+        const assignedSection = document.querySelector('[data-teqcidb-assigned-students]');
+        if (!assignedSection) {
+            return;
+        }
+
+        const assignedList = assignedSection.querySelector('[data-teqcidb-assigned-list]');
+        const emptyMessage = assignedSection.querySelector('[data-teqcidb-assigned-empty]');
+        if (!assignedList) {
+            return;
+        }
+
+        const assignedStudents = Array.isArray(studentSearchSettings.assignedStudents)
+            ? studentSearchSettings.assignedStudents
+            : [];
+        const columnCount = (studentSearchSettings.summaryFields || []).length;
+
+        renderStudentResults(assignedList, assignedStudents, columnCount);
+
+        if (emptyMessage) {
+            if (assignedStudents.length) {
+                emptyMessage.hidden = true;
+            } else {
+                emptyMessage.textContent =
+                    studentSearchSettings.assignedEmpty ||
+                    'No students are currently assigned to you.';
+                emptyMessage.hidden = false;
+            }
+        }
+
+        assignedList.addEventListener('click', (event) => {
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            toggleStudentAccordion(row);
+        });
+
+        assignedList.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            event.preventDefault();
+            toggleStudentAccordion(row);
+        });
+
+        assignedSection.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-teqcidb-assign-student]');
+            if (!button) {
+                return;
+            }
+            event.preventDefault();
+            handleAssignStudent(button);
+        });
+    };
+
     document
         .querySelectorAll('[data-teqcidb-student-search]')
         .forEach((form) => initStudentSearch(form));
+    initAssignedStudents();
 
     const countdownLabels = settings.countdownLabels || {};
 

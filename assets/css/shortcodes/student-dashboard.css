@@ -478,6 +478,10 @@
     pointer-events: auto;
 }
 
+.teqcidb-student-assigned {
+    margin-top: 32px;
+}
+
 .teqcidb-accordion-group {
     border: 1px solid #e1e1e1;
     border-radius: 12px;
