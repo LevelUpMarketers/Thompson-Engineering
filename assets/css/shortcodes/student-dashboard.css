@@ -462,6 +462,20 @@
 
 .teqcidb-student-results {
     margin-top: 24px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-8px);
+    transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.teqcidb-student-results.is-visible {
+    max-height: 2000px;
+    opacity: 1;
+    overflow: visible;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .teqcidb-accordion-group {

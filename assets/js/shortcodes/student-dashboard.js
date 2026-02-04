@@ -1123,7 +1123,18 @@
             feedback.classList.toggle('is-loading', Boolean(isLoading));
         };
 
+        const showResults = () => {
+            results.classList.add('is-visible');
+            results.setAttribute('aria-hidden', 'false');
+        };
+
+        const hideResults = () => {
+            results.classList.remove('is-visible');
+            results.setAttribute('aria-hidden', 'true');
+        };
+
         const runSearch = async () => {
+            showResults();
             setFeedback('', true);
             if (emptyMessage) {
                 emptyMessage.hidden = true;
@@ -1179,6 +1190,7 @@
                     emptyMessage.hidden = false;
                 }
                 setFeedback('', false);
+                hideResults();
             });
         }
 
@@ -1208,6 +1220,8 @@
                 'Search for students to view their details.';
             emptyMessage.hidden = false;
         }
+
+        hideResults();
     };
 
     document

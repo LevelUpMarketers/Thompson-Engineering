@@ -956,7 +956,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </form>
                                             </div>
 
-                                            <div class="teqcidb-student-results" data-teqcidb-student-results>
+                                            <div class="teqcidb-student-results" data-teqcidb-student-results aria-hidden="true">
                                                 <div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="student-dashboard-students">
                                                     <table class="teqcidb-accordion-table">
                                                         <thead>
@@ -969,12 +969,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                 </th>
                                                                 <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-3">
                                                                     <?php echo esc_html_x( 'Company', 'Student dashboard student search table column label', 'teqcidb' ); ?>
-                                                                </th>
-                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-4">
-                                                                    <?php echo esc_html_x( 'Cell Phone', 'Student dashboard student search table column label', 'teqcidb' ); ?>
-                                                                </th>
-                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-5">
-                                                                    <?php echo esc_html_x( 'Expiration Date', 'Student dashboard student search table column label', 'teqcidb' ); ?>
                                                                 </th>
                                                                 <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">
                                                                     <?php echo esc_html_x( 'Details', 'Student dashboard student search table column label', 'teqcidb' ); ?>
@@ -1831,14 +1825,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                             'placeholder_1',
                             'placeholder_2',
                             'placeholder_3',
-                            'placeholder_4',
-                            'placeholder_5',
                         ),
                         'summaryLabels' => array(
                             'placeholder_2' => esc_html_x( 'Email', 'Student dashboard student search summary label', 'teqcidb' ),
                             'placeholder_3' => esc_html_x( 'Company', 'Student dashboard student search summary label', 'teqcidb' ),
-                            'placeholder_4' => esc_html_x( 'Cell Phone', 'Student dashboard student search summary label', 'teqcidb' ),
-                            'placeholder_5' => esc_html_x( 'Expiration Date', 'Student dashboard student search summary label', 'teqcidb' ),
                         ),
                         'detailFields' => $this->get_student_dashboard_fields(),
                         'historyFields' => $this->get_student_dashboard_history_fields(),
