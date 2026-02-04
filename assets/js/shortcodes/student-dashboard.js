@@ -937,8 +937,6 @@
                 if (index === 0) {
                     const titleText = document.createElement('span');
                     titleText.className = 'teqcidb-accordion__title-text';
-                    const nameLabel =
-                        studentSearchSettings.summaryNameLabel || 'Name';
                     const valueSpan = document.createElement('span');
                     valueSpan.className = 'teqcidb-accordion__meta-value';
                     valueSpan.textContent = formatStudentValue(
@@ -962,27 +960,6 @@
 
                 summaryRow.appendChild(cell);
             });
-
-            const actionsCell = document.createElement('td');
-            actionsCell.className =
-                'teqcidb-accordion__cell teqcidb-accordion__cell--actions';
-            const actionLabel = document.createElement('span');
-            actionLabel.className = 'teqcidb-accordion__action-link';
-            actionLabel.setAttribute('aria-hidden', 'true');
-            actionLabel.textContent =
-                studentSearchSettings.toggleDetails || 'Details';
-            const icon = document.createElement('span');
-            icon.className =
-                'dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon';
-            icon.setAttribute('aria-hidden', 'true');
-            const srText = document.createElement('span');
-            srText.className = 'screen-reader-text';
-            srText.textContent =
-                studentSearchSettings.toggleDetails || 'Toggle student details';
-            actionsCell.appendChild(actionLabel);
-            actionsCell.appendChild(icon);
-            actionsCell.appendChild(srText);
-            summaryRow.appendChild(actionsCell);
             tbody.appendChild(summaryRow);
 
             const panelRow = document.createElement('tr');
@@ -1090,7 +1067,7 @@
             return;
         }
 
-        const columnCount = (studentSearchSettings.summaryFields || []).length + 1;
+        const columnCount = (studentSearchSettings.summaryFields || []).length;
 
         const feedback = form.querySelector('.teqcidb-form-feedback');
         const feedbackMessage = feedback

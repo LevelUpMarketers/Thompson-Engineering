@@ -970,9 +970,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                 <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-3">
                                                                     <?php echo esc_html_x( 'Company', 'Student dashboard student search table column label', 'teqcidb' ); ?>
                                                                 </th>
-                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">
-                                                                    <?php echo esc_html_x( 'Details', 'Student dashboard student search table column label', 'teqcidb' ); ?>
-                                                                </th>
                                                             </tr>
                                                         </thead>
                                                         <tbody data-teqcidb-student-list></tbody>
@@ -1826,14 +1823,8 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                             'placeholder_2',
                             'placeholder_3',
                         ),
-                        'summaryLabels' => array(
-                            'placeholder_2' => esc_html_x( 'Email', 'Student dashboard student search summary label', 'teqcidb' ),
-                            'placeholder_3' => esc_html_x( 'Company', 'Student dashboard student search summary label', 'teqcidb' ),
-                        ),
                         'detailFields' => $this->get_student_dashboard_fields(),
                         'historyFields' => $this->get_student_dashboard_history_fields(),
-                        'toggleDetails' => esc_html_x( 'Toggle student details', 'Student dashboard student search toggle label', 'teqcidb' ),
-                        'summaryNameLabel' => esc_html_x( 'Name', 'Student dashboard student search summary label', 'teqcidb' ),
                         'detailsHeading' => esc_html_x( 'Student Information', 'Student dashboard student search details heading', 'teqcidb' ),
                         'historyHeading' => esc_html_x( 'Student History', 'Student dashboard student search history heading', 'teqcidb' ),
                         /* translators: %s: Student history entry count. */
