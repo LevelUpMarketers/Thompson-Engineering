@@ -736,6 +736,484 @@
         }
     });
 
+    const studentSearchSettings = settings.studentSearch || {};
+
+    const parseJsonList = (value) => {
+        if (!value || typeof value !== 'string') {
+            return null;
+        }
+
+        if (!value.trim().startsWith('[')) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const formatStudentValue = (value, key) => {
+        const emptyValue = studentSearchSettings.emptyValue || '—';
+
+        if (key === 'is_a_representative') {
+            const boolLabels = studentSearchSettings.booleanLabels || {};
+            if (typeof value === 'string' && value in boolLabels) {
+                return boolLabels[value];
+            }
+        }
+
+        const parsedList = parseJsonList(value);
+        if (parsedList) {
+            return parsedList.length ? parsedList.join(', ') : emptyValue;
+        }
+
+        if (Array.isArray(value)) {
+            return value.length ? value.join(', ') : emptyValue;
+        }
+
+        if (value === null || typeof value === 'undefined') {
+            return emptyValue;
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? trimmed : emptyValue;
+        }
+
+        return value;
+    };
+
+    const buildStudentDetails = (entity) => {
+        const detailFields = studentSearchSettings.detailFields || [];
+        const wrapper = document.createElement('div');
+        wrapper.className = 'teqcidb-student-details';
+
+        const heading = document.createElement('h4');
+        heading.className = 'teqcidb-student-details-heading';
+        heading.textContent =
+            studentSearchSettings.detailsHeading || 'Student Information';
+        wrapper.appendChild(heading);
+
+        const detailsGrid = document.createElement('dl');
+        detailsGrid.className = 'teqcidb-student-details-grid';
+
+        detailFields.forEach((field) => {
+            if (!field || !field.key) {
+                return;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'teqcidb-student-details-item';
+
+            const label = document.createElement('dt');
+            label.textContent = field.label || field.key;
+
+            const value = document.createElement('dd');
+            value.textContent = formatStudentValue(entity[field.key], field.key);
+
+            row.appendChild(label);
+            row.appendChild(value);
+            detailsGrid.appendChild(row);
+        });
+
+        wrapper.appendChild(detailsGrid);
+
+        return wrapper;
+    };
+
+    const buildStudentHistory = (entity) => {
+        const historyWrapper = document.createElement('div');
+        historyWrapper.className = 'teqcidb-student-history';
+
+        const heading = document.createElement('h4');
+        heading.className = 'teqcidb-student-history-heading';
+        heading.textContent =
+            studentSearchSettings.historyHeading || 'Student History';
+        historyWrapper.appendChild(heading);
+
+        const historyEntries = Array.isArray(entity.studenthistory)
+            ? entity.studenthistory
+            : [];
+
+        if (!historyEntries.length) {
+            const empty = document.createElement('p');
+            empty.className = 'teqcidb-student-history-empty';
+            empty.textContent =
+                studentSearchSettings.historyEmpty ||
+                'No student history entries were found.';
+            historyWrapper.appendChild(empty);
+            return historyWrapper;
+        }
+
+        const historyList = document.createElement('div');
+        historyList.className = 'teqcidb-student-history-list';
+
+        const historyFields = studentSearchSettings.historyFields || [];
+        historyEntries.forEach((entry, index) => {
+            const card = document.createElement('article');
+            card.className = 'teqcidb-student-history-card';
+
+            const cardHeading = document.createElement('h5');
+            cardHeading.className = 'teqcidb-student-history-title';
+            const titleTemplate =
+                studentSearchSettings.historyEntryTitle || 'History Entry %s';
+            cardHeading.textContent = titleTemplate.replace(
+                '%s',
+                (index + 1).toString()
+            );
+            card.appendChild(cardHeading);
+
+            const cardGrid = document.createElement('dl');
+            cardGrid.className = 'teqcidb-student-history-grid';
+
+            historyFields.forEach((field) => {
+                if (!field || !field.key) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'teqcidb-student-history-item';
+
+                const label = document.createElement('dt');
+                label.textContent = field.label || field.key;
+
+                const value = document.createElement('dd');
+                value.textContent = formatStudentValue(entry[field.key], field.key);
+
+                row.appendChild(label);
+                row.appendChild(value);
+                cardGrid.appendChild(row);
+            });
+
+            card.appendChild(cardGrid);
+            historyList.appendChild(card);
+        });
+
+        historyWrapper.appendChild(historyList);
+        return historyWrapper;
+    };
+
+    const renderStudentResults = (tbody, entities, columnCount) => {
+        tbody.innerHTML = '';
+
+        if (!entities.length) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.className = 'no-items';
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = columnCount;
+            emptyCell.textContent =
+                studentSearchSettings.searchNoResults ||
+                'No matching students were found.';
+            emptyRow.appendChild(emptyCell);
+            tbody.appendChild(emptyRow);
+            return;
+        }
+
+        const summaryFields = studentSearchSettings.summaryFields || [];
+        entities.forEach((entity) => {
+            const entityId = entity.id || Math.random().toString(36).slice(2);
+            const headerId = `teqcidb-student-${entityId}-header`;
+            const panelId = `teqcidb-student-${entityId}-panel`;
+
+            const summaryRow = document.createElement('tr');
+            summaryRow.id = headerId;
+            summaryRow.className = 'teqcidb-accordion__summary-row';
+            summaryRow.setAttribute('tabindex', '0');
+            summaryRow.setAttribute('role', 'button');
+            summaryRow.setAttribute('aria-expanded', 'false');
+            summaryRow.setAttribute('aria-controls', panelId);
+
+            summaryFields.forEach((fieldKey, index) => {
+                const cell = document.createElement('td');
+                const cellClass =
+                    index === 0
+                        ? 'teqcidb-accordion__cell teqcidb-accordion__cell--title'
+                        : 'teqcidb-accordion__cell teqcidb-accordion__cell--meta';
+                cell.className = cellClass;
+
+                if (index === 0) {
+                    const titleText = document.createElement('span');
+                    titleText.className = 'teqcidb-accordion__title-text';
+                    const nameLabel =
+                        studentSearchSettings.summaryNameLabel || 'Name';
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'teqcidb-accordion__meta-label';
+                    labelSpan.textContent = `${nameLabel}:`;
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'teqcidb-accordion__meta-value';
+                    valueSpan.textContent = formatStudentValue(
+                        entity[fieldKey],
+                        fieldKey
+                    );
+                    titleText.appendChild(labelSpan);
+                    titleText.append(' ');
+                    titleText.appendChild(valueSpan);
+                    cell.appendChild(titleText);
+                } else {
+                    const metaText = document.createElement('span');
+                    metaText.className = 'teqcidb-accordion__meta-text';
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'teqcidb-accordion__meta-label';
+                    const label =
+                        studentSearchSettings.summaryLabels &&
+                        studentSearchSettings.summaryLabels[fieldKey]
+                            ? studentSearchSettings.summaryLabels[fieldKey]
+                            : fieldKey;
+                    labelSpan.textContent = `${label}:`;
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'teqcidb-accordion__meta-value';
+                    valueSpan.textContent = formatStudentValue(
+                        entity[fieldKey],
+                        fieldKey
+                    );
+                    metaText.appendChild(labelSpan);
+                    metaText.append(' ');
+                    metaText.appendChild(valueSpan);
+                    cell.appendChild(metaText);
+                }
+
+                summaryRow.appendChild(cell);
+            });
+
+            const actionsCell = document.createElement('td');
+            actionsCell.className =
+                'teqcidb-accordion__cell teqcidb-accordion__cell--actions';
+            const actionLabel = document.createElement('span');
+            actionLabel.className = 'teqcidb-accordion__action-link';
+            actionLabel.setAttribute('aria-hidden', 'true');
+            actionLabel.textContent =
+                studentSearchSettings.toggleDetails || 'Details';
+            const icon = document.createElement('span');
+            icon.className =
+                'dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon';
+            icon.setAttribute('aria-hidden', 'true');
+            const srText = document.createElement('span');
+            srText.className = 'screen-reader-text';
+            srText.textContent =
+                studentSearchSettings.toggleDetails || 'Toggle student details';
+            actionsCell.appendChild(actionLabel);
+            actionsCell.appendChild(icon);
+            actionsCell.appendChild(srText);
+            summaryRow.appendChild(actionsCell);
+            tbody.appendChild(summaryRow);
+
+            const panelRow = document.createElement('tr');
+            panelRow.id = panelId;
+            panelRow.className = 'teqcidb-accordion__panel-row';
+            panelRow.setAttribute('role', 'region');
+            panelRow.setAttribute('aria-labelledby', headerId);
+            panelRow.setAttribute('aria-hidden', 'true');
+            panelRow.hidden = true;
+
+            const panelCell = document.createElement('td');
+            panelCell.colSpan = columnCount;
+            const panel = document.createElement('div');
+            panel.className = 'teqcidb-accordion__panel';
+
+            panel.appendChild(buildStudentDetails(entity));
+            panel.appendChild(buildStudentHistory(entity));
+
+            panelCell.appendChild(panel);
+            panelRow.appendChild(panelCell);
+            tbody.appendChild(panelRow);
+        });
+    };
+
+    const toggleStudentAccordion = (summaryRow) => {
+        if (!summaryRow) {
+            return;
+        }
+
+        const panelId = summaryRow.getAttribute('aria-controls');
+        if (!panelId) {
+            return;
+        }
+
+        const panelRow = document.getElementById(panelId);
+        if (!panelRow) {
+            return;
+        }
+
+        const isOpen = summaryRow.classList.contains('is-open');
+        summaryRow.classList.toggle('is-open', !isOpen);
+        summaryRow.setAttribute('aria-expanded', (!isOpen).toString());
+        panelRow.hidden = isOpen;
+        panelRow.setAttribute('aria-hidden', isOpen.toString());
+    };
+
+    const fetchStudentPage = async (filters, page, perPage) => {
+        const data = new FormData();
+        data.append('action', studentSearchSettings.action || 'teqcidb_read_student');
+        data.append('_ajax_nonce', settings.ajaxNonce || '');
+        data.append('page', page.toString());
+        data.append('per_page', perPage.toString());
+        data.append('search[placeholder_1]', filters.name || '');
+        data.append('search[placeholder_2]', filters.email || '');
+        data.append('search[placeholder_3]', filters.company || '');
+
+        const response = await fetch(settings.ajaxUrl || '', {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+            throw new Error('student-search-failed');
+        }
+
+        const payload = await response.json();
+        if (!payload || !payload.success || !payload.data) {
+            throw new Error('student-search-failed');
+        }
+
+        return payload.data;
+    };
+
+    const fetchAllStudents = async (filters) => {
+        const perPage = studentSearchSettings.perPage || 50;
+        let page = 1;
+        let totalPages = 1;
+        const allEntities = [];
+
+        while (page <= totalPages) {
+            const data = await fetchStudentPage(filters, page, perPage);
+            if (data && Array.isArray(data.entities)) {
+                allEntities.push(...data.entities);
+            }
+            totalPages = data && data.total_pages ? data.total_pages : 1;
+            page += 1;
+        }
+
+        return allEntities;
+    };
+
+    const initStudentSearch = (form) => {
+        const results = form
+            ? form.closest('.teqcidb-dashboard-section--students')
+                ?.querySelector('[data-teqcidb-student-results]')
+            : null;
+        if (!results) {
+            return;
+        }
+
+        const tbody = results.querySelector('[data-teqcidb-student-list]');
+        const emptyMessage = results.querySelector('[data-teqcidb-student-empty]');
+        if (!tbody) {
+            return;
+        }
+
+        const columnCount = (studentSearchSettings.summaryFields || []).length + 1;
+
+        const feedback = form.querySelector('.teqcidb-form-feedback');
+        const feedbackMessage = feedback
+            ? feedback.querySelector('.teqcidb-form-message')
+            : null;
+
+        const setFeedback = (message, isLoading) => {
+            if (!feedback) {
+                return;
+            }
+            if (feedbackMessage) {
+                feedbackMessage.textContent = message || '';
+            }
+            feedback.classList.toggle('is-visible', Boolean(message) || isLoading);
+            feedback.classList.toggle('is-loading', Boolean(isLoading));
+        };
+
+        const runSearch = async () => {
+            setFeedback('', true);
+            if (emptyMessage) {
+                emptyMessage.hidden = true;
+            }
+
+            const filters = {
+                name:
+                    form.querySelector('#teqcidb-student-search-name')?.value.trim() ||
+                    '',
+                email:
+                    form.querySelector('#teqcidb-student-search-email')?.value.trim() ||
+                    '',
+                company:
+                    form.querySelector('#teqcidb-student-search-company')?.value.trim() ||
+                    '',
+            };
+
+            try {
+                const entities = await fetchAllStudents(filters);
+                renderStudentResults(tbody, entities, columnCount);
+                setFeedback('', false);
+                if (!entities.length && emptyMessage) {
+                    emptyMessage.textContent =
+                        studentSearchSettings.searchNoResults ||
+                        'No matching students were found.';
+                    emptyMessage.hidden = false;
+                }
+            } catch (error) {
+                setFeedback(
+                    studentSearchSettings.searchError ||
+                        'Unable to load students right now. Please try again.',
+                    false
+                );
+            }
+        };
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            runSearch();
+        });
+
+        const clearButton = form.querySelector(
+            '[data-teqcidb-student-search-clear]'
+        );
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                form.reset();
+                tbody.innerHTML = '';
+                if (emptyMessage) {
+                    emptyMessage.textContent =
+                        studentSearchSettings.searchEmpty ||
+                        'Search for students to view their details.';
+                    emptyMessage.hidden = false;
+                }
+                setFeedback('', false);
+            });
+        }
+
+        tbody.addEventListener('click', (event) => {
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            toggleStudentAccordion(row);
+        });
+
+        tbody.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            event.preventDefault();
+            toggleStudentAccordion(row);
+        });
+
+        if (emptyMessage) {
+            emptyMessage.textContent =
+                studentSearchSettings.searchEmpty ||
+                'Search for students to view their details.';
+            emptyMessage.hidden = false;
+        }
+    };
+
+    document
+        .querySelectorAll('[data-teqcidb-student-search]')
+        .forEach((form) => initStudentSearch(form));
+
     const countdownLabels = settings.countdownLabels || {};
 
     const resolveCountdownLabel = (unit, value) => {

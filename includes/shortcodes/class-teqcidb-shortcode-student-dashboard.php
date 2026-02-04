@@ -859,6 +859,142 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </div>
                                             <?php endif; ?>
                                         </div>
+                                    <?php elseif ( 'your-students' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section teqcidb-dashboard-section--students">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Manage Your Students',
+                                                        'Student dashboard your students tab heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Below you can manage the students you\'re responsible for, to include adding new students, removing students, and editing their information.',
+                                                        'Student dashboard your students tab description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+
+                                            <div class="teqcidb-student-search">
+                                                <form class="teqcidb-student-search-form" data-teqcidb-student-search>
+                                                    <div class="teqcidb-student-search-fields">
+                                                        <div class="teqcidb-form-field">
+                                                            <label for="teqcidb-student-search-name">
+                                                                <?php
+                                                                echo esc_html_x(
+                                                                    'Student Name',
+                                                                    'Student dashboard student search name label',
+                                                                    'teqcidb'
+                                                                );
+                                                                ?>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                id="teqcidb-student-search-name"
+                                                                name="student_name"
+                                                                placeholder="<?php echo esc_attr_x( 'Search by name', 'Student dashboard student search name placeholder', 'teqcidb' ); ?>"
+                                                            />
+                                                        </div>
+                                                        <div class="teqcidb-form-field">
+                                                            <label for="teqcidb-student-search-email">
+                                                                <?php
+                                                                echo esc_html_x(
+                                                                    'Email Address',
+                                                                    'Student dashboard student search email label',
+                                                                    'teqcidb'
+                                                                );
+                                                                ?>
+                                                            </label>
+                                                            <input
+                                                                type="email"
+                                                                id="teqcidb-student-search-email"
+                                                                name="student_email"
+                                                                placeholder="<?php echo esc_attr_x( 'Search by email', 'Student dashboard student search email placeholder', 'teqcidb' ); ?>"
+                                                            />
+                                                        </div>
+                                                        <div class="teqcidb-form-field">
+                                                            <label for="teqcidb-student-search-company">
+                                                                <?php
+                                                                echo esc_html_x(
+                                                                    'Company',
+                                                                    'Student dashboard student search company label',
+                                                                    'teqcidb'
+                                                                );
+                                                                ?>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                id="teqcidb-student-search-company"
+                                                                name="student_company"
+                                                                placeholder="<?php echo esc_attr_x( 'Search by company', 'Student dashboard student search company placeholder', 'teqcidb' ); ?>"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div class="teqcidb-student-search-actions">
+                                                        <button class="teqcidb-button teqcidb-button-primary" type="submit">
+                                                            <?php echo esc_html_x( 'Search', 'Student dashboard student search button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                        <button
+                                                            class="teqcidb-button teqcidb-button-secondary"
+                                                            type="button"
+                                                            data-teqcidb-student-search-clear
+                                                        >
+                                                            <?php echo esc_html_x( 'Clear Search', 'Student dashboard student search clear button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                        <div class="teqcidb-form-feedback" aria-live="polite">
+                                                            <span class="teqcidb-spinner" aria-hidden="true"></span>
+                                                            <span class="teqcidb-form-message"></span>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            <div class="teqcidb-student-results" data-teqcidb-student-results>
+                                                <div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="student-dashboard-students">
+                                                    <table class="teqcidb-accordion-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-1">
+                                                                    <?php echo esc_html_x( 'Name', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-2">
+                                                                    <?php echo esc_html_x( 'Email', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-3">
+                                                                    <?php echo esc_html_x( 'Company', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-4">
+                                                                    <?php echo esc_html_x( 'Cell Phone', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-5">
+                                                                    <?php echo esc_html_x( 'Expiration Date', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">
+                                                                    <?php echo esc_html_x( 'Details', 'Student dashboard student search table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody data-teqcidb-student-list></tbody>
+                                                    </table>
+                                                </div>
+                                                <p class="teqcidb-dashboard-empty" data-teqcidb-student-empty hidden>
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Search for students to view their details.',
+                                                        'Student dashboard student search empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+                                        </div>
                                     <?php else : ?>
                                         <p class="teqcidb-dashboard-placeholder">
                                             <?php
@@ -1473,6 +1609,160 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         return ob_get_clean();
     }
 
+    private function get_student_dashboard_fields() {
+        return array(
+            array(
+                'key'   => 'first_name',
+                'label' => __( 'First Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'last_name',
+                'label' => __( 'Last Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'email',
+                'label' => __( 'Email Address', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'company',
+                'label' => __( 'Current Company', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'old_companies',
+                'label' => __( 'Previous Companies', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_street_1',
+                'label' => __( 'Address Line 1', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_street_2',
+                'label' => __( 'Address Line 2', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_city',
+                'label' => __( 'City', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_state',
+                'label' => __( 'State', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_postal_code',
+                'label' => __( 'Zip Code', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'phone_cell',
+                'label' => __( 'Cell Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'phone_office',
+                'label' => __( 'Office Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'fax',
+                'label' => __( 'Fax', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'initial_training_date',
+                'label' => __( 'Initial Training Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'last_refresher_date',
+                'label' => __( 'Last Refresher Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'is_a_representative',
+                'label' => __( 'Is this Student also a Representative?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_first_name',
+                'label' => __( 'Representative First Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_last_name',
+                'label' => __( 'Representative Last Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_email',
+                'label' => __( 'Representative Email', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_phone',
+                'label' => __( 'Representative Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'associations',
+                'label' => __( 'Associations', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'expiration_date',
+                'label' => __( 'Expiration Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'qcinumber',
+                'label' => __( 'QCI Number', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'comments',
+                'label' => __( 'Admin Comments', 'teqcidb' ),
+            ),
+        );
+    }
+
+    private function get_student_dashboard_history_fields() {
+        return array(
+            array(
+                'key'   => 'classname',
+                'label' => __( 'Class Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'classdate',
+                'label' => __( 'Class Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'classtype',
+                'label' => __( 'Class Type', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'registered',
+                'label' => __( 'Registered?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'adminapproved',
+                'label' => __( 'Admin Approved?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'attended',
+                'label' => __( 'Attended This Class?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'outcome',
+                'label' => __( 'Class Outcome', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'paymentstatus',
+                'label' => __( 'Payment Status', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'amountpaid',
+                'label' => __( 'Amount Paid', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'enrollmentdate',
+                'label' => __( 'Enrollment Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'courseinprogress',
+                'label' => __( 'Course In Progress?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'quizinprogress',
+                'label' => __( 'Quiz In Progress?', 'teqcidb' ),
+            ),
+        );
+    }
+
     public function enqueue_assets() {
         if ( ! is_singular() ) {
             return;
@@ -1534,6 +1824,40 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
                     'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
+                    'studentSearch' => array(
+                        'action' => 'teqcidb_read_student',
+                        'perPage' => 50,
+                        'summaryFields' => array(
+                            'placeholder_1',
+                            'placeholder_2',
+                            'placeholder_3',
+                            'placeholder_4',
+                            'placeholder_5',
+                        ),
+                        'summaryLabels' => array(
+                            'placeholder_2' => esc_html_x( 'Email', 'Student dashboard student search summary label', 'teqcidb' ),
+                            'placeholder_3' => esc_html_x( 'Company', 'Student dashboard student search summary label', 'teqcidb' ),
+                            'placeholder_4' => esc_html_x( 'Cell Phone', 'Student dashboard student search summary label', 'teqcidb' ),
+                            'placeholder_5' => esc_html_x( 'Expiration Date', 'Student dashboard student search summary label', 'teqcidb' ),
+                        ),
+                        'detailFields' => $this->get_student_dashboard_fields(),
+                        'historyFields' => $this->get_student_dashboard_history_fields(),
+                        'toggleDetails' => esc_html_x( 'Toggle student details', 'Student dashboard student search toggle label', 'teqcidb' ),
+                        'summaryNameLabel' => esc_html_x( 'Name', 'Student dashboard student search summary label', 'teqcidb' ),
+                        'detailsHeading' => esc_html_x( 'Student Information', 'Student dashboard student search details heading', 'teqcidb' ),
+                        'historyHeading' => esc_html_x( 'Student History', 'Student dashboard student search history heading', 'teqcidb' ),
+                        /* translators: %s: Student history entry count. */
+                        'historyEntryTitle' => esc_html_x( 'History Entry %s', 'Student dashboard student search history entry title', 'teqcidb' ),
+                        'historyEmpty' => esc_html_x( 'No student history entries were found.', 'Student dashboard student search history empty state', 'teqcidb' ),
+                        'emptyValue' => esc_html_x( 'Not available', 'Student dashboard student search empty value label', 'teqcidb' ),
+                        'searchEmpty' => esc_html_x( 'Search for students to view their details.', 'Student dashboard student search empty state', 'teqcidb' ),
+                        'searchNoResults' => esc_html_x( 'No matching students were found.', 'Student dashboard student search no results message', 'teqcidb' ),
+                        'searchError' => esc_html_x( 'Unable to load students right now. Please try again.', 'Student dashboard student search error message', 'teqcidb' ),
+                        'booleanLabels' => array(
+                            '1' => esc_html_x( 'Yes', 'Student dashboard student search yes label', 'teqcidb' ),
+                            '0' => esc_html_x( 'No', 'Student dashboard student search no label', 'teqcidb' ),
+                        ),
+                    ),
                     'countdownLabels' => array(
                         'months' => array(
                             'singular' => esc_html_x( 'month', 'Countdown unit singular label', 'teqcidb' ),
