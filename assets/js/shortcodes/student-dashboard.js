@@ -1000,8 +1000,8 @@
         drawCardBorder(frontY);
 
         if (ademLogo) {
-            const logoWidth = 1.4;
-            const logoHeight = 0.45;
+            const logoWidth = 1.0;
+            const logoHeight = 0.33;
             doc.addImage(
                 ademLogo,
                 'JPEG',
@@ -1012,21 +1012,22 @@
             );
         }
 
-        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.9, 9);
-        drawCenteredText(getWalletCardValue(data.name), frontY + 1.1, 11, 'bold');
-        drawCenteredText(getWalletCardValue(data.company), frontY + 1.3, 9, 'bold');
+        drawCenteredText(walletCardSettings.qualifiedLabel || '', frontY + 0.8, 9);
+        drawCenteredText(getWalletCardValue(data.name), frontY + 0.98, 11, 'bold');
+        drawCenteredText(getWalletCardValue(data.company), frontY + 1.17, 9, 'bold');
         drawCenteredText(
             `${walletCardSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`,
-            frontY + 1.48,
+            frontY + 1.34,
             9
         );
 
         doc.setFont('times', 'normal');
-        doc.setFontSize(8.5);
+        doc.setFontSize(8);
 
-        const leftX = startX + 0.2;
-        const rightX = startX + cardWidth / 2 + 0.05;
-        const baseY = frontY + 1.65;
+        const leftCenterX = startX + cardWidth * 0.25;
+        const rightCenterX = startX + cardWidth * 0.75;
+        const baseY = frontY + 1.53;
+        const lineHeight = 0.14;
 
         const addressLines = [
             data.address_line_1,
@@ -1038,47 +1039,51 @@
             .filter((line) => line.length);
 
         addressLines.forEach((line, index) => {
-            doc.text(line, leftX, baseY + index * 0.18);
+            doc.text(line, leftCenterX, baseY + index * lineHeight, { align: 'center' });
         });
 
         const rightLines = [
             `${walletCardSettings.expirationLabel || 'Expiration Date'}: ${getWalletCardValue(data.expiration_date)}`,
             `${walletCardSettings.initialTrainingLabel || 'Initial Training'}: ${getWalletCardValue(data.initial_training_date)}`,
-            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}: ${getWalletCardValue(data.last_refresher_date)}`,
+            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}:`,
+            getWalletCardValue(data.last_refresher_date),
         ];
 
         rightLines.forEach((line, index) => {
-            doc.text(line, rightX, baseY + index * 0.18);
+            doc.text(line, rightCenterX, baseY + index * lineHeight, { align: 'center' });
         });
 
         drawCardBorder(backY);
-        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.45, 9, 'bold');
+        drawCenteredText(walletCardSettings.backTitle || '', backY + 0.38, 9, 'bold');
 
         doc.setFont('times', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
 
-        const bulletX = startX + 0.25;
-        let bulletY = backY + 0.7;
-        const bulletWidth = cardWidth - 0.5;
+        const bulletX = startX + cardWidth / 2;
+        let bulletY = backY + 0.6;
+        const bulletWidth = cardWidth - 0.3;
+        const bulletLineHeight = 0.14;
         const bullets = walletCardSettings.backBullets || [];
         bullets.forEach((bullet) => {
             const lines = doc.splitTextToSize(`• ${bullet}`, bulletWidth);
             lines.forEach((line) => {
-                doc.text(line, bulletX, bulletY);
-                bulletY += 0.16;
+                doc.text(line, bulletX, bulletY, { align: 'center' });
+                bulletY += bulletLineHeight;
             });
-            bulletY += 0.06;
+            bulletY += 0.05;
         });
 
         if (thompsonLogo) {
-            const logoSize = 0.7;
+            const logoWidth = 0.52;
+            const { width: imageWidth, height: imageHeight } = doc.getImageProperties(thompsonLogo);
+            const logoHeight = imageWidth ? (logoWidth * imageHeight) / imageWidth : logoWidth;
             doc.addImage(
                 thompsonLogo,
                 'JPEG',
-                startX + cardWidth - logoSize - 0.2,
-                backY + cardHeight - logoSize - 0.2,
-                logoSize,
-                logoSize
+                startX + (cardWidth - logoWidth) / 2,
+                Math.max(backY + cardHeight - logoHeight - 0.16, bulletY + 0.05),
+                logoWidth,
+                logoHeight
             );
         }
 
