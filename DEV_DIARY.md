@@ -210,3 +210,4 @@
 207. 2026-02-13: Added editable assigned-student details with save actions in the dashboard.
 208. 2026-02-13: Reworked assigned-student editing into the full profile-style form with accessible keyboard accordion toggles and representative field defaults that preserve unset values.
 209. 2026-02-14: Removed the assigned-student representative toggle field and wired assigned-student state dropdown options from localized dashboard state values.
+210. 2026-02-14: Fixed assigned-student state option localization by sourcing dashboard state values from a shared shortcode helper to prevent undefined-variable warnings and empty state dropdowns.
