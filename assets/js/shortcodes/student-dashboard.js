@@ -992,13 +992,6 @@
 
         const stateOptions = [{ value: '', label: studentSearchSettings.emptySelectLabel || 'Make a selection' }]
             .concat((studentSearchSettings.stateOptions || []).map((state) => ({ value: state, label: state })));
-
-        const yesNoOptions = [
-            { value: '', label: studentSearchSettings.emptySelectLabel || 'Make a selection' },
-            { value: '1', label: studentSearchSettings.booleanLabels?.['1'] || 'Yes' },
-            { value: '0', label: studentSearchSettings.booleanLabels?.['0'] || 'No' },
-        ];
-
         const fields = [
             { label: 'First Name', key: 'first_name', autocomplete: 'given-name' },
             { label: 'Last Name', key: 'last_name', autocomplete: 'family-name' },
@@ -1014,21 +1007,12 @@
             { label: 'Fax', key: 'fax', type: 'tel' },
             { label: 'Initial Training Date', key: 'initial_training_date', type: 'date' },
             { label: 'Last Refresher Date', key: 'last_refresher_date', type: 'date' },
-            { label: 'Is this Student also a Representative?', key: 'is_a_representative', options: yesNoOptions },
             { label: 'Expiration Date', key: 'expiration_date', type: 'date' },
             { label: 'QCI Number', key: 'qcinumber' },
         ];
 
         fields.forEach((fieldConfig) => {
             let value = entity[fieldConfig.key] || '';
-            if (fieldConfig.key === 'is_a_representative') {
-                value =
-                    value === '1' || value === 1
-                        ? '1'
-                        : value === '0' || value === 0
-                            ? '0'
-                            : '';
-            }
             formGrid.appendChild(createField({ ...fieldConfig, value }));
         });
 

@@ -1713,10 +1713,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'label' => __( 'Last Refresher Date', 'teqcidb' ),
             ),
             array(
-                'key'   => 'is_a_representative',
-                'label' => __( 'Is this Student also a Representative?', 'teqcidb' ),
-            ),
-            array(
                 'key'   => 'representative_first_name',
                 'label' => __( 'Representative First Name', 'teqcidb' ),
             ),
@@ -1887,6 +1883,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'saveAction' => 'teqcidb_save_student',
                         'listPlaceholder' => esc_html_x( 'Separate entries with commas', 'Student dashboard student list field placeholder', 'teqcidb' ),
                         'emptySelectLabel' => esc_html_x( 'Make a selection', 'Student dashboard student select empty label', 'teqcidb' ),
+                        'stateOptions' => $states,
                         'assignedStudents' => $this->get_assigned_students_for_dashboard(),
                         'assignedEmpty' => esc_html_x( 'No students are currently assigned to you.', 'Student dashboard assigned students empty state', 'teqcidb' ),
                         'detailsHeading' => esc_html_x( 'Student Information', 'Student dashboard student search details heading', 'teqcidb' ),
