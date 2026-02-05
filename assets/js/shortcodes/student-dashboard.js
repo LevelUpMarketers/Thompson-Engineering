@@ -800,6 +800,18 @@
         const detailsGrid = document.createElement('dl');
         detailsGrid.className = 'teqcidb-student-details-grid';
 
+        const fieldTypeMap = {
+            email: 'email',
+            representative_email: 'email',
+            initial_training_date: 'date',
+            last_refresher_date: 'date',
+            expiration_date: 'date',
+            phone_cell: 'tel',
+            phone_office: 'tel',
+            representative_phone: 'tel',
+            fax: 'tel',
+        };
+
         detailFields.forEach((field) => {
             if (!field || !field.key) {
                 return;
@@ -812,7 +824,57 @@
             label.textContent = field.label || field.key;
 
             const value = document.createElement('dd');
-            value.textContent = formatStudentValue(entity[field.key], field.key);
+            let input;
+            if (field.key === 'comments') {
+                input = document.createElement('textarea');
+                input.rows = 3;
+            } else if (field.key === 'is_a_representative') {
+                input = document.createElement('select');
+                const optionEmpty = document.createElement('option');
+                optionEmpty.value = '';
+                optionEmpty.textContent =
+                    studentSearchSettings.emptySelectLabel || 'Make a selection';
+                const optionYes = document.createElement('option');
+                optionYes.value = '1';
+                optionYes.textContent =
+                    studentSearchSettings.booleanLabels?.['1'] || 'Yes';
+                const optionNo = document.createElement('option');
+                optionNo.value = '0';
+                optionNo.textContent =
+                    studentSearchSettings.booleanLabels?.['0'] || 'No';
+                input.appendChild(optionEmpty);
+                input.appendChild(optionYes);
+                input.appendChild(optionNo);
+            } else {
+                input = document.createElement('input');
+                input.type = fieldTypeMap[field.key] || 'text';
+            }
+
+            input.className = 'teqcidb-student-detail-input';
+            input.dataset.studentField = field.key;
+            const formattedValue = formatStudentValue(entity[field.key], field.key);
+            input.value = formattedValue === (studentSearchSettings.emptyValue || '—') ? '' : formattedValue;
+            input.disabled = true;
+            input.dataset.initialValue = input.value;
+
+            if (field.key === 'old_companies' || field.key === 'associations') {
+                input.dataset.listField = 'true';
+                input.placeholder =
+                    studentSearchSettings.listPlaceholder ||
+                    'Separate entries with commas';
+            }
+
+            if (field.key === 'is_a_representative') {
+                input.value =
+                    entity[field.key] === '1' || entity[field.key] === 1
+                        ? '1'
+                        : entity[field.key] === '0' || entity[field.key] === 0
+                            ? '0'
+                            : '';
+                input.dataset.initialValue = input.value;
+            }
+
+            value.appendChild(input);
 
             row.appendChild(label);
             row.appendChild(value);
@@ -928,7 +990,49 @@
         return wrapper;
     };
 
-    const renderStudentResults = (tbody, entities, columnCount) => {
+    const buildStudentEditActions = (entity) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'teqcidb-student-edit';
+
+        const editButton = document.createElement('button');
+        editButton.className = 'teqcidb-button teqcidb-button-secondary';
+        editButton.type = 'button';
+        editButton.dataset.teqcidbEditStudent = 'true';
+        editButton.dataset.studentId = entity.id ? String(entity.id) : '';
+        editButton.textContent =
+            studentSearchSettings.editLabel || 'Edit This Student';
+
+        const saveButton = document.createElement('button');
+        saveButton.className = 'teqcidb-button teqcidb-button-primary';
+        saveButton.type = 'button';
+        saveButton.dataset.teqcidbSaveStudent = 'true';
+        saveButton.dataset.studentId = entity.id ? String(entity.id) : '';
+        saveButton.textContent =
+            studentSearchSettings.saveLabel || 'Save Changes';
+        saveButton.disabled = true;
+
+        const feedback = document.createElement('div');
+        feedback.className = 'teqcidb-form-feedback';
+        feedback.setAttribute('aria-live', 'polite');
+
+        const spinner = document.createElement('span');
+        spinner.className = 'teqcidb-spinner';
+        spinner.setAttribute('aria-hidden', 'true');
+
+        const message = document.createElement('span');
+        message.className = 'teqcidb-form-message';
+
+        feedback.appendChild(spinner);
+        feedback.appendChild(message);
+
+        wrapper.appendChild(editButton);
+        wrapper.appendChild(saveButton);
+        wrapper.appendChild(feedback);
+
+        return wrapper;
+    };
+
+    const renderStudentResults = (tbody, entities, columnCount, options = {}) => {
         tbody.innerHTML = '';
 
         if (!entities.length) {
@@ -1009,7 +1113,11 @@
 
             panel.appendChild(buildStudentDetails(entity));
             panel.appendChild(buildStudentHistory(entity));
-            panel.appendChild(buildStudentAssignAction(entity));
+            if (options.editable) {
+                panel.appendChild(buildStudentEditActions(entity));
+            } else {
+                panel.appendChild(buildStudentAssignAction(entity));
+            }
 
             panelCell.appendChild(panel);
             panelRow.appendChild(panelCell);
@@ -1031,6 +1139,22 @@
         }
         assignFeedback.classList.toggle('is-visible', Boolean(message) || isLoading);
         assignFeedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const setEditFeedback = (wrapper, message, isLoading) => {
+        if (!wrapper) {
+            return;
+        }
+        const feedback = wrapper.querySelector('.teqcidb-form-feedback');
+        if (!feedback) {
+            return;
+        }
+        const feedbackMessage = feedback.querySelector('.teqcidb-form-message');
+        if (feedbackMessage) {
+            feedbackMessage.textContent = message || '';
+        }
+        feedback.classList.toggle('is-visible', Boolean(message) || isLoading);
+        feedback.classList.toggle('is-loading', Boolean(isLoading));
     };
 
     const handleAssignStudent = async (button, afterUpdate) => {
@@ -1095,6 +1219,111 @@
             if (typeof afterUpdate === 'function') {
                 afterUpdate();
             }
+        }
+    };
+
+    const resetStudentDetails = (panel) => {
+        panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            if (Object.prototype.hasOwnProperty.call(input.dataset, 'initialValue')) {
+                input.value = input.dataset.initialValue;
+            }
+        });
+    };
+
+    const setStudentDetailsEditable = (panel, editable) => {
+        panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            input.disabled = !editable;
+        });
+    };
+
+    const parseListValue = (value) =>
+        value
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length);
+
+    const handleSaveStudent = async (button) => {
+        const panel = button.closest('.teqcidb-accordion__panel');
+        const wrapper = button.closest('.teqcidb-student-edit');
+        const studentId = button.dataset.studentId || '';
+        const action = studentSearchSettings.saveAction || 'teqcidb_save_student';
+
+        if (!panel || !studentId) {
+            setEditFeedback(
+                wrapper,
+                studentSearchSettings.saveError ||
+                    'Unable to save student details right now. Please try again.',
+                false
+            );
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('_ajax_nonce', settings.ajaxNonce || '');
+        formData.append('id', studentId);
+
+        panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            const key = input.dataset.studentField;
+            if (!key) {
+                return;
+            }
+
+            const value = input.value.trim();
+
+            if (input.dataset.listField === 'true') {
+                const items = parseListValue(value);
+                items.forEach((item) => {
+                    formData.append(`${key}[]`, item);
+                });
+                return;
+            }
+
+            formData.append(key, value);
+        });
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        setEditFeedback(wrapper, '', true);
+
+        try {
+            const response = await fetch(settings.ajaxUrl || '', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            });
+
+            const payload = await response.json();
+            if (payload && payload.success) {
+                panel.querySelectorAll('[data-student-field]').forEach((input) => {
+                    input.dataset.initialValue = input.value;
+                });
+                setEditFeedback(
+                    wrapper,
+                    (payload.data && payload.data.message) ||
+                        studentSearchSettings.saveSuccess ||
+                        'Student details updated.',
+                    false
+                );
+            } else {
+                setEditFeedback(
+                    wrapper,
+                    (payload && payload.data && payload.data.message) ||
+                        studentSearchSettings.saveError ||
+                        'Unable to save student details right now. Please try again.',
+                    false
+                );
+            }
+        } catch (error) {
+            setEditFeedback(
+                wrapper,
+                studentSearchSettings.saveError ||
+                    'Unable to save student details right now. Please try again.',
+                false
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
         }
     };
 
@@ -1240,7 +1469,9 @@
 
             try {
                 const entities = await fetchAllStudents(filters);
-                renderStudentResults(tbody, entities, columnCount);
+        renderStudentResults(tbody, entities, columnCount, {
+            editable: false,
+        });
                 updateResultsHeight();
                 setFeedback('', false);
                 if (!entities.length && emptyMessage) {
@@ -1341,7 +1572,9 @@
             : [];
         const columnCount = (studentSearchSettings.summaryFields || []).length;
 
-        renderStudentResults(assignedList, assignedStudents, columnCount);
+        renderStudentResults(assignedList, assignedStudents, columnCount, {
+            editable: true,
+        });
 
         if (emptyMessage) {
             if (assignedStudents.length) {
@@ -1375,12 +1608,41 @@
         });
 
         assignedSection.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-teqcidb-assign-student]');
-            if (!button) {
+            const editButton = event.target.closest('[data-teqcidb-edit-student]');
+            if (editButton) {
+                event.preventDefault();
+                const panel = editButton.closest('.teqcidb-accordion__panel');
+                if (!panel) {
+                    return;
+                }
+                const isEditing = editButton.dataset.editing === 'true';
+                const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+                if (isEditing) {
+                    setStudentDetailsEditable(panel, false);
+                    resetStudentDetails(panel);
+                    editButton.dataset.editing = 'false';
+                    editButton.textContent =
+                        studentSearchSettings.editLabel || 'Edit This Student';
+                    if (saveButton) {
+                        saveButton.disabled = true;
+                    }
+                } else {
+                    setStudentDetailsEditable(panel, true);
+                    editButton.dataset.editing = 'true';
+                    editButton.textContent =
+                        studentSearchSettings.editCancelLabel || 'Cancel Editing';
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                    }
+                }
                 return;
             }
-            event.preventDefault();
-            handleAssignStudent(button);
+
+            const saveButton = event.target.closest('[data-teqcidb-save-student]');
+            if (saveButton) {
+                event.preventDefault();
+                handleSaveStudent(saveButton);
+            }
         });
     };
 

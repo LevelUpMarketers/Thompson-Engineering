@@ -645,6 +645,27 @@
     margin-top: 20px;
 }
 
+.teqcidb-student-edit {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.teqcidb-student-detail-input {
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    padding: 8px 10px;
+    width: 100%;
+}
+
+.teqcidb-student-detail-input[disabled] {
+    background: #f5f5f5;
+    color: #4d4d4d;
+}
+
 @media (max-width: 980px) {
     .teqcidb-dashboard-welcome {
         text-align: center;
