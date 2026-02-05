@@ -212,3 +212,4 @@
 209. 2026-02-14: Removed the assigned-student representative toggle field and wired assigned-student state dropdown options from localized dashboard state values.
 210. 2026-02-14: Fixed assigned-student state option localization by sourcing dashboard state values from a shared shortcode helper to prevent undefined-variable warnings and empty state dropdowns.
 211. 2026-02-14: Normalized assigned-student state select values so legacy two-letter state codes (for example, AL) map to full state options and preselect correctly in the dashboard edit form.
+212. 2026-02-14: Updated student save handling to only persist columns represented in submitted form fields, preventing assigned-student edits from clearing untouched values like their_representative.
