@@ -1302,6 +1302,13 @@
         if (!wrapper) {
             return;
         }
+
+        const hideTimer = wrapper._teqcidbEditFeedbackHideTimer;
+        if (hideTimer) {
+            window.clearTimeout(hideTimer);
+            wrapper._teqcidbEditFeedbackHideTimer = null;
+        }
+
         const feedback = wrapper.querySelector('.teqcidb-form-feedback');
         if (!feedback) {
             return;
@@ -1312,6 +1319,19 @@
         }
         feedback.classList.toggle('is-visible', Boolean(message) || isLoading);
         feedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const setTimedEditFeedback = (wrapper, message, durationMs = 5000) => {
+        setEditFeedback(wrapper, message, false);
+
+        if (!wrapper || !message) {
+            return;
+        }
+
+        wrapper._teqcidbEditFeedbackHideTimer = window.setTimeout(() => {
+            setEditFeedback(wrapper, '', false);
+            wrapper._teqcidbEditFeedbackHideTimer = null;
+        }, durationMs);
     };
 
     const handleAssignStudent = async (button, afterUpdate) => {
@@ -1416,7 +1436,7 @@
         const saveButton = panel.querySelector('[data-teqcidb-save-student]');
 
         if (editButton) {
-            editButton.dataset.editing = 'false';
+            editButton.removeAttribute('data-editing');
             editButton.textContent = studentSearchSettings.editLabel || 'Edit This Student';
         }
 
@@ -1497,14 +1517,14 @@
                         input.dataset.initialValue = input.value;
                     }
                 });
-                setEditFeedback(
+                resetAssignedStudentEditState(panel);
+                setTimedEditFeedback(
                     wrapper,
                     (payload.data && payload.data.message) ||
                         studentSearchSettings.saveSuccess ||
                         'Student details updated.',
-                    false
+                    5000
                 );
-                resetAssignedStudentEditState(panel);
             } else {
                 setEditFeedback(
                     wrapper,
@@ -1522,7 +1542,9 @@
                 false
             );
         } finally {
-            button.disabled = false;
+            const editButton = panel ? panel.querySelector('[data-teqcidb-edit-student]') : null;
+            const isEditing = editButton && editButton.dataset.editing === 'true';
+            button.disabled = !isEditing;
             button.removeAttribute('aria-busy');
         }
     };

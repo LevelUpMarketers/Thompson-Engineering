@@ -214,3 +214,4 @@
 211. 2026-02-14: Normalized assigned-student state select values so legacy two-letter state codes (for example, AL) map to full state options and preselect correctly in the dashboard edit form.
 212. 2026-02-14: Updated student save handling to only persist columns represented in submitted form fields, preventing assigned-student edits from clearing untouched values like their_representative.
 213. 2026-02-14: Added phone input masking to assigned-student edit forms and automatically returned assigned-student panels to read-only mode after successful saves while keeping updated values visible.
+214. 2026-02-14: Refined assigned-student post-save UX to immediately restore edit/save buttons to default state while keeping the success message visible for five seconds before auto-clearing.
