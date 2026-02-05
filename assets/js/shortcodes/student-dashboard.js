@@ -1020,6 +1020,12 @@
                 input.autocomplete = autocomplete;
             }
 
+            if (input.tagName === 'INPUT' && input.type === 'tel') {
+                applyPhoneMask(input);
+                input.addEventListener('input', () => applyPhoneMask(input));
+                input.addEventListener('blur', () => applyPhoneMask(input));
+            }
+
             field.appendChild(labelEl);
             field.appendChild(input);
 
@@ -1399,6 +1405,26 @@
         }
     };
 
+    const resetAssignedStudentEditState = (panel) => {
+        if (!panel) {
+            return;
+        }
+
+        setStudentDetailsEditable(panel, false);
+
+        const editButton = panel.querySelector('[data-teqcidb-edit-student]');
+        const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+
+        if (editButton) {
+            editButton.dataset.editing = 'false';
+            editButton.textContent = studentSearchSettings.editLabel || 'Edit This Student';
+        }
+
+        if (saveButton) {
+            saveButton.disabled = true;
+        }
+    };
+
     const handleSaveStudent = async (button) => {
         const form = button.closest('[data-teqcidb-assigned-form]');
         const panel = button.closest('.teqcidb-accordion__panel');
@@ -1478,6 +1504,7 @@
                         'Student details updated.',
                     false
                 );
+                resetAssignedStudentEditState(panel);
             } else {
                 setEditFeedback(
                     wrapper,
