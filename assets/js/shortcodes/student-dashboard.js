@@ -941,6 +941,45 @@
         return [];
     };
 
+    const resolveAssignedStudentStateValue = (stateValue, options) => {
+        const normalized = typeof stateValue === 'string' ? stateValue.trim() : '';
+        if (!normalized || !Array.isArray(options) || !options.length) {
+            return normalized;
+        }
+
+        const optionValues = new Set(options.map((option) => option.value));
+        if (optionValues.has(normalized)) {
+            return normalized;
+        }
+
+        const stateCodes = {
+            AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+            CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
+            HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas',
+            KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts',
+            MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+            NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico',
+            NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+            OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
+            SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont',
+            VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+        };
+
+        const upperCode = normalized.toUpperCase();
+        if (Object.prototype.hasOwnProperty.call(stateCodes, upperCode)) {
+            const mapped = stateCodes[upperCode];
+            if (optionValues.has(mapped)) {
+                return mapped;
+            }
+        }
+
+        const matchingOption = options.find((option) =>
+            typeof option.label === 'string' && option.label.toLowerCase() === normalized.toLowerCase()
+        );
+
+        return matchingOption ? matchingOption.value : normalized;
+    };
+
     const buildAssignedStudentForm = (entity) => {
         const form = document.createElement('form');
         form.className = 'teqcidb-profile-form teqcidb-assigned-student-form';
@@ -1013,6 +1052,9 @@
 
         fields.forEach((fieldConfig) => {
             let value = entity[fieldConfig.key] || '';
+            if (fieldConfig.key === 'student_address_state') {
+                value = resolveAssignedStudentStateValue(value, stateOptions);
+            }
             formGrid.appendChild(createField({ ...fieldConfig, value }));
         });
 
