@@ -852,6 +852,37 @@
         historyList.className = 'teqcidb-student-history-list';
 
         const historyFields = studentSearchSettings.historyFields || [];
+        const formatHistoryDate = (value) => {
+            if (typeof value !== 'string') {
+                return value;
+            }
+
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) {
+                return value;
+            }
+
+            return `${match[2]}-${match[3]}-${match[1]}`;
+        };
+
+        const formatHistoryValue = (value, key) => {
+            const formatted = formatStudentValue(value, key);
+            if (typeof formatted !== 'string') {
+                return formatted;
+            }
+
+            let updated = formatted;
+            if (key && key.toLowerCase().includes('date')) {
+                updated = formatHistoryDate(updated);
+            }
+
+            if (updated && updated === updated.toLowerCase()) {
+                updated = updated.charAt(0).toUpperCase() + updated.slice(1);
+            }
+
+            return updated;
+        };
+
         historyEntries.forEach((entry, index) => {
             const card = document.createElement('article');
             card.className = 'teqcidb-student-history-card';
@@ -864,8 +895,8 @@
             const titleWrap = document.createElement('span');
             titleWrap.className = 'teqcidb-student-history-summary-main';
 
-            const className = formatStudentValue(entry.classname, 'classname');
-            const enrollmentDate = formatStudentValue(entry.enrollmentdate, 'enrollmentdate');
+            const className = formatHistoryValue(entry.classname, 'classname');
+            const enrollmentDate = formatHistoryValue(entry.enrollmentdate, 'enrollmentdate');
             const titleTemplate =
                 studentSearchSettings.historyEntryTitle || 'History Entry %s';
 
@@ -910,7 +941,7 @@
                 label.textContent = field.label || field.key;
 
                 const value = document.createElement('dd');
-                value.textContent = formatStudentValue(entry[field.key], field.key);
+                value.textContent = formatHistoryValue(entry[field.key], field.key);
 
                 row.appendChild(label);
                 row.appendChild(value);

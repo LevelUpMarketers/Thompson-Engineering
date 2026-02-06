@@ -573,6 +573,10 @@
     margin-bottom: 24px;
 }
 
+.teqcidb-student-history {
+    margin-top: 50px;
+}
+
 .teqcidb-student-details:last-child,
 .teqcidb-student-history:last-child {
     margin-bottom: 0;
