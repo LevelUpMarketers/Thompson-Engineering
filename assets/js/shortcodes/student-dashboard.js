@@ -856,15 +856,44 @@
             const card = document.createElement('article');
             card.className = 'teqcidb-student-history-card';
 
-            const cardHeading = document.createElement('h5');
-            cardHeading.className = 'teqcidb-student-history-title';
+            const headerButton = document.createElement('button');
+            headerButton.type = 'button';
+            headerButton.className = 'teqcidb-student-history-summary';
+            headerButton.setAttribute('aria-expanded', 'false');
+
+            const titleWrap = document.createElement('span');
+            titleWrap.className = 'teqcidb-student-history-summary-main';
+
+            const className = formatStudentValue(entry.classname, 'classname');
+            const enrollmentDate = formatStudentValue(entry.enrollmentdate, 'enrollmentdate');
             const titleTemplate =
                 studentSearchSettings.historyEntryTitle || 'History Entry %s';
-            cardHeading.textContent = titleTemplate.replace(
-                '%s',
-                (index + 1).toString()
-            );
-            card.appendChild(cardHeading);
+
+            const classNameLabel = document.createElement('span');
+            classNameLabel.className = 'teqcidb-student-history-summary-title';
+            classNameLabel.textContent = className === (studentSearchSettings.emptyValue || '—')
+                ? titleTemplate.replace('%s', (index + 1).toString())
+                : className;
+
+            const enrollmentLabel = document.createElement('span');
+            enrollmentLabel.className = 'teqcidb-student-history-summary-meta';
+            const enrollmentText = studentSearchSettings.historyEnrollmentDateLabel || 'Enrollment Date';
+            enrollmentLabel.textContent = `${enrollmentText}: ${enrollmentDate}`;
+
+            titleWrap.appendChild(classNameLabel);
+            titleWrap.appendChild(enrollmentLabel);
+
+            const indicator = document.createElement('span');
+            indicator.className = 'teqcidb-student-history-summary-indicator';
+            indicator.setAttribute('aria-hidden', 'true');
+            indicator.textContent = '▾';
+
+            headerButton.appendChild(titleWrap);
+            headerButton.appendChild(indicator);
+
+            const cardBody = document.createElement('div');
+            cardBody.className = 'teqcidb-student-history-body';
+            cardBody.hidden = true;
 
             const cardGrid = document.createElement('dl');
             cardGrid.className = 'teqcidb-student-history-grid';
@@ -888,7 +917,17 @@
                 cardGrid.appendChild(row);
             });
 
-            card.appendChild(cardGrid);
+            cardBody.appendChild(cardGrid);
+
+            headerButton.addEventListener('click', () => {
+                const isOpen = headerButton.getAttribute('aria-expanded') === 'true';
+                headerButton.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                card.classList.toggle('is-open', !isOpen);
+                cardBody.hidden = isOpen;
+            });
+
+            card.appendChild(headerButton);
+            card.appendChild(cardBody);
             historyList.appendChild(card);
         });
 

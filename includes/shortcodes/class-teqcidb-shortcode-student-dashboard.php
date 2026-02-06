@@ -1894,6 +1894,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'historyHeading' => esc_html_x( 'Student History', 'Student dashboard student search history heading', 'teqcidb' ),
                         /* translators: %s: Student history entry count. */
                         'historyEntryTitle' => esc_html_x( 'History Entry %s', 'Student dashboard student search history entry title', 'teqcidb' ),
+                        'historyEnrollmentDateLabel' => esc_html_x( 'Enrollment Date', 'Student dashboard student search history summary enrollment date label', 'teqcidb' ),
                         'historyEmpty' => esc_html_x( 'No student history entries were found.', 'Student dashboard student search history empty state', 'teqcidb' ),
                         'emptyValue' => esc_html_x( 'Not available', 'Student dashboard student search empty value label', 'teqcidb' ),
                         'searchEmpty' => esc_html_x( 'Search for students to view their details.', 'Student dashboard student search empty state', 'teqcidb' ),
