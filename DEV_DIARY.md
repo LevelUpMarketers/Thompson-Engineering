@@ -217,3 +217,4 @@
 214. 2026-02-14: Refined assigned-student post-save UX to immediately restore edit/save buttons to default state while keeping the success message visible for five seconds before auto-clearing.
 215. 2026-02-14: Converted assigned-student history cards into accordions that show class name and enrollment date in collapsed headers and reveal full record details on expand.
 216. 2026-02-14: Added spacing above assigned-student history blocks and standardized history date/value formatting with mm-dd-yyyy dates and capitalization for lowercase values.
+217. 2026-02-14: Tuned the Your Students accordion layout for narrow screens with stacked rows, single-column tables, and vertical history summary headers.

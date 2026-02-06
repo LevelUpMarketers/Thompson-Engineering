@@ -760,6 +760,41 @@
         width: 100%;
     }
 
+    .teqcidb-accordion-table thead {
+        display: none;
+    }
+
+    .teqcidb-accordion__summary-row {
+        display: block;
+    }
+
+    .teqcidb-accordion-table tbody td {
+        display: block;
+        padding: 12px 16px;
+        width: 100%;
+    }
+
+    .teqcidb-accordion__cell--actions {
+        text-align: left;
+    }
+
+    .teqcidb-accordion__action-link {
+        display: inline-block;
+    }
+
+    .teqcidb-student-history-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .teqcidb-student-history-summary-indicator {
+        align-self: flex-end;
+    }
+
+    .teqcidb-student-history-body {
+        padding: 12px 14px 14px;
+    }
+
     .teqcidb-class-history-date {
         text-align: left;
     }
