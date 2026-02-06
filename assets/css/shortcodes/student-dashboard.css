@@ -768,6 +768,10 @@
         display: block;
     }
 
+    .teqcidb-accordion__cell--meta {
+        display: none;
+    }
+
     .teqcidb-accordion-table tbody td {
         display: block;
         padding: 12px 16px;
@@ -785,14 +789,21 @@
     .teqcidb-student-history-summary {
         align-items: flex-start;
         flex-direction: column;
+        text-align: center;
     }
 
     .teqcidb-student-history-summary-indicator {
         align-self: flex-end;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .teqcidb-student-history-body {
         padding: 12px 14px 14px;
+    }
+
+    .teqcidb-wallet-card-actions .teqcidb-button {
+        width: 100%;
     }
 
     .teqcidb-class-history-date {
