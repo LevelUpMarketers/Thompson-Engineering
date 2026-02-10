@@ -493,7 +493,10 @@
 
     const setProfileFieldsDisabled = (fields, disabled) => {
         fields.forEach((field) => {
-            if (!disabled && field.id === 'teqcidb-profile-company') {
+            if (
+                !disabled &&
+                (field.id === 'teqcidb-profile-company' || field.name === 'teqcidb_profile_old_companies[]')
+            ) {
                 field.disabled = true;
                 return;
             }
@@ -529,18 +532,6 @@
                 data.append('associations[]', input.value);
             });
 
-        const oldCompanies = [];
-        form.querySelectorAll('input[name="teqcidb_profile_old_companies[]"]')
-            .forEach((input) => {
-                const value = input.value.trim();
-                if (value) {
-                    oldCompanies.push(value);
-                }
-            });
-        oldCompanies.forEach((value) => {
-            data.append('old_companies[]', value);
-        });
-
         return data;
     };
 
@@ -550,7 +541,6 @@
             '#teqcidb-profile-last-name',
             '#teqcidb-profile-email',
         ];
-        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
             const field = form.querySelector(selector);
@@ -589,9 +579,6 @@
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
                     saveButton.disabled = true;
-                    if (addOldCompanyButton) {
-                        addOldCompanyButton.disabled = true;
-                    }
                 } else {
                     const message =
                         payload && payload.data && payload.data.message
@@ -608,8 +595,6 @@
     profileForms.forEach((form) => {
         const editButton = form.querySelector('[data-teqcidb-profile-edit]');
         const saveButton = form.querySelector('[data-teqcidb-profile-save]');
-        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
-        const oldCompaniesGrid = form.querySelector('[data-teqcidb-old-companies]');
         const fields = Array.from(
             form.querySelectorAll('input, select, textarea')
         );
@@ -619,10 +604,6 @@
         }
 
         const snapshotRef = { current: getProfileSnapshot(fields) };
-        if (addOldCompanyButton) {
-            addOldCompanyButton.disabled = true;
-        }
-
         editButton.addEventListener('click', () => {
             const isEditing = editButton.dataset.editing === 'true';
 
@@ -633,9 +614,6 @@
                 editButton.textContent =
                     settings.profileEditLabel || 'Edit Profile Info';
                 saveButton.disabled = true;
-                if (addOldCompanyButton) {
-                    addOldCompanyButton.disabled = true;
-                }
                 showFeedback(form, '', false);
                 return;
             }
@@ -645,9 +623,6 @@
             editButton.textContent =
                 settings.profileCancelLabel || 'Cancel Editing';
             saveButton.disabled = false;
-            if (addOldCompanyButton) {
-                addOldCompanyButton.disabled = false;
-            }
         });
 
         saveButton.addEventListener('click', () => {
@@ -672,44 +647,6 @@
                 );
             }
         });
-
-        if (addOldCompanyButton && oldCompaniesGrid) {
-            addOldCompanyButton.addEventListener('click', () => {
-                const countValue = parseInt(
-                    oldCompaniesGrid.dataset.oldCompanyCount || '0',
-                    10
-                );
-                const nextIndex = Number.isNaN(countValue) ? 1 : countValue + 1;
-                oldCompaniesGrid.dataset.oldCompanyCount = nextIndex.toString();
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'teqcidb-form-field';
-
-                const label = document.createElement('label');
-                label.className = 'screen-reader-text';
-                label.setAttribute('for', `teqcidb-profile-old-company-${nextIndex}`);
-                const labelBase =
-                    settings.oldCompanyLabel || 'Previous Company';
-                label.textContent = `${labelBase} ${nextIndex}`;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.id = `teqcidb-profile-old-company-${nextIndex}`;
-                input.name = 'teqcidb_profile_old_companies[]';
-                input.autocomplete = 'organization';
-
-                wrapper.appendChild(label);
-                wrapper.appendChild(input);
-                oldCompaniesGrid.appendChild(wrapper);
-
-                const emptyMessage = form.querySelector(
-                    '.teqcidb-profile-old-companies .teqcidb-dashboard-empty'
-                );
-                if (emptyMessage) {
-                    emptyMessage.remove();
-                }
-            });
-        }
     });
 
     const studentSearchSettings = settings.studentSearch || {};
@@ -1141,17 +1078,7 @@
             oldCompaniesGrid.appendChild(companyField);
         });
 
-        oldCompaniesGrid.dataset.oldCompanyCount = String(oldCompanyValues.length);
         oldCompaniesFieldset.appendChild(oldCompaniesGrid);
-
-        const addOldCompanyButton = document.createElement('button');
-        addOldCompanyButton.className = 'teqcidb-button teqcidb-button-secondary teqcidb-profile-old-companies-add';
-        addOldCompanyButton.type = 'button';
-        addOldCompanyButton.dataset.teqcidbAssignedAddOldCompany = 'true';
-        addOldCompanyButton.disabled = true;
-        addOldCompanyButton.textContent =
-            studentSearchSettings.addOldCompanyLabel || 'Add a Previous Company';
-        oldCompaniesFieldset.appendChild(addOldCompanyButton);
 
         form.appendChild(oldCompaniesFieldset);
 
@@ -1462,17 +1389,12 @@
 
     const setStudentDetailsEditable = (panel, editable) => {
         panel.querySelectorAll('[data-student-field]').forEach((input) => {
-            if (input.dataset.studentField === 'company') {
+            if (input.dataset.studentField === 'company' || input.dataset.studentField === 'old_companies') {
                 input.disabled = true;
                 return;
             }
             input.disabled = !editable;
         });
-
-        const addOldCompanyButton = panel.querySelector('[data-teqcidb-assigned-add-old-company]');
-        if (addOldCompanyButton) {
-            addOldCompanyButton.disabled = !editable;
-        }
     };
 
     const resetAssignedStudentEditState = (panel) => {
@@ -1529,16 +1451,6 @@
 
             const value = input.value.trim();
             formData.append(key, value);
-        });
-
-        const oldCompanyValues = [];
-        form.querySelectorAll('[data-student-field="old_companies"]').forEach((input) => {
-            if (!input.disabled && input.value.trim()) {
-                oldCompanyValues.push(input.value.trim());
-            }
-        });
-        oldCompanyValues.forEach((value) => {
-            formData.append('old_companies[]', value);
         });
 
         form.querySelectorAll('[data-student-field="associations"]').forEach((input) => {
@@ -1880,43 +1792,6 @@
         });
 
         assignedSection.addEventListener('click', (event) => {
-            const addCompanyButton = event.target.closest('[data-teqcidb-assigned-add-old-company]');
-            if (addCompanyButton) {
-                event.preventDefault();
-                const form = addCompanyButton.closest('[data-teqcidb-assigned-form]');
-                const grid = form ? form.querySelector('[data-teqcidb-assigned-old-companies]') : null;
-                if (!form || !grid || addCompanyButton.disabled) {
-                    return;
-                }
-
-                const count = parseInt(grid.dataset.oldCompanyCount || '0', 10);
-                const nextIndex = Number.isNaN(count) ? 1 : count + 1;
-                grid.dataset.oldCompanyCount = String(nextIndex);
-
-                const field = document.createElement('div');
-                field.className = 'teqcidb-form-field';
-
-                const inputId = `teqcidb-assigned-${form.dataset.studentId || 'student'}-old-company-${nextIndex}`;
-                const label = document.createElement('label');
-                label.className = 'screen-reader-text';
-                label.setAttribute('for', inputId);
-                label.textContent = `${studentSearchSettings.oldCompanyLabel || 'Previous Company'} ${nextIndex}`;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.id = inputId;
-                input.disabled = false;
-                input.autocomplete = 'organization';
-                input.dataset.studentField = 'old_companies';
-                input.dataset.listField = 'true';
-                input.dataset.initialValue = '';
-
-                field.appendChild(label);
-                field.appendChild(input);
-                grid.appendChild(field);
-                return;
-            }
-
             const editButton = event.target.closest('[data-teqcidb-edit-student]');
             if (editButton) {
                 event.preventDefault();

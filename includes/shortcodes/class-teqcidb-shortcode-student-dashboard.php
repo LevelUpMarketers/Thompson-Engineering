@@ -478,14 +478,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                         </div>
                                                     <?php endforeach; ?>
                                                 </div>
-                                                <button
-                                                    class="teqcidb-button teqcidb-button-secondary teqcidb-profile-old-companies-add"
-                                                    type="button"
-                                                    data-teqcidb-add-old-company
-                                                    disabled
-                                                >
-                                                    <?php echo esc_html_x( 'Add a Previous Company', 'Profile form old companies add button', 'teqcidb' ); ?>
-                                                </button>
                                             </fieldset>
 
                                             <fieldset class="teqcidb-form-fieldset teqcidb-profile-associations">

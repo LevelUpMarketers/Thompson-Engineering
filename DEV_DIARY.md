@@ -220,3 +220,4 @@
 217. 2026-02-14: Tuned the Your Students accordion layout for narrow screens with stacked rows, single-column tables, and vertical history summary headers.
 218. 2026-02-14: Hid secondary Your Students summary columns on mobile, centered history summary headers, and stacked wallet card actions for narrow screens.
 219. 2026-02-14: Locked dashboard company fields as non-editable in Profile Info and assigned-student forms, and removed dashboard company update/auto-archive logic tied to previous companies.
+220. 2026-02-14: Removed front-end previous-company editing on dashboard tabs by keeping previous company inputs read-only, removing add-previous-company actions, and stopping old_companies submissions from dashboard forms.
