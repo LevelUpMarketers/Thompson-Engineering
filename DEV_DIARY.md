@@ -200,3 +200,33 @@
 197. 2026-02-12: Refined wallet card PDF layout spacing, centered contact/update blocks, and preserved logo aspect ratios to match legacy styling.
 198. 2026-02-12: Tightened wallet card PDF spacing, lifted front text, and repositioned the back logo below centered bullet content.
 199. 2026-02-12: Lifted wallet card front text blocks to tighten spacing beneath the top logo.
+200. 2026-02-13: Added the student dashboard Your Students search accordion with detailed student and history displays.
+201. 2026-02-13: Hid the student search results until a search runs and reduced summary columns to name, email, and company.
+202. 2026-02-13: Removed summary meta labels from the Your Students search result rows.
+203. 2026-02-13: Removed the Details column from the Your Students search results.
+204. 2026-02-13: Adjusted student search results to auto-fit expanded accordion content.
+205. 2026-02-13: Added an "Add This Student" action to assign representatives from the dashboard search results.
+206. 2026-02-13: Added a dashboard section listing students assigned to the current representative.
+207. 2026-02-13: Added editable assigned-student details with save actions in the dashboard.
+208. 2026-02-13: Reworked assigned-student editing into the full profile-style form with accessible keyboard accordion toggles and representative field defaults that preserve unset values.
+209. 2026-02-14: Removed the assigned-student representative toggle field and wired assigned-student state dropdown options from localized dashboard state values.
+210. 2026-02-14: Fixed assigned-student state option localization by sourcing dashboard state values from a shared shortcode helper to prevent undefined-variable warnings and empty state dropdowns.
+211. 2026-02-14: Normalized assigned-student state select values so legacy two-letter state codes (for example, AL) map to full state options and preselect correctly in the dashboard edit form.
+212. 2026-02-14: Updated student save handling to only persist columns represented in submitted form fields, preventing assigned-student edits from clearing untouched values like their_representative.
+213. 2026-02-14: Added phone input masking to assigned-student edit forms and automatically returned assigned-student panels to read-only mode after successful saves while keeping updated values visible.
+214. 2026-02-14: Refined assigned-student post-save UX to immediately restore edit/save buttons to default state while keeping the success message visible for five seconds before auto-clearing.
+215. 2026-02-14: Converted assigned-student history cards into accordions that show class name and enrollment date in collapsed headers and reveal full record details on expand.
+216. 2026-02-14: Added spacing above assigned-student history blocks and standardized history date/value formatting with mm-dd-yyyy dates and capitalization for lowercase values.
+217. 2026-02-14: Tuned the Your Students accordion layout for narrow screens with stacked rows, single-column tables, and vertical history summary headers.
+218. 2026-02-14: Hid secondary Your Students summary columns on mobile, centered history summary headers, and stacked wallet card actions for narrow screens.
+219. 2026-02-14: Locked dashboard company fields as non-editable in Profile Info and assigned-student forms, and removed dashboard company update/auto-archive logic tied to previous companies.
+220. 2026-02-14: Removed front-end previous-company editing on dashboard tabs by keeping previous company inputs read-only, removing add-previous-company actions, and stopping old_companies submissions from dashboard forms.
+221. 2026-02-14: Locked dashboard email fields as non-editable, removed dashboard profile email update checks/sync, and suppressed empty previous-company rows when old_companies is [] in assigned-student panels.
+222. 2026-02-14: Fixed assigned-student save handling so email is only persisted when explicitly submitted, preventing front-end student edits from blanking existing email values.
+223. 2026-02-14: Added assigned-student previous-company empty-state messaging and locked Initial Training Date, Last Refresher Date, Expiration Date, and QCI Number as non-editable/non-submitted in dashboard edit saves.
+224. 2026-02-14: Locked Profile Info representative last name/email/phone as non-editable and removed their front-end/back-end dashboard update paths while preserving representative first-name updates.
+225. 2026-02-14: Locked Profile Info representative first name as non-editable and removed its dashboard update path alongside other representative contact fields.
+226. 2026-02-14: Removed the Your Students search/add-student UI and client-side search/assign handlers so the tab only displays and edits already assigned students.
+227. 2026-02-14: Added a locked-field helper tooltip/message across the dashboard so hovering or touching non-editable fields explains how to request updates from Ilka Porter.
+228. 2026-02-14: Scoped locked-field helper tooltips to edit mode only so non-editable field notices appear only after entering Profile Info or assigned-student editing.
+229. 2026-02-14: Limited edit-mode locked-field tooltips to only permanently non-editable dashboard fields (company/email/representative contact fields, previous companies, and locked assigned-student date/QCI fields).

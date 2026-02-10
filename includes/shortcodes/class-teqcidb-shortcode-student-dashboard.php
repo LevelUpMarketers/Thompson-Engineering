@@ -120,58 +120,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $last_refresher_timestamp = $last_refresher_date_raw ? strtotime( $last_refresher_date_raw ) : false;
             $last_refresher_date_card = $last_refresher_timestamp ? wp_date( 'm-d-Y', $last_refresher_timestamp ) : '';
 
-            $states = array(
-                'Alabama',
-                'Alaska',
-                'Arizona',
-                'Arkansas',
-                'California',
-                'Colorado',
-                'Connecticut',
-                'Delaware',
-                'Florida',
-                'Georgia',
-                'Hawaii',
-                'Idaho',
-                'Illinois',
-                'Indiana',
-                'Iowa',
-                'Kansas',
-                'Kentucky',
-                'Louisiana',
-                'Maine',
-                'Maryland',
-                'Massachusetts',
-                'Michigan',
-                'Minnesota',
-                'Mississippi',
-                'Missouri',
-                'Montana',
-                'Nebraska',
-                'Nevada',
-                'New Hampshire',
-                'New Jersey',
-                'New Mexico',
-                'New York',
-                'North Carolina',
-                'North Dakota',
-                'Ohio',
-                'Oklahoma',
-                'Oregon',
-                'Pennsylvania',
-                'Rhode Island',
-                'South Carolina',
-                'South Dakota',
-                'Tennessee',
-                'Texas',
-                'Utah',
-                'Vermont',
-                'Virginia',
-                'Washington',
-                'West Virginia',
-                'Wisconsin',
-                'Wyoming',
-            );
+            $states = $this->get_dashboard_state_options();
 
             ob_start();
             ?>
@@ -529,14 +478,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                         </div>
                                                     <?php endforeach; ?>
                                                 </div>
-                                                <button
-                                                    class="teqcidb-button teqcidb-button-secondary teqcidb-profile-old-companies-add"
-                                                    type="button"
-                                                    data-teqcidb-add-old-company
-                                                    disabled
-                                                >
-                                                    <?php echo esc_html_x( 'Add a Previous Company', 'Profile form old companies add button', 'teqcidb' ); ?>
-                                                </button>
                                             </fieldset>
 
                                             <fieldset class="teqcidb-form-fieldset teqcidb-profile-associations">
@@ -858,6 +799,79 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     <?php endforeach; ?>
                                                 </div>
                                             <?php endif; ?>
+                                        </div>
+                                    <?php elseif ( 'your-students' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section teqcidb-dashboard-section--students">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Manage Your Students',
+                                                        'Student dashboard your students tab heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Below you can manage the students you\'re responsible for and edit their information.',
+                                                        'Student dashboard your students tab description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+
+                                            <div class="teqcidb-student-assigned" data-teqcidb-assigned-students>
+                                                <div class="teqcidb-dashboard-section-header">
+                                                    <h3 class="teqcidb-dashboard-section-title">
+                                                        <?php
+                                                        echo esc_html_x(
+                                                            'Your Assigned Students',
+                                                            'Student dashboard assigned students heading',
+                                                            'teqcidb'
+                                                        );
+                                                        ?>
+                                                    </h3>
+                                                    <p class="teqcidb-dashboard-section-description">
+                                                        <?php
+                                                        echo esc_html_x(
+                                                            'These are the students currently assigned to you as their representative.',
+                                                            'Student dashboard assigned students description',
+                                                            'teqcidb'
+                                                        );
+                                                        ?>
+                                                    </p>
+                                                </div>
+                                                <div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="student-dashboard-assigned">
+                                                    <table class="teqcidb-accordion-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-1">
+                                                                    <?php echo esc_html_x( 'Name', 'Student dashboard assigned students table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-2">
+                                                                    <?php echo esc_html_x( 'Email', 'Student dashboard assigned students table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                                <th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-3">
+                                                                    <?php echo esc_html_x( 'Company', 'Student dashboard assigned students table column label', 'teqcidb' ); ?>
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody data-teqcidb-assigned-list></tbody>
+                                                    </table>
+                                                </div>
+                                                <p class="teqcidb-dashboard-empty" data-teqcidb-assigned-empty hidden>
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'No students are currently assigned to you.',
+                                                        'Student dashboard assigned students empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
                                         </div>
                                     <?php else : ?>
                                         <p class="teqcidb-dashboard-placeholder">
@@ -1473,6 +1487,211 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         return ob_get_clean();
     }
 
+    private function get_dashboard_state_options() {
+        return array(
+            'Alabama',
+            'Alaska',
+            'Arizona',
+            'Arkansas',
+            'California',
+            'Colorado',
+            'Connecticut',
+            'Delaware',
+            'Florida',
+            'Georgia',
+            'Hawaii',
+            'Idaho',
+            'Illinois',
+            'Indiana',
+            'Iowa',
+            'Kansas',
+            'Kentucky',
+            'Louisiana',
+            'Maine',
+            'Maryland',
+            'Massachusetts',
+            'Michigan',
+            'Minnesota',
+            'Mississippi',
+            'Missouri',
+            'Montana',
+            'Nebraska',
+            'Nevada',
+            'New Hampshire',
+            'New Jersey',
+            'New Mexico',
+            'New York',
+            'North Carolina',
+            'North Dakota',
+            'Ohio',
+            'Oklahoma',
+            'Oregon',
+            'Pennsylvania',
+            'Rhode Island',
+            'South Carolina',
+            'South Dakota',
+            'Tennessee',
+            'Texas',
+            'Utah',
+            'Vermont',
+            'Virginia',
+            'Washington',
+            'West Virginia',
+            'Wisconsin',
+            'Wyoming',
+        );
+    }
+
+    private function get_student_dashboard_fields() {
+        return array(
+            array(
+                'key'   => 'first_name',
+                'label' => __( 'First Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'last_name',
+                'label' => __( 'Last Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'email',
+                'label' => __( 'Email Address', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'company',
+                'label' => __( 'Current Company', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'old_companies',
+                'label' => __( 'Previous Companies', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_street_1',
+                'label' => __( 'Address Line 1', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_street_2',
+                'label' => __( 'Address Line 2', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_city',
+                'label' => __( 'City', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_state',
+                'label' => __( 'State', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'student_address_postal_code',
+                'label' => __( 'Zip Code', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'phone_cell',
+                'label' => __( 'Cell Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'phone_office',
+                'label' => __( 'Office Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'fax',
+                'label' => __( 'Fax', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'initial_training_date',
+                'label' => __( 'Initial Training Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'last_refresher_date',
+                'label' => __( 'Last Refresher Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_first_name',
+                'label' => __( 'Representative First Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_last_name',
+                'label' => __( 'Representative Last Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_email',
+                'label' => __( 'Representative Email', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'representative_phone',
+                'label' => __( 'Representative Phone', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'associations',
+                'label' => __( 'Associations', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'expiration_date',
+                'label' => __( 'Expiration Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'qcinumber',
+                'label' => __( 'QCI Number', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'comments',
+                'label' => __( 'Admin Comments', 'teqcidb' ),
+            ),
+        );
+    }
+
+    private function get_student_dashboard_history_fields() {
+        return array(
+            array(
+                'key'   => 'classname',
+                'label' => __( 'Class Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'classdate',
+                'label' => __( 'Class Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'classtype',
+                'label' => __( 'Class Type', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'registered',
+                'label' => __( 'Registered?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'adminapproved',
+                'label' => __( 'Admin Approved?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'attended',
+                'label' => __( 'Attended This Class?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'outcome',
+                'label' => __( 'Class Outcome', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'paymentstatus',
+                'label' => __( 'Payment Status', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'amountpaid',
+                'label' => __( 'Amount Paid', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'enrollmentdate',
+                'label' => __( 'Enrollment Date', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'courseinprogress',
+                'label' => __( 'Course In Progress?', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'quizinprogress',
+                'label' => __( 'Quiz In Progress?', 'teqcidb' ),
+            ),
+        );
+    }
+
     public function enqueue_assets() {
         if ( ! is_singular() ) {
             return;
@@ -1533,7 +1752,40 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaveError' => esc_html_x( 'Unable to save your profile. Please try again.', 'Profile form validation message', 'teqcidb' ),
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
+                    'lockedFieldMessage' => esc_html_x( "This can't be edited! Please contact Ilka Porter (iporter@thompsonengineering.com) to change this info.", 'Dashboard locked field helper message', 'teqcidb' ),
                     'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
+                    'studentSearch' => array(
+                        'summaryFields' => array(
+                            'placeholder_1',
+                            'placeholder_2',
+                            'placeholder_3',
+                        ),
+                        'detailFields' => $this->get_student_dashboard_fields(),
+                        'historyFields' => $this->get_student_dashboard_history_fields(),
+                        'editLabel' => esc_html_x( 'Edit This Student', 'Student dashboard student edit button label', 'teqcidb' ),
+                        'editCancelLabel' => esc_html_x( 'Cancel Editing', 'Student dashboard student edit cancel label', 'teqcidb' ),
+                        'saveLabel' => esc_html_x( 'Save Changes', 'Student dashboard student save button label', 'teqcidb' ),
+                        'saveSuccess' => esc_html_x( 'Student details updated.', 'Student dashboard student save success message', 'teqcidb' ),
+                        'saveError' => esc_html_x( 'Unable to save student details right now. Please try again.', 'Student dashboard student save error message', 'teqcidb' ),
+                        'saveAction' => 'teqcidb_save_student',
+                        'listPlaceholder' => esc_html_x( 'Separate entries with commas', 'Student dashboard student list field placeholder', 'teqcidb' ),
+                        'emptySelectLabel' => esc_html_x( 'Make a selection', 'Student dashboard student select empty label', 'teqcidb' ),
+                        'oldCompaniesEmpty' => esc_html_x( 'No previous companies.', 'Student dashboard assigned students old companies empty state', 'teqcidb' ),
+                        'stateOptions' => $this->get_dashboard_state_options(),
+                        'assignedStudents' => $this->get_assigned_students_for_dashboard(),
+                        'assignedEmpty' => esc_html_x( 'No students are currently assigned to you.', 'Student dashboard assigned students empty state', 'teqcidb' ),
+                        'detailsHeading' => esc_html_x( 'Student Information', 'Student dashboard student search details heading', 'teqcidb' ),
+                        'historyHeading' => esc_html_x( 'Student History', 'Student dashboard student search history heading', 'teqcidb' ),
+                        /* translators: %s: Student history entry count. */
+                        'historyEntryTitle' => esc_html_x( 'History Entry %s', 'Student dashboard student search history entry title', 'teqcidb' ),
+                        'historyEnrollmentDateLabel' => esc_html_x( 'Enrollment Date', 'Student dashboard student search history summary enrollment date label', 'teqcidb' ),
+                        'historyEmpty' => esc_html_x( 'No student history entries were found.', 'Student dashboard student search history empty state', 'teqcidb' ),
+                        'emptyValue' => esc_html_x( 'Not available', 'Student dashboard student search empty value label', 'teqcidb' ),
+                        'booleanLabels' => array(
+                            '1' => esc_html_x( 'Yes', 'Student dashboard student search yes label', 'teqcidb' ),
+                            '0' => esc_html_x( 'No', 'Student dashboard student search no label', 'teqcidb' ),
+                        ),
+                    ),
                     'countdownLabels' => array(
                         'months' => array(
                             'singular' => esc_html_x( 'month', 'Countdown unit singular label', 'teqcidb' ),
@@ -1797,6 +2049,436 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return esc_html( (string) $value );
+    }
+
+    private function get_assigned_students_for_dashboard() {
+        if ( ! is_user_logged_in() ) {
+            return array();
+        }
+
+        $current_user = wp_get_current_user();
+
+        if ( ! $current_user instanceof WP_User || ! $current_user->exists() ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'teqcidb_students';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $representative = $this->build_representative_contact_from_user( $current_user, $table_name );
+
+        $search_tokens = array_filter(
+            array(
+                $representative['email'],
+                $representative['wpid'],
+                $representative['uniquestudentid'],
+            )
+        );
+
+        if ( empty( $search_tokens ) ) {
+            return array();
+        }
+
+        $where_clauses = array();
+        $where_params  = array();
+
+        foreach ( $search_tokens as $token ) {
+            $where_clauses[] = 'their_representative LIKE %s';
+            $where_params[]  = '%' . $wpdb->esc_like( $token ) . '%';
+        }
+
+        if ( empty( $where_clauses ) ) {
+            return array();
+        }
+
+        $query = "SELECT * FROM $table_name WHERE " . implode( ' OR ', $where_clauses ) . ' ORDER BY last_name ASC, first_name ASC, id ASC';
+
+        $rows = $wpdb->get_results( $wpdb->prepare( $query, $where_params ), ARRAY_A );
+
+        if ( ! is_array( $rows ) || empty( $rows ) ) {
+            return array();
+        }
+
+        $entities   = array();
+        $unique_ids = array();
+
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $entity = $this->prepare_student_entity_for_dashboard( $row );
+            $entities[] = $entity;
+
+            if ( ! empty( $entity['uniquestudentid'] ) ) {
+                $unique_ids[] = $entity['uniquestudentid'];
+            }
+        }
+
+        if ( $entities && $unique_ids ) {
+            $history_map = $this->get_student_history_entries_for_unique_ids( array_unique( $unique_ids ) );
+
+            foreach ( $entities as &$entity ) {
+                $unique_id = isset( $entity['uniquestudentid'] ) ? (string) $entity['uniquestudentid'] : '';
+                $entity['studenthistory'] = isset( $history_map[ $unique_id ] ) ? array_values( $history_map[ $unique_id ] ) : array();
+            }
+            unset( $entity );
+        }
+
+        return $entities;
+    }
+
+    private function build_representative_contact_from_user( WP_User $user, $table_name ) {
+        global $wpdb;
+
+        $contact = array(
+            'first_name'      => sanitize_text_field( (string) $user->first_name ),
+            'last_name'       => sanitize_text_field( (string) $user->last_name ),
+            'email'           => sanitize_email( (string) $user->user_email ),
+            'phone'           => '',
+            'wpid'            => (string) $user->ID,
+            'uniquestudentid' => '',
+        );
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT first_name, last_name, email, phone_cell, phone_office, uniquestudentid FROM $table_name WHERE wpuserid = %d LIMIT 1",
+                $user->ID
+            ),
+            ARRAY_A
+        );
+
+        if ( is_array( $student_row ) ) {
+            if ( ! empty( $student_row['first_name'] ) ) {
+                $contact['first_name'] = sanitize_text_field( (string) $student_row['first_name'] );
+            }
+
+            if ( ! empty( $student_row['last_name'] ) ) {
+                $contact['last_name'] = sanitize_text_field( (string) $student_row['last_name'] );
+            }
+
+            if ( ! empty( $student_row['email'] ) ) {
+                $contact['email'] = sanitize_email( (string) $student_row['email'] );
+            }
+
+            if ( ! empty( $student_row['phone_cell'] ) ) {
+                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_cell'] );
+            } elseif ( ! empty( $student_row['phone_office'] ) ) {
+                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_office'] );
+            }
+
+            if ( ! empty( $student_row['uniquestudentid'] ) ) {
+                $contact['uniquestudentid'] = sanitize_text_field( (string) $student_row['uniquestudentid'] );
+            }
+        }
+
+        if ( '' === $contact['first_name'] && '' === $contact['last_name'] ) {
+            $display_name = sanitize_text_field( (string) $user->display_name );
+            $name_parts   = preg_split( '/\s+/', $display_name );
+
+            if ( $name_parts ) {
+                $contact['first_name'] = $name_parts[0];
+                $contact['last_name']  = count( $name_parts ) > 1 ? implode( ' ', array_slice( $name_parts, 1 ) ) : '';
+            }
+        }
+
+        return $contact;
+    }
+
+    private function prepare_student_entity_for_dashboard( array $entity ) {
+        $entity['initial_training_date'] = $this->format_date_for_response( isset( $entity['initial_training_date'] ) ? $entity['initial_training_date'] : '' );
+        $entity['last_refresher_date']   = $this->format_date_for_response( isset( $entity['last_refresher_date'] ) ? $entity['last_refresher_date'] : '' );
+        $entity['expiration_date']       = $this->format_date_for_response( isset( $entity['expiration_date'] ) ? $entity['expiration_date'] : '' );
+        $entity['old_companies']         = $this->format_json_field( isset( $entity['old_companies'] ) ? $entity['old_companies'] : '' );
+        $entity['associations']          = $this->format_json_field( isset( $entity['associations'] ) ? $entity['associations'] : '' );
+
+        foreach ( array( 'phone_cell', 'phone_office', 'fax' ) as $phone_field ) {
+            $entity[ $phone_field ] = $this->format_phone_for_response( isset( $entity[ $phone_field ] ) ? $entity[ $phone_field ] : '' );
+        }
+
+        $address = $this->decode_student_address_field( isset( $entity['student_address'] ) ? $entity['student_address'] : '' );
+        $entity['student_address_street_1']   = $address['street_1'];
+        $entity['student_address_street_2']   = $address['street_2'];
+        $entity['student_address_city']       = $address['city'];
+        $entity['student_address_state']      = $address['state'];
+        $entity['student_address_postal_code'] = $address['postal_code'];
+
+        $representative = $this->decode_representative_field( isset( $entity['their_representative'] ) ? $entity['their_representative'] : '' );
+        $entity['representative_first_name'] = $representative['first_name'];
+        $entity['representative_last_name']  = $representative['last_name'];
+        $entity['representative_email']      = $representative['email'];
+        $entity['representative_phone']      = $representative['phone'];
+
+        $entity['is_a_representative'] = isset( $entity['is_a_representative'] ) ? (string) ( (int) $entity['is_a_representative'] ) : '0';
+
+        $entity['placeholder_1'] = $this->build_student_display_name( $entity );
+        $entity['placeholder_2'] = isset( $entity['email'] ) ? $entity['email'] : '';
+        $entity['placeholder_3'] = isset( $entity['company'] ) ? $entity['company'] : '';
+        $entity['placeholder_4'] = isset( $entity['phone_cell'] ) ? $entity['phone_cell'] : '';
+        $entity['placeholder_5'] = $entity['expiration_date'];
+        $entity['name']          = $entity['placeholder_1'];
+
+        return $entity;
+    }
+
+    private function get_student_history_entries_for_unique_ids( array $unique_ids ) {
+        $unique_ids = array_values(
+            array_filter(
+                $unique_ids,
+                static function( $value ) {
+                    return is_string( $value ) && '' !== $value;
+                }
+            )
+        );
+
+        if ( empty( $unique_ids ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table_name  = $wpdb->prefix . 'teqcidb_studenthistory';
+        $like        = $wpdb->esc_like( $table_name );
+        $found       = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $unique_ids ), '%s' ) );
+        $query        = "SELECT * FROM $table_name WHERE uniquestudentid IN ($placeholders) ORDER BY enrollmentdate DESC, id DESC";
+        $results      = $wpdb->get_results( $wpdb->prepare( $query, $unique_ids ), ARRAY_A );
+        $grouped      = array();
+        $class_map    = $this->get_student_history_class_map( $results );
+
+        if ( is_array( $results ) ) {
+            foreach ( $results as $row ) {
+                if ( ! is_array( $row ) || empty( $row['uniquestudentid'] ) ) {
+                    continue;
+                }
+
+                $unique_id = sanitize_text_field( (string) $row['uniquestudentid'] );
+
+                if ( '' === $unique_id ) {
+                    continue;
+                }
+
+                if ( ! isset( $grouped[ $unique_id ] ) ) {
+                    $grouped[ $unique_id ] = array();
+                }
+
+                $unique_class_id = isset( $row['uniqueclassid'] ) && is_scalar( $row['uniqueclassid'] ) ? (string) $row['uniqueclassid'] : '';
+
+                if ( $unique_class_id && isset( $class_map[ $unique_class_id ] ) ) {
+                    $class_data = $class_map[ $unique_class_id ];
+                    $row['classname']  = isset( $class_data['classname'] ) ? $class_data['classname'] : $row['classname'];
+                    $row['classdate']  = isset( $class_data['classdate'] ) ? $class_data['classdate'] : '';
+                    $row['classtype']  = isset( $class_data['classtype'] ) ? $class_data['classtype'] : '';
+                } else {
+                    $row['classdate'] = '';
+                    $row['classtype'] = '';
+                }
+
+                $grouped[ $unique_id ][] = $row;
+            }
+        }
+
+        return $grouped;
+    }
+
+    private function get_student_history_class_map( array $history_rows ) {
+        $class_ids = array();
+
+        foreach ( $history_rows as $row ) {
+            if ( ! is_array( $row ) || empty( $row['uniqueclassid'] ) ) {
+                continue;
+            }
+
+            if ( is_scalar( $row['uniqueclassid'] ) ) {
+                $class_ids[] = (string) $row['uniqueclassid'];
+            }
+        }
+
+        $class_ids = array_values( array_filter( array_unique( $class_ids ), 'strlen' ) );
+
+        if ( empty( $class_ids ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $table_name  = $wpdb->prefix . 'teqcidb_classes';
+        $like        = $wpdb->esc_like( $table_name );
+        $found       = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $class_ids ), '%s' ) );
+        $query        = "SELECT classname, uniqueclassid, classstartdate, classtype FROM $table_name WHERE uniqueclassid IN ($placeholders)";
+        $results      = $wpdb->get_results( $wpdb->prepare( $query, $class_ids ), ARRAY_A );
+        $map          = array();
+
+        $type_map = array(
+            'initial'   => esc_html__( 'Initial', 'teqcidb' ),
+            'refresher' => esc_html__( 'Refresher', 'teqcidb' ),
+            'hybrid'    => esc_html__( 'Hybrid', 'teqcidb' ),
+            'other'     => esc_html__( 'Other', 'teqcidb' ),
+        );
+
+        if ( is_array( $results ) ) {
+            foreach ( $results as $row ) {
+                if ( empty( $row['uniqueclassid'] ) ) {
+                    continue;
+                }
+
+                $unique_id = sanitize_text_field( (string) $row['uniqueclassid'] );
+                $class_date = $this->format_date_for_response( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' );
+                $class_type = isset( $type_map[ $row['classtype'] ] ) ? $type_map[ $row['classtype'] ] : $row['classtype'];
+
+                $map[ $unique_id ] = array(
+                    'classname' => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+                    'classdate' => $class_date,
+                    'classtype' => sanitize_text_field( (string) $class_type ),
+                );
+            }
+        }
+
+        return $map;
+    }
+
+    private function format_date_for_response( $value ) {
+        if ( empty( $value ) || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        if ( ! $date ) {
+            return '';
+        }
+
+        return $date->format( 'Y-m-d' );
+    }
+
+    private function format_json_field( $value ) {
+        $normalize_items = static function( $list ) {
+            if ( ! is_array( $list ) ) {
+                return array();
+            }
+
+            $normalized = array();
+
+            foreach ( $list as $item ) {
+                if ( is_array( $item ) ) {
+                    if ( isset( $item['label'] ) ) {
+                        $normalized[] = (string) $item['label'];
+                        continue;
+                    }
+
+                    $normalized[] = implode( ' ', array_map( 'strval', $item ) );
+                    continue;
+                }
+
+                if ( is_scalar( $item ) ) {
+                    $normalized[] = (string) $item;
+                }
+            }
+
+            return array_values( array_filter( $normalized, 'strlen' ) );
+        };
+
+        if ( empty( $value ) ) {
+            return wp_json_encode( array() );
+        }
+
+        if ( is_array( $value ) ) {
+            return wp_json_encode( $normalize_items( $value ) );
+        }
+
+        $decoded = json_decode( $value, true );
+
+        if ( is_array( $decoded ) ) {
+            return wp_json_encode( $normalize_items( $decoded ) );
+        }
+
+        return wp_json_encode( array() );
+    }
+
+    private function format_phone_for_response( $value ) {
+        $digits = $this->normalize_phone_digits( $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        return $this->format_digits_as_phone( $digits );
+    }
+
+    private function normalize_phone_digits( $value ) {
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_array( $value ) ) {
+            $value = reset( $value );
+        }
+
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $digits = preg_replace( '/\D+/', '', (string) $value );
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( strlen( $digits ) > 10 && '1' === substr( $digits, 0, 1 ) ) {
+            $digits = substr( $digits, 1 );
+        }
+
+        if ( strlen( $digits ) > 10 ) {
+            $digits = substr( $digits, 0, 10 );
+        }
+
+        return $digits;
+    }
+
+    private function format_digits_as_phone( $digits ) {
+        $digits = (string) $digits;
+
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        if ( 10 !== strlen( $digits ) ) {
+            return $digits;
+        }
+
+        return sprintf(
+            '(%1$s) %2$s-%3$s',
+            substr( $digits, 0, 3 ),
+            substr( $digits, 3, 3 ),
+            substr( $digits, 6, 4 )
+        );
+    }
+
+    private function build_student_display_name( array $entity ) {
+        $first = isset( $entity['first_name'] ) ? $entity['first_name'] : '';
+        $last  = isset( $entity['last_name'] ) ? $entity['last_name'] : '';
+        $name  = trim( $first . ' ' . $last );
+
+        if ( '' !== $name ) {
+            return $name;
+        }
+
+        return isset( $entity['email'] ) ? $entity['email'] : '';
     }
 
     private function decode_list_field( $value ) {

@@ -469,6 +469,94 @@
         }
     });
 
+    const initLockedFieldNotice = () => {
+        const message =
+            settings.lockedFieldMessage ||
+            "This can't be edited! Please contact Ilka Porter (iporter@thompsonengineering.com) to change this info.";
+        const alwaysLockedProfileFieldIds = [
+            'teqcidb-profile-company',
+            'teqcidb-profile-email',
+            'teqcidb-profile-rep-first-name',
+            'teqcidb-profile-rep-last-name',
+            'teqcidb-profile-rep-email',
+            'teqcidb-profile-rep-phone',
+        ];
+        const alwaysLockedStudentFields = [
+            'company',
+            'email',
+            'old_companies',
+            'initial_training_date',
+            'last_refresher_date',
+            'expiration_date',
+            'qcinumber',
+        ];
+
+        const allDashboardFields = Array.from(
+            document.querySelectorAll(
+                '.teqcidb-dashboard .teqcidb-form-field input, .teqcidb-dashboard .teqcidb-form-field select, .teqcidb-dashboard .teqcidb-form-field textarea'
+            )
+        );
+
+        allDashboardFields.forEach((field) => {
+            const fieldWrapper = field.closest('.teqcidb-form-field');
+            if (!fieldWrapper) {
+                return;
+            }
+
+            const isProfileLocked = alwaysLockedProfileFieldIds.includes(field.id)
+                || field.name === 'teqcidb_profile_old_companies[]';
+            const studentFieldKey = field.dataset ? field.dataset.studentField : '';
+            const isAssignedStudentLocked = alwaysLockedStudentFields.includes(studentFieldKey);
+
+            if (isProfileLocked || isAssignedStudentLocked) {
+                fieldWrapper.classList.add('teqcidb-field-is-locked');
+                fieldWrapper.dataset.teqcidbLockedMessage = message;
+                return;
+            }
+
+            fieldWrapper.classList.remove('teqcidb-field-is-locked');
+            delete fieldWrapper.dataset.teqcidbLockedMessage;
+        });
+
+        let hideTimer = null;
+
+        const hideVisibleNotice = () => {
+            document
+                .querySelectorAll('.teqcidb-field-is-locked.is-locked-notice-visible')
+                .forEach((wrapper) => {
+                    wrapper.classList.remove('is-locked-notice-visible');
+                });
+        };
+
+        document.addEventListener('touchstart', (event) => {
+            const wrapper = event.target.closest('.teqcidb-field-is-locked');
+            if (wrapper) {
+                const editingForm = wrapper.closest('form.is-editing');
+                if (!editingForm) {
+                    hideVisibleNotice();
+                    return;
+                }
+
+                hideVisibleNotice();
+                wrapper.classList.add('is-locked-notice-visible');
+
+                if (hideTimer) {
+                    window.clearTimeout(hideTimer);
+                }
+
+                hideTimer = window.setTimeout(() => {
+                    wrapper.classList.remove('is-locked-notice-visible');
+                    hideTimer = null;
+                }, 2600);
+                return;
+            }
+
+            hideVisibleNotice();
+        });
+    };
+
+    initLockedFieldNotice();
+
     const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
 
     const getProfileSnapshot = (fields) => {
@@ -493,6 +581,13 @@
 
     const setProfileFieldsDisabled = (fields, disabled) => {
         fields.forEach((field) => {
+            if (
+                !disabled &&
+                (field.id === 'teqcidb-profile-company' || field.id === 'teqcidb-profile-email' || field.id === 'teqcidb-profile-rep-first-name' || field.id === 'teqcidb-profile-rep-last-name' || field.id === 'teqcidb-profile-rep-email' || field.id === 'teqcidb-profile-rep-phone' || field.name === 'teqcidb_profile_old_companies[]')
+            ) {
+                field.disabled = true;
+                return;
+            }
             field.disabled = disabled;
         });
     };
@@ -503,58 +598,22 @@
             const field = form.querySelector(selector);
             return field ? field.value.trim() : '';
         };
-
-        const originalCompany = form.dataset.originalCompany || '';
-        const updatedCompany = getValue('#teqcidb-profile-company');
-
         data.append('action', settings.profileUpdateAction || 'teqcidb_update_profile');
         data.append('_ajax_nonce', settings.ajaxNonce || '');
         data.append('first_name', getValue('#teqcidb-profile-first-name'));
         data.append('last_name', getValue('#teqcidb-profile-last-name'));
-        data.append('company', getValue('#teqcidb-profile-company'));
         data.append('phone_cell', getValue('#teqcidb-profile-cell-phone'));
         data.append('phone_office', getValue('#teqcidb-profile-office-phone'));
-        data.append('email', getValue('#teqcidb-profile-email'));
         data.append('student_address_street_1', getValue('#teqcidb-profile-street-address'));
         data.append('student_address_street_2', getValue('#teqcidb-profile-street-address-2'));
         data.append('student_address_city', getValue('#teqcidb-profile-city'));
         data.append('student_address_state', getValue('#teqcidb-profile-state'));
         data.append('student_address_postal_code', getValue('#teqcidb-profile-zip'));
-        data.append('representative_first_name', getValue('#teqcidb-profile-rep-first-name'));
-        data.append('representative_last_name', getValue('#teqcidb-profile-rep-last-name'));
-        data.append('representative_email', getValue('#teqcidb-profile-rep-email'));
-        data.append('representative_phone', getValue('#teqcidb-profile-rep-phone'));
 
         form.querySelectorAll('input[name="teqcidb_profile_associations[]"]:checked')
             .forEach((input) => {
                 data.append('associations[]', input.value);
             });
-
-        const oldCompanies = [];
-        form.querySelectorAll('input[name="teqcidb_profile_old_companies[]"]')
-            .forEach((input) => {
-                const value = input.value.trim();
-                if (value) {
-                    oldCompanies.push(value);
-                }
-            });
-
-        if (
-            originalCompany &&
-            updatedCompany &&
-            originalCompany.toLowerCase() !== updatedCompany.toLowerCase()
-        ) {
-            const exists = oldCompanies.some(
-                (value) => value.toLowerCase() === originalCompany.toLowerCase()
-            );
-            if (!exists) {
-                oldCompanies.push(originalCompany);
-            }
-        }
-
-        oldCompanies.forEach((value) => {
-            data.append('old_companies[]', value);
-        });
 
         return data;
     };
@@ -563,11 +622,7 @@
         const requiredSelectors = [
             '#teqcidb-profile-first-name',
             '#teqcidb-profile-last-name',
-            '#teqcidb-profile-company',
-            '#teqcidb-profile-email',
         ];
-        const companyField = form.querySelector('#teqcidb-profile-company');
-        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
             const field = form.querySelector(selector);
@@ -602,16 +657,11 @@
                     );
                     snapshotRef.current = getProfileSnapshot(fields);
                     setProfileFieldsDisabled(fields, true);
+                    form.classList.remove('is-editing');
                     editButton.dataset.editing = 'false';
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
                     saveButton.disabled = true;
-                    if (addOldCompanyButton) {
-                        addOldCompanyButton.disabled = true;
-                    }
-                    if (companyField) {
-                        form.dataset.originalCompany = companyField.value.trim();
-                    }
                 } else {
                     const message =
                         payload && payload.data && payload.data.message
@@ -628,8 +678,6 @@
     profileForms.forEach((form) => {
         const editButton = form.querySelector('[data-teqcidb-profile-edit]');
         const saveButton = form.querySelector('[data-teqcidb-profile-save]');
-        const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
-        const oldCompaniesGrid = form.querySelector('[data-teqcidb-old-companies]');
         const fields = Array.from(
             form.querySelectorAll('input, select, textarea')
         );
@@ -639,39 +687,27 @@
         }
 
         const snapshotRef = { current: getProfileSnapshot(fields) };
-        const companyField = form.querySelector('#teqcidb-profile-company');
-        if (companyField) {
-            form.dataset.originalCompany = companyField.value.trim();
-        }
-        if (addOldCompanyButton) {
-            addOldCompanyButton.disabled = true;
-        }
-
         editButton.addEventListener('click', () => {
             const isEditing = editButton.dataset.editing === 'true';
 
             if (isEditing) {
                 restoreProfileSnapshot(snapshotRef.current);
                 setProfileFieldsDisabled(fields, true);
+                form.classList.remove('is-editing');
                 editButton.dataset.editing = 'false';
                 editButton.textContent =
                     settings.profileEditLabel || 'Edit Profile Info';
                 saveButton.disabled = true;
-                if (addOldCompanyButton) {
-                    addOldCompanyButton.disabled = true;
-                }
                 showFeedback(form, '', false);
                 return;
             }
 
             setProfileFieldsDisabled(fields, false);
+            form.classList.add('is-editing');
             editButton.dataset.editing = 'true';
             editButton.textContent =
                 settings.profileCancelLabel || 'Cancel Editing';
             saveButton.disabled = false;
-            if (addOldCompanyButton) {
-                addOldCompanyButton.disabled = false;
-            }
         });
 
         saveButton.addEventListener('click', () => {
@@ -696,45 +732,903 @@
                 );
             }
         });
-
-        if (addOldCompanyButton && oldCompaniesGrid) {
-            addOldCompanyButton.addEventListener('click', () => {
-                const countValue = parseInt(
-                    oldCompaniesGrid.dataset.oldCompanyCount || '0',
-                    10
-                );
-                const nextIndex = Number.isNaN(countValue) ? 1 : countValue + 1;
-                oldCompaniesGrid.dataset.oldCompanyCount = nextIndex.toString();
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'teqcidb-form-field';
-
-                const label = document.createElement('label');
-                label.className = 'screen-reader-text';
-                label.setAttribute('for', `teqcidb-profile-old-company-${nextIndex}`);
-                const labelBase =
-                    settings.oldCompanyLabel || 'Previous Company';
-                label.textContent = `${labelBase} ${nextIndex}`;
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.id = `teqcidb-profile-old-company-${nextIndex}`;
-                input.name = 'teqcidb_profile_old_companies[]';
-                input.autocomplete = 'organization';
-
-                wrapper.appendChild(label);
-                wrapper.appendChild(input);
-                oldCompaniesGrid.appendChild(wrapper);
-
-                const emptyMessage = form.querySelector(
-                    '.teqcidb-profile-old-companies .teqcidb-dashboard-empty'
-                );
-                if (emptyMessage) {
-                    emptyMessage.remove();
-                }
-            });
-        }
     });
+
+    const studentSearchSettings = settings.studentSearch || {};
+
+    const parseJsonList = (value) => {
+        if (!value || typeof value !== 'string') {
+            return null;
+        }
+
+        if (!value.trim().startsWith('[')) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const formatStudentValue = (value, key) => {
+        const emptyValue = studentSearchSettings.emptyValue || '—';
+
+        if (key === 'is_a_representative') {
+            const boolLabels = studentSearchSettings.booleanLabels || {};
+            if (typeof value === 'string' && value in boolLabels) {
+                return boolLabels[value];
+            }
+        }
+
+        const parsedList = parseJsonList(value);
+        if (parsedList) {
+            return parsedList.length ? parsedList.join(', ') : emptyValue;
+        }
+
+        if (Array.isArray(value)) {
+            return value.length ? value.join(', ') : emptyValue;
+        }
+
+        if (value === null || typeof value === 'undefined') {
+            return emptyValue;
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? trimmed : emptyValue;
+        }
+
+        return value;
+    };
+
+    const buildStudentDetails = (entity) => {
+        const detailFields = studentSearchSettings.detailFields || [];
+        const wrapper = document.createElement('div');
+        wrapper.className = 'teqcidb-student-details';
+
+        const heading = document.createElement('h4');
+        heading.className = 'teqcidb-student-details-heading';
+        heading.textContent =
+            studentSearchSettings.detailsHeading || 'Student Information';
+        wrapper.appendChild(heading);
+
+        const detailsGrid = document.createElement('dl');
+        detailsGrid.className = 'teqcidb-student-details-grid';
+
+        detailFields.forEach((field) => {
+            if (!field || !field.key) {
+                return;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'teqcidb-student-details-item';
+
+            const label = document.createElement('dt');
+            label.textContent = field.label || field.key;
+
+            const value = document.createElement('dd');
+            value.textContent = formatStudentValue(entity[field.key], field.key);
+
+            row.appendChild(label);
+            row.appendChild(value);
+            detailsGrid.appendChild(row);
+        });
+
+        wrapper.appendChild(detailsGrid);
+
+        return wrapper;
+    };
+
+    const buildStudentHistory = (entity) => {
+        const historyWrapper = document.createElement('div');
+        historyWrapper.className = 'teqcidb-student-history';
+
+        const heading = document.createElement('h4');
+        heading.className = 'teqcidb-student-history-heading';
+        heading.textContent =
+            studentSearchSettings.historyHeading || 'Student History';
+        historyWrapper.appendChild(heading);
+
+        const historyEntries = Array.isArray(entity.studenthistory)
+            ? entity.studenthistory
+            : [];
+
+        if (!historyEntries.length) {
+            const empty = document.createElement('p');
+            empty.className = 'teqcidb-student-history-empty';
+            empty.textContent =
+                studentSearchSettings.historyEmpty ||
+                'No student history entries were found.';
+            historyWrapper.appendChild(empty);
+            return historyWrapper;
+        }
+
+        const historyList = document.createElement('div');
+        historyList.className = 'teqcidb-student-history-list';
+
+        const historyFields = studentSearchSettings.historyFields || [];
+        const formatHistoryDate = (value) => {
+            if (typeof value !== 'string') {
+                return value;
+            }
+
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) {
+                return value;
+            }
+
+            return `${match[2]}-${match[3]}-${match[1]}`;
+        };
+
+        const formatHistoryValue = (value, key) => {
+            const formatted = formatStudentValue(value, key);
+            if (typeof formatted !== 'string') {
+                return formatted;
+            }
+
+            let updated = formatted;
+            if (key && key.toLowerCase().includes('date')) {
+                updated = formatHistoryDate(updated);
+            }
+
+            if (updated && updated === updated.toLowerCase()) {
+                updated = updated.charAt(0).toUpperCase() + updated.slice(1);
+            }
+
+            return updated;
+        };
+
+        historyEntries.forEach((entry, index) => {
+            const card = document.createElement('article');
+            card.className = 'teqcidb-student-history-card';
+
+            const headerButton = document.createElement('button');
+            headerButton.type = 'button';
+            headerButton.className = 'teqcidb-student-history-summary';
+            headerButton.setAttribute('aria-expanded', 'false');
+
+            const titleWrap = document.createElement('span');
+            titleWrap.className = 'teqcidb-student-history-summary-main';
+
+            const className = formatHistoryValue(entry.classname, 'classname');
+            const enrollmentDate = formatHistoryValue(entry.enrollmentdate, 'enrollmentdate');
+            const titleTemplate =
+                studentSearchSettings.historyEntryTitle || 'History Entry %s';
+
+            const classNameLabel = document.createElement('span');
+            classNameLabel.className = 'teqcidb-student-history-summary-title';
+            classNameLabel.textContent = className === (studentSearchSettings.emptyValue || '—')
+                ? titleTemplate.replace('%s', (index + 1).toString())
+                : className;
+
+            const enrollmentLabel = document.createElement('span');
+            enrollmentLabel.className = 'teqcidb-student-history-summary-meta';
+            const enrollmentText = studentSearchSettings.historyEnrollmentDateLabel || 'Enrollment Date';
+            enrollmentLabel.textContent = `${enrollmentText}: ${enrollmentDate}`;
+
+            titleWrap.appendChild(classNameLabel);
+            titleWrap.appendChild(enrollmentLabel);
+
+            const indicator = document.createElement('span');
+            indicator.className = 'teqcidb-student-history-summary-indicator';
+            indicator.setAttribute('aria-hidden', 'true');
+            indicator.textContent = '▾';
+
+            headerButton.appendChild(titleWrap);
+            headerButton.appendChild(indicator);
+
+            const cardBody = document.createElement('div');
+            cardBody.className = 'teqcidb-student-history-body';
+            cardBody.hidden = true;
+
+            const cardGrid = document.createElement('dl');
+            cardGrid.className = 'teqcidb-student-history-grid';
+
+            historyFields.forEach((field) => {
+                if (!field || !field.key) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'teqcidb-student-history-item';
+
+                const label = document.createElement('dt');
+                label.textContent = field.label || field.key;
+
+                const value = document.createElement('dd');
+                value.textContent = formatHistoryValue(entry[field.key], field.key);
+
+                row.appendChild(label);
+                row.appendChild(value);
+                cardGrid.appendChild(row);
+            });
+
+            cardBody.appendChild(cardGrid);
+
+            headerButton.addEventListener('click', () => {
+                const isOpen = headerButton.getAttribute('aria-expanded') === 'true';
+                headerButton.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                card.classList.toggle('is-open', !isOpen);
+                cardBody.hidden = isOpen;
+            });
+
+            card.appendChild(headerButton);
+            card.appendChild(cardBody);
+            historyList.appendChild(card);
+        });
+
+        historyWrapper.appendChild(historyList);
+        return historyWrapper;
+    };
+    const getEntityListValues = (value) => {
+        const parsed = parseJsonList(value);
+        if (parsed) {
+            return parsed;
+        }
+
+        if (Array.isArray(value)) {
+            return value.filter((entry) => typeof entry === 'string' && entry.trim());
+        }
+
+        return [];
+    };
+
+    const resolveAssignedStudentStateValue = (stateValue, options) => {
+        const normalized = typeof stateValue === 'string' ? stateValue.trim() : '';
+        if (!normalized || !Array.isArray(options) || !options.length) {
+            return normalized;
+        }
+
+        const optionValues = new Set(options.map((option) => option.value));
+        if (optionValues.has(normalized)) {
+            return normalized;
+        }
+
+        const stateCodes = {
+            AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+            CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
+            HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas',
+            KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts',
+            MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+            NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico',
+            NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+            OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
+            SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont',
+            VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+        };
+
+        const upperCode = normalized.toUpperCase();
+        if (Object.prototype.hasOwnProperty.call(stateCodes, upperCode)) {
+            const mapped = stateCodes[upperCode];
+            if (optionValues.has(mapped)) {
+                return mapped;
+            }
+        }
+
+        const matchingOption = options.find((option) =>
+            typeof option.label === 'string' && option.label.toLowerCase() === normalized.toLowerCase()
+        );
+
+        return matchingOption ? matchingOption.value : normalized;
+    };
+
+    const buildAssignedStudentForm = (entity) => {
+        const form = document.createElement('form');
+        form.className = 'teqcidb-profile-form teqcidb-assigned-student-form';
+        form.setAttribute('data-teqcidb-assigned-form', 'true');
+        form.dataset.studentId = entity.id ? String(entity.id) : '';
+
+        const createField = ({ label, key, type = 'text', options = null, autocomplete = '', value = '' }) => {
+            const field = document.createElement('div');
+            field.className = 'teqcidb-form-field';
+
+            const inputId = `teqcidb-assigned-${form.dataset.studentId || 'student'}-${key}`;
+
+            const labelEl = document.createElement('label');
+            labelEl.setAttribute('for', inputId);
+            labelEl.textContent = label;
+
+            let input;
+            if (Array.isArray(options)) {
+                input = document.createElement('select');
+                options.forEach((option) => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = option.value;
+                    optionEl.textContent = option.label;
+                    input.appendChild(optionEl);
+                });
+                input.value = value || '';
+            } else {
+                input = document.createElement('input');
+                input.type = type;
+                input.value = value || '';
+            }
+
+            input.id = inputId;
+            input.disabled = true;
+            input.dataset.studentField = key;
+            input.dataset.initialValue = input.value;
+            if (autocomplete) {
+                input.autocomplete = autocomplete;
+            }
+
+            if (input.tagName === 'INPUT' && input.type === 'tel') {
+                applyPhoneMask(input);
+                input.addEventListener('input', () => applyPhoneMask(input));
+                input.addEventListener('blur', () => applyPhoneMask(input));
+            }
+
+            field.appendChild(labelEl);
+            field.appendChild(input);
+
+            return field;
+        };
+
+        const formGrid = document.createElement('div');
+        formGrid.className = 'teqcidb-form-grid';
+
+        const stateOptions = [{ value: '', label: studentSearchSettings.emptySelectLabel || 'Make a selection' }]
+            .concat((studentSearchSettings.stateOptions || []).map((state) => ({ value: state, label: state })));
+        const fields = [
+            { label: 'First Name', key: 'first_name', autocomplete: 'given-name' },
+            { label: 'Last Name', key: 'last_name', autocomplete: 'family-name' },
+            { label: 'Company', key: 'company', autocomplete: 'organization' },
+            { label: 'Cell Phone', key: 'phone_cell', type: 'tel', autocomplete: 'tel' },
+            { label: 'Office Phone', key: 'phone_office', type: 'tel', autocomplete: 'tel' },
+            { label: 'Email', key: 'email', type: 'email', autocomplete: 'email' },
+            { label: 'Street Address', key: 'student_address_street_1', autocomplete: 'street-address' },
+            { label: 'Address Line 2', key: 'student_address_street_2', autocomplete: 'address-line2' },
+            { label: 'City', key: 'student_address_city', autocomplete: 'address-level2' },
+            { label: 'State', key: 'student_address_state', options: stateOptions, autocomplete: 'address-level1' },
+            { label: 'Zip Code', key: 'student_address_postal_code', autocomplete: 'postal-code' },
+            { label: 'Fax', key: 'fax', type: 'tel' },
+            { label: 'Initial Training Date', key: 'initial_training_date', type: 'date' },
+            { label: 'Last Refresher Date', key: 'last_refresher_date', type: 'date' },
+            { label: 'Expiration Date', key: 'expiration_date', type: 'date' },
+            { label: 'QCI Number', key: 'qcinumber' },
+        ];
+
+        fields.forEach((fieldConfig) => {
+            let value = entity[fieldConfig.key] || '';
+            if (fieldConfig.key === 'student_address_state') {
+                value = resolveAssignedStudentStateValue(value, stateOptions);
+            }
+            formGrid.appendChild(createField({ ...fieldConfig, value }));
+        });
+
+        form.appendChild(formGrid);
+
+        const oldCompaniesFieldset = document.createElement('fieldset');
+        oldCompaniesFieldset.className = 'teqcidb-form-fieldset teqcidb-profile-old-companies';
+        const oldCompaniesLegend = document.createElement('legend');
+        oldCompaniesLegend.textContent = studentSearchSettings.oldCompaniesLegend || 'Previous Companies';
+        oldCompaniesFieldset.appendChild(oldCompaniesLegend);
+
+        const oldCompanies = getEntityListValues(entity.old_companies);
+
+        if (!oldCompanies.length) {
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'teqcidb-dashboard-empty';
+            emptyMessage.textContent =
+                studentSearchSettings.oldCompaniesEmpty || 'No previous companies.';
+            oldCompaniesFieldset.appendChild(emptyMessage);
+        }
+
+        const oldCompaniesGrid = document.createElement('div');
+        oldCompaniesGrid.className = 'teqcidb-form-grid';
+        oldCompaniesGrid.dataset.teqcidbAssignedOldCompanies = 'true';
+        const oldCompanyValues = oldCompanies;
+        oldCompanyValues.forEach((company, index) => {
+            const companyField = createField({
+                label: `${studentSearchSettings.oldCompanyLabel || 'Previous Company'} ${index + 1}`,
+                key: `old_company_${index + 1}`,
+                value: company,
+                autocomplete: 'organization',
+            });
+
+            const input = companyField.querySelector('input,select,textarea');
+            if (input) {
+                input.dataset.studentField = 'old_companies';
+                input.dataset.listField = 'true';
+            }
+
+            oldCompaniesGrid.appendChild(companyField);
+        });
+
+        oldCompaniesFieldset.appendChild(oldCompaniesGrid);
+
+        form.appendChild(oldCompaniesFieldset);
+
+        const associationsFieldset = document.createElement('fieldset');
+        associationsFieldset.className = 'teqcidb-form-fieldset teqcidb-profile-associations';
+        const associationsLegend = document.createElement('legend');
+        associationsLegend.textContent = studentSearchSettings.associationsLegend || 'Affiliated Associations';
+        associationsFieldset.appendChild(associationsLegend);
+
+        const checkboxGrid = document.createElement('div');
+        checkboxGrid.className = 'teqcidb-checkbox-grid';
+
+        const selectedAssociations = getEntityListValues(entity.associations);
+        const associationOptions = studentSearchSettings.associationOptions || ['AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA'];
+
+        associationOptions.forEach((option) => {
+            const key = typeof option === 'string' ? option : option.value;
+            const label = typeof option === 'string' ? option : option.label;
+            const checkboxId = `teqcidb-assigned-${form.dataset.studentId || 'student'}-association-${String(key).toLowerCase()}`;
+
+            const wrapper = document.createElement('label');
+            wrapper.className = 'teqcidb-checkbox';
+            wrapper.setAttribute('for', checkboxId);
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = checkboxId;
+            input.value = key;
+            input.dataset.studentField = 'associations';
+            input.dataset.listField = 'true';
+            input.checked = selectedAssociations.includes(key);
+            input.disabled = true;
+
+            const span = document.createElement('span');
+            span.textContent = label;
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(span);
+            checkboxGrid.appendChild(wrapper);
+        });
+
+        associationsFieldset.appendChild(checkboxGrid);
+        form.appendChild(associationsFieldset);
+
+        const actions = document.createElement('div');
+        actions.className = 'teqcidb-profile-actions teqcidb-student-edit';
+
+        const editButton = document.createElement('button');
+        editButton.className = 'teqcidb-button teqcidb-button-primary';
+        editButton.type = 'button';
+        editButton.dataset.teqcidbEditStudent = 'true';
+        editButton.textContent = studentSearchSettings.editLabel || 'Edit This Student';
+
+        const saveButton = document.createElement('button');
+        saveButton.className = 'teqcidb-button teqcidb-button-secondary';
+        saveButton.type = 'button';
+        saveButton.dataset.teqcidbSaveStudent = 'true';
+        saveButton.textContent = studentSearchSettings.saveLabel || 'Save Changes';
+        saveButton.disabled = true;
+
+        const feedback = document.createElement('div');
+        feedback.className = 'teqcidb-form-feedback';
+        feedback.setAttribute('aria-live', 'polite');
+
+        const spinner = document.createElement('span');
+        spinner.className = 'teqcidb-spinner';
+        spinner.setAttribute('aria-hidden', 'true');
+
+        const message = document.createElement('span');
+        message.className = 'teqcidb-form-message';
+
+        feedback.appendChild(spinner);
+        feedback.appendChild(message);
+
+        actions.appendChild(editButton);
+        actions.appendChild(saveButton);
+        actions.appendChild(feedback);
+        form.appendChild(actions);
+
+        return form;
+    };
+
+    const renderStudentResults = (tbody, entities, columnCount, options = {}) => {
+        tbody.innerHTML = '';
+
+        if (!entities.length) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.className = 'no-items';
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = columnCount;
+            emptyCell.textContent =
+                studentSearchSettings.assignedEmpty ||
+                'No students are currently assigned to you.';
+            emptyRow.appendChild(emptyCell);
+            tbody.appendChild(emptyRow);
+            return;
+        }
+
+        const summaryFields = studentSearchSettings.summaryFields || [];
+        entities.forEach((entity) => {
+            const entityId = entity.id || Math.random().toString(36).slice(2);
+            const headerId = `teqcidb-student-${entityId}-header`;
+            const panelId = `teqcidb-student-${entityId}-panel`;
+
+            const summaryRow = document.createElement('tr');
+            summaryRow.id = headerId;
+            summaryRow.className = 'teqcidb-accordion__summary-row';
+            summaryRow.setAttribute('tabindex', '0');
+            summaryRow.setAttribute('role', 'button');
+            summaryRow.setAttribute('aria-expanded', 'false');
+            summaryRow.setAttribute('aria-controls', panelId);
+
+            summaryFields.forEach((fieldKey, index) => {
+                const cell = document.createElement('td');
+                const cellClass =
+                    index === 0
+                        ? 'teqcidb-accordion__cell teqcidb-accordion__cell--title'
+                        : 'teqcidb-accordion__cell teqcidb-accordion__cell--meta';
+                cell.className = cellClass;
+
+                if (index === 0) {
+                    const titleText = document.createElement('span');
+                    titleText.className = 'teqcidb-accordion__title-text';
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'teqcidb-accordion__meta-value';
+                    valueSpan.textContent = formatStudentValue(
+                        entity[fieldKey],
+                        fieldKey
+                    );
+                    titleText.appendChild(valueSpan);
+                    cell.appendChild(titleText);
+                } else {
+                    const metaText = document.createElement('span');
+                    metaText.className = 'teqcidb-accordion__meta-text';
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'teqcidb-accordion__meta-value';
+                    valueSpan.textContent = formatStudentValue(
+                        entity[fieldKey],
+                        fieldKey
+                    );
+                    metaText.appendChild(valueSpan);
+                    cell.appendChild(metaText);
+                }
+
+                summaryRow.appendChild(cell);
+            });
+            tbody.appendChild(summaryRow);
+
+            const panelRow = document.createElement('tr');
+            panelRow.id = panelId;
+            panelRow.className = 'teqcidb-accordion__panel-row';
+            panelRow.setAttribute('role', 'region');
+            panelRow.setAttribute('aria-labelledby', headerId);
+            panelRow.setAttribute('aria-hidden', 'true');
+            panelRow.hidden = true;
+
+            const panelCell = document.createElement('td');
+            panelCell.colSpan = columnCount;
+            const panel = document.createElement('div');
+            panel.className = 'teqcidb-accordion__panel';
+
+            if (options.editable) {
+                panel.appendChild(buildAssignedStudentForm(entity));
+                panel.appendChild(buildStudentHistory(entity));
+            } else {
+                panel.appendChild(buildStudentDetails(entity));
+                panel.appendChild(buildStudentHistory(entity));
+            }
+
+            panelCell.appendChild(panel);
+            panelRow.appendChild(panelCell);
+            tbody.appendChild(panelRow);
+        });
+    };
+    const setEditFeedback = (wrapper, message, isLoading) => {
+        if (!wrapper) {
+            return;
+        }
+
+        const hideTimer = wrapper._teqcidbEditFeedbackHideTimer;
+        if (hideTimer) {
+            window.clearTimeout(hideTimer);
+            wrapper._teqcidbEditFeedbackHideTimer = null;
+        }
+
+        const feedback = wrapper.querySelector('.teqcidb-form-feedback');
+        if (!feedback) {
+            return;
+        }
+        const feedbackMessage = feedback.querySelector('.teqcidb-form-message');
+        if (feedbackMessage) {
+            feedbackMessage.textContent = message || '';
+        }
+        feedback.classList.toggle('is-visible', Boolean(message) || isLoading);
+        feedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const setTimedEditFeedback = (wrapper, message, durationMs = 5000) => {
+        setEditFeedback(wrapper, message, false);
+
+        if (!wrapper || !message) {
+            return;
+        }
+
+        wrapper._teqcidbEditFeedbackHideTimer = window.setTimeout(() => {
+            setEditFeedback(wrapper, '', false);
+            wrapper._teqcidbEditFeedbackHideTimer = null;
+        }, durationMs);
+    };
+    const resetStudentDetails = (panel) => {
+        panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            if (!Object.prototype.hasOwnProperty.call(input.dataset, 'initialValue')) {
+                return;
+            }
+
+            if (input.type === 'checkbox') {
+                input.checked = input.dataset.initialValue === '1';
+                return;
+            }
+
+            input.value = input.dataset.initialValue;
+        });
+    };
+
+    const setStudentDetailsEditable = (panel, editable) => {
+        panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            if (
+                input.dataset.studentField === 'company' ||
+                input.dataset.studentField === 'email' ||
+                input.dataset.studentField === 'old_companies' ||
+                input.dataset.studentField === 'initial_training_date' ||
+                input.dataset.studentField === 'last_refresher_date' ||
+                input.dataset.studentField === 'expiration_date' ||
+                input.dataset.studentField === 'qcinumber'
+            ) {
+                input.disabled = true;
+                return;
+            }
+            input.disabled = !editable;
+        });
+    };
+
+    const resetAssignedStudentEditState = (panel) => {
+        if (!panel) {
+            return;
+        }
+
+        setStudentDetailsEditable(panel, false);
+
+        const editButton = panel.querySelector('[data-teqcidb-edit-student]');
+        const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+        const form = panel.querySelector('[data-teqcidb-assigned-form]');
+
+        if (form) {
+            form.classList.remove('is-editing');
+        }
+
+        if (editButton) {
+            editButton.removeAttribute('data-editing');
+            editButton.textContent = studentSearchSettings.editLabel || 'Edit This Student';
+        }
+
+        if (saveButton) {
+            saveButton.disabled = true;
+        }
+    };
+
+    const handleSaveStudent = async (button) => {
+        const form = button.closest('[data-teqcidb-assigned-form]');
+        const panel = button.closest('.teqcidb-accordion__panel');
+        const wrapper = button.closest('.teqcidb-student-edit');
+        const studentId = button.dataset.studentId || (form ? form.dataset.studentId : '');
+        const action = studentSearchSettings.saveAction || 'teqcidb_save_student';
+
+        if (!form || !panel || !studentId) {
+            setEditFeedback(
+                wrapper,
+                studentSearchSettings.saveError ||
+                    'Unable to save student details right now. Please try again.',
+                false
+            );
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('_ajax_nonce', settings.ajaxNonce || '');
+        formData.append('id', studentId);
+
+        form.querySelectorAll('[data-student-field]').forEach((input) => {
+            const key = input.dataset.studentField;
+            if (!key) {
+                return;
+            }
+
+            if (
+                input.dataset.listField === 'true' ||
+                key === 'company' ||
+                key === 'email' ||
+                key === 'initial_training_date' ||
+                key === 'last_refresher_date' ||
+                key === 'expiration_date' ||
+                key === 'qcinumber'
+            ) {
+                return;
+            }
+
+            const value = input.value.trim();
+            formData.append(key, value);
+        });
+
+        form.querySelectorAll('[data-student-field="associations"]').forEach((input) => {
+            if (input.type === 'checkbox' && input.checked) {
+                formData.append('associations[]', input.value);
+            }
+        });
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        setEditFeedback(wrapper, '', true);
+
+        try {
+            const response = await fetch(settings.ajaxUrl || '', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            });
+
+            const payload = await response.json();
+            if (payload && payload.success) {
+                form.querySelectorAll('[data-student-field]').forEach((input) => {
+                    if (input.type === 'checkbox') {
+                        input.dataset.initialValue = input.checked ? '1' : '0';
+                    } else {
+                        input.dataset.initialValue = input.value;
+                    }
+                });
+                resetAssignedStudentEditState(panel);
+                setTimedEditFeedback(
+                    wrapper,
+                    (payload.data && payload.data.message) ||
+                        studentSearchSettings.saveSuccess ||
+                        'Student details updated.',
+                    5000
+                );
+            } else {
+                setEditFeedback(
+                    wrapper,
+                    (payload && payload.data && payload.data.message) ||
+                        studentSearchSettings.saveError ||
+                        'Unable to save student details right now. Please try again.',
+                    false
+                );
+            }
+        } catch (error) {
+            setEditFeedback(
+                wrapper,
+                studentSearchSettings.saveError ||
+                    'Unable to save student details right now. Please try again.',
+                false
+            );
+        } finally {
+            const editButton = panel ? panel.querySelector('[data-teqcidb-edit-student]') : null;
+            const isEditing = editButton && editButton.dataset.editing === 'true';
+            button.disabled = !isEditing;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
+    const toggleStudentAccordion = (summaryRow) => {
+        if (!summaryRow) {
+            return;
+        }
+
+        const panelId = summaryRow.getAttribute('aria-controls');
+        if (!panelId) {
+            return;
+        }
+
+        const panelRow = document.getElementById(panelId);
+        if (!panelRow) {
+            return;
+        }
+
+        const isOpen = summaryRow.classList.contains('is-open');
+        summaryRow.classList.toggle('is-open', !isOpen);
+        summaryRow.setAttribute('aria-expanded', (!isOpen).toString());
+        panelRow.hidden = isOpen;
+        panelRow.setAttribute('aria-hidden', isOpen.toString());
+    };
+
+    const initAssignedStudents = () => {
+        const assignedSection = document.querySelector('[data-teqcidb-assigned-students]');
+        if (!assignedSection) {
+            return;
+        }
+
+        const assignedList = assignedSection.querySelector('[data-teqcidb-assigned-list]');
+        const emptyMessage = assignedSection.querySelector('[data-teqcidb-assigned-empty]');
+        if (!assignedList) {
+            return;
+        }
+
+        const assignedStudents = Array.isArray(studentSearchSettings.assignedStudents)
+            ? studentSearchSettings.assignedStudents
+            : [];
+        const columnCount = (studentSearchSettings.summaryFields || []).length;
+
+        renderStudentResults(assignedList, assignedStudents, columnCount, {
+            editable: true,
+        });
+
+        if (emptyMessage) {
+            if (assignedStudents.length) {
+                emptyMessage.hidden = true;
+            } else {
+                emptyMessage.textContent =
+                    studentSearchSettings.assignedEmpty ||
+                    'No students are currently assigned to you.';
+                emptyMessage.hidden = false;
+            }
+        }
+
+        assignedList.addEventListener('click', (event) => {
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            toggleStudentAccordion(row);
+        });
+
+        assignedList.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            const row = event.target.closest('.teqcidb-accordion__summary-row');
+            if (!row) {
+                return;
+            }
+            event.preventDefault();
+            toggleStudentAccordion(row);
+        });
+
+        assignedSection.addEventListener('click', (event) => {
+            const editButton = event.target.closest('[data-teqcidb-edit-student]');
+            if (editButton) {
+                event.preventDefault();
+                const panel = editButton.closest('.teqcidb-accordion__panel');
+                if (!panel) {
+                    return;
+                }
+                const isEditing = editButton.dataset.editing === 'true';
+                const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+                const form = panel.querySelector('[data-teqcidb-assigned-form]');
+                if (isEditing) {
+                    setStudentDetailsEditable(panel, false);
+                    resetStudentDetails(panel);
+                    if (form) {
+                        form.classList.remove('is-editing');
+                    }
+                    editButton.dataset.editing = 'false';
+                    editButton.textContent =
+                        studentSearchSettings.editLabel || 'Edit This Student';
+                    if (saveButton) {
+                        saveButton.disabled = true;
+                    }
+                } else {
+                    setStudentDetailsEditable(panel, true);
+                    if (form) {
+                        form.classList.add('is-editing');
+                    }
+                    editButton.dataset.editing = 'true';
+                    editButton.textContent =
+                        studentSearchSettings.editCancelLabel || 'Cancel Editing';
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                    }
+                }
+                return;
+            }
+
+            const saveButton = event.target.closest('[data-teqcidb-save-student]');
+            if (saveButton) {
+                event.preventDefault();
+                handleSaveStudent(saveButton);
+            }
+        });
+    };
+
+    initAssignedStudents();
 
     const countdownLabels = settings.countdownLabels || {};
 
