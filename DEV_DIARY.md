@@ -230,3 +230,4 @@
 227. 2026-02-14: Added a locked-field helper tooltip/message across the dashboard so hovering or touching non-editable fields explains how to request updates from Ilka Porter.
 228. 2026-02-14: Scoped locked-field helper tooltips to edit mode only so non-editable field notices appear only after entering Profile Info or assigned-student editing.
 229. 2026-02-14: Limited edit-mode locked-field tooltips to only permanently non-editable dashboard fields (company/email/representative contact fields, previous companies, and locked assigned-student date/QCI fields).
+230. 2026-02-14: Added the new [teqcidb_student_registration_shortcode] front-end shortcode, reusing the existing student dashboard login/create-account UI for logged-out visitors and a logged-in placeholder for upcoming class registration content.

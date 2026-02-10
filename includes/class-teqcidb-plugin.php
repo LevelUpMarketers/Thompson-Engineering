@@ -12,6 +12,7 @@ class TEQCIDB_Plugin {
     private $ajax;
     private $shortcode;
     private $dashboard_shortcode;
+    private $registration_shortcode;
     private $block;
     private $content_logger;
     private $cron_manager;
@@ -23,6 +24,7 @@ class TEQCIDB_Plugin {
         $this->ajax     = new TEQCIDB_Ajax();
         $this->shortcode = new TEQCIDB_Shortcode_Student();
         $this->dashboard_shortcode = new TEQCIDB_Shortcode_Student_Dashboard();
+        $this->registration_shortcode = new TEQCIDB_Shortcode_Student_Registration( $this->dashboard_shortcode );
         $this->block     = new TEQCIDB_Block_Student();
         $this->content_logger = new TEQCIDB_Content_Logger();
         $this->cron_manager   = new TEQCIDB_Cron_Manager();
@@ -41,6 +43,7 @@ class TEQCIDB_Plugin {
         $this->ajax->register();
         $this->shortcode->register();
         $this->dashboard_shortcode->register();
+        $this->registration_shortcode->register();
         $this->block->register();
         $this->content_logger->register();
         $this->cron_manager->register();
