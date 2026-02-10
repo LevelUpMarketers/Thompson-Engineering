@@ -484,9 +484,6 @@
 
         const lockedFields = Array.from(document.querySelectorAll(lockedSelector));
         lockedFields.forEach((field) => {
-            field.setAttribute('title', message);
-            field.setAttribute('aria-label', message);
-
             const fieldWrapper = field.closest('.teqcidb-form-field');
             if (!fieldWrapper) {
                 return;
@@ -509,6 +506,12 @@
         document.addEventListener('touchstart', (event) => {
             const wrapper = event.target.closest('.teqcidb-field-is-locked');
             if (wrapper) {
+                const editingForm = wrapper.closest('form.is-editing');
+                if (!editingForm) {
+                    hideVisibleNotice();
+                    return;
+                }
+
                 hideVisibleNotice();
                 wrapper.classList.add('is-locked-notice-visible');
 
@@ -629,6 +632,7 @@
                     );
                     snapshotRef.current = getProfileSnapshot(fields);
                     setProfileFieldsDisabled(fields, true);
+                    form.classList.remove('is-editing');
                     editButton.dataset.editing = 'false';
                     editButton.textContent =
                         settings.profileEditLabel || 'Edit Profile Info';
@@ -664,6 +668,7 @@
             if (isEditing) {
                 restoreProfileSnapshot(snapshotRef.current);
                 setProfileFieldsDisabled(fields, true);
+                form.classList.remove('is-editing');
                 editButton.dataset.editing = 'false';
                 editButton.textContent =
                     settings.profileEditLabel || 'Edit Profile Info';
@@ -673,6 +678,7 @@
             }
 
             setProfileFieldsDisabled(fields, false);
+            form.classList.add('is-editing');
             editButton.dataset.editing = 'true';
             editButton.textContent =
                 settings.profileCancelLabel || 'Cancel Editing';
@@ -1359,6 +1365,11 @@
 
         const editButton = panel.querySelector('[data-teqcidb-edit-student]');
         const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+        const form = panel.querySelector('[data-teqcidb-assigned-form]');
+
+        if (form) {
+            form.classList.remove('is-editing');
+        }
 
         if (editButton) {
             editButton.removeAttribute('data-editing');
@@ -1556,9 +1567,13 @@
                 }
                 const isEditing = editButton.dataset.editing === 'true';
                 const saveButton = panel.querySelector('[data-teqcidb-save-student]');
+                const form = panel.querySelector('[data-teqcidb-assigned-form]');
                 if (isEditing) {
                     setStudentDetailsEditable(panel, false);
                     resetStudentDetails(panel);
+                    if (form) {
+                        form.classList.remove('is-editing');
+                    }
                     editButton.dataset.editing = 'false';
                     editButton.textContent =
                         studentSearchSettings.editLabel || 'Edit This Student';
@@ -1567,6 +1582,9 @@
                     }
                 } else {
                     setStudentDetailsEditable(panel, true);
+                    if (form) {
+                        form.classList.add('is-editing');
+                    }
                     editButton.dataset.editing = 'true';
                     editButton.textContent =
                         studentSearchSettings.editCancelLabel || 'Cancel Editing';

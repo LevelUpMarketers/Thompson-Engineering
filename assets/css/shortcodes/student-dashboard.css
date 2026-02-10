@@ -330,8 +330,10 @@
     z-index: 20;
 }
 
-.teqcidb-form-field.teqcidb-field-is-locked:hover::after,
-.teqcidb-form-field.teqcidb-field-is-locked.is-locked-notice-visible::after {
+.teqcidb-profile-form.is-editing .teqcidb-form-field.teqcidb-field-is-locked:hover::after,
+.teqcidb-profile-form.is-editing .teqcidb-form-field.teqcidb-field-is-locked.is-locked-notice-visible::after,
+.teqcidb-assigned-student-form.is-editing .teqcidb-form-field.teqcidb-field-is-locked:hover::after,
+.teqcidb-assigned-student-form.is-editing .teqcidb-form-field.teqcidb-field-is-locked.is-locked-notice-visible::after {
     opacity: 1;
     transform: translateY(0);
     visibility: visible;
