@@ -506,7 +506,7 @@ class TEQCIDB_Ajax {
         $table = $wpdb->prefix . 'teqcidb_students';
         $row   = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, their_representative FROM $table WHERE wpuserid = %d LIMIT 1",
+                "SELECT id FROM $table WHERE wpuserid = %d LIMIT 1",
                 $current_user->ID
             ),
             ARRAY_A
@@ -531,22 +531,6 @@ class TEQCIDB_Ajax {
             'associations'    => $this->sanitize_associations_value( 'associations', $association_options ),
         );
 
-        if ( isset( $_POST['representative_first_name'] ) ) {
-            $existing_representative = $this->decode_representative_contact_field(
-                isset( $row['their_representative'] ) ? $row['their_representative'] : ''
-            );
-
-            $data['their_representative'] = wp_json_encode(
-                array(
-                    'first_name'      => $this->sanitize_text_value( 'representative_first_name' ),
-                    'last_name'       => isset( $existing_representative['last_name'] ) ? $existing_representative['last_name'] : '',
-                    'email'           => isset( $existing_representative['email'] ) ? $existing_representative['email'] : '',
-                    'phone'           => isset( $existing_representative['phone'] ) ? $existing_representative['phone'] : '',
-                    'wpid'            => isset( $existing_representative['wpuserid'] ) ? $existing_representative['wpuserid'] : '',
-                    'uniquestudentid' => isset( $existing_representative['uniquestudentid'] ) ? $existing_representative['uniquestudentid'] : '',
-                )
-            );
-        }
 
         $result = $wpdb->update(
             $table,

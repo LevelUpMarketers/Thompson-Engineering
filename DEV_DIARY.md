@@ -225,3 +225,4 @@
 222. 2026-02-14: Fixed assigned-student save handling so email is only persisted when explicitly submitted, preventing front-end student edits from blanking existing email values.
 223. 2026-02-14: Added assigned-student previous-company empty-state messaging and locked Initial Training Date, Last Refresher Date, Expiration Date, and QCI Number as non-editable/non-submitted in dashboard edit saves.
 224. 2026-02-14: Locked Profile Info representative last name/email/phone as non-editable and removed their front-end/back-end dashboard update paths while preserving representative first-name updates.
+225. 2026-02-14: Locked Profile Info representative first name as non-editable and removed its dashboard update path alongside other representative contact fields.
