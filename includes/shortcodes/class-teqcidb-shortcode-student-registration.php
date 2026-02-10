@@ -56,21 +56,14 @@ class TEQCIDB_Shortcode_Student_Registration {
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
-                        <?php
-                        $class_label = sprintf(
-                            /* translators: 1: Class name. 2: Formatted class start date. */
-                            esc_html_x( '%1$s - %2$s', 'Student registration class list button label', 'teqcidb' ),
-                            $class['classname'],
-                            $class['classstartdate']
-                        );
-                        ?>
                         <div class="teqcidb-registration-class-item" role="listitem">
                             <button
                                 class="teqcidb-dashboard-tab teqcidb-registration-class-toggle<?php echo 0 === $index ? ' is-active' : ''; ?>"
                                 type="button"
                                 aria-expanded="false"
                             >
-                                <?php echo esc_html( $class_label ); ?>
+                                <span class="teqcidb-registration-class-name"><?php echo esc_html( $class['classname'] ); ?></span>
+                                <span class="teqcidb-registration-class-date"><?php echo esc_html( $class['classstartdate'] ); ?></span>
                             </button>
                         </div>
                     <?php endforeach; ?>

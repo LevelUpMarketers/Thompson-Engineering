@@ -233,3 +233,4 @@
 230. 2026-02-14: Added the new [teqcidb_student_registration_shortcode] front-end shortcode, reusing the existing student dashboard login/create-account UI for logged-out visitors and a logged-in placeholder for upcoming class registration content.
 231. 2026-02-14: Fixed student registration shortcode auth form AJAX wiring by matching the dashboard script dependencies/localized keys (including teqcidb_ajax_nonce), restoring login submissions and create-account feedback messages.
 232. 2026-02-14: Updated logged-in student registration shortcode output to list visible teqcidb_classes entries (classhide != 1), sorted with upcoming classes first by classstartdate, with accordion-style full-width accent buttons showing class name and mm-dd-yyyy start date.
+233. 2026-02-14: Updated logged-in registration class accordions to stack centered class names over centered formatted class start dates and removed the dash separator from each class label.
