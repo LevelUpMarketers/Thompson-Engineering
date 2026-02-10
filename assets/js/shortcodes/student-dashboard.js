@@ -495,7 +495,7 @@
         fields.forEach((field) => {
             if (
                 !disabled &&
-                (field.id === 'teqcidb-profile-company' || field.id === 'teqcidb-profile-email' || field.name === 'teqcidb_profile_old_companies[]')
+                (field.id === 'teqcidb-profile-company' || field.id === 'teqcidb-profile-email' || field.id === 'teqcidb-profile-rep-last-name' || field.id === 'teqcidb-profile-rep-email' || field.id === 'teqcidb-profile-rep-phone' || field.name === 'teqcidb_profile_old_companies[]')
             ) {
                 field.disabled = true;
                 return;
@@ -522,9 +522,6 @@
         data.append('student_address_state', getValue('#teqcidb-profile-state'));
         data.append('student_address_postal_code', getValue('#teqcidb-profile-zip'));
         data.append('representative_first_name', getValue('#teqcidb-profile-rep-first-name'));
-        data.append('representative_last_name', getValue('#teqcidb-profile-rep-last-name'));
-        data.append('representative_email', getValue('#teqcidb-profile-rep-email'));
-        data.append('representative_phone', getValue('#teqcidb-profile-rep-phone'));
 
         form.querySelectorAll('input[name="teqcidb_profile_associations[]"]:checked')
             .forEach((input) => {
