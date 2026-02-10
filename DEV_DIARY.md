@@ -229,3 +229,4 @@
 226. 2026-02-14: Removed the Your Students search/add-student UI and client-side search/assign handlers so the tab only displays and edits already assigned students.
 227. 2026-02-14: Added a locked-field helper tooltip/message across the dashboard so hovering or touching non-editable fields explains how to request updates from Ilka Porter.
 228. 2026-02-14: Scoped locked-field helper tooltips to edit mode only so non-editable field notices appear only after entering Profile Info or assigned-student editing.
+229. 2026-02-14: Limited edit-mode locked-field tooltips to only permanently non-editable dashboard fields (company/email/representative contact fields, previous companies, and locked assigned-student date/QCI fields).

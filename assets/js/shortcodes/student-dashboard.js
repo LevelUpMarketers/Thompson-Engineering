@@ -473,24 +473,49 @@
         const message =
             settings.lockedFieldMessage ||
             "This can't be edited! Please contact Ilka Porter (iporter@thompsonengineering.com) to change this info.";
-        const lockedSelector = [
-            '.teqcidb-dashboard input:disabled',
-            '.teqcidb-dashboard select:disabled',
-            '.teqcidb-dashboard textarea:disabled',
-            '.teqcidb-dashboard input[readonly]',
-            '.teqcidb-dashboard select[readonly]',
-            '.teqcidb-dashboard textarea[readonly]',
-        ].join(',');
+        const alwaysLockedProfileFieldIds = [
+            'teqcidb-profile-company',
+            'teqcidb-profile-email',
+            'teqcidb-profile-rep-first-name',
+            'teqcidb-profile-rep-last-name',
+            'teqcidb-profile-rep-email',
+            'teqcidb-profile-rep-phone',
+        ];
+        const alwaysLockedStudentFields = [
+            'company',
+            'email',
+            'old_companies',
+            'initial_training_date',
+            'last_refresher_date',
+            'expiration_date',
+            'qcinumber',
+        ];
 
-        const lockedFields = Array.from(document.querySelectorAll(lockedSelector));
-        lockedFields.forEach((field) => {
+        const allDashboardFields = Array.from(
+            document.querySelectorAll(
+                '.teqcidb-dashboard .teqcidb-form-field input, .teqcidb-dashboard .teqcidb-form-field select, .teqcidb-dashboard .teqcidb-form-field textarea'
+            )
+        );
+
+        allDashboardFields.forEach((field) => {
             const fieldWrapper = field.closest('.teqcidb-form-field');
             if (!fieldWrapper) {
                 return;
             }
 
-            fieldWrapper.classList.add('teqcidb-field-is-locked');
-            fieldWrapper.dataset.teqcidbLockedMessage = message;
+            const isProfileLocked = alwaysLockedProfileFieldIds.includes(field.id)
+                || field.name === 'teqcidb_profile_old_companies[]';
+            const studentFieldKey = field.dataset ? field.dataset.studentField : '';
+            const isAssignedStudentLocked = alwaysLockedStudentFields.includes(studentFieldKey);
+
+            if (isProfileLocked || isAssignedStudentLocked) {
+                fieldWrapper.classList.add('teqcidb-field-is-locked');
+                fieldWrapper.dataset.teqcidbLockedMessage = message;
+                return;
+            }
+
+            fieldWrapper.classList.remove('teqcidb-field-is-locked');
+            delete fieldWrapper.dataset.teqcidbLockedMessage;
         });
 
         let hideTimer = null;
