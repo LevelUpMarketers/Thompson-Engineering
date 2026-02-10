@@ -478,10 +478,9 @@ class TEQCIDB_Ajax {
 
         $first_name = $this->sanitize_text_value( 'first_name' );
         $last_name  = $this->sanitize_text_value( 'last_name' );
-        $company    = $this->sanitize_text_value( 'company' );
         $email      = $this->sanitize_email_value( 'email' );
 
-        if ( '' === $first_name || '' === $last_name || '' === $company || '' === $email ) {
+        if ( '' === $first_name || '' === $last_name || '' === $email ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -563,7 +562,6 @@ class TEQCIDB_Ajax {
         $data = array(
             'first_name'           => $first_name,
             'last_name'            => $last_name,
-            'company'              => $company,
             'old_companies'        => $this->sanitize_items_value( 'old_companies' ),
             'student_address'      => $this->sanitize_student_address(),
             'phone_cell'           => $this->sanitize_phone_value( 'phone_cell' ),

@@ -493,6 +493,10 @@
 
     const setProfileFieldsDisabled = (fields, disabled) => {
         fields.forEach((field) => {
+            if (!disabled && field.id === 'teqcidb-profile-company') {
+                field.disabled = true;
+                return;
+            }
             field.disabled = disabled;
         });
     };
@@ -503,15 +507,10 @@
             const field = form.querySelector(selector);
             return field ? field.value.trim() : '';
         };
-
-        const originalCompany = form.dataset.originalCompany || '';
-        const updatedCompany = getValue('#teqcidb-profile-company');
-
         data.append('action', settings.profileUpdateAction || 'teqcidb_update_profile');
         data.append('_ajax_nonce', settings.ajaxNonce || '');
         data.append('first_name', getValue('#teqcidb-profile-first-name'));
         data.append('last_name', getValue('#teqcidb-profile-last-name'));
-        data.append('company', getValue('#teqcidb-profile-company'));
         data.append('phone_cell', getValue('#teqcidb-profile-cell-phone'));
         data.append('phone_office', getValue('#teqcidb-profile-office-phone'));
         data.append('email', getValue('#teqcidb-profile-email'));
@@ -538,20 +537,6 @@
                     oldCompanies.push(value);
                 }
             });
-
-        if (
-            originalCompany &&
-            updatedCompany &&
-            originalCompany.toLowerCase() !== updatedCompany.toLowerCase()
-        ) {
-            const exists = oldCompanies.some(
-                (value) => value.toLowerCase() === originalCompany.toLowerCase()
-            );
-            if (!exists) {
-                oldCompanies.push(originalCompany);
-            }
-        }
-
         oldCompanies.forEach((value) => {
             data.append('old_companies[]', value);
         });
@@ -563,10 +548,8 @@
         const requiredSelectors = [
             '#teqcidb-profile-first-name',
             '#teqcidb-profile-last-name',
-            '#teqcidb-profile-company',
             '#teqcidb-profile-email',
         ];
-        const companyField = form.querySelector('#teqcidb-profile-company');
         const addOldCompanyButton = form.querySelector('[data-teqcidb-add-old-company]');
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
@@ -609,9 +592,6 @@
                     if (addOldCompanyButton) {
                         addOldCompanyButton.disabled = true;
                     }
-                    if (companyField) {
-                        form.dataset.originalCompany = companyField.value.trim();
-                    }
                 } else {
                     const message =
                         payload && payload.data && payload.data.message
@@ -639,10 +619,6 @@
         }
 
         const snapshotRef = { current: getProfileSnapshot(fields) };
-        const companyField = form.querySelector('#teqcidb-profile-company');
-        if (companyField) {
-            form.dataset.originalCompany = companyField.value.trim();
-        }
         if (addOldCompanyButton) {
             addOldCompanyButton.disabled = true;
         }
@@ -1486,6 +1462,10 @@
 
     const setStudentDetailsEditable = (panel, editable) => {
         panel.querySelectorAll('[data-student-field]').forEach((input) => {
+            if (input.dataset.studentField === 'company') {
+                input.disabled = true;
+                return;
+            }
             input.disabled = !editable;
         });
 
@@ -1543,7 +1523,7 @@
                 return;
             }
 
-            if (input.dataset.listField === 'true') {
+            if (input.dataset.listField === 'true' || key === 'company') {
                 return;
             }
 
