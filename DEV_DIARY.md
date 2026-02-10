@@ -223,3 +223,4 @@
 220. 2026-02-14: Removed front-end previous-company editing on dashboard tabs by keeping previous company inputs read-only, removing add-previous-company actions, and stopping old_companies submissions from dashboard forms.
 221. 2026-02-14: Locked dashboard email fields as non-editable, removed dashboard profile email update checks/sync, and suppressed empty previous-company rows when old_companies is [] in assigned-student panels.
 222. 2026-02-14: Fixed assigned-student save handling so email is only persisted when explicitly submitted, preventing front-end student edits from blanking existing email values.
+223. 2026-02-14: Added assigned-student previous-company empty-state messaging and locked Initial Training Date, Last Refresher Date, Expiration Date, and QCI Number as non-editable/non-submitted in dashboard edit saves.

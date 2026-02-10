@@ -1053,11 +1053,19 @@
         oldCompaniesLegend.textContent = studentSearchSettings.oldCompaniesLegend || 'Previous Companies';
         oldCompaniesFieldset.appendChild(oldCompaniesLegend);
 
+        const oldCompanies = getEntityListValues(entity.old_companies);
+
+        if (!oldCompanies.length) {
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'teqcidb-dashboard-empty';
+            emptyMessage.textContent =
+                studentSearchSettings.oldCompaniesEmpty || 'No previous companies.';
+            oldCompaniesFieldset.appendChild(emptyMessage);
+        }
+
         const oldCompaniesGrid = document.createElement('div');
         oldCompaniesGrid.className = 'teqcidb-form-grid';
         oldCompaniesGrid.dataset.teqcidbAssignedOldCompanies = 'true';
-
-        const oldCompanies = getEntityListValues(entity.old_companies);
         const oldCompanyValues = oldCompanies;
         oldCompanyValues.forEach((company, index) => {
             const companyField = createField({
@@ -1387,7 +1395,15 @@
 
     const setStudentDetailsEditable = (panel, editable) => {
         panel.querySelectorAll('[data-student-field]').forEach((input) => {
-            if (input.dataset.studentField === 'company' || input.dataset.studentField === 'email' || input.dataset.studentField === 'old_companies') {
+            if (
+                input.dataset.studentField === 'company' ||
+                input.dataset.studentField === 'email' ||
+                input.dataset.studentField === 'old_companies' ||
+                input.dataset.studentField === 'initial_training_date' ||
+                input.dataset.studentField === 'last_refresher_date' ||
+                input.dataset.studentField === 'expiration_date' ||
+                input.dataset.studentField === 'qcinumber'
+            ) {
                 input.disabled = true;
                 return;
             }
@@ -1443,7 +1459,15 @@
                 return;
             }
 
-            if (input.dataset.listField === 'true' || key === 'company' || key === 'email') {
+            if (
+                input.dataset.listField === 'true' ||
+                key === 'company' ||
+                key === 'email' ||
+                key === 'initial_training_date' ||
+                key === 'last_refresher_date' ||
+                key === 'expiration_date' ||
+                key === 'qcinumber'
+            ) {
                 return;
             }
 

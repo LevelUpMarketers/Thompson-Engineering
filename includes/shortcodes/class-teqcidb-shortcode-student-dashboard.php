@@ -1879,6 +1879,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'saveAction' => 'teqcidb_save_student',
                         'listPlaceholder' => esc_html_x( 'Separate entries with commas', 'Student dashboard student list field placeholder', 'teqcidb' ),
                         'emptySelectLabel' => esc_html_x( 'Make a selection', 'Student dashboard student select empty label', 'teqcidb' ),
+                        'oldCompaniesEmpty' => esc_html_x( 'No previous companies.', 'Student dashboard assigned students old companies empty state', 'teqcidb' ),
                         'stateOptions' => $this->get_dashboard_state_options(),
                         'assignedStudents' => $this->get_assigned_students_for_dashboard(),
                         'assignedEmpty' => esc_html_x( 'No students are currently assigned to you.', 'Student dashboard assigned students empty state', 'teqcidb' ),
