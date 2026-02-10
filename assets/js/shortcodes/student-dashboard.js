@@ -495,7 +495,7 @@
         fields.forEach((field) => {
             if (
                 !disabled &&
-                (field.id === 'teqcidb-profile-company' || field.name === 'teqcidb_profile_old_companies[]')
+                (field.id === 'teqcidb-profile-company' || field.id === 'teqcidb-profile-email' || field.name === 'teqcidb_profile_old_companies[]')
             ) {
                 field.disabled = true;
                 return;
@@ -516,7 +516,6 @@
         data.append('last_name', getValue('#teqcidb-profile-last-name'));
         data.append('phone_cell', getValue('#teqcidb-profile-cell-phone'));
         data.append('phone_office', getValue('#teqcidb-profile-office-phone'));
-        data.append('email', getValue('#teqcidb-profile-email'));
         data.append('student_address_street_1', getValue('#teqcidb-profile-street-address'));
         data.append('student_address_street_2', getValue('#teqcidb-profile-street-address-2'));
         data.append('student_address_city', getValue('#teqcidb-profile-city'));
@@ -539,7 +538,6 @@
         const requiredSelectors = [
             '#teqcidb-profile-first-name',
             '#teqcidb-profile-last-name',
-            '#teqcidb-profile-email',
         ];
 
         const hasEmptyRequired = requiredSelectors.some((selector) => {
@@ -1060,7 +1058,7 @@
         oldCompaniesGrid.dataset.teqcidbAssignedOldCompanies = 'true';
 
         const oldCompanies = getEntityListValues(entity.old_companies);
-        const oldCompanyValues = oldCompanies.length ? oldCompanies : [''];
+        const oldCompanyValues = oldCompanies;
         oldCompanyValues.forEach((company, index) => {
             const companyField = createField({
                 label: `${studentSearchSettings.oldCompanyLabel || 'Previous Company'} ${index + 1}`,
@@ -1389,7 +1387,7 @@
 
     const setStudentDetailsEditable = (panel, editable) => {
         panel.querySelectorAll('[data-student-field]').forEach((input) => {
-            if (input.dataset.studentField === 'company' || input.dataset.studentField === 'old_companies') {
+            if (input.dataset.studentField === 'company' || input.dataset.studentField === 'email' || input.dataset.studentField === 'old_companies') {
                 input.disabled = true;
                 return;
             }
@@ -1445,7 +1443,7 @@
                 return;
             }
 
-            if (input.dataset.listField === 'true' || key === 'company') {
+            if (input.dataset.listField === 'true' || key === 'company' || key === 'email') {
                 return;
             }
 

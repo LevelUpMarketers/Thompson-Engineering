@@ -61,7 +61,6 @@ class TEQCIDB_Ajax {
 
         $first_name = $this->sanitize_text_value( 'first_name' );
         $last_name  = $this->sanitize_text_value( 'last_name' );
-        $email      = $this->sanitize_email_value( 'email' );
 
         if ( '' === $email ) {
             $this->maybe_delay( $start );
@@ -478,9 +477,8 @@ class TEQCIDB_Ajax {
 
         $first_name = $this->sanitize_text_value( 'first_name' );
         $last_name  = $this->sanitize_text_value( 'last_name' );
-        $email      = $this->sanitize_email_value( 'email' );
 
-        if ( '' === $first_name || '' === $last_name || '' === $email ) {
+        if ( '' === $first_name || '' === $last_name ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -494,7 +492,7 @@ class TEQCIDB_Ajax {
         $table = $wpdb->prefix . 'teqcidb_students';
         $row   = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, email FROM $table WHERE wpuserid = %d LIMIT 1",
+                "SELECT id FROM $table WHERE wpuserid = %d LIMIT 1",
                 $current_user->ID
             ),
             ARRAY_A
@@ -509,64 +507,13 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $existing_email = isset( $row['email'] ) ? sanitize_email( (string) $row['email'] ) : '';
-        $email_changed  = strtolower( $existing_email ) !== strtolower( $email );
-
-        if ( $email_changed ) {
-            $existing_user = get_user_by( 'email', $email );
-
-            if ( $existing_user instanceof WP_User && (int) $existing_user->ID !== (int) $current_user->ID ) {
-                $this->maybe_delay( $start );
-                wp_send_json_error(
-                    array(
-                        'message' => __( 'Whoops! It looks like that email address is already in use by another user! Please double-check your email address, or use a different one.', 'teqcidb' ),
-                    )
-                );
-            }
-
-            $existing_student = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT id FROM $table WHERE email = %s AND id != %d LIMIT 1",
-                    $email,
-                    (int) $row['id']
-                )
-            );
-
-            if ( $existing_student ) {
-                $this->maybe_delay( $start );
-                wp_send_json_error(
-                    array(
-                        'message' => __( 'Whoops! It looks like that email address is already in use by another user! Please double-check your email address, or use a different one.', 'teqcidb' ),
-                    )
-                );
-            }
-
-            $user_update = wp_update_user(
-                array(
-                    'ID'         => $current_user->ID,
-                    'user_email' => $email,
-                )
-            );
-
-            if ( is_wp_error( $user_update ) ) {
-                $this->maybe_delay( $start );
-                wp_send_json_error(
-                    array(
-                        'message' => __( 'Unable to update your email address. Please try again.', 'teqcidb' ),
-                    )
-                );
-            }
-        }
-
         $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
         $data = array(
             'first_name'           => $first_name,
             'last_name'            => $last_name,
-            'old_companies'        => $this->sanitize_items_value( 'old_companies' ),
             'student_address'      => $this->sanitize_student_address(),
             'phone_cell'           => $this->sanitize_phone_value( 'phone_cell' ),
             'phone_office'         => $this->sanitize_phone_value( 'phone_office' ),
-            'email'                => $email,
             'their_representative' => $this->sanitize_representative_contact(),
             'associations'         => $this->sanitize_associations_value( 'associations', $association_options ),
         );
