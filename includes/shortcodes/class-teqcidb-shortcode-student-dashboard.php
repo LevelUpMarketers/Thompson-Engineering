@@ -1752,6 +1752,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'profileMessageSaveError' => esc_html_x( 'Unable to save your profile. Please try again.', 'Profile form validation message', 'teqcidb' ),
                     'profileMessageSaved' => esc_html_x( 'Profile saved.', 'Profile form validation message', 'teqcidb' ),
                     'profileUpdateAction' => 'teqcidb_update_profile',
+                    'lockedFieldMessage' => esc_html_x( "This can't be edited! Please contact Ilka Porter (iporter@thompsonengineering.com) to change this info.", 'Dashboard locked field helper message', 'teqcidb' ),
                     'oldCompanyLabel' => esc_html_x( 'Previous Company', 'Profile form old company field label', 'teqcidb' ),
                     'studentSearch' => array(
                         'summaryFields' => array(

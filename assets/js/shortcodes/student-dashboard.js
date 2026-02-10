@@ -469,6 +469,66 @@
         }
     });
 
+    const initLockedFieldNotice = () => {
+        const message =
+            settings.lockedFieldMessage ||
+            "This can't be edited! Please contact Ilka Porter (iporter@thompsonengineering.com) to change this info.";
+        const lockedSelector = [
+            '.teqcidb-dashboard input:disabled',
+            '.teqcidb-dashboard select:disabled',
+            '.teqcidb-dashboard textarea:disabled',
+            '.teqcidb-dashboard input[readonly]',
+            '.teqcidb-dashboard select[readonly]',
+            '.teqcidb-dashboard textarea[readonly]',
+        ].join(',');
+
+        const lockedFields = Array.from(document.querySelectorAll(lockedSelector));
+        lockedFields.forEach((field) => {
+            field.setAttribute('title', message);
+            field.setAttribute('aria-label', message);
+
+            const fieldWrapper = field.closest('.teqcidb-form-field');
+            if (!fieldWrapper) {
+                return;
+            }
+
+            fieldWrapper.classList.add('teqcidb-field-is-locked');
+            fieldWrapper.dataset.teqcidbLockedMessage = message;
+        });
+
+        let hideTimer = null;
+
+        const hideVisibleNotice = () => {
+            document
+                .querySelectorAll('.teqcidb-field-is-locked.is-locked-notice-visible')
+                .forEach((wrapper) => {
+                    wrapper.classList.remove('is-locked-notice-visible');
+                });
+        };
+
+        document.addEventListener('touchstart', (event) => {
+            const wrapper = event.target.closest('.teqcidb-field-is-locked');
+            if (wrapper) {
+                hideVisibleNotice();
+                wrapper.classList.add('is-locked-notice-visible');
+
+                if (hideTimer) {
+                    window.clearTimeout(hideTimer);
+                }
+
+                hideTimer = window.setTimeout(() => {
+                    wrapper.classList.remove('is-locked-notice-visible');
+                    hideTimer = null;
+                }, 2600);
+                return;
+            }
+
+            hideVisibleNotice();
+        });
+    };
+
+    initLockedFieldNotice();
+
     const profileForms = document.querySelectorAll('[data-teqcidb-profile-form]');
 
     const getProfileSnapshot = (fields) => {

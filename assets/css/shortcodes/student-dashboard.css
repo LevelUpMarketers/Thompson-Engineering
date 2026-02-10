@@ -305,6 +305,38 @@
     outline: none;
 }
 
+.teqcidb-form-field.teqcidb-field-is-locked {
+    position: relative;
+}
+
+.teqcidb-form-field.teqcidb-field-is-locked::after {
+    background: #2b2b2b;
+    border-radius: 8px;
+    bottom: calc(100% + 8px);
+    color: #ffffff;
+    content: attr(data-teqcidb-locked-message);
+    font-size: 0.85rem;
+    left: 0;
+    line-height: 1.4;
+    max-width: min(420px, 90vw);
+    opacity: 0;
+    padding: 10px 12px;
+    pointer-events: none;
+    position: absolute;
+    transform: translateY(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    visibility: hidden;
+    width: max-content;
+    z-index: 20;
+}
+
+.teqcidb-form-field.teqcidb-field-is-locked:hover::after,
+.teqcidb-form-field.teqcidb-field-is-locked.is-locked-notice-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
 .teqcidb-password-input {
     display: flex;
     gap: 10px;

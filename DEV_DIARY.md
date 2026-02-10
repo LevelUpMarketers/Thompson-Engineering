@@ -227,3 +227,4 @@
 224. 2026-02-14: Locked Profile Info representative last name/email/phone as non-editable and removed their front-end/back-end dashboard update paths while preserving representative first-name updates.
 225. 2026-02-14: Locked Profile Info representative first name as non-editable and removed its dashboard update path alongside other representative contact fields.
 226. 2026-02-14: Removed the Your Students search/add-student UI and client-side search/assign handlers so the tab only displays and edits already assigned students.
+227. 2026-02-14: Added a locked-field helper tooltip/message across the dashboard so hovering or touching non-editable fields explains how to request updates from Ilka Porter.
