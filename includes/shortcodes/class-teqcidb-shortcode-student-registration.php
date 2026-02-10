@@ -73,6 +73,8 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         if ( has_shortcode( $post->post_content, self::SHORTCODE_TAG ) ) {
+            wp_enqueue_style( 'dashicons' );
+
             wp_enqueue_style(
                 'teqcidb-shortcode-student-dashboard',
                 TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/student-dashboard.css',
@@ -81,9 +83,17 @@ class TEQCIDB_Shortcode_Student_Registration {
             );
 
             wp_enqueue_script(
+                'teqcidb-jspdf',
+                TEQCIDB_PLUGIN_URL . 'assets/js/vendor/jspdf.umd.min.js',
+                array(),
+                TEQCIDB_VERSION,
+                true
+            );
+
+            wp_enqueue_script(
                 'teqcidb-shortcode-student-dashboard',
                 TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/student-dashboard.js',
-                array( 'jquery' ),
+                array( 'password-strength-meter', 'teqcidb-jspdf' ),
                 TEQCIDB_VERSION,
                 true
             );
@@ -92,19 +102,21 @@ class TEQCIDB_Shortcode_Student_Registration {
                 'teqcidb-shortcode-student-dashboard',
                 'teqcidbStudentDashboard',
                 array(
-                    'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                    'nonce' => wp_create_nonce( 'teqcidb_student_dashboard' ),
-                    'labels' => array(
-                        'loggingIn' => esc_html_x( 'Logging in...', 'Login form loading message', 'teqcidb' ),
-                        'creatingAccount' => esc_html_x( 'Creating your account...', 'Create account form loading message', 'teqcidb' ),
-                        'savingProfile' => esc_html_x( 'Saving your profile...', 'Profile save loading message', 'teqcidb' ),
-                    ),
-                    'passwordToggle' => array(
-                        'showLabel' => esc_attr_x( 'Show password', 'Password visibility toggle aria label', 'teqcidb' ),
-                        'hideLabel' => esc_attr_x( 'Hide password', 'Password visibility toggle aria label', 'teqcidb' ),
-                        'showText' => esc_html_x( 'Show', 'Password visibility toggle text', 'teqcidb' ),
-                        'hideText' => esc_html_x( 'Hide', 'Password visibility toggle text', 'teqcidb' ),
-                    ),
+                    'toggleShowLabel' => esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ),
+                    'toggleHideLabel' => esc_html_x( 'Hide', 'Password field toggle button text', 'teqcidb' ),
+                    'toggleShowAria'  => esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ),
+                    'toggleHideAria'  => esc_attr_x( 'Hide password', 'Password field toggle button label', 'teqcidb' ),
+                    'ajaxUrl'         => esc_url( admin_url( 'admin-ajax.php' ) ),
+                    'ajaxNonce'       => wp_create_nonce( 'teqcidb_ajax_nonce' ),
+                    'ajaxAction'      => 'teqcidb_save_student',
+                    'ajaxLoginAction' => 'teqcidb_login_user',
+                    'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
+                    'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
+                    'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),
+                    'messageStrength' => esc_html_x( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'Create account form validation message', 'teqcidb' ),
+                    'messageUnknown'  => esc_html_x( 'Something went wrong while creating the account. Please try again.', 'Create account form validation message', 'teqcidb' ),
+                    'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
+                    'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
                 )
             );
         }
