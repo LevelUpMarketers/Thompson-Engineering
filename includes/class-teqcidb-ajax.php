@@ -58,11 +58,14 @@ class TEQCIDB_Ajax {
 
         $table = $wpdb->prefix . 'teqcidb_students';
         $id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $creating_new_student = ( 0 === $id );
 
         $first_name = $this->sanitize_text_value( 'first_name' );
         $last_name  = $this->sanitize_text_value( 'last_name' );
+        $email_provided = isset( $_POST['email'] );
+        $email          = $email_provided ? $this->sanitize_email_value( 'email' ) : '';
 
-        if ( '' === $email ) {
+        if ( $creating_new_student && '' === $email ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -71,7 +74,15 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $creating_new_student = ( 0 === $id );
+        if ( ! $creating_new_student && $email_provided && '' === $email ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
+                )
+            );
+        }
+
         $new_wp_user_id       = 0;
         $password             = $this->sanitize_text_value( 'password' );
         $verify_password      = $this->sanitize_text_value( 'verify_password' );
@@ -154,8 +165,11 @@ class TEQCIDB_Ajax {
         $data = array(
             'first_name' => $first_name,
             'last_name'  => $last_name,
-            'email'      => $email,
         );
+
+        if ( $creating_new_student || $email_provided ) {
+            $data['email'] = $email;
+        }
 
         if ( $creating_new_student || isset( $_POST['company'] ) ) {
             $data['company'] = $this->sanitize_text_value( 'company' );
