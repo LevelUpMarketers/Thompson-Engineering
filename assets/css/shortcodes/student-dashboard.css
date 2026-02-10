@@ -848,3 +848,34 @@
         grid-template-columns: 1fr;
     }
 }
+
+.teqcidb-registration-classes {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 16px;
+}
+
+.teqcidb-registration-class-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.teqcidb-registration-class-item {
+    width: 100%;
+}
+
+.teqcidb-registration-class-toggle {
+    background: var(--wpex-accent);
+    border-color: var(--wpex-accent);
+    color: #fff;
+    width: 100%;
+}
+
+.teqcidb-registration-class-toggle:hover,
+.teqcidb-registration-class-toggle:focus,
+.teqcidb-registration-class-toggle.is-active {
+    background: var(--wpex-accent);
+    border-color: var(--wpex-accent);
+    color: #fff;
+}

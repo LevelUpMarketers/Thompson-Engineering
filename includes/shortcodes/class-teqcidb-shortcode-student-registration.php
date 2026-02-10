@@ -48,14 +48,127 @@ class TEQCIDB_Shortcode_Student_Registration {
             return $this->dashboard_shortcode->render( $atts, $content );
         }
 
-        return sprintf(
-            '<section class="teqcidb-registration-section"><p>%s</p></section>',
-            esc_html_x(
-                'Class registration options will appear here soon.',
-                'Student registration shortcode placeholder text for logged-in users',
-                'teqcidb'
-            )
+        $classes = $this->get_visible_classes_for_registration();
+
+        ob_start();
+        ?>
+        <section class="teqcidb-registration-section teqcidb-registration-classes" data-teqcidb-registration="true">
+            <?php if ( ! empty( $classes ) ) : ?>
+                <div class="teqcidb-registration-class-list" role="list">
+                    <?php foreach ( $classes as $index => $class ) : ?>
+                        <?php
+                        $class_label = sprintf(
+                            /* translators: 1: Class name. 2: Formatted class start date. */
+                            esc_html_x( '%1$s - %2$s', 'Student registration class list button label', 'teqcidb' ),
+                            $class['classname'],
+                            $class['classstartdate']
+                        );
+                        ?>
+                        <div class="teqcidb-registration-class-item" role="listitem">
+                            <button
+                                class="teqcidb-dashboard-tab teqcidb-registration-class-toggle<?php echo 0 === $index ? ' is-active' : ''; ?>"
+                                type="button"
+                                aria-expanded="false"
+                            >
+                                <?php echo esc_html( $class_label ); ?>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else : ?>
+                <p class="teqcidb-dashboard-empty">
+                    <?php
+                    echo esc_html_x(
+                        'No classes are currently available for registration.',
+                        'Student registration shortcode empty state text',
+                        'teqcidb'
+                    );
+                    ?>
+                </p>
+            <?php endif; ?>
+        </section>
+        <?php
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Retrieve visible classes ordered with upcoming classes first.
+     *
+     * @return array<int, array{classname:string,classstartdate:string}>
+     */
+    private function get_visible_classes_for_registration() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $today = wp_date( 'Y-m-d' );
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT classname, classstartdate
+                FROM $table_name
+                WHERE COALESCE(classhide, 0) <> 1
+                ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
+                $today
+            ),
+            ARRAY_A
         );
+
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+
+        $classes = array();
+
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
+            $class_date = $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' );
+
+            if ( '' === $class_name ) {
+                continue;
+            }
+
+            $classes[] = array(
+                'classname'      => $class_name,
+                'classstartdate' => $class_date,
+            );
+        }
+
+        return $classes;
+    }
+
+    /**
+     * Format class start date from storage value to mm-dd-yyyy.
+     *
+     * @param string $raw_date Raw date value.
+     *
+     * @return string
+     */
+    private function format_class_start_date_for_display( $raw_date ) {
+        $value = sanitize_text_field( (string) $raw_date );
+
+        if ( '' === $value ) {
+            return esc_html_x( 'Date unavailable', 'Student registration class date fallback text', 'teqcidb' );
+        }
+
+        $timestamp = strtotime( $value );
+
+        if ( false === $timestamp ) {
+            return $value;
+        }
+
+        return wp_date( 'm-d-Y', $timestamp );
     }
 
     /**
