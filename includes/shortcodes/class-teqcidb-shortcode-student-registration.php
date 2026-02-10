@@ -56,15 +56,80 @@ class TEQCIDB_Shortcode_Student_Registration {
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
+                        <?php
+                        $accordion_id = 'teqcidb-registration-class-' . $index;
+                        $panel_id     = $accordion_id . '-panel';
+                        ?>
                         <div class="teqcidb-registration-class-item" role="listitem">
                             <button
-                                class="teqcidb-dashboard-tab teqcidb-registration-class-toggle<?php echo 0 === $index ? ' is-active' : ''; ?>"
+                                class="teqcidb-dashboard-tab teqcidb-registration-class-toggle"
                                 type="button"
+                                id="<?php echo esc_attr( $accordion_id ); ?>"
                                 aria-expanded="false"
+                                aria-controls="<?php echo esc_attr( $panel_id ); ?>"
                             >
                                 <span class="teqcidb-registration-class-name"><?php echo esc_html( $class['classname'] ); ?></span>
                                 <span class="teqcidb-registration-class-date"><?php echo esc_html( $class['classstartdate'] ); ?></span>
                             </button>
+                            <div
+                                class="teqcidb-registration-class-panel"
+                                id="<?php echo esc_attr( $panel_id ); ?>"
+                                role="region"
+                                aria-labelledby="<?php echo esc_attr( $accordion_id ); ?>"
+                                hidden
+                            >
+                                <div class="teqcidb-registration-class-description">
+                                    <h3 class="teqcidb-registration-class-section-title">
+                                        <?php echo esc_html_x( 'Class Description', 'Student registration class detail label', 'teqcidb' ); ?>
+                                    </h3>
+                                    <div class="teqcidb-registration-class-description-content">
+                                        <?php echo wp_kses_post( wpautop( $class['classdescription'] ) ); ?>
+                                    </div>
+                                </div>
+
+                                <dl class="teqcidb-registration-class-details">
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class Cost', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classcost'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class Type', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classtype'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class Format', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classformat'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class Date', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classstartdate'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class Start Time', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classstarttime'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Class End Time', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['classendtime'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Street Address', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['street_address'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'City', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['city'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'State', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['state'] ); ?></dd>
+                                    </div>
+                                    <div class="teqcidb-registration-class-detail">
+                                        <dt><?php echo esc_html_x( 'Zip Code', 'Student registration class detail label', 'teqcidb' ); ?></dt>
+                                        <dd><?php echo esc_html( $class['zip_code'] ); ?></dd>
+                                    </div>
+                                </dl>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -88,7 +153,7 @@ class TEQCIDB_Shortcode_Student_Registration {
     /**
      * Retrieve visible classes ordered with upcoming classes first.
      *
-     * @return array<int, array{classname:string,classstartdate:string}>
+     * @return array<int, array<string, string>>
      */
     private function get_visible_classes_for_registration() {
         global $wpdb;
@@ -105,7 +170,7 @@ class TEQCIDB_Shortcode_Student_Registration {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT classname, classstartdate
+                "SELECT classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
                 FROM $table_name
                 WHERE COALESCE(classhide, 0) <> 1
                 ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
@@ -126,19 +191,118 @@ class TEQCIDB_Shortcode_Student_Registration {
             }
 
             $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
-            $class_date = $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' );
 
             if ( '' === $class_name ) {
                 continue;
             }
 
+            $address = $this->decode_class_address_field( isset( $row['classsaddress'] ) ? (string) $row['classsaddress'] : '' );
+
             $classes[] = array(
                 'classname'      => $class_name,
-                'classstartdate' => $class_date,
+                'classdescription' => $this->format_description_for_display( isset( $row['classdescription'] ) ? $row['classdescription'] : '' ),
+                'classcost'      => $this->format_cost_for_display( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'classtype'      => $this->format_label_for_display( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
+                'classformat'    => $this->format_label_for_display( isset( $row['classformat'] ) ? $row['classformat'] : '' ),
+                'classstartdate' => $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+                'classstarttime' => $this->format_time_for_display( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+                'classendtime'   => $this->format_time_for_display( isset( $row['classendtime'] ) ? $row['classendtime'] : '' ),
+                'street_address' => $this->compose_street_address_for_display( $address ),
+                'city'           => $this->fallback_display_value( isset( $address['city'] ) ? $address['city'] : '' ),
+                'state'          => $this->fallback_display_value( isset( $address['state'] ) ? $address['state'] : '' ),
+                'zip_code'       => $this->fallback_display_value( isset( $address['postal_code'] ) ? $address['postal_code'] : '' ),
             );
         }
 
         return $classes;
+    }
+
+    /**
+     * Decode class address JSON into component fields.
+     *
+     * @param string $value Stored JSON value.
+     *
+     * @return array{street_1:string,street_2:string,city:string,state:string,postal_code:string}
+     */
+    private function decode_class_address_field( $value ) {
+        $defaults = array(
+            'street_1'    => '',
+            'street_2'    => '',
+            'city'        => '',
+            'state'       => '',
+            'postal_code' => '',
+        );
+
+        if ( '' === $value ) {
+            return $defaults;
+        }
+
+        $decoded = json_decode( $value, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return $defaults;
+        }
+
+        if ( isset( $decoded['zip_code'] ) ) {
+            $decoded['postal_code'] = $decoded['zip_code'];
+        }
+
+        return array_merge( $defaults, $decoded );
+    }
+
+    /**
+     * Format class description text for output.
+     *
+     * @param string $value Raw description text.
+     *
+     * @return string
+     */
+    private function format_description_for_display( $value ) {
+        $description = sanitize_textarea_field( (string) $value );
+
+        if ( '' === $description ) {
+            return esc_html_x( 'No class description is currently available.', 'Student registration class description fallback text', 'teqcidb' );
+        }
+
+        return $description;
+    }
+
+    /**
+     * Format a class cost value for output.
+     *
+     * @param string $value Raw class cost.
+     *
+     * @return string
+     */
+    private function format_cost_for_display( $value ) {
+        $cost = sanitize_text_field( (string) $value );
+
+        if ( '' === $cost ) {
+            return esc_html_x( 'Not available', 'Student registration fallback value', 'teqcidb' );
+        }
+
+        if ( is_numeric( $cost ) ) {
+            return '$' . number_format( (float) $cost, 2 );
+        }
+
+        return $cost;
+    }
+
+    /**
+     * Format generic labels for display.
+     *
+     * @param string $value Raw value.
+     *
+     * @return string
+     */
+    private function format_label_for_display( $value ) {
+        $label = sanitize_text_field( (string) $value );
+
+        if ( '' === $label ) {
+            return esc_html_x( 'Not available', 'Student registration fallback value', 'teqcidb' );
+        }
+
+        return ucwords( str_replace( array( '_', '-' ), ' ', $label ) );
     }
 
     /**
@@ -162,6 +326,71 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return wp_date( 'm-d-Y', $timestamp );
+    }
+
+    /**
+     * Format class time for display.
+     *
+     * @param string $value Raw time value.
+     *
+     * @return string
+     */
+    private function format_time_for_display( $value ) {
+        $raw = sanitize_text_field( (string) $value );
+
+        if ( '' === $raw ) {
+            return esc_html_x( 'Not available', 'Student registration fallback value', 'teqcidb' );
+        }
+
+        $timestamp = strtotime( $raw );
+
+        if ( false === $timestamp ) {
+            return $raw;
+        }
+
+        return wp_date( 'g:i A', $timestamp );
+    }
+
+    /**
+     * Combine street address fields.
+     *
+     * @param array{street_1:string,street_2:string,city:string,state:string,postal_code:string} $address Decoded address.
+     *
+     * @return string
+     */
+    private function compose_street_address_for_display( array $address ) {
+        $parts = array();
+
+        if ( ! empty( $address['street_1'] ) ) {
+            $parts[] = sanitize_text_field( (string) $address['street_1'] );
+        }
+
+        if ( ! empty( $address['street_2'] ) ) {
+            $parts[] = sanitize_text_field( (string) $address['street_2'] );
+        }
+
+        if ( empty( $parts ) ) {
+            return esc_html_x( 'Not available', 'Student registration fallback value', 'teqcidb' );
+        }
+
+        return implode( ', ', $parts );
+    }
+
+    /**
+     * Return fallback value when empty.
+     *
+     * @param string $value Raw value.
+     *
+     * @return string
+     */
+    private function fallback_display_value( $value ) {
+        $formatted = sanitize_text_field( (string) $value );
+
+        if ( '' === $formatted ) {
+            return esc_html_x( 'Not available', 'Student registration fallback value', 'teqcidb' );
+        }
+
+        return $formatted;
     }
 
     /**

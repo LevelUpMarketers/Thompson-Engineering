@@ -1984,6 +1984,47 @@
         return doc;
     };
 
+
+    const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
+
+    registrationSections.forEach((section) => {
+        const toggles = Array.from(
+            section.querySelectorAll('.teqcidb-registration-class-toggle')
+        );
+
+        const setExpanded = (toggle, expanded) => {
+            const panelId = toggle.getAttribute('aria-controls');
+            if (!panelId) {
+                return;
+            }
+
+            const panel = section.querySelector(`#${panelId}`);
+            if (!panel) {
+                return;
+            }
+
+            toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            toggle.classList.toggle('is-active', expanded);
+            panel.hidden = !expanded;
+        };
+
+        toggles.forEach((toggle) => {
+            setExpanded(toggle, false);
+            toggle.addEventListener('click', () => {
+                const currentlyExpanded =
+                    toggle.getAttribute('aria-expanded') === 'true';
+
+                toggles.forEach((item) => {
+                    if (item !== toggle) {
+                        setExpanded(item, false);
+                    }
+                });
+
+                setExpanded(toggle, !currentlyExpanded);
+            });
+        });
+    });
+
     const handleWalletCardAction = async (event) => {
         const button = event.target.closest('[data-teqcidb-wallet-card-action]');
         if (!button) {
