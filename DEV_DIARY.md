@@ -240,3 +240,4 @@
 237. 2026-02-11: Added Composer-based Authorize.Net SDK integration with a reusable service that reads teqcidb_api_settings payment gateway credentials and surfaces registration-shortcode data attributes for upcoming Accept Hosted iframe checkout.
 238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
 239. 2026-02-11: Added a new includes/accept-hosted-token.php REST endpoint for logged-in-only Authorize.Net Accept Hosted token generation using stored TEQCIDB credentials in production mode with placeholder return/cancel/iframe URLs.
+240. 2026-02-11: Added includes/accept-hosted-communicator.php to serve /sp-authnet-communicator/ via rewrite/query var/template redirect and relay Accept Hosted iframe messages to the parent window, then loaded it from plugin bootstrap.
