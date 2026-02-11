@@ -978,6 +978,14 @@
 }
 
 @media (max-width: 780px) {
+    .teqcidb-registration-classes {
+        padding: 0;
+    }
+
+    .teqcidb-registration-class-name {
+        white-space: initial;
+    }
+
     .teqcidb-registration-class-section-title {
         font-size: 1.65rem;
     }

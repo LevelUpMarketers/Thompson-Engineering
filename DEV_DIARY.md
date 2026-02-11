@@ -236,3 +236,4 @@
 233. 2026-02-14: Updated logged-in registration class accordions to stack centered class names over centered formatted class start dates and removed the dash separator from each class label.
 234. 2026-02-14: Added clickable registration class accordions for logged-in users that reveal class details (description, cost, type, format, date, start/end times, and address fields) sourced from teqcidb_classes including decoded class address data.
 235. 2026-02-14: Refined registration accordion panel spacing/border styling and added smooth open/close animation transitions so class detail panels expand and collapse with less abrupt motion.
+236. 2026-02-14: Updated mobile registration accordion styles so class names wrap naturally (white-space: initial) and the registration section uses 0px padding on narrow screens.
