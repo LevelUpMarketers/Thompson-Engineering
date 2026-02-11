@@ -5,6 +5,8 @@
     namespace.DEBUG = true;
 
     var config = window.teqcidbAcceptHostedDebug || {};
+    var iframeContextMap = {};
+    var lastSubmittedIframeId = '';
 
     function nowIso() {
         return new Date().toISOString();
@@ -34,6 +36,41 @@
         return document.querySelector('section[data-teqcidb-registration="true"]');
     }
 
+    function parseCommunicatorQueryString(queryString) {
+        var raw = typeof queryString === 'string' ? queryString : '';
+        var pairs = raw.split('&');
+        var result = {};
+
+        pairs.forEach(function (pair) {
+            if (!pair) {
+                return;
+            }
+
+            var splitIndex = pair.indexOf('=');
+            var rawKey = splitIndex >= 0 ? pair.slice(0, splitIndex) : pair;
+            var rawValue = splitIndex >= 0 ? pair.slice(splitIndex + 1) : '';
+
+            var key = rawKey;
+            var value = rawValue;
+
+            try {
+                key = decodeURIComponent(rawKey || '');
+            } catch (errKey) {
+                key = rawKey || '';
+            }
+
+            try {
+                value = decodeURIComponent(rawValue || '');
+            } catch (errValue) {
+                value = rawValue || '';
+            }
+
+            result[key] = value;
+        });
+
+        return result;
+    }
+
     function redactResponseForLogging(data) {
         var clone = {};
 
@@ -45,13 +82,7 @@
 
         if (clone && typeof clone.token === 'string') {
             var token = clone.token;
-            var preview = '';
-
-            if (token.length >= 8) {
-                preview = token.slice(0, 4) + '...' + token.slice(-4);
-            } else {
-                preview = token;
-            }
+            var preview = token.length >= 8 ? token.slice(0, 4) + '...' + token.slice(-4) : token;
 
             delete clone.token;
             clone.token_redacted = true;
@@ -96,7 +127,6 @@
             .join(' | ');
     }
 
-
     function updatePanelHeight(paymentBlock, reason) {
         if (!paymentBlock) {
             return;
@@ -107,16 +137,315 @@
             return;
         }
 
-        var nextHeight = panel.scrollHeight;
-        panel.style.maxHeight = nextHeight + 'px';
+        panel.style.maxHeight = panel.scrollHeight + 'px';
 
         log('PANEL HEIGHT UPDATED', {
             timestamp_ms: Date.now(),
             timestamp_iso: nowIso(),
             reason: reason || 'unspecified',
             panel_id: panel.id || '',
-            scroll_height: nextHeight,
+            scroll_height: panel.scrollHeight,
             applied_max_height: panel.style.maxHeight
+        });
+    }
+
+    function clearProcessingTimeout(context) {
+        if (!context || !context.processingTimerId) {
+            return;
+        }
+
+        window.clearTimeout(context.processingTimerId);
+        context.processingTimerId = null;
+    }
+
+    function startProcessingTimeout(context) {
+        if (!context) {
+            return;
+        }
+
+        clearProcessingTimeout(context);
+
+        context.processingTimerId = window.setTimeout(function () {
+            if (context.receivedTerminalEvent) {
+                return;
+            }
+
+            if (context.statusEl) {
+                context.statusEl.textContent = 'Still processing - check Authorize.net transaction list. If it succeeded, we may be missing transactResponse handling.';
+            }
+
+            updatePanelHeight(context.paymentBlock, 'processing_timeout');
+
+            log('PROCESSING TIMEOUT', {
+                timestamp_ms: Date.now(),
+                timestamp_iso: nowIso(),
+                iframe_id: context.iframeId || '',
+                class_id: context.classId || '',
+                invoice_number: context.invoiceNumber || ''
+            });
+        }, 60000);
+    }
+
+    function getContextForMessage() {
+        if (lastSubmittedIframeId && iframeContextMap[lastSubmittedIframeId]) {
+            return iframeContextMap[lastSubmittedIframeId];
+        }
+
+        var keys = Object.keys(iframeContextMap);
+        if (!keys.length) {
+            return null;
+        }
+
+        return iframeContextMap[keys[keys.length - 1]] || null;
+    }
+
+    function extractTransactionSummary(responseObject) {
+        var summary = {
+            transId: '',
+            responseCode: '',
+            resultCode: '',
+            invoiceNumber: '',
+            errors: [],
+            topLevelKeys: []
+        };
+
+        if (!responseObject || typeof responseObject !== 'object') {
+            return summary;
+        }
+
+        summary.topLevelKeys = Object.keys(responseObject);
+
+        var transactionResponse = responseObject.transactionResponse || {};
+        var messages = responseObject.messages || {};
+        var order = responseObject.order || {};
+
+        summary.transId = transactionResponse.transId || responseObject.transId || '';
+        summary.responseCode = transactionResponse.responseCode || responseObject.responseCode || '';
+        summary.resultCode = messages.resultCode || responseObject.resultCode || '';
+        summary.invoiceNumber = order.invoiceNumber || responseObject.invoiceNumber || '';
+
+        if (Array.isArray(transactionResponse.errors)) {
+            summary.errors = transactionResponse.errors.map(function (err) {
+                return {
+                    code: err && (err.errorCode || err.code || ''),
+                    text: err && (err.errorText || err.text || '')
+                };
+            });
+        } else if (transactionResponse.errors && Array.isArray(transactionResponse.errors.error)) {
+            summary.errors = transactionResponse.errors.error.map(function (err) {
+                return {
+                    code: err && (err.errorCode || err.code || ''),
+                    text: err && (err.errorText || err.text || '')
+                };
+            });
+        }
+
+        return summary;
+    }
+
+    function determineSuccess(summary) {
+        var responseCode = String(summary.responseCode || '');
+        var resultCode = String(summary.resultCode || '').toUpperCase();
+        return responseCode === '1' || resultCode === 'OK';
+    }
+
+    function bestErrorMessage(summary) {
+        if (summary && Array.isArray(summary.errors) && summary.errors.length) {
+            var firstError = summary.errors[0];
+            if (firstError) {
+                var code = firstError.code || '';
+                var text = firstError.text || '';
+                if (code && text) {
+                    return code + ': ' + text;
+                }
+                if (text) {
+                    return text;
+                }
+                if (code) {
+                    return code;
+                }
+            }
+        }
+
+        if (summary && summary.resultCode) {
+            return 'Result: ' + summary.resultCode;
+        }
+
+        if (summary && summary.responseCode) {
+            return 'Response code: ' + summary.responseCode;
+        }
+
+        return 'Unknown error.';
+    }
+
+    function registerGlobalReceiver() {
+        window.AuthorizeNetIFrame = window.AuthorizeNetIFrame || {};
+
+        window.AuthorizeNetIFrame.onReceiveCommunication = function (queryString) {
+            try {
+                var payload = parseCommunicatorQueryString(queryString);
+                var action = payload.action || '';
+                var context = getContextForMessage();
+
+                log('COMMUNICATION RECEIVED', {
+                    timestamp_ms: Date.now(),
+                    timestamp_iso: nowIso(),
+                    action: action,
+                    raw_query_length: (queryString || '').length,
+                    payload_keys: Object.keys(payload),
+                    width: payload.width || '',
+                    height: payload.height || '',
+                    has_response: typeof payload.response === 'string' && payload.response.length > 0,
+                    target_iframe_id: context ? context.iframeId : ''
+                });
+
+                if (!context) {
+                    logError('No iframe context found for communicator message', {
+                        action: action,
+                        raw_query_length: (queryString || '').length
+                    });
+                    return;
+                }
+
+                if (action === 'resizeWindow') {
+                    var heightValue = parseInt(payload.height, 10);
+                    if (Number.isNaN(heightValue)) {
+                        heightValue = 0;
+                    }
+
+                    var appliedHeight = Math.max(500, heightValue);
+
+                    if (context.iframeEl) {
+                        context.iframeEl.style.height = appliedHeight + 'px';
+                    }
+
+                    updatePanelHeight(context.paymentBlock, 'communicator_resizeWindow');
+
+                    log('RESIZE WINDOW HANDLED', {
+                        timestamp_ms: Date.now(),
+                        timestamp_iso: nowIso(),
+                        iframe_id: context.iframeId || '',
+                        class_id: context.classId || '',
+                        width: payload.width || '',
+                        height_raw: payload.height || '',
+                        height_applied: appliedHeight
+                    });
+
+                    return;
+                }
+
+                if (action === 'cancel') {
+                    context.receivedTerminalEvent = true;
+                    clearProcessingTimeout(context);
+
+                    if (context.statusEl) {
+                        context.statusEl.textContent = 'Payment cancelled.';
+                    }
+
+                    if (context.buttonEl) {
+                        context.buttonEl.disabled = false;
+                    }
+
+                    updatePanelHeight(context.paymentBlock, 'communicator_cancel');
+
+                    log('CANCEL HANDLED', {
+                        timestamp_ms: Date.now(),
+                        timestamp_iso: nowIso(),
+                        iframe_id: context.iframeId || '',
+                        class_id: context.classId || ''
+                    });
+
+                    return;
+                }
+
+                if (action === 'transactResponse') {
+                    var responseRaw = payload.response || '';
+                    var responseObject = null;
+
+                    try {
+                        responseObject = JSON.parse(responseRaw);
+                    } catch (transactParseError) {
+                        logError('transactResponse JSON parse failed', {
+                            timestamp_ms: Date.now(),
+                            timestamp_iso: nowIso(),
+                            iframe_id: context.iframeId || '',
+                            class_id: context.classId || '',
+                            error_message: transactParseError && transactParseError.message ? transactParseError.message : transactParseError,
+                            response_length: responseRaw.length
+                        });
+
+                        if (context.statusEl) {
+                            context.statusEl.textContent = 'Payment response received but could not be parsed.';
+                        }
+
+                        if (context.buttonEl) {
+                            context.buttonEl.disabled = false;
+                        }
+
+                        updatePanelHeight(context.paymentBlock, 'communicator_transact_parse_error');
+                        return;
+                    }
+
+                    var summary = extractTransactionSummary(responseObject);
+                    var isSuccess = determineSuccess(summary);
+
+                    context.receivedTerminalEvent = true;
+                    clearProcessingTimeout(context);
+
+                    log('TRANSACT RESPONSE (SAFE)', {
+                        timestamp_ms: Date.now(),
+                        timestamp_iso: nowIso(),
+                        iframe_id: context.iframeId || '',
+                        class_id: context.classId || '',
+                        invoice_number: summary.invoiceNumber || context.invoiceNumber || '',
+                        transId: summary.transId || '',
+                        responseCode: summary.responseCode || '',
+                        resultCode: summary.resultCode || '',
+                        errors: summary.errors,
+                        top_level_keys: summary.topLevelKeys
+                    });
+
+                    if (context.statusEl) {
+                        if (isSuccess) {
+                            context.statusEl.textContent = 'Payment complete. Transaction ID: ' + (summary.transId || 'N/A');
+                        } else {
+                            context.statusEl.textContent = 'Payment failed: ' + bestErrorMessage(summary);
+                        }
+                    }
+
+                    if (context.buttonEl) {
+                        if (isSuccess) {
+                            context.buttonEl.disabled = true;
+                            context.buttonEl.textContent = 'Paid';
+                        } else {
+                            context.buttonEl.disabled = false;
+                        }
+                    }
+
+                    updatePanelHeight(context.paymentBlock, 'communicator_transactResponse');
+                    return;
+                }
+
+                log('COMMUNICATION ACTION UNHANDLED', {
+                    timestamp_ms: Date.now(),
+                    timestamp_iso: nowIso(),
+                    action: action,
+                    iframe_id: context ? context.iframeId : '',
+                    class_id: context ? context.classId : ''
+                });
+            } catch (receiveError) {
+                logError('RECEIVE ERROR', {
+                    timestamp_ms: Date.now(),
+                    timestamp_iso: nowIso(),
+                    error_message: receiveError && receiveError.message ? receiveError.message : receiveError,
+                    error_object: receiveError
+                });
+            }
+        };
+
+        log('AuthorizeNetIFrame receiver registered', {
+            timestamp_ms: Date.now(),
+            timestamp_iso: nowIso()
         });
     }
 
@@ -127,6 +456,8 @@
             log('INIT: registration root not found; skipping Accept Hosted debug initialization.');
             return;
         }
+
+        registerGlobalReceiver();
 
         var nonce = root.getAttribute('data-anet-token-nonce') || '';
         var environment = root.getAttribute('data-authorizenet-environment') || '';
@@ -337,6 +668,23 @@
                             return;
                         }
 
+                        var context = {
+                            classId: classId,
+                            invoiceNumber: parsed.invoiceNumber || '',
+                            iframeId: targetIframeId,
+                            formId: targetFormId,
+                            statusEl: statusEl,
+                            buttonEl: button,
+                            paymentBlock: paymentBlock,
+                            iframeEl: iframeEl,
+                            formEl: formEl,
+                            receivedTerminalEvent: false,
+                            processingTimerId: null
+                        };
+
+                        iframeContextMap[targetIframeId] = context;
+                        lastSubmittedIframeId = targetIframeId;
+
                         iframeEl.addEventListener('load', function () {
                             var iframeLocation = 'inaccessible';
 
@@ -349,6 +697,7 @@
                             }
 
                             updatePanelHeight(paymentBlock, 'iframe_load');
+                            startProcessingTimeout(context);
 
                             log('IFRAME LOAD', {
                                 timestamp_ms: Date.now(),
@@ -380,9 +729,8 @@
 
                         updatePanelHeight(paymentBlock, 'iframe_revealed_before_submit');
 
-                        var resizeObserver = null;
                         if (typeof ResizeObserver !== 'undefined') {
-                            resizeObserver = new ResizeObserver(function () {
+                            var resizeObserver = new ResizeObserver(function () {
                                 updatePanelHeight(paymentBlock, 'iframe_resize_observer');
                             });
                             resizeObserver.observe(iframeEl);
@@ -406,6 +754,7 @@
                             class_id: classId,
                             target_form_id: targetFormId,
                             target_iframe_id: targetIframeId,
+                            invoice_number: parsed.invoiceNumber || '',
                             elapsed_ms: Date.now() - clickStartMs
                         });
 
