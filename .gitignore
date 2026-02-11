@@ -1,2 +1,5 @@
 # Ignore the dashboard icon binary; supplied manually in deployments
 assets/images/alabama_dashboard_icon.png
+
+# Composer dependencies are installed locally for plugin integrations
+vendor/
