@@ -10,7 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use net\authorize\api\constants\ANetEnvironment;
+use net\authorize\api\contract\v1\CustomerDataType;
+use net\authorize\api\contract\v1\GetHostedPaymentPageRequest;
 use net\authorize\api\contract\v1\MerchantAuthenticationType;
+use net\authorize\api\contract\v1\OrderType;
+use net\authorize\api\contract\v1\SettingType;
+use net\authorize\api\contract\v1\TransactionRequestType;
+use net\authorize\api\controller\GetHostedPaymentPageController;
 
 class TEQCIDB_AuthorizeNet_Service {
 
@@ -98,5 +104,132 @@ class TEQCIDB_AuthorizeNet_Service {
         }
 
         return ANetEnvironment::SANDBOX;
+    }
+
+    /**
+     * Create an Authorize.Net Accept Hosted payment token.
+     *
+     * @param float|int|string $amount        Transaction amount.
+     * @param string           $description   Order description.
+     * @param string           $invoiceNumber Invoice number.
+     * @param string           $customerEmail Optional customer email.
+     *
+     * @return string|WP_Error
+     */
+    public function create_accept_hosted_token( $amount, $description, $invoiceNumber, $customerEmail = '' ) {
+        if ( ! class_exists( GetHostedPaymentPageRequest::class ) || ! class_exists( GetHostedPaymentPageController::class ) ) {
+            return new WP_Error(
+                'teqcidb_authorizenet_sdk_missing',
+                __( 'Authorize.Net SDK is unavailable. Run Composer install for this plugin.', 'teqcidb' )
+            );
+        }
+
+        $merchant_auth = $this->get_merchant_authentication();
+
+        if ( is_wp_error( $merchant_auth ) ) {
+            return $merchant_auth;
+        }
+
+        $transaction_request = new TransactionRequestType();
+        $transaction_request->setTransactionType( 'authCaptureTransaction' );
+        $transaction_request->setAmount( number_format( (float) $amount, 2, '.', '' ) );
+
+        $order = new OrderType();
+        $order->setInvoiceNumber( (string) $invoiceNumber );
+        $order->setDescription( (string) $description );
+        $transaction_request->setOrder( $order );
+
+        if ( '' !== $customerEmail ) {
+            $customer = new CustomerDataType();
+            $customer->setEmail( sanitize_email( $customerEmail ) );
+            $transaction_request->setCustomer( $customer );
+        }
+
+        $communicator_setting = new SettingType();
+        $communicator_setting->setSettingName( 'hostedPaymentIFrameCommunicatorUrl' );
+        $communicator_setting->setSettingValue(
+            wp_json_encode(
+                array(
+                    'url' => home_url( '/?teqcidb_iframe_communicator=1' ),
+                )
+            )
+        );
+
+        $return_options_setting = new SettingType();
+        $return_options_setting->setSettingName( 'hostedPaymentReturnOptions' );
+        $return_options_setting->setSettingValue(
+            wp_json_encode(
+                array(
+                    'showReceipt' => false,
+                )
+            )
+        );
+
+        $request = new GetHostedPaymentPageRequest();
+        $request->setMerchantAuthentication( $merchant_auth );
+        $request->setTransactionRequest( $transaction_request );
+        $request->setHostedPaymentSettings( array( $communicator_setting, $return_options_setting ) );
+
+        $controller = new GetHostedPaymentPageController( $request );
+        $response   = $controller->executeWithApiResponse( $this->get_api_environment() );
+
+        if ( $response && $response->getToken() ) {
+            return $response->getToken();
+        }
+
+        $messages = $this->extract_authorizenet_error_messages( $response );
+
+        return new WP_Error(
+            'teqcidb_authorizenet_accept_hosted_failed',
+            __( 'Unable to create an Authorize.Net Accept Hosted token.', 'teqcidb' ),
+            array(
+                'errors' => $messages,
+            )
+        );
+    }
+
+    /**
+     * Extract API error codes and messages from an Authorize.Net response.
+     *
+     * @param mixed $response Authorize.Net API response object.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function extract_authorizenet_error_messages( $response ) {
+        $messages = array();
+
+        if ( ! $response || ! method_exists( $response, 'getMessages' ) ) {
+            return $messages;
+        }
+
+        $response_messages = $response->getMessages();
+
+        if ( $response_messages && method_exists( $response_messages, 'getMessage' ) ) {
+            foreach ( (array) $response_messages->getMessage() as $message ) {
+                if ( is_object( $message ) && method_exists( $message, 'getCode' ) && method_exists( $message, 'getText' ) ) {
+                    $messages[] = array(
+                        'code'    => (string) $message->getCode(),
+                        'message' => (string) $message->getText(),
+                    );
+                }
+            }
+        }
+
+        if ( method_exists( $response, 'getTransactionResponse' ) ) {
+            $transaction_response = $response->getTransactionResponse();
+
+            if ( $transaction_response && method_exists( $transaction_response, 'getErrors' ) ) {
+                foreach ( (array) $transaction_response->getErrors() as $error ) {
+                    if ( is_object( $error ) && method_exists( $error, 'getErrorCode' ) && method_exists( $error, 'getErrorText' ) ) {
+                        $messages[] = array(
+                            'code'    => (string) $error->getErrorCode(),
+                            'message' => (string) $error->getErrorText(),
+                        );
+                    }
+                }
+            }
+        }
+
+        return $messages;
     }
 }

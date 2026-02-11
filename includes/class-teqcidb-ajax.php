@@ -31,6 +31,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
         add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
+        add_action( 'wp_ajax_teqcidb_anet_get_token', array( $this, 'anet_get_token' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
@@ -48,6 +49,127 @@ class TEQCIDB_Ajax {
                 usleep( $microseconds );
             }
         }
+    }
+
+
+    /**
+     * Return an Authorize.Net Accept Hosted token for a class purchase.
+     *
+     * @return void
+     */
+    public function anet_get_token() {
+        if ( ! is_user_logged_in() ) {
+            wp_send_json(
+                array(
+                    'success' => false,
+                    'message' => __( 'You must be logged in to continue.', 'teqcidb' ),
+                )
+            );
+        }
+
+        check_ajax_referer( 'teqcidb_anet_get_token', 'nonce' );
+
+        $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json(
+                array(
+                    'success' => false,
+                    'message' => __( 'Invalid class ID.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $class      = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, uniqueclassid, classname, classcost, classdescription FROM {$table_name} WHERE id = %d",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class ) || empty( $class['id'] ) ) {
+            wp_send_json(
+                array(
+                    'success' => false,
+                    'message' => __( 'Class not found.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $amount_raw = isset( $class['classcost'] ) ? trim( (string) $class['classcost'] ) : '';
+
+        if ( '' === $amount_raw || ! is_numeric( $amount_raw ) ) {
+            wp_send_json(
+                array(
+                    'success' => false,
+                    'message' => __( 'The class price is not available.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $amount      = (float) $amount_raw;
+        $class_name  = isset( $class['classname'] ) ? sanitize_text_field( $class['classname'] ) : '';
+        $class_blurb = isset( $class['classdescription'] ) ? wp_strip_all_tags( (string) $class['classdescription'] ) : '';
+
+        $description = sprintf(
+            /* translators: %s: class name. */
+            __( 'Class Registration: %s', 'teqcidb' ),
+            $class_name
+        );
+
+        if ( '' !== $class_blurb ) {
+            $description .= ' - ' . wp_trim_words( $class_blurb, 8, '…' );
+        }
+
+        $invoice_number = sprintf( 'CLS-%d-%d-%04d', $class_id, time(), wp_rand( 0, 9999 ) );
+
+        if ( strlen( $invoice_number ) > 20 ) {
+            $invoice_number = substr( $invoice_number, 0, 20 );
+        }
+
+        $user          = wp_get_current_user();
+        $customerEmail = isset( $user->user_email ) ? sanitize_email( $user->user_email ) : '';
+        $anet_service  = new TEQCIDB_AuthorizeNet_Service();
+        $token         = $anet_service->create_accept_hosted_token( $amount, $description, $invoice_number, $customerEmail );
+
+        if ( is_wp_error( $token ) ) {
+            $error_items = array();
+            $error_data  = $token->get_error_data();
+
+            if ( isset( $error_data['errors'] ) && is_array( $error_data['errors'] ) ) {
+                foreach ( $error_data['errors'] as $item ) {
+                    if ( ! is_array( $item ) ) {
+                        continue;
+                    }
+
+                    $error_items[] = array(
+                        'code' => isset( $item['code'] ) ? (string) $item['code'] : '',
+                        'text' => isset( $item['message'] ) ? (string) $item['message'] : '',
+                    );
+                }
+            }
+
+            wp_send_json(
+                array(
+                    'success' => false,
+                    'message' => __( 'Error creating payment token', 'teqcidb' ),
+                    'errors'  => $error_items,
+                )
+            );
+        }
+
+        wp_send_json(
+            array(
+                'success'       => true,
+                'token'         => (string) $token,
+                'invoiceNumber' => $invoice_number,
+                'class_id'      => $class_id,
+            )
+        );
     }
 
     public function save_student() {
