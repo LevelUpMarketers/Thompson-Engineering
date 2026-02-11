@@ -25,6 +25,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
 - Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, and Transaction Key). These values are saved in the `teqcidb_api_settings` option and used by the registration shortcode integration for upcoming Accept Hosted iframe checkout.
+- Accept Hosted iFrame communicator endpoint is available at `home_url('/?teqcidb_iframe_communicator=1')` (for example, `https://example.com/?teqcidb_iframe_communicator=1`) and is served directly by the plugin with no rewrite rules.
 
 ## Admin Form Guidelines
 
