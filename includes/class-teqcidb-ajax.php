@@ -26,6 +26,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_upload_legacy_records', array( $this, 'upload_legacy_records' ) );
         add_action( 'wp_ajax_teqcidb_save_email_template', array( $this, 'save_email_template' ) );
         add_action( 'wp_ajax_teqcidb_send_test_email', array( $this, 'send_test_email' ) );
+        add_action( 'wp_ajax_teqcidb_get_authorizenet_hosted_token', array( $this, 'get_authorizenet_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_clear_email_log', array( $this, 'clear_email_log' ) );
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
@@ -48,6 +49,64 @@ class TEQCIDB_Ajax {
                 usleep( $microseconds );
             }
         }
+    }
+
+    /**
+     * Create an Authorize.Net Accept Hosted token for a class registration checkout.
+     */
+    public function get_authorizenet_hosted_token() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please log in before starting checkout.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $class_name = isset( $_POST['className'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['className'] ) ) : '';
+        $class_id   = isset( $_POST['classId'] ) ? absint( $_POST['classId'] ) : 0;
+        $amount_raw = isset( $_POST['amount'] ) ? wp_unslash( (string) $_POST['amount'] ) : '';
+        $amount     = is_numeric( $amount_raw ) ? (float) $amount_raw : 0;
+
+        if ( '' === $class_name || $amount <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Class details are incomplete. Please refresh and try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $invoice_id   = sprintf( 'TEQCIDB-%d-%d', $class_id, time() );
+        $description  = sprintf(
+            /* translators: %s: class name. */
+            __( 'Registration for %s', 'teqcidb' ),
+            $class_name
+        );
+
+        $authorizenet_service = new TEQCIDB_AuthorizeNet_Service();
+        $token                = $authorizenet_service->create_accept_hosted_payment_token(
+            array(
+                'amount'         => $amount,
+                'invoice_number' => $invoice_id,
+                'description'    => $description,
+            )
+        );
+
+        if ( is_wp_error( $token ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => $token->get_error_message(),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'token' => $token,
+            )
+        );
     }
 
     public function save_student() {
@@ -478,7 +537,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $current_user = wp_get_current_user();
 
         if ( ! ( $current_user instanceof WP_User ) || ! $current_user->exists() ) {
             $this->maybe_delay( $start );
@@ -2123,7 +2181,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $current_user = wp_get_current_user();
 
         if ( ! $current_user instanceof WP_User || ! $current_user->exists() ) {
             $this->maybe_delay( $start );
@@ -2337,7 +2394,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $current_user = wp_get_current_user();
         $triggered_by = '';
 
         if ( $current_user instanceof WP_User && $current_user->exists() ) {

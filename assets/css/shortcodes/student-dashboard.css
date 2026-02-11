@@ -971,6 +971,61 @@
     margin: 0;
 }
 
+
+.teqcidb-registration-class-checkout {
+    margin-top: 26px;
+}
+
+.teqcidb-registration-pay-button {
+    background: var(--wpex-accent);
+    border: 1px solid var(--wpex-accent);
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    min-height: 44px;
+    min-width: 210px;
+    padding: 10px 18px;
+}
+
+.teqcidb-registration-pay-button:hover,
+.teqcidb-registration-pay-button:focus {
+    background: #225f89;
+    border-color: #225f89;
+    color: #fff;
+}
+
+.teqcidb-registration-pay-button[disabled] {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.teqcidb-registration-payment-status {
+    color: #4a5568;
+    font-size: 0.95rem;
+    margin: 12px 0 0;
+    min-height: 1.2em;
+}
+
+.teqcidb-registration-payment-status.is-error {
+    color: #b42318;
+}
+
+.teqcidb-registration-payment-iframe {
+    border: 1px solid #d1d1d1;
+    border-radius: 8px;
+    display: none;
+    height: 760px;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.teqcidb-registration-payment-iframe.is-active {
+    display: block;
+}
+
 @media (max-width: 1100px) {
     .teqcidb-registration-class-details {
         grid-template-columns: repeat(3, minmax(0, 1fr));

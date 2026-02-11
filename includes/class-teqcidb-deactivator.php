@@ -11,6 +11,9 @@ class TEQCIDB_Deactivator {
         $cron_array = _get_cron_array();
 
         if ( empty( $cron_array ) || ! is_array( $cron_array ) ) {
+            delete_option( 'teqcidb_demo_cron_last_run' );
+            flush_rewrite_rules();
+
             return;
         }
 
@@ -28,5 +31,7 @@ class TEQCIDB_Deactivator {
         }
 
         delete_option( 'teqcidb_demo_cron_last_run' );
+
+        flush_rewrite_rules();
     }
 }
