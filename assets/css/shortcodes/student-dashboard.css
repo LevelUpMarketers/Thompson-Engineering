@@ -911,6 +911,13 @@
     transform-origin: top center;
 }
 
+
+.teqcidb-registration-anet-iframe {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
 .teqcidb-registration-class-panel[hidden] {
     display: block;
     max-height: 0;

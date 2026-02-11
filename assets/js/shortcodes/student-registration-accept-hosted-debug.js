@@ -96,6 +96,30 @@
             .join(' | ');
     }
 
+
+    function updatePanelHeight(paymentBlock, reason) {
+        if (!paymentBlock) {
+            return;
+        }
+
+        var panel = paymentBlock.closest('.teqcidb-registration-class-panel');
+        if (!panel) {
+            return;
+        }
+
+        var nextHeight = panel.scrollHeight;
+        panel.style.maxHeight = nextHeight + 'px';
+
+        log('PANEL HEIGHT UPDATED', {
+            timestamp_ms: Date.now(),
+            timestamp_iso: nowIso(),
+            reason: reason || 'unspecified',
+            panel_id: panel.id || '',
+            scroll_height: nextHeight,
+            applied_max_height: panel.style.maxHeight
+        });
+    }
+
     function init() {
         var root = getRoot();
 
@@ -158,6 +182,7 @@
 
             button.disabled = true;
             statusEl.textContent = 'Loading secure payment form...';
+            updatePanelHeight(paymentBlock, 'click_start_loading');
 
             var params = new URLSearchParams();
             params.set('action', 'teqcidb_anet_get_token');
@@ -235,6 +260,7 @@
 
                             statusEl.textContent = combinedMessage;
                             button.disabled = false;
+                            updatePanelHeight(paymentBlock, 'application_error');
 
                             log('CLICK END (ERROR)', {
                                 timestamp_ms: Date.now(),
@@ -322,6 +348,8 @@
                                 iframeLocation = 'cross-origin_or_inaccessible';
                             }
 
+                            updatePanelHeight(paymentBlock, 'iframe_load');
+
                             log('IFRAME LOAD', {
                                 timestamp_ms: Date.now(),
                                 timestamp_iso: nowIso(),
@@ -348,8 +376,29 @@
 
                         iframeEl.hidden = false;
                         formEl.hidden = false;
+                        iframeEl.style.width = '100%';
+
+                        updatePanelHeight(paymentBlock, 'iframe_revealed_before_submit');
+
+                        var resizeObserver = null;
+                        if (typeof ResizeObserver !== 'undefined') {
+                            resizeObserver = new ResizeObserver(function () {
+                                updatePanelHeight(paymentBlock, 'iframe_resize_observer');
+                            });
+                            resizeObserver.observe(iframeEl);
+                        }
 
                         formEl.submit();
+
+                        var resizeAttempts = 0;
+                        var resizeInterval = window.setInterval(function () {
+                            resizeAttempts += 1;
+                            updatePanelHeight(paymentBlock, 'post_submit_interval_' + resizeAttempts);
+
+                            if (resizeAttempts >= 15) {
+                                window.clearInterval(resizeInterval);
+                            }
+                        }, 400);
 
                         log('FORM SUBMITTED', {
                             timestamp_ms: Date.now(),
@@ -379,6 +428,7 @@
 
                     statusEl.textContent = 'Unable to load secure payment form right now. Please try again.';
                     button.disabled = false;
+                    updatePanelHeight(paymentBlock, 'network_error');
 
                     log('CLICK END (ERROR)', {
                         timestamp_ms: Date.now(),
