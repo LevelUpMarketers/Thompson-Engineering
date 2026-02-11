@@ -915,6 +915,7 @@
 .teqcidb-registration-anet-iframe {
     width: 100%;
     max-width: 100%;
+    min-height: 800px;
     box-sizing: border-box;
 }
 
