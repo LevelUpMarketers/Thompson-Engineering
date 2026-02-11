@@ -499,6 +499,23 @@ class TEQCIDB_Shortcode_Student_Registration {
                 true
             );
 
+
+            wp_enqueue_script(
+                'teqcidb-shortcode-student-registration-accept-hosted-debug',
+                TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/student-registration-accept-hosted-debug.js',
+                array(),
+                TEQCIDB_VERSION,
+                true
+            );
+
+            wp_localize_script(
+                'teqcidb-shortcode-student-registration-accept-hosted-debug',
+                'teqcidbAcceptHostedDebug',
+                array(
+                    'ajax_url' => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+                )
+            );
+
             wp_localize_script(
                 'teqcidb-shortcode-student-dashboard',
                 'teqcidbStudentDashboard',
