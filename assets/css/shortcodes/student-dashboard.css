@@ -901,12 +901,30 @@
 }
 
 .teqcidb-registration-class-panel {
-    background: #ececec;
     border: 1px solid #d1d1d1;
     border-top: 0;
     border-radius: 0 0 10px 10px;
-    margin-top: -2px;
-    padding: 20px 16px;
+    margin-top: -7px;
+    overflow: hidden;
+    padding: 30px 16px;
+    transition: opacity 0.28s ease, transform 0.28s ease, max-height 0.35s ease;
+    transform-origin: top center;
+}
+
+.teqcidb-registration-class-panel[hidden] {
+    display: block;
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+}
+
+.teqcidb-registration-class-panel:not([hidden]) {
+    max-height: 1800px;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .teqcidb-registration-class-section-title {
