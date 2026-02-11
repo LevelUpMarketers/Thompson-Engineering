@@ -84,8 +84,10 @@ class TEQCIDB_Shortcode_Student_Registration {
                         <?php
                         $accordion_id = 'teqcidb-registration-class-' . $index;
                         $panel_id     = $accordion_id . '-panel';
-                        $checkout_id  = $accordion_id . '-checkout';
-                        $iframe_id    = $accordion_id . '-iframe';
+                        $checkout_suffix = sanitize_html_class( $class['class_id'] . '-' . $index );
+                        $checkout_id     = 'class-checkout-' . $checkout_suffix;
+                        $button_id       = 'pay-btn-' . $checkout_suffix;
+                        $iframe_id       = 'anetAcceptFrame-' . $checkout_suffix;
                         ?>
                         <div class="teqcidb-registration-class-item" role="listitem">
                             <button
@@ -157,24 +159,32 @@ class TEQCIDB_Shortcode_Student_Registration {
                                     </div>
                                 </dl>
 
-                                <div class="teqcidb-registration-class-checkout" id="<?php echo esc_attr( $checkout_id ); ?>">
+                                <div
+                                    class="class-checkout"
+                                    id="<?php echo esc_attr( $checkout_id ); ?>"
+                                    data-class-id="<?php echo esc_attr( $class['class_id'] ); ?>"
+                                    data-amount="<?php echo esc_attr( $class['class_cost_amount'] ); ?>"
+                                >
                                     <button
-                                        class="teqcidb-registration-pay-button"
                                         type="button"
-                                        data-teqcidb-registration-pay="true"
-                                        data-target-iframe="<?php echo esc_attr( $iframe_id ); ?>"
-                                        data-class-id="<?php echo esc_attr( (string) $class['class_id'] ); ?>"
-                                        data-class-name="<?php echo esc_attr( $class['classname'] ); ?>"
-                                        data-class-amount="<?php echo esc_attr( $class['class_cost_amount'] ); ?>"
+                                        id="<?php echo esc_attr( $button_id ); ?>"
+                                        name="<?php echo esc_attr( $button_id ); ?>"
+                                        class="pay-btn"
+                                        data-target-frame="<?php echo esc_attr( $iframe_id ); ?>"
                                     >
-                                        <?php echo esc_html_x( 'Register and Pay Online', 'Student registration payment button label', 'teqcidb' ); ?>
+                                        <?php echo esc_html_x( 'Register & Pay Online', 'Student registration payment button label', 'teqcidb' ); ?>
                                     </button>
-                                    <p class="teqcidb-registration-payment-status" aria-live="polite"></p>
+
                                     <iframe
                                         id="<?php echo esc_attr( $iframe_id ); ?>"
-                                        class="teqcidb-registration-payment-iframe"
-                                        title="<?php echo esc_attr( sprintf( _x( 'Authorize.Net checkout for %s', 'Student registration payment iframe title', 'teqcidb' ), $class['classname'] ) ); ?>"
-                                        loading="lazy"
+                                        name="<?php echo esc_attr( $iframe_id ); ?>"
+                                        title="<?php echo esc_attr( sprintf( _x( 'Secure payment form for %s', 'Student registration payment iframe title', 'teqcidb' ), $class['classname'] ) ); ?>"
+                                        width="100%"
+                                        height="900"
+                                        frameborder="0"
+                                        scrolling="no"
+                                        style="width:100%; border:0; overflow:hidden;"
+                                        data-iframe-key="<?php echo esc_attr( $checkout_suffix ); ?>"
                                     ></iframe>
                                 </div>
                             </div>
@@ -193,6 +203,16 @@ class TEQCIDB_Shortcode_Student_Registration {
                 </p>
             <?php endif; ?>
         </section>
+
+        <!-- One reusable token-post form for the whole page -->
+        <form
+            id="anetTokenForm"
+            method="post"
+            action="https://accept.authorize.net/payment/payment"
+            style="display:none;"
+        >
+            <input type="hidden" name="token" id="anetTokenInput" value="">
+        </form>
         <?php
 
         return ob_get_clean();
