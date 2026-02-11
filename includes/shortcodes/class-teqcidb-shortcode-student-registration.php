@@ -73,13 +73,18 @@ class TEQCIDB_Shortcode_Student_Registration {
             data-teqcidb-registration="true"
             data-authorizenet-environment="<?php echo esc_attr( $authorize_environment ); ?>"
             data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
+            data-anet-token-nonce="<?php echo esc_attr( wp_create_nonce( 'teqcidb_anet_get_token' ) ); ?>"
         >
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
                         <?php
-                        $accordion_id = 'teqcidb-registration-class-' . $index;
-                        $panel_id     = $accordion_id . '-panel';
+                        $accordion_id          = 'teqcidb-registration-class-' . $index;
+                        $panel_id              = $accordion_id . '-panel';
+                        $class_id              = isset( $class['id'] ) ? absint( $class['id'] ) : 0;
+                        $can_render_payment_ui = ! empty( $class['has_numeric_classcost'] );
+                        $iframe_name           = 'teqcidb-anet-iframe-' . $class_id;
+                        $form_id               = 'teqcidb-anet-form-' . $class_id;
                         ?>
                         <div class="teqcidb-registration-class-item" role="listitem">
                             <button
@@ -150,6 +155,42 @@ class TEQCIDB_Shortcode_Student_Registration {
                                         <dd><?php echo esc_html( $class['zip_code'] ); ?></dd>
                                     </div>
                                 </dl>
+
+                                <?php if ( $can_render_payment_ui && $class_id > 0 ) : ?>
+                                    <div class="teqcidb-registration-class-payment" data-teqcidb-anet-payment="1">
+                                        <button
+                                            type="button"
+                                            class="teqcidb-dashboard-tab teqcidb-registration-pay-button"
+                                            data-teqcidb-pay-button="1"
+                                            data-class-id="<?php echo esc_attr( $class_id ); ?>"
+                                            data-target-iframe="<?php echo esc_attr( $iframe_name ); ?>"
+                                            data-target-form="<?php echo esc_attr( $form_id ); ?>"
+                                        >
+                                            <?php echo esc_html__( 'Register and Pay Online', 'teqcidb' ); ?>
+                                        </button>
+
+                                        <form
+                                            id="<?php echo esc_attr( $form_id ); ?>"
+                                            class="teqcidb-registration-anet-form"
+                                            method="post"
+                                            target="<?php echo esc_attr( $iframe_name ); ?>"
+                                            action=""
+                                            hidden
+                                        >
+                                            <input type="hidden" name="token" value="">
+                                        </form>
+
+                                        <iframe
+                                            id="<?php echo esc_attr( $iframe_name ); ?>"
+                                            name="<?php echo esc_attr( $iframe_name ); ?>"
+                                            title="<?php echo esc_attr__( 'Secure payment form', 'teqcidb' ); ?>"
+                                            class="teqcidb-registration-anet-iframe"
+                                            hidden
+                                        ></iframe>
+
+                                        <div class="teqcidb-registration-anet-status" aria-live="polite"></div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -191,7 +232,7 @@ class TEQCIDB_Shortcode_Student_Registration {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
+                "SELECT id, classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
                 FROM $table_name
                 WHERE COALESCE(classhide, 0) <> 1
                 ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
@@ -219,19 +260,23 @@ class TEQCIDB_Shortcode_Student_Registration {
 
             $address = $this->decode_class_address_field( isset( $row['classsaddress'] ) ? (string) $row['classsaddress'] : '' );
 
+            $raw_class_cost = isset( $row['classcost'] ) ? trim( (string) $row['classcost'] ) : '';
+
             $classes[] = array(
-                'classname'      => $class_name,
-                'classdescription' => $this->format_description_for_display( isset( $row['classdescription'] ) ? $row['classdescription'] : '' ),
-                'classcost'      => $this->format_cost_for_display( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
-                'classtype'      => $this->format_label_for_display( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
-                'classformat'    => $this->format_label_for_display( isset( $row['classformat'] ) ? $row['classformat'] : '' ),
-                'classstartdate' => $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
-                'classstarttime' => $this->format_time_for_display( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
-                'classendtime'   => $this->format_time_for_display( isset( $row['classendtime'] ) ? $row['classendtime'] : '' ),
-                'street_address' => $this->compose_street_address_for_display( $address ),
-                'city'           => $this->fallback_display_value( isset( $address['city'] ) ? $address['city'] : '' ),
-                'state'          => $this->fallback_display_value( isset( $address['state'] ) ? $address['state'] : '' ),
-                'zip_code'       => $this->fallback_display_value( isset( $address['postal_code'] ) ? $address['postal_code'] : '' ),
+                'id'                    => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'classname'             => $class_name,
+                'classdescription'      => $this->format_description_for_display( isset( $row['classdescription'] ) ? $row['classdescription'] : '' ),
+                'classcost'             => $this->format_cost_for_display( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'has_numeric_classcost' => '' !== $raw_class_cost && is_numeric( $raw_class_cost ),
+                'classtype'             => $this->format_label_for_display( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
+                'classformat'           => $this->format_label_for_display( isset( $row['classformat'] ) ? $row['classformat'] : '' ),
+                'classstartdate'        => $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+                'classstarttime'        => $this->format_time_for_display( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+                'classendtime'          => $this->format_time_for_display( isset( $row['classendtime'] ) ? $row['classendtime'] : '' ),
+                'street_address'        => $this->compose_street_address_for_display( $address ),
+                'city'                  => $this->fallback_display_value( isset( $address['city'] ) ? $address['city'] : '' ),
+                'state'                 => $this->fallback_display_value( isset( $address['state'] ) ? $address['state'] : '' ),
+                'zip_code'              => $this->fallback_display_value( isset( $address['postal_code'] ) ? $address['postal_code'] : '' ),
             );
         }
 
