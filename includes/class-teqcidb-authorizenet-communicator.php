@@ -40,7 +40,33 @@ class TEQCIDB_AuthorizeNet_Communicator {
     }
 
     /**
-     * Send no-cache/noindex and CORS headers for communicator responses.
+     * Log a single debug line for communicator requests when WP_DEBUG is enabled.
+     *
+     * @return void
+     */
+    private function maybe_log_debug_request() {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+
+        $method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+        $origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
+        $referer = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
+        $query_action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+
+        error_log(
+            sprintf(
+                '[TEQCIDB COMMUNICATOR] method=%s origin=%s referer=%s qs_action=%s',
+                $method,
+                $origin,
+                $referer,
+                $query_action
+            )
+        );
+    }
+
+    /**
+     * Send no-cache/noindex, CORS, and frame embedding headers for communicator responses.
      *
      * @return void
      */
@@ -55,6 +81,11 @@ class TEQCIDB_AuthorizeNet_Communicator {
         header( 'Access-Control-Allow-Methods: GET, OPTIONS' );
         header( 'Access-Control-Allow-Headers: *' );
         header( 'Access-Control-Max-Age: 86400' );
+
+        header_remove( 'X-Frame-Options' );
+        header_remove( 'Content-Security-Policy' );
+        header_remove( 'Content-Security-Policy-Report-Only' );
+        header( 'Content-Security-Policy: frame-ancestors https://accept.authorize.net https://test.authorize.net;' );
     }
 
     /**
@@ -71,6 +102,7 @@ class TEQCIDB_AuthorizeNet_Communicator {
             ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
             : 'get';
 
+        $this->maybe_log_debug_request();
         $this->send_communicator_headers();
 
         if ( 'options' === $request_method ) {
