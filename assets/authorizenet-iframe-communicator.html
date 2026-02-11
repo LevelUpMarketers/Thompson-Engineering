@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Authorize.Net IFrame Communicator</title>
+    <script>
+        if (window.parent && window.location.hash) {
+            window.parent.postMessage(window.location.hash, '*');
+        }
+    </script>
+</head>
+<body></body>
+</html>

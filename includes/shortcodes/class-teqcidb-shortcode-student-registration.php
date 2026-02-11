@@ -84,6 +84,8 @@ class TEQCIDB_Shortcode_Student_Registration {
                         <?php
                         $accordion_id = 'teqcidb-registration-class-' . $index;
                         $panel_id     = $accordion_id . '-panel';
+                        $checkout_id  = $accordion_id . '-checkout';
+                        $iframe_id    = $accordion_id . '-iframe';
                         ?>
                         <div class="teqcidb-registration-class-item" role="listitem">
                             <button
@@ -154,6 +156,27 @@ class TEQCIDB_Shortcode_Student_Registration {
                                         <dd><?php echo esc_html( $class['zip_code'] ); ?></dd>
                                     </div>
                                 </dl>
+
+                                <div class="teqcidb-registration-class-checkout" id="<?php echo esc_attr( $checkout_id ); ?>">
+                                    <button
+                                        class="teqcidb-registration-pay-button"
+                                        type="button"
+                                        data-teqcidb-registration-pay="true"
+                                        data-target-iframe="<?php echo esc_attr( $iframe_id ); ?>"
+                                        data-class-id="<?php echo esc_attr( (string) $class['class_id'] ); ?>"
+                                        data-class-name="<?php echo esc_attr( $class['classname'] ); ?>"
+                                        data-class-amount="<?php echo esc_attr( $class['class_cost_amount'] ); ?>"
+                                    >
+                                        <?php echo esc_html_x( 'Register and Pay Online', 'Student registration payment button label', 'teqcidb' ); ?>
+                                    </button>
+                                    <p class="teqcidb-registration-payment-status" aria-live="polite"></p>
+                                    <iframe
+                                        id="<?php echo esc_attr( $iframe_id ); ?>"
+                                        class="teqcidb-registration-payment-iframe"
+                                        title="<?php echo esc_attr( sprintf( _x( 'Authorize.Net checkout for %s', 'Student registration payment iframe title', 'teqcidb' ), $class['classname'] ) ); ?>"
+                                        loading="lazy"
+                                    ></iframe>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -195,7 +218,7 @@ class TEQCIDB_Shortcode_Student_Registration {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
+                "SELECT id, classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
                 FROM $table_name
                 WHERE COALESCE(classhide, 0) <> 1
                 ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
@@ -215,6 +238,7 @@ class TEQCIDB_Shortcode_Student_Registration {
                 continue;
             }
 
+            $class_id   = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
             $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
 
             if ( '' === $class_name ) {
@@ -224,9 +248,11 @@ class TEQCIDB_Shortcode_Student_Registration {
             $address = $this->decode_class_address_field( isset( $row['classsaddress'] ) ? (string) $row['classsaddress'] : '' );
 
             $classes[] = array(
+                'class_id'       => (string) $class_id,
                 'classname'      => $class_name,
                 'classdescription' => $this->format_description_for_display( isset( $row['classdescription'] ) ? $row['classdescription'] : '' ),
                 'classcost'      => $this->format_cost_for_display( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'class_cost_amount' => $this->format_cost_for_gateway( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
                 'classtype'      => $this->format_label_for_display( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
                 'classformat'    => $this->format_label_for_display( isset( $row['classformat'] ) ? $row['classformat'] : '' ),
                 'classstartdate' => $this->format_class_start_date_for_display( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
@@ -311,6 +337,24 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $cost;
+    }
+
+
+    /**
+     * Format class cost for gateway requests.
+     *
+     * @param string $value Raw class cost.
+     *
+     * @return string
+     */
+    private function format_cost_for_gateway( $value ) {
+        $cost = sanitize_text_field( (string) $value );
+
+        if ( '' === $cost || ! is_numeric( $cost ) ) {
+            return '0.00';
+        }
+
+        return number_format( (float) $cost, 2, '.', '' );
     }
 
     /**
@@ -470,6 +514,7 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'ajaxNonce'       => wp_create_nonce( 'teqcidb_ajax_nonce' ),
                     'ajaxAction'      => 'teqcidb_save_student',
                     'ajaxLoginAction' => 'teqcidb_login_user',
+                    'ajaxHostedTokenAction' => 'teqcidb_get_authorizenet_hosted_token',
                     'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
                     'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
                     'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),
@@ -477,6 +522,10 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'messageUnknown'  => esc_html_x( 'Something went wrong while creating the account. Please try again.', 'Create account form validation message', 'teqcidb' ),
                     'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
                     'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
+                    'messageHostedMissingCredentials' => esc_html_x( 'Online payments are not configured right now. Please contact us to register.', 'Student registration payment status message', 'teqcidb' ),
+                    'messageHostedLoading' => esc_html_x( 'Loading secure checkout…', 'Student registration payment status message', 'teqcidb' ),
+                    'messageHostedReady' => esc_html_x( 'Secure checkout is ready below.', 'Student registration payment status message', 'teqcidb' ),
+                    'messageHostedUnexpected' => esc_html_x( 'Unable to load checkout right now. Please try again.', 'Student registration payment status message', 'teqcidb' ),
                 )
             );
         }

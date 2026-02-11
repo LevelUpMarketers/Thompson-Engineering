@@ -1991,6 +1991,11 @@
         const toggles = Array.from(
             section.querySelectorAll('.teqcidb-registration-class-toggle')
         );
+        const hasCredentials = section.dataset.authorizenetHasCredentials === 'yes';
+        const environment = section.dataset.authorizenetEnvironment === 'live' ? 'live' : 'sandbox';
+        const paymentUrl = environment === 'live'
+            ? 'https://accept.authorize.net/payment/payment'
+            : 'https://test.authorize.net/payment/payment';
 
         const setExpanded = (toggle, expanded) => {
             const panelId = toggle.getAttribute('aria-controls');
@@ -2008,6 +2013,71 @@
             panel.hidden = !expanded;
         };
 
+        const setPaymentStatus = (button, message, isError = false) => {
+            const checkout = button.closest('.teqcidb-registration-class-checkout');
+            if (!checkout) {
+                return;
+            }
+
+            const status = checkout.querySelector('.teqcidb-registration-payment-status');
+            if (!status) {
+                return;
+            }
+
+            status.textContent = message || '';
+            status.classList.toggle('is-error', isError);
+        };
+
+        const requestHostedToken = async (button) => {
+            const formData = new URLSearchParams();
+            formData.append('action', teqcidbStudentDashboard.ajaxHostedTokenAction || 'teqcidb_get_authorizenet_hosted_token');
+            formData.append('_ajax_nonce', teqcidbStudentDashboard.ajaxNonce || '');
+            formData.append('classId', button.dataset.classId || '0');
+            formData.append('className', button.dataset.className || '');
+            formData.append('amount', button.dataset.classAmount || '0');
+
+            const response = await fetch(teqcidbStudentDashboard.ajaxUrl || '', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                },
+                credentials: 'same-origin',
+                body: formData.toString(),
+            });
+
+            if (!response.ok) {
+                throw new Error('Request failed');
+            }
+
+            const payload = await response.json();
+            if (!payload || !payload.success || !payload.data || !payload.data.token) {
+                const message = payload?.data?.message || teqcidbStudentDashboard.messageHostedUnexpected;
+                throw new Error(message);
+            }
+
+            return payload.data.token;
+        };
+
+        const submitHostedIframe = (iframe, token) => {
+            iframe.src = 'about:blank';
+
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = paymentUrl;
+            form.target = iframe.id;
+            form.style.display = 'none';
+
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'token';
+            tokenInput.value = token;
+            form.appendChild(tokenInput);
+
+            document.body.appendChild(form);
+            form.submit();
+            form.remove();
+        };
+
         toggles.forEach((toggle) => {
             setExpanded(toggle, false);
             toggle.addEventListener('click', () => {
@@ -2022,6 +2092,44 @@
 
                 setExpanded(toggle, !currentlyExpanded);
             });
+        });
+
+        section.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-teqcidb-registration-pay="true"]');
+            if (!button) {
+                return;
+            }
+
+            if (!hasCredentials) {
+                setPaymentStatus(button, teqcidbStudentDashboard.messageHostedMissingCredentials, true);
+                return;
+            }
+
+            const iframeId = button.dataset.targetIframe;
+            const iframe = iframeId ? section.querySelector(`#${iframeId}`) : null;
+            if (!iframe) {
+                setPaymentStatus(button, teqcidbStudentDashboard.messageHostedUnexpected, true);
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            setPaymentStatus(button, teqcidbStudentDashboard.messageHostedLoading);
+
+            try {
+                const token = await requestHostedToken(button);
+                submitHostedIframe(iframe, token);
+                iframe.classList.add('is-active');
+                setPaymentStatus(button, teqcidbStudentDashboard.messageHostedReady);
+            } catch (error) {
+                const message = error instanceof Error && error.message
+                    ? error.message
+                    : teqcidbStudentDashboard.messageHostedUnexpected;
+                setPaymentStatus(button, message, true);
+            } finally {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
         });
     });
 
