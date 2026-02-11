@@ -5,8 +5,9 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 ## Installation
 
 1. Copy the plugin into your WordPress `wp-content/plugins` directory.
-2. Run `composer install` inside the plugin directory to install the Authorize.Net SDK dependency.
-3. Activate **Thompson Engineering QCI Database** from the Plugins page.
+2. Activate **Thompson Engineering QCI Database** from the Plugins page.
+
+> The repository now commits the Composer-generated `vendor/` directory so direct WordPress ZIP installs work on servers that do not run Composer.
 
 ## Usage
 

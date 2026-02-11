@@ -238,3 +238,4 @@
 235. 2026-02-14: Refined registration accordion panel spacing/border styling and added smooth open/close animation transitions so class detail panels expand and collapse with less abrupt motion.
 236. 2026-02-14: Updated mobile registration accordion styles so class names wrap naturally (white-space: initial) and the registration section uses 0px padding on narrow screens.
 237. 2026-02-11: Added Composer-based Authorize.Net SDK integration with a reusable service that reads teqcidb_api_settings payment gateway credentials and surfaces registration-shortcode data attributes for upcoming Accept Hosted iframe checkout.
+238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
