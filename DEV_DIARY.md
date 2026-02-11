@@ -241,3 +241,4 @@
 238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
 239. 2026-02-11: Added class-level "Register and Pay Online" actions that request Authorize.Net Accept Hosted tokens over AJAX and load secure checkout into a unique iframe within each registration accordion panel.
 240. 2026-02-11: Adjusted registration shortcode checkout markup to output unique per-class pay buttons/iframes beneath class details and add a shared hidden Authorize.Net token-post form below the section.
+241. 2026-02-11: Added a WordPress rewrite/query-var communicator endpoint at /anet-iframe-communicator/ for Authorize.Net Accept Hosted iframe messaging and wired service settings/activation rewrite flushing to use it.

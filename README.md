@@ -24,7 +24,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Plan customer touchpoints in **TEQCIDB Communications**, beginning with the **Email Templates** tab that showcases reusable accordion layouts for future automation work.
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
-- Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). The registration shortcode now renders unique per-class checkout placeholders (pay button + iframe) and a shared hidden Accept Hosted token-post form for wiring embedded checkout.
+- Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). The registration shortcode renders unique per-class checkout placeholders (pay button + iframe), a shared hidden Accept Hosted token-post form, and uses the WordPress communicator endpoint `/anet-iframe-communicator/` for Accept Hosted iframe messaging.
 
 ## Admin Form Guidelines
 

@@ -118,5 +118,8 @@ class TEQCIDB_Activator {
         dbDelta( $sql_content_log );
         dbDelta( $sql_classes );
         dbDelta( $sql_student_history );
+
+        TEQCIDB_AuthorizeNet_Communicator::register_rewrite_rule();
+        flush_rewrite_rules();
     }
 }

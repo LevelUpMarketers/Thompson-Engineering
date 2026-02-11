@@ -17,6 +17,7 @@ class TEQCIDB_Plugin {
     private $content_logger;
     private $cron_manager;
     private $error_logger;
+    private $authorizenet_communicator;
 
     public function __construct() {
         $this->i18n     = new TEQCIDB_I18n();
@@ -28,6 +29,7 @@ class TEQCIDB_Plugin {
         $this->block     = new TEQCIDB_Block_Student();
         $this->content_logger = new TEQCIDB_Content_Logger();
         $this->cron_manager   = new TEQCIDB_Cron_Manager();
+        $this->authorizenet_communicator = new TEQCIDB_AuthorizeNet_Communicator();
 
         if ( $this->should_register_error_logger() ) {
             $this->error_logger = new TEQCIDB_Error_Logger();
@@ -47,6 +49,7 @@ class TEQCIDB_Plugin {
         $this->block->register();
         $this->content_logger->register();
         $this->cron_manager->register();
+        $this->authorizenet_communicator->register();
     }
 
     /**

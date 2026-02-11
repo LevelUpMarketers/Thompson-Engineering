@@ -179,7 +179,7 @@ class TEQCIDB_AuthorizeNet_Service {
         $setting_iframe_options->setSettingValue(
             wp_json_encode(
                 array(
-                    'url' => TEQCIDB_PLUGIN_URL . 'assets/authorizenet-iframe-communicator.html',
+                    'url' => home_url( '/' . TEQCIDB_AuthorizeNet_Communicator::ROUTE_SLUG . '/' ),
                 )
             )
         );
