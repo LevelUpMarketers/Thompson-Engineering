@@ -241,3 +241,4 @@
 238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
 239. 2026-02-11: Updated Authorize.Net Accept Hosted preparation by removing all client key references (settings, sanitization, and registration shortcode data attributes) since iframe Accept Hosted uses API Login ID and Transaction Key only.
 240. 2026-02-11: Added a public query-var Authorize.Net Accept Hosted iFrame communicator endpoint at /?teqcidb_iframe_communicator=1 with no-cache/noindex headers and parent-window communication forwarding.
+241. 2026-02-11: Added Authorize.Net Accept Hosted token creation to the payment service, including auth-capture transaction payloads, hosted iframe/return settings, environment-aware controller execution, and WP_Error passthrough of SDK error codes/messages.
