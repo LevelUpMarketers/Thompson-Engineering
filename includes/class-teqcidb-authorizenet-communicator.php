@@ -40,6 +40,24 @@ class TEQCIDB_AuthorizeNet_Communicator {
     }
 
     /**
+     * Send no-cache/noindex and CORS headers for communicator responses.
+     *
+     * @return void
+     */
+    private function send_communicator_headers() {
+        nocache_headers();
+        header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
+        header( 'Pragma: no-cache' );
+        header( 'Expires: 0' );
+        header( 'X-Robots-Tag: noindex, nofollow' );
+
+        header( 'Access-Control-Allow-Origin: *' );
+        header( 'Access-Control-Allow-Methods: GET, OPTIONS' );
+        header( 'Access-Control-Allow-Headers: *' );
+        header( 'Access-Control-Max-Age: 86400' );
+    }
+
+    /**
      * Render communicator response when requested.
      */
     public function maybe_render_communicator() {
@@ -49,12 +67,18 @@ class TEQCIDB_AuthorizeNet_Communicator {
             return;
         }
 
+        $request_method = isset( $_SERVER['REQUEST_METHOD'] )
+            ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) )
+            : 'get';
+
+        $this->send_communicator_headers();
+
+        if ( 'options' === $request_method ) {
+            status_header( 204 );
+            exit;
+        }
+
         status_header( 200 );
-        nocache_headers();
-        header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
-        header( 'Pragma: no-cache' );
-        header( 'Expires: 0' );
-        header( 'X-Robots-Tag: noindex, nofollow' );
         header( 'Content-Type: text/html; charset=utf-8' );
 
         echo '<!doctype html><html><head><meta charset="utf-8"><title>TEQCIDB Authorize.Net Communicator</title></head><body><!-- TEQCIDB Authorize.net communicator --><script>(function(){var queryString=window.location.search.substring(1);if(window.parent&&window.parent.AuthorizeNetIFrame&&typeof window.parent.AuthorizeNetIFrame.onReceiveCommunication==="function"){window.parent.AuthorizeNetIFrame.onReceiveCommunication(queryString);}}());</script></body></html>';
