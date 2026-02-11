@@ -7,6 +7,8 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 1. Copy the plugin into your WordPress `wp-content/plugins` directory.
 2. Activate **Thompson Engineering QCI Database** from the Plugins page.
 
+> The repository now commits the Composer-generated `vendor/` directory so direct WordPress ZIP installs work on servers that do not run Composer.
+
 ## Usage
 
  - Use the shortcode `[teqcidb-student]` to display student information on the front-end.
@@ -22,6 +24,8 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Plan customer touchpoints in **TEQCIDB Communications**, beginning with the **Email Templates** tab that showcases reusable accordion layouts for future automation work.
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
+- Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, and Transaction Key). These values are saved in the `teqcidb_api_settings` option and used by the registration shortcode integration for upcoming Accept Hosted iframe checkout.
+- Accept Hosted iFrame communicator endpoint is available at `home_url('/?teqcidb_iframe_communicator=1')` (for example, `https://example.com/?teqcidb_iframe_communicator=1`) and is served directly by the plugin with no rewrite rules.
 
 ## Admin Form Guidelines
 

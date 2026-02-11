@@ -1135,9 +1135,6 @@ class TEQCIDB_Ajax {
                     'payment_gateway_transaction_key' => array(
                         'type' => 'text',
                     ),
-                    'payment_gateway_client_key'    => array(
-                        'type' => 'text',
-                    ),
                 ),
             ),
             'sms_service' => array(

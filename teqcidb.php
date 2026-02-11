@@ -20,6 +20,12 @@ define( 'TEQCIDB_MIN_EXECUTION_TIME', 4 );
 define( 'TEQCIDB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TEQCIDB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
+$teqcidb_autoload = TEQCIDB_PLUGIN_DIR . 'vendor/autoload.php';
+
+if ( file_exists( $teqcidb_autoload ) ) {
+    require_once $teqcidb_autoload;
+}
+
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-activator.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-deactivator.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-i18n.php';
@@ -32,6 +38,8 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-content-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-cron.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-ajax.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-authorizenet-communicator.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-authorizenet-service.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/admin/class-teqcidb-admin.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student-dashboard.php';

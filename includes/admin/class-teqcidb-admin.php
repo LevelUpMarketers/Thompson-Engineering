@@ -2258,12 +2258,6 @@ class TEQCIDB_Admin {
                         'label'   => __( 'Transaction Key', 'teqcidb' ),
                         'reveal'  => true,
                     ),
-                    array(
-                        'type'    => 'password',
-                        'name'    => 'payment_gateway_client_key',
-                        'label'   => __( 'Client Key', 'teqcidb' ),
-                        'reveal'  => true,
-                    ),
                 ),
             ),
             'sms_service' => array(

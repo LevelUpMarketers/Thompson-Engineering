@@ -17,14 +17,25 @@ class TEQCIDB_Shortcode_Student_Registration {
     private $dashboard_shortcode;
 
     /**
+     * Authorize.Net service helper.
+     *
+     * @var TEQCIDB_AuthorizeNet_Service
+     */
+    private $authorizenet_service;
+
+    /**
      * Constructor.
      *
      * @param TEQCIDB_Shortcode_Student_Dashboard|null $dashboard_shortcode Optional existing dashboard shortcode instance.
+     * @param TEQCIDB_AuthorizeNet_Service|null        $authorizenet_service Optional existing Authorize.Net service instance.
      */
-    public function __construct( TEQCIDB_Shortcode_Student_Dashboard $dashboard_shortcode = null ) {
+    public function __construct( TEQCIDB_Shortcode_Student_Dashboard $dashboard_shortcode = null, TEQCIDB_AuthorizeNet_Service $authorizenet_service = null ) {
         $this->dashboard_shortcode = $dashboard_shortcode instanceof TEQCIDB_Shortcode_Student_Dashboard
             ? $dashboard_shortcode
             : new TEQCIDB_Shortcode_Student_Dashboard();
+        $this->authorizenet_service = $authorizenet_service instanceof TEQCIDB_AuthorizeNet_Service
+            ? $authorizenet_service
+            : new TEQCIDB_AuthorizeNet_Service();
     }
 
     /**
@@ -49,10 +60,20 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $classes = $this->get_visible_classes_for_registration();
+        $authorize_settings = $this->authorizenet_service->get_payment_gateway_settings();
+        $authorize_environment = isset( $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ] )
+            ? $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ]
+            : 'sandbox';
+        $authorize_has_credentials = $this->authorizenet_service->has_credentials() ? 'yes' : 'no';
 
         ob_start();
         ?>
-        <section class="teqcidb-registration-section teqcidb-registration-classes" data-teqcidb-registration="true">
+        <section
+            class="teqcidb-registration-section teqcidb-registration-classes"
+            data-teqcidb-registration="true"
+            data-authorizenet-environment="<?php echo esc_attr( $authorize_environment ); ?>"
+            data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
+        >
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
