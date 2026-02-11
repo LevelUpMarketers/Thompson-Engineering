@@ -39,6 +39,7 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-content-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-cron.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-ajax.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-authorizenet-service.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/accept-hosted-token.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/admin/class-teqcidb-admin.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student-dashboard.php';
