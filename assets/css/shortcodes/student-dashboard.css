@@ -971,6 +971,38 @@
     margin: 0;
 }
 
+.teqcidb-registration-payment {
+    border-top: 1px solid #d1d1d1;
+    margin-top: 28px;
+    padding-top: 24px;
+}
+
+.teqcidb-registration-pay-button {
+    min-width: 220px;
+}
+
+.teqcidb-registration-payment-feedback {
+    margin-top: 12px;
+}
+
+.teqcidb-registration-payment-form {
+    display: none;
+}
+
+.teqcidb-registration-payment-iframe {
+    border: 1px solid #d1d1d1;
+    border-radius: 8px;
+    display: none;
+    height: 700px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.teqcidb-registration-payment-iframe.is-visible {
+    display: block;
+}
+
+
 @media (max-width: 1100px) {
     .teqcidb-registration-class-details {
         grid-template-columns: repeat(3, minmax(0, 1fr));

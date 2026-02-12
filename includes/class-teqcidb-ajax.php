@@ -31,6 +31,9 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
         add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
+        add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
+        add_action( 'wp_ajax_nopriv_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
+        add_action( 'wp_ajax_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
@@ -48,6 +51,121 @@ class TEQCIDB_Ajax {
                 usleep( $microseconds );
             }
         }
+    }
+
+
+    /**
+     * Create an Accept Hosted payment token for a selected class.
+     */
+    public function get_accept_hosted_token() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please log in before starting checkout.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected class could not be found.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $row        = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, classname, classcost, classstartdate, classhide FROM $table_name WHERE id = %d",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $row ) || ( isset( $row['classhide'] ) && 1 === (int) $row['classhide'] ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected class is not available for registration.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $raw_cost = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
+        $amount   = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+
+        if ( $amount <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'This class does not have a valid payment amount configured.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $current_user = wp_get_current_user();
+
+        $service = new TEQCIDB_AuthorizeNet_Service();
+        $token   = $service->create_accept_hosted_token(
+            array(
+                'amount'        => $amount,
+                'invoice_number' => sprintf( 'TEQCIDB-%d-%d', $class_id, get_current_user_id() ),
+                'description'   => isset( $row['classname'] ) ? (string) $row['classname'] : '',
+                'first_name'    => $current_user instanceof WP_User ? (string) $current_user->first_name : '',
+                'last_name'     => $current_user instanceof WP_User ? (string) $current_user->last_name : '',
+                'email'         => $current_user instanceof WP_User ? (string) $current_user->user_email : '',
+                'customer_id'   => (string) get_current_user_id(),
+            )
+        );
+
+        if ( is_wp_error( $token ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => $token->get_error_message(),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'token'      => isset( $token['token'] ) ? (string) $token['token'] : '',
+                'postUrl'    => isset( $token['post_url'] ) ? esc_url_raw( $token['post_url'] ) : '',
+                'classId'    => $class_id,
+            )
+        );
+    }
+
+    /**
+     * Output the Authorize.Net Accept Hosted iframe communicator page.
+     */
+    public function authorizenet_iframe_communicator() {
+        status_header( 200 );
+        nocache_headers();
+        header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
+
+        ?>
+        <!doctype html>
+        <html <?php language_attributes(); ?>>
+        <head>
+            <meta charset="<?php bloginfo( 'charset' ); ?>">
+            <title><?php esc_html_e( 'Authorize.Net Iframe Communicator', 'teqcidb' ); ?></title>
+        </head>
+        <body>
+            <script type="text/javascript">
+                if (window.parent && window.location.hash) {
+                    window.parent.parent && window.parent.parent.AuthorizeNetIFrame &&
+                    window.parent.parent.AuthorizeNetIFrame.onReceiveCommunication(window.location.hash.substring(1));
+                }
+            </script>
+        </body>
+        </html>
+        <?php
+        exit;
     }
 
     public function save_student() {

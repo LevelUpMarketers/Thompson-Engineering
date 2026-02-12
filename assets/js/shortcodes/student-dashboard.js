@@ -2008,6 +2008,38 @@
             panel.hidden = !expanded;
         };
 
+        const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
+            if (!paymentWrapper) {
+                return;
+            }
+
+            const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
+            if (!feedback) {
+                return;
+            }
+
+            const messageEl = feedback.querySelector('.teqcidb-form-message');
+            if (messageEl) {
+                messageEl.textContent = message || '';
+            }
+
+            feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
+            feedback.classList.toggle('is-loading', Boolean(isLoading));
+        };
+
+        const requestHostedToken = (classId) => {
+            const formData = new FormData();
+            formData.append('action', settings.ajaxTokenAction || 'teqcidb_get_accept_hosted_token');
+            formData.append('_ajax_nonce', settings.ajaxNonce || '');
+            formData.append('class_id', classId);
+
+            return fetch(settings.ajaxUrl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            }).then((response) => response.json());
+        };
+
         toggles.forEach((toggle) => {
             setExpanded(toggle, false);
             toggle.addEventListener('click', () => {
@@ -2021,6 +2053,82 @@
                 });
 
                 setExpanded(toggle, !currentlyExpanded);
+            });
+        });
+
+        const paymentButtons = Array.from(
+            section.querySelectorAll('[data-teqcidb-registration-pay]')
+        );
+
+        paymentButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const hasCredentials = section.dataset.authorizenetHasCredentials === 'yes';
+                const classId = button.dataset.classId || '';
+                const paymentWrapper = button.closest('[data-teqcidb-registration-payment]');
+                const paymentForm = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-payment-form]')
+                    : null;
+                const tokenInput = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-token]')
+                    : null;
+                const paymentIframe = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
+                    : null;
+
+                if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
+                    setPaymentFeedback(
+                        paymentWrapper,
+                        settings.messagePaymentUnavailable ||
+                            'Online checkout is unavailable right now. Please contact Thompson Engineering for payment assistance.',
+                        false
+                    );
+                    return;
+                }
+
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messagePaymentLoading || 'Loading secure payment form...',
+                    true
+                );
+
+                button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
+
+                requestHostedToken(classId)
+                    .then((payload) => {
+                        if (!payload || !payload.success || !payload.data || !payload.data.token) {
+                            const message =
+                                payload && payload.data && (payload.data.message || payload.data.error)
+                                    ? payload.data.message || payload.data.error
+                                    : settings.messagePaymentError ||
+                                      'Unable to load the payment form right now. Please try again.';
+                            throw new Error(message);
+                        }
+
+                        if (payload.data.postUrl) {
+                            paymentForm.setAttribute('action', payload.data.postUrl);
+                        }
+
+                        tokenInput.value = payload.data.token;
+                        paymentForm.submit();
+
+                        paymentIframe.classList.add('is-visible');
+                        setPaymentFeedback(paymentWrapper, '', false);
+                    })
+                    .catch((error) => {
+                        setPaymentFeedback(
+                            paymentWrapper,
+                            error && error.message
+                                ? error.message
+                                : settings.messagePaymentError ||
+                                  'Unable to load the payment form right now. Please try again.',
+                            false
+                        );
+                    })
+                    .finally(() => {
+                        button.disabled = false;
+                        button.removeAttribute('aria-busy');
+                    });
             });
         });
     });
