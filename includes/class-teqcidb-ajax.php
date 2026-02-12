@@ -7,6 +7,9 @@
 
 class TEQCIDB_Ajax {
 
+    const AUTHORIZENET_COMMUNICATOR_QUERY_VAR = 'teqcidb_authorizenet_communicator';
+    const AUTHORIZENET_COMMUNICATOR_PATH      = 'teqcidb-authorize-communicator';
+
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
         add_action( 'wp_ajax_nopriv_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -32,8 +35,57 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
         add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
+        add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
+        add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
+        add_action( 'template_redirect', array( $this, 'maybe_render_authorizenet_communicator' ) );
         add_action( 'wp_ajax_nopriv_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
         add_action( 'wp_ajax_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
+    }
+
+
+    /**
+     * Register rewrite support for the public Authorize.Net communicator endpoint.
+     */
+    public static function register_authorizenet_communicator_rewrite() {
+        add_rewrite_tag( '%' . self::AUTHORIZENET_COMMUNICATOR_QUERY_VAR . '%', '1' );
+        add_rewrite_rule(
+            '^' . self::AUTHORIZENET_COMMUNICATOR_PATH . '/?$',
+            'index.php?' . self::AUTHORIZENET_COMMUNICATOR_QUERY_VAR . '=1',
+            'top'
+        );
+    }
+
+    /**
+     * Register custom query vars.
+     *
+     * @param array<int, string> $vars Existing vars.
+     *
+     * @return array<int, string>
+     */
+    public function register_query_vars( $vars ) {
+        $vars[] = self::AUTHORIZENET_COMMUNICATOR_QUERY_VAR;
+
+        return $vars;
+    }
+
+    /**
+     * Retrieve the public communicator URL.
+     *
+     * @return string
+     */
+    public static function get_authorizenet_communicator_url() {
+        return home_url( '/' . self::AUTHORIZENET_COMMUNICATOR_PATH . '/' );
+    }
+
+    /**
+     * Output communicator markup when the custom route is requested.
+     */
+    public function maybe_render_authorizenet_communicator() {
+        if ( '1' !== (string) get_query_var( self::AUTHORIZENET_COMMUNICATOR_QUERY_VAR ) ) {
+            return;
+        }
+
+        $this->authorizenet_iframe_communicator();
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {

@@ -204,7 +204,12 @@ class TEQCIDB_AuthorizeNet_Service {
 
         $hosted_payment_iframe_options = new AnetAPI\SettingType();
         $hosted_payment_iframe_options->setSettingName( 'hostedPaymentIFrameCommunicatorUrl' );
-        $hosted_payment_iframe_options->setSettingValue( wp_json_encode( array( 'url' => esc_url_raw( admin_url( 'admin-ajax.php?action=teqcidb_authorizenet_iframe_communicator' ) ) ) ) );
+
+        $communicator_url = class_exists( 'TEQCIDB_Ajax' )
+            ? TEQCIDB_Ajax::get_authorizenet_communicator_url()
+            : admin_url( 'admin-ajax.php?action=teqcidb_authorizenet_iframe_communicator' );
+
+        $hosted_payment_iframe_options->setSettingValue( wp_json_encode( array( 'url' => esc_url_raw( $communicator_url ) ) ) );
         $hosted_settings[] = $hosted_payment_iframe_options;
 
         $hosted_payment_return_options = new AnetAPI\SettingType();
