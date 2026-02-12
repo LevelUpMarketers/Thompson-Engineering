@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use net\authorize\api\constants\ANetEnvironment;
-use net\authorize\api\controller\CreateTransactionController;
+use net\authorize\api\controller\GetHostedPaymentPageController;
 use net\authorize\api\contract\v1 as AnetAPI;
 use net\authorize\api\contract\v1\MerchantAuthenticationType;
 
@@ -125,7 +125,7 @@ class TEQCIDB_AuthorizeNet_Service {
      * @return array<string,string>|WP_Error
      */
     public function create_accept_hosted_token( array $args ) {
-        if ( ! class_exists( AnetAPI\GetHostedPaymentPageRequest::class ) || ! class_exists( CreateTransactionController::class ) ) {
+        if ( ! class_exists( AnetAPI\GetHostedPaymentPageRequest::class ) || ! class_exists( GetHostedPaymentPageController::class ) ) {
             return new WP_Error(
                 'teqcidb_authorizenet_sdk_missing',
                 __( 'Authorize.Net SDK is unavailable. Run Composer install for this plugin.', 'teqcidb' )
@@ -220,8 +220,20 @@ class TEQCIDB_AuthorizeNet_Service {
 
         $request->setHostedPaymentSettings( $hosted_settings );
 
-        $controller = new CreateTransactionController( $request );
-        $response   = $controller->executeWithApiResponse( $this->get_api_environment() );
+        $controller = new GetHostedPaymentPageController( $request );
+
+        try {
+            $response = $controller->executeWithApiResponse( $this->get_api_environment() );
+        } catch ( Exception $exception ) {
+            return new WP_Error(
+                "teqcidb_authorizenet_request_exception",
+                sprintf(
+                    /* translators: %s: gateway error details. */
+                    __( "Unable to initialize Authorize.Net checkout: %s", "teqcidb" ),
+                    sanitize_text_field( $exception->getMessage() )
+                )
+            );
+        }
 
         if ( ! $response ) {
             return new WP_Error(

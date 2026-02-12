@@ -2037,7 +2037,22 @@
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',
-            }).then((response) => response.json());
+            }).then(async (response) => {
+                const bodyText = await response.text();
+
+                try {
+                    return JSON.parse(bodyText);
+                } catch (error) {
+                    if (!response.ok) {
+                        throw new Error(
+                            settings.messagePaymentError ||
+                                'Unable to load the payment form right now. Please try again.'
+                        );
+                    }
+
+                    throw error;
+                }
+            });
         };
 
         toggles.forEach((toggle) => {
