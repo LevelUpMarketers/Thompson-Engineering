@@ -458,6 +458,26 @@ class TEQCIDB_Shortcode_Student_Registration {
                 true
             );
 
+            wp_enqueue_script(
+                'teqcidb-accept-hosted',
+                TEQCIDB_PLUGIN_URL . 'assets/js/teqcidb-accept-hosted.js',
+                array(),
+                TEQCIDB_VERSION,
+                true
+            );
+
+            wp_localize_script(
+                'teqcidb-accept-hosted',
+                'TEQCIDB_AUTHNET',
+                array(
+                    'acceptHostedBaseUrl' => $this->authorizenet_service->is_live_mode()
+                        ? 'https://accept.authorize.net/payment/payment'
+                        : 'https://test.authorize.net/payment/payment',
+                    'restTokenUrl'        => esc_url_raw( rest_url( 'teqcidb/v1/accept-hosted/token' ) ),
+                    'nonce'               => wp_create_nonce( 'wp_rest' ),
+                )
+            );
+
             wp_localize_script(
                 'teqcidb-shortcode-student-dashboard',
                 'teqcidbStudentDashboard',
