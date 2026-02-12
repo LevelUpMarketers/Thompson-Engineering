@@ -5,6 +5,8 @@
   // You will add the iframe markup elsewhere.
   // This script expects an iframe element with this id to exist on the page.
   var DEFAULT_IFRAME_ID = "teqcidb-authnet-accept-hosted-iframe";
+  var DEFAULT_FORM_ID = "teqcidb-authnet-token-form";
+  var DEFAULT_TOKEN_INPUT_ID = "teqcidb-authnet-token-input";
 
   // Authorize.net Accept Hosted base URLs
   // Sandbox: https://test.authorize.net/payment/payment
@@ -39,6 +41,23 @@
       throw new Error("Element is not an iframe. Id: " + id);
     }
     return el;
+  }
+
+  function getTokenForm() {
+    var form = document.getElementById(DEFAULT_FORM_ID);
+    if (!form || String(form.tagName).toLowerCase() !== "form") {
+      throw new Error("Accept Hosted token form not found. Expected id: " + DEFAULT_FORM_ID);
+    }
+
+    var input = document.getElementById(DEFAULT_TOKEN_INPUT_ID);
+    if (!input) {
+      throw new Error("Accept Hosted token input not found. Expected id: " + DEFAULT_TOKEN_INPUT_ID);
+    }
+
+    return {
+      form: form,
+      input: input,
+    };
   }
 
   function dispatch(name, detail) {
@@ -105,10 +124,14 @@
     return data.token;
   }
 
-  function buildIframeSrc(token) {
-    var base = getAcceptHostedBaseUrl();
-    // Authorize.net Accept Hosted expects token query param
-    return base + "?token=" + encodeURIComponent(token);
+  function submitTokenToIframe(token, iframeId) {
+    var tokenForm = getTokenForm();
+    var iframe = getIframe(iframeId);
+
+    tokenForm.input.value = token;
+    tokenForm.form.action = getAcceptHostedBaseUrl();
+    tokenForm.form.target = iframe.name || iframe.id;
+    tokenForm.form.submit();
   }
 
   var state = {
@@ -196,15 +219,64 @@
 
     var token = await requestToken(tokenPayload);
 
-    var iframe = getIframe(iframeId);
-    iframe.src = buildIframeSrc(token);
+    submitTokenToIframe(token, iframeId);
 
     dispatch("teqcidb:authnet:loaded", { iframeId: iframeId, token: token });
 
     return token;
   }
 
+  function getButtonOptions(button) {
+    return {
+      iframeId: button.getAttribute("data-teqcidb-iframe-id") || DEFAULT_IFRAME_ID,
+      amount: button.getAttribute("data-teqcidb-amount") || "",
+      invoiceNumber: button.getAttribute("data-teqcidb-invoice-number") || "",
+      description: button.getAttribute("data-teqcidb-description") || "",
+      customerEmail: button.getAttribute("data-teqcidb-customer-email") || "",
+      customerId: button.getAttribute("data-teqcidb-customer-id") || "",
+      returnUrl: button.getAttribute("data-teqcidb-return-url") || "",
+      cancelUrl: button.getAttribute("data-teqcidb-cancel-url") || "",
+    };
+  }
+
+  function bindRegisterButtons() {
+    var buttons = document.querySelectorAll(".teqcidb-register-pay-online-button");
+
+    if (!buttons.length) {
+      return;
+    }
+
+    buttons.forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var containerId = button.getAttribute("data-teqcidb-container-id");
+        var container = containerId ? document.getElementById(containerId) : null;
+
+        if (container) {
+          container.hidden = false;
+        }
+
+        button.disabled = true;
+
+        try {
+          await startPayment(getButtonOptions(button));
+        } catch (error) {
+          dispatch("teqcidb:authnet:error", {
+            message: error && error.message ? error.message : "Payment initialization failed.",
+          });
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+  }
+
   window.TEQCIDB_AcceptHosted = {
     startPayment: startPayment,
   };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindRegisterButtons);
+  } else {
+    bindRegisterButtons();
+  }
 })();
