@@ -154,10 +154,56 @@ class TEQCIDB_Shortcode_Student_Registration {
                                         <dd><?php echo esc_html( $class['zip_code'] ); ?></dd>
                                     </div>
                                 </dl>
+
+                                <?php
+                                $payment_amount = $this->normalize_class_cost_amount( $class['classcost'] );
+                                $iframe_id      = 'teqcidb-authnet-accept-hosted-iframe-' . $index;
+                                $container_id   = 'teqcidb-authnet-container-' . $index;
+                                $invoice_number = 'TEQCIDB-CLASS-' . ( $index + 1 ) . '-' . gmdate( 'YmdHis' );
+                                $description    = sprintf(
+                                    /* translators: %s: class name. */
+                                    __( 'Registration for %s', 'teqcidb' ),
+                                    $class['classname']
+                                );
+                                $current_user   = wp_get_current_user();
+                                ?>
+                                <button
+                                    type="button"
+                                    class="teqcidb-dashboard-tab teqcidb-register-pay-online-button"
+                                    data-teqcidb-container-id="<?php echo esc_attr( $container_id ); ?>"
+                                    data-teqcidb-iframe-id="<?php echo esc_attr( $iframe_id ); ?>"
+                                    data-teqcidb-amount="<?php echo esc_attr( $payment_amount ); ?>"
+                                    data-teqcidb-invoice-number="<?php echo esc_attr( $invoice_number ); ?>"
+                                    data-teqcidb-description="<?php echo esc_attr( $description ); ?>"
+                                    data-teqcidb-customer-email="<?php echo esc_attr( $current_user->user_email ); ?>"
+                                    data-teqcidb-customer-id="<?php echo esc_attr( (string) $current_user->ID ); ?>"
+                                >
+                                    <?php echo esc_html_x( 'Register & Pay Online', 'Student registration payment button label', 'teqcidb' ); ?>
+                                </button>
+
+                                <div id="<?php echo esc_attr( $container_id ); ?>" style="width:100%; max-width:700px; margin:16px auto 0;" hidden>
+                                    <iframe
+                                        id="<?php echo esc_attr( $iframe_id ); ?>"
+                                        name="<?php echo esc_attr( $iframe_id ); ?>"
+                                        style="width:100%; min-height:700px; border:0;"
+                                        scrolling="no"
+                                        frameborder="0"
+                                        title="<?php echo esc_attr_x( 'Authorize.Net payment form', 'Student registration payment iframe title', 'teqcidb' ); ?>"
+                                    ></iframe>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
+
+                <form
+                    id="teqcidb-authnet-token-form"
+                    method="post"
+                    target="teqcidb-authnet-accept-hosted-iframe"
+                    style="display:none;"
+                >
+                    <input type="hidden" name="token" id="teqcidb-authnet-token-input" value="" />
+                </form>
             <?php else : ?>
                 <p class="teqcidb-dashboard-empty">
                     <?php
@@ -314,6 +360,29 @@ class TEQCIDB_Shortcode_Student_Registration {
     }
 
     /**
+     * Normalize class cost into a token endpoint-ready amount.
+     *
+     * @param string $value Raw class cost.
+     *
+     * @return string
+     */
+    private function normalize_class_cost_amount( $value ) {
+        $cost = sanitize_text_field( (string) $value );
+
+        if ( '' === $cost ) {
+            return '0.00';
+        }
+
+        $normalized = preg_replace( '/[^\d.]/', '', $cost );
+
+        if ( ! is_string( $normalized ) || '' === $normalized || ! is_numeric( $normalized ) ) {
+            return '0.00';
+        }
+
+        return number_format( (float) $normalized, 2, '.', '' );
+    }
+
+    /**
      * Format generic labels for display.
      *
      * @param string $value Raw value.
@@ -456,6 +525,28 @@ class TEQCIDB_Shortcode_Student_Registration {
                 array( 'password-strength-meter', 'teqcidb-jspdf' ),
                 TEQCIDB_VERSION,
                 true
+            );
+
+            wp_enqueue_script(
+                'teqcidb-accept-hosted',
+                TEQCIDB_PLUGIN_URL . 'assets/js/teqcidb-accept-hosted.js',
+                array(),
+                TEQCIDB_VERSION,
+                true
+            );
+
+            wp_localize_script(
+                'teqcidb-accept-hosted',
+                'TEQCIDB_AUTHNET',
+                array(
+                    'acceptHostedBaseUrl' => $this->authorizenet_service->is_live_mode()
+                        ? 'https://accept.authorize.net/payment/payment'
+                        : 'https://test.authorize.net/payment/payment',
+                    'restTokenUrl'        => esc_url_raw( rest_url( 'teqcidb/v1/accept-hosted/token' ) ),
+                    'nonce'               => wp_create_nonce( 'wp_rest' ),
+                    'loadingMessage'      => esc_html_x( 'Loading secure payment form…', 'Accept Hosted payment loading feedback message', 'teqcidb' ),
+                    'errorPrefix'         => esc_html_x( 'Unable to start payment:', 'Accept Hosted payment error prefix', 'teqcidb' ),
+                )
             );
 
             wp_localize_script(
