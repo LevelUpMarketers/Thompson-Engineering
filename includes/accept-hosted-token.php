@@ -25,16 +25,16 @@ final class TEQCIDB_Accept_Hosted_Token {
     }
 
     /**
-     * Register REST API routes.
+     * Register REST routes.
      *
      * @return void
      */
     public static function register_routes() {
         register_rest_route(
-            'sp-authnet/v1',
+            'teqcidb/v1',
             '/accept-hosted/token',
             array(
-                'methods'             => WP_REST_Server::CREATABLE,
+                'methods'             => 'POST',
                 'callback'            => array( __CLASS__, 'handle_token_request' ),
                 'permission_callback' => array( __CLASS__, 'permission_check' ),
             )
@@ -42,18 +42,23 @@ final class TEQCIDB_Accept_Hosted_Token {
     }
 
     /**
-     * Restrict token generation to authenticated WordPress users.
+     * Permission callback.
+     *
+     * This is currently restricted to logged-in users. If you later need guest checkout,
+     * you will need a different permission model.
+     *
+     * @param WP_REST_Request $request Request object.
      *
      * @return bool
      */
-    public static function permission_check() {
+    public static function permission_check( WP_REST_Request $request ) {
         return is_user_logged_in() && current_user_can( 'read' );
     }
 
     /**
-     * Normalize amount input into a two-decimal currency string.
+     * Normalize the amount to a strict 2-decimal string.
      *
-     * @param mixed $amount Submitted amount.
+     * @param mixed $amount Amount input.
      *
      * @return string
      */
@@ -68,9 +73,9 @@ final class TEQCIDB_Accept_Hosted_Token {
     }
 
     /**
-     * Sanitize plain text values and hard-limit length.
+     * Sanitize text fields to max length.
      *
-     * @param mixed $value  Potential string value.
+     * @param mixed $value   Potential string value.
      * @param int   $max_len Maximum allowed length.
      *
      * @return string
@@ -119,8 +124,8 @@ final class TEQCIDB_Accept_Hosted_Token {
 
         $service = new TEQCIDB_AuthorizeNet_Service();
 
-        $settings = $service->get_payment_gateway_settings();
-        $login_id = isset( $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] ) ? (string) $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] : '';
+        $settings        = $service->get_payment_gateway_settings();
+        $login_id        = isset( $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] ) ? (string) $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] : '';
         $transaction_key = isset( $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_TRANSACTION_KEY ] ) ? (string) $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_TRANSACTION_KEY ] : '';
 
         if ( '' === $login_id || '' === $transaction_key ) {
@@ -158,14 +163,14 @@ final class TEQCIDB_Accept_Hosted_Token {
         $cancel_url = self::safe_url( isset( $body['cancelUrl'] ) ? $body['cancelUrl'] : '' );
 
         if ( '' === $return_url ) {
-            $return_url = home_url( '/' );
+            $return_url = home_url( '/register-for-a-class-qci/' );
         }
 
         if ( '' === $cancel_url ) {
-            $cancel_url = home_url( '/' );
+            $cancel_url = home_url( '/register-for-a-class-qci/' );
         }
 
-        $iframe_communicator_url = self::safe_url( isset( $body['iframeCommunicatorUrl'] ) ? $body['iframeCommunicatorUrl'] : '' );
+        $iframe_communicator_url = home_url( '/sp-authnet-communicator/' );
 
         try {
             $merchant_authentication = new AnetAPI\MerchantAuthenticationType();
@@ -178,29 +183,23 @@ final class TEQCIDB_Accept_Hosted_Token {
 
             if ( '' !== $invoice_number || '' !== $description ) {
                 $order = new AnetAPI\OrderType();
-
                 if ( '' !== $invoice_number ) {
                     $order->setInvoiceNumber( $invoice_number );
                 }
-
                 if ( '' !== $description ) {
                     $order->setDescription( $description );
                 }
-
                 $transaction_request->setOrder( $order );
             }
 
             if ( '' !== $customer_id || '' !== $customer_email ) {
                 $customer = new AnetAPI\CustomerDataType();
-
                 if ( '' !== $customer_id ) {
                     $customer->setId( $customer_id );
                 }
-
                 if ( '' !== $customer_email ) {
                     $customer->setEmail( $customer_email );
                 }
-
                 $transaction_request->setCustomer( $customer );
             }
 
@@ -236,12 +235,14 @@ final class TEQCIDB_Accept_Hosted_Token {
             $hosted_payment_request->setMerchantAuthentication( $merchant_authentication );
             $hosted_payment_request->setTransactionRequest( $transaction_request );
 
-            foreach ( $settings_list as $setting_item ) {
-                $hosted_payment_request->addToHostedPaymentSettings( $setting_item );
+            foreach ( $settings_list as $setting ) {
+                $hosted_payment_request->addToHostedPaymentSettings( $setting );
             }
 
+            $env = $service->is_live_mode() ? ANetEnvironment::PRODUCTION : ANetEnvironment::SANDBOX;
+
             $controller = new AnetController\GetHostedPaymentPageController( $hosted_payment_request );
-            $response   = $controller->executeWithApiResponse( ANetEnvironment::PRODUCTION );
+            $response   = $controller->executeWithApiResponse( $env );
 
             if ( null === $response ) {
                 return new WP_REST_Response(
@@ -267,24 +268,27 @@ final class TEQCIDB_Accept_Hosted_Token {
 
             $errors = array();
             if ( $response->getMessages() && $response->getMessages()->getMessage() ) {
-                foreach ( $response->getMessages()->getMessage() as $message ) {
-                    $errors[] = $message->getCode() . ': ' . $message->getText();
+                foreach ( $response->getMessages()->getMessage() as $msg ) {
+                    $errors[] = $msg->getCode() . ': ' . $msg->getText();
                 }
             }
+
+            $error_text = ! empty( $errors ) ? implode( ' | ', $errors ) : __( 'Unknown error from Authorize.Net.', 'teqcidb' );
 
             return new WP_REST_Response(
                 array(
                     'ok'    => false,
-                    'error' => $errors ? implode( ' | ', $errors ) : __( 'Unknown error from Authorize.Net.', 'teqcidb' ),
+                    'error' => $error_text,
                 ),
                 400
             );
-        } catch ( Throwable $exception ) {
+
+        } catch ( Throwable $e ) {
             return new WP_REST_Response(
                 array(
                     'ok'    => false,
                     /* translators: %s: exception message from Authorize.Net SDK request execution. */
-                    'error' => sprintf( __( 'Exception: %s', 'teqcidb' ), $exception->getMessage() ),
+                    'error' => sprintf( __( 'Exception: %s', 'teqcidb' ), $e->getMessage() ),
                 ),
                 500
             );

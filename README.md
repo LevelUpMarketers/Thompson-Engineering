@@ -25,7 +25,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
 - Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). These values are saved in the `teqcidb_api_settings` option and used by the registration shortcode integration for upcoming Accept Hosted iframe checkout.
-- Logged-in checkout flows can request an Accept Hosted token from `POST /wp-json/sp-authnet/v1/accept-hosted/token`; this endpoint reads credentials from saved plugin settings, always calls the Authorize.Net production environment, and accepts `returnUrl`, `cancelUrl`, and `iframeCommunicatorUrl` overrides for your final checkout routing.
+- Logged-in checkout flows can request an Accept Hosted token from `POST /wp-json/teqcidb/v1/accept-hosted/token`; this endpoint reads credentials from saved plugin settings, defaults return/cancel routing to `/register-for-a-class-qci/`, and always uses the on-site communicator endpoint at `/sp-authnet-communicator/`.
 - Accept Hosted iframe integrations can use communicator URL `/sp-authnet-communicator/` on this site so Authorize.Net can relay iframe messages back to the parent checkout window via `postMessage`.
 
 ## Admin Form Guidelines

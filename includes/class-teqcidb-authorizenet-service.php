@@ -86,6 +86,19 @@ class TEQCIDB_AuthorizeNet_Service {
         return $authentication;
     }
 
+
+    /**
+     * Determine whether the configured gateway environment is live.
+     *
+     * @return bool
+     */
+    public function is_live_mode() {
+        $settings    = $this->get_payment_gateway_settings();
+        $environment = $settings[ self::FIELD_ENVIRONMENT ];
+
+        return 'live' === $environment;
+    }
+
     /**
      * Retrieve the API environment constant for SDK controllers.
      *
