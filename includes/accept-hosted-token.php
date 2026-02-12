@@ -128,6 +128,14 @@ final class TEQCIDB_Accept_Hosted_Token {
         $login_id        = isset( $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] ) ? (string) $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_LOGIN_ID ] : '';
         $transaction_key = isset( $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_TRANSACTION_KEY ] ) ? (string) $settings[ TEQCIDB_AuthorizeNet_Service::FIELD_TRANSACTION_KEY ] : '';
 
+        if ( '' === $login_id && defined( 'SP_AUTHNET_LOGIN_ID' ) ) {
+            $login_id = sanitize_text_field( (string) SP_AUTHNET_LOGIN_ID );
+        }
+
+        if ( '' === $transaction_key && defined( 'SP_AUTHNET_TRANSACTION_KEY' ) ) {
+            $transaction_key = sanitize_text_field( (string) SP_AUTHNET_TRANSACTION_KEY );
+        }
+
         if ( '' === $login_id || '' === $transaction_key ) {
             return new WP_REST_Response(
                 array(
@@ -239,7 +247,11 @@ final class TEQCIDB_Accept_Hosted_Token {
                 $hosted_payment_request->addToHostedPaymentSettings( $setting );
             }
 
-            $env = $service->is_live_mode() ? ANetEnvironment::PRODUCTION : ANetEnvironment::SANDBOX;
+            $env = $service->get_api_environment();
+
+            if ( defined( 'SP_AUTHNET_ENV' ) && 'PRODUCTION' === strtoupper( (string) SP_AUTHNET_ENV ) ) {
+                $env = ANetEnvironment::PRODUCTION;
+            }
 
             $controller = new AnetController\GetHostedPaymentPageController( $hosted_payment_request );
             $response   = $controller->executeWithApiResponse( $env );

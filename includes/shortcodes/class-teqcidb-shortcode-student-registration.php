@@ -544,6 +544,8 @@ class TEQCIDB_Shortcode_Student_Registration {
                         : 'https://test.authorize.net/payment/payment',
                     'restTokenUrl'        => esc_url_raw( rest_url( 'teqcidb/v1/accept-hosted/token' ) ),
                     'nonce'               => wp_create_nonce( 'wp_rest' ),
+                    'loadingMessage'      => esc_html_x( 'Loading secure payment form…', 'Accept Hosted payment loading feedback message', 'teqcidb' ),
+                    'errorPrefix'         => esc_html_x( 'Unable to start payment:', 'Accept Hosted payment error prefix', 'teqcidb' ),
                 )
             );
 

@@ -28,6 +28,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Logged-in checkout flows can request an Accept Hosted token from `POST /wp-json/teqcidb/v1/accept-hosted/token`; this endpoint reads credentials from saved plugin settings, defaults return/cancel routing to `/register-for-a-class-qci/`, and always uses the on-site communicator endpoint at `/sp-authnet-communicator/`.
 - Registration shortcode pages now enqueue `assets/js/teqcidb-accept-hosted.js`, exposing `window.TEQCIDB_AcceptHosted.startPayment()` and localized `TEQCIDB_AUTHNET` values (Accept Hosted base URL, token endpoint URL, and REST nonce) for embedded iframe checkout wiring.
 - Each class details panel now renders a **Register & Pay Online** action that initializes an embedded, class-specific Accept Hosted iframe using a shared hidden token form and the localized checkout script flow.
+- The checkout helper now surfaces token-startup failures inline under each register button and logs the specific REST/token error in the browser console to speed up troubleshooting (for example, missing credentials or gateway API exceptions).
 - Accept Hosted iframe integrations can use communicator URL `/sp-authnet-communicator/` on this site so Authorize.Net can relay iframe messages back to the parent checkout window via `postMessage`.
 
 ## Admin Form Guidelines

@@ -31,6 +31,22 @@
     return window.TEQCIDB_AUTHNET && TEQCIDB_AUTHNET.nonce ? TEQCIDB_AUTHNET.nonce : "";
   }
 
+  function getLoadingMessage() {
+    if (window.TEQCIDB_AUTHNET && TEQCIDB_AUTHNET.loadingMessage) {
+      return TEQCIDB_AUTHNET.loadingMessage;
+    }
+
+    return "Loading secure payment form…";
+  }
+
+  function getErrorPrefix() {
+    if (window.TEQCIDB_AUTHNET && TEQCIDB_AUTHNET.errorPrefix) {
+      return TEQCIDB_AUTHNET.errorPrefix;
+    }
+
+    return "Unable to start payment:";
+  }
+
   function getIframe(iframeId) {
     var id = iframeId || DEFAULT_IFRAME_ID;
     var el = document.getElementById(id);
@@ -226,6 +242,34 @@
     return token;
   }
 
+  function getStatusElement(button) {
+    if (!button || !button.parentNode) {
+      return null;
+    }
+
+    var status = button.parentNode.querySelector(".teqcidb-register-pay-online-status");
+
+    if (!status) {
+      status = document.createElement("p");
+      status.className = "teqcidb-register-pay-online-status";
+      status.setAttribute("aria-live", "polite");
+      button.insertAdjacentElement("afterend", status);
+    }
+
+    return status;
+  }
+
+  function setStatusMessage(button, message, isError) {
+    var status = getStatusElement(button);
+
+    if (!status) {
+      return;
+    }
+
+    status.textContent = message || "";
+    status.style.color = isError ? "#b32d2e" : "";
+  }
+
   function getButtonOptions(button) {
     return {
       iframeId: button.getAttribute("data-teqcidb-iframe-id") || DEFAULT_IFRAME_ID,
@@ -258,10 +302,17 @@
         button.disabled = true;
 
         try {
+          setStatusMessage(button, getLoadingMessage(), false);
           await startPayment(getButtonOptions(button));
+          setStatusMessage(button, "", false);
         } catch (error) {
+          var errorMessage = error && error.message ? error.message : "Payment initialization failed.";
+
+          console.error("TEQCIDB Accept Hosted payment initialization failed.", errorMessage, error);
+          setStatusMessage(button, getErrorPrefix() + " " + errorMessage, true);
+
           dispatch("teqcidb:authnet:error", {
-            message: error && error.message ? error.message : "Payment initialization failed.",
+            message: errorMessage,
           });
         } finally {
           button.disabled = false;
