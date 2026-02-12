@@ -140,7 +140,7 @@ final class TEQCIDB_Accept_Hosted_Token {
             return new WP_REST_Response(
                 array(
                     'ok'    => false,
-                    'error' => __( 'Missing Authorize.Net credentials. Save your API Login ID and Transaction Key in TEQCIDB Settings.', 'teqcidb' ),
+                    'error' => __( 'Missing Authorize.Net credentials. Save your API Login ID and Transaction Key in TEQCIDB Settings → API Settings → Payment Gateway (stored in wp_options as teqcidb_api_settings).', 'teqcidb' ),
                 ),
                 500
             );

@@ -34,9 +34,14 @@ class TEQCIDB_AuthorizeNet_Service {
             $all_settings = array();
         }
 
-        $stored = isset( $all_settings[ self::API_KEY ] ) && is_array( $all_settings[ self::API_KEY ] )
-            ? $all_settings[ self::API_KEY ]
-            : array();
+        $stored = array();
+
+        if ( isset( $all_settings[ self::API_KEY ] ) && is_array( $all_settings[ self::API_KEY ] ) ) {
+            $stored = $all_settings[ self::API_KEY ];
+        } elseif ( isset( $all_settings[ self::FIELD_LOGIN_ID ] ) || isset( $all_settings[ self::FIELD_TRANSACTION_KEY ] ) || isset( $all_settings[ self::FIELD_CLIENT_KEY ] ) || isset( $all_settings[ self::FIELD_ENVIRONMENT ] ) ) {
+            // Backward compatibility: older installations may store payment gateway fields directly on the option root.
+            $stored = $all_settings;
+        }
 
         return array(
             self::FIELD_ENVIRONMENT     => isset( $stored[ self::FIELD_ENVIRONMENT ] ) ? sanitize_key( $stored[ self::FIELD_ENVIRONMENT ] ) : 'sandbox',
