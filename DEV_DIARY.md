@@ -241,4 +241,5 @@
 238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
 239. 2026-02-12: Added logged-in student registration checkout actions that request Authorize.Net Accept Hosted tokens via AJAX and load embedded per-class payment iframes from each class accordion's Register & Pay Online button.
 240. 2026-02-12: Fixed student registration Accept Hosted checkout token generation by switching to the SDK's GetHostedPaymentPageController and hardened front-end token request parsing so server-side errors no longer surface as raw JSON parse exceptions.
+241. 2026-02-12: Added a parent-page AuthorizeNetIFrame communication handler in registration checkout JS so embedded Accept Hosted callbacks (resize/cancel/transactResponse) update in-page payment status instead of leaving the hosted form stuck in processing.
 

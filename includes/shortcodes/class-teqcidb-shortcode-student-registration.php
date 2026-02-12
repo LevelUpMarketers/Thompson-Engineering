@@ -517,6 +517,9 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'messagePaymentUnavailable' => esc_html_x( 'Online checkout is unavailable right now. Please contact Thompson Engineering for payment assistance.', 'Registration checkout unavailable message', 'teqcidb' ),
                     'messagePaymentLoading' => esc_html_x( 'Loading secure payment form...', 'Registration checkout loading message', 'teqcidb' ),
                     'messagePaymentError' => esc_html_x( 'Unable to load the payment form right now. Please try again.', 'Registration checkout error message', 'teqcidb' ),
+                    'messagePaymentSuccess' => esc_html_x( 'Payment completed successfully.', 'Registration checkout success message', 'teqcidb' ),
+                    'messagePaymentFailed' => esc_html_x( 'Payment could not be completed. Please verify your payment details and try again.', 'Registration checkout failure message', 'teqcidb' ),
+                    'messagePaymentCancelled' => esc_html_x( 'Payment was canceled before completion.', 'Registration checkout canceled message', 'teqcidb' ),
                 )
             );
         }

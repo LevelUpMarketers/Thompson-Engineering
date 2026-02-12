@@ -1986,6 +1986,102 @@
 
 
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
+    let activeRegistrationCheckout = null;
+
+    const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
+        if (!paymentWrapper) {
+            return;
+        }
+
+        const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
+        if (!feedback) {
+            return;
+        }
+
+        const messageEl = feedback.querySelector('.teqcidb-form-message');
+        if (messageEl) {
+            messageEl.textContent = message || '';
+        }
+
+        feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
+        feedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const parseIframeCommunication = (payload) => {
+        if (!payload || typeof payload !== 'string') {
+            return new URLSearchParams();
+        }
+
+        const normalized = payload.charAt(0) === '?' ? payload.substring(1) : payload;
+        return new URLSearchParams(normalized);
+    };
+
+    if (registrationSections.length) {
+        window.AuthorizeNetIFrame = window.AuthorizeNetIFrame || {};
+        const previousOnReceiveCommunication =
+            typeof window.AuthorizeNetIFrame.onReceiveCommunication === 'function'
+                ? window.AuthorizeNetIFrame.onReceiveCommunication
+                : null;
+
+        window.AuthorizeNetIFrame.onReceiveCommunication = (payload) => {
+            if (previousOnReceiveCommunication) {
+                previousOnReceiveCommunication(payload);
+            }
+
+            if (!activeRegistrationCheckout) {
+                return;
+            }
+
+            const params = parseIframeCommunication(payload);
+            const action = params.get('action') || '';
+
+            if (!action) {
+                return;
+            }
+
+            const { paymentWrapper, paymentIframe } = activeRegistrationCheckout;
+
+            if (action === 'resizeWindow') {
+                const iframeHeight = parseInt(params.get('height') || '', 10);
+
+                if (Number.isFinite(iframeHeight) && iframeHeight > 0 && paymentIframe) {
+                    paymentIframe.style.height = `${Math.max(iframeHeight, 480)}px`;
+                }
+
+                return;
+            }
+
+            if (action === 'cancel') {
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messagePaymentCancelled ||
+                        'Payment was canceled before completion.',
+                    false
+                );
+                activeRegistrationCheckout = null;
+                return;
+            }
+
+            if (action === 'transactResponse') {
+                const responseCode = (params.get('responseCode') || '').trim();
+                const responseReasonText = (params.get('responseReasonText') || '').trim();
+
+                if (responseCode === '1') {
+                    const successMessage =
+                        settings.messagePaymentSuccess ||
+                        'Payment completed successfully.';
+                    setPaymentFeedback(paymentWrapper, successMessage, false);
+                } else {
+                    const failedMessage = responseReasonText ||
+                        settings.messagePaymentFailed ||
+                        'Payment could not be completed. Please verify your payment details and try again.';
+                    setPaymentFeedback(paymentWrapper, failedMessage, false);
+                }
+
+                activeRegistrationCheckout = null;
+            }
+        };
+    }
 
     registrationSections.forEach((section) => {
         const toggles = Array.from(
@@ -2006,25 +2102,6 @@
             toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
             toggle.classList.toggle('is-active', expanded);
             panel.hidden = !expanded;
-        };
-
-        const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
-            if (!paymentWrapper) {
-                return;
-            }
-
-            const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
-            if (!feedback) {
-                return;
-            }
-
-            const messageEl = feedback.querySelector('.teqcidb-form-message');
-            if (messageEl) {
-                messageEl.textContent = message || '';
-            }
-
-            feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
-            feedback.classList.toggle('is-loading', Boolean(isLoading));
         };
 
         const requestHostedToken = (classId) => {
@@ -2125,9 +2202,14 @@
                         }
 
                         tokenInput.value = payload.data.token;
+                        paymentIframe.classList.add('is-visible');
+                        activeRegistrationCheckout = {
+                            classId,
+                            paymentWrapper,
+                            paymentIframe,
+                        };
                         paymentForm.submit();
 
-                        paymentIframe.classList.add('is-visible');
                         setPaymentFeedback(paymentWrapper, '', false);
                     })
                     .catch((error) => {
