@@ -1986,6 +1986,134 @@
 
 
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
+    let activeRegistrationCheckout = null;
+
+    const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
+        if (!paymentWrapper) {
+            return;
+        }
+
+        const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
+        if (!feedback) {
+            return;
+        }
+
+        const messageEl = feedback.querySelector('.teqcidb-form-message');
+        if (messageEl) {
+            messageEl.textContent = message || '';
+        }
+
+        feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
+        feedback.classList.toggle('is-loading', Boolean(isLoading));
+    };
+
+    const parseIframeCommunication = (payload) => {
+        if (!payload || typeof payload !== 'string') {
+            return new URLSearchParams();
+        }
+
+        const normalized = payload.charAt(0) === '?' ? payload.substring(1) : payload;
+        return new URLSearchParams(normalized);
+    };
+
+
+    if (registrationSections.length) {
+        window.AuthorizeNetIFrame = window.AuthorizeNetIFrame || {};
+        const previousOnReceiveCommunication =
+            typeof window.AuthorizeNetIFrame.onReceiveCommunication === 'function'
+                ? window.AuthorizeNetIFrame.onReceiveCommunication
+                : null;
+
+        window.AuthorizeNetIFrame.onReceiveCommunication = (payload) => {
+
+            if (previousOnReceiveCommunication) {
+                previousOnReceiveCommunication(payload);
+            }
+            
+
+            if (!activeRegistrationCheckout) {
+                return;
+            }
+
+            const params = parseIframeCommunication(payload);
+            const action = params.get('action') || '';
+
+            const responseRaw = params.get('response') || '';
+            const response = responseRaw ? JSON.parse(responseRaw) : null;
+
+            console.log('params:', params)
+            console.log('action:', action);
+            console.log('response:', response);
+            console.log(response.accountNumber);
+            console.log(response.accountType);
+            console.log(response.authorization);
+            console.log(response.billTo);
+            console.log(response.customerID); // This has come back and 'undefined'.
+            console.log(response.dateTime);
+            console.log(response.orderDescription);
+            console.log(response.orderInvoiceNumber);
+            console.log(response.responseCode);
+            console.log(response.totalAmount);
+            console.log(response.transId);
+            console.log(response.billTo.phoneNumber);
+            console.log(response.billTo.firstName);
+            console.log(response.billTo.lastName);
+            console.log(response.billTo.address);
+            console.log(response.billTo.city);
+            console.log(response.billTo.state);
+            console.log(response.billTo.zip);
+            console.log(response.billTo.country);
+
+
+
+
+            if (!action) {
+                return;
+            }
+
+            const { paymentWrapper, paymentIframe } = activeRegistrationCheckout;
+
+            if (action === 'resizeWindow') {
+                const iframeHeight = parseInt(params.get('height') || '', 10);
+
+                if (Number.isFinite(iframeHeight) && iframeHeight > 0 && paymentIframe) {
+                    paymentIframe.style.height = `${Math.max(iframeHeight, 480)}px`;
+                }
+
+                return;
+            }
+
+            if (action === 'cancel') {
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messagePaymentCancelled ||
+                        'Payment was canceled before completion.',
+                    false
+                );
+                activeRegistrationCheckout = null;
+                return;
+            }
+
+            if (action === 'transactResponse') {
+                const responseCode = response.responseCode;
+                const responseReasonText = (params.get('responseReasonText') || '').trim();
+
+                if (responseCode === '1') {
+                    const successMessage =
+                        settings.messagePaymentSuccess ||
+                        'Payment completed successfully.';
+                    setPaymentFeedback(paymentWrapper, successMessage, false);
+                } else {
+                    const failedMessage = responseReasonText ||
+                        settings.messagePaymentFailed ||
+                        'Payment could not be completed. Please verify your payment details and try again.';
+                    setPaymentFeedback(paymentWrapper, failedMessage, false);
+                }
+
+                activeRegistrationCheckout = null;
+            }
+        };
+    }
 
     registrationSections.forEach((section) => {
         const toggles = Array.from(
@@ -2008,6 +2136,34 @@
             panel.hidden = !expanded;
         };
 
+        const requestHostedToken = (classId) => {
+            const formData = new FormData();
+            formData.append('action', settings.ajaxTokenAction || 'teqcidb_get_accept_hosted_token');
+            formData.append('_ajax_nonce', settings.ajaxNonce || '');
+            formData.append('class_id', classId);
+
+            return fetch(settings.ajaxUrl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            }).then(async (response) => {
+                const bodyText = await response.text();
+
+                try {
+                    return JSON.parse(bodyText);
+                } catch (error) {
+                    if (!response.ok) {
+                        throw new Error(
+                            settings.messagePaymentError ||
+                                'Unable to load the payment form right now. Please try again.'
+                        );
+                    }
+
+                    throw error;
+                }
+            });
+        };
+
         toggles.forEach((toggle) => {
             setExpanded(toggle, false);
             toggle.addEventListener('click', () => {
@@ -2021,6 +2177,87 @@
                 });
 
                 setExpanded(toggle, !currentlyExpanded);
+            });
+        });
+
+        const paymentButtons = Array.from(
+            section.querySelectorAll('[data-teqcidb-registration-pay]')
+        );
+
+        paymentButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const hasCredentials = section.dataset.authorizenetHasCredentials === 'yes';
+                const classId = button.dataset.classId || '';
+                const paymentWrapper = button.closest('[data-teqcidb-registration-payment]');
+                const paymentForm = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-payment-form]')
+                    : null;
+                const tokenInput = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-token]')
+                    : null;
+                const paymentIframe = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
+                    : null;
+
+                if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
+                    setPaymentFeedback(
+                        paymentWrapper,
+                        settings.messagePaymentUnavailable ||
+                            'Online checkout is unavailable right now. Please contact Thompson Engineering for payment assistance.',
+                        false
+                    );
+                    return;
+                }
+
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messagePaymentLoading || 'Loading secure payment form...',
+                    true
+                );
+
+                button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
+
+                requestHostedToken(classId)
+                    .then((payload) => {
+                        if (!payload || !payload.success || !payload.data || !payload.data.token) {
+                            const message =
+                                payload && payload.data && (payload.data.message || payload.data.error)
+                                    ? payload.data.message || payload.data.error
+                                    : settings.messagePaymentError ||
+                                      'Unable to load the payment form right now. Please try again.';
+                            throw new Error(message);
+                        }
+
+                        if (payload.data.postUrl) {
+                            paymentForm.setAttribute('action', payload.data.postUrl);
+                        }
+
+                        tokenInput.value = payload.data.token;
+                        paymentIframe.classList.add('is-visible');
+                        activeRegistrationCheckout = {
+                            classId,
+                            paymentWrapper,
+                            paymentIframe,
+                        };
+                        paymentForm.submit();
+
+                        setPaymentFeedback(paymentWrapper, '', false);
+                    })
+                    .catch((error) => {
+                        setPaymentFeedback(
+                            paymentWrapper,
+                            error && error.message
+                                ? error.message
+                                : settings.messagePaymentError ||
+                                  'Unable to load the payment form right now. Please try again.',
+                            false
+                        );
+                    })
+                    .finally(() => {
+                        button.disabled = false;
+                        button.removeAttribute('aria-busy');
+                    });
             });
         });
     });

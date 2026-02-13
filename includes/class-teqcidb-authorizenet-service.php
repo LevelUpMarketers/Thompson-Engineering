@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use net\authorize\api\constants\ANetEnvironment;
+use net\authorize\api\controller\GetHostedPaymentPageController;
+use net\authorize\api\contract\v1 as AnetAPI;
 use net\authorize\api\contract\v1\MerchantAuthenticationType;
 
 class TEQCIDB_AuthorizeNet_Service {
@@ -100,5 +102,188 @@ class TEQCIDB_AuthorizeNet_Service {
         }
 
         return ANetEnvironment::SANDBOX;
+    }
+
+    /**
+     * Get the Accept Hosted iframe post URL for the configured environment.
+     *
+     * @return string
+     */
+    public function get_accept_hosted_iframe_url() {
+        if ( ANetEnvironment::PRODUCTION === $this->get_api_environment() ) {
+            return 'https://accept.authorize.net/payment/payment';
+        }
+
+        return 'https://test.authorize.net/payment/payment';
+    }
+
+    /**
+     * Create an Accept Hosted payment page token.
+     *
+     * @param array<string,mixed> $args Token arguments.
+     *
+     * @return array<string,string>|WP_Error
+     */
+    public function create_accept_hosted_token( array $args ) {
+        if ( ! class_exists( AnetAPI\GetHostedPaymentPageRequest::class ) || ! class_exists( GetHostedPaymentPageController::class ) ) {
+            return new WP_Error(
+                'teqcidb_authorizenet_sdk_missing',
+                __( 'Authorize.Net SDK is unavailable. Run Composer install for this plugin.', 'teqcidb' )
+            );
+        }
+
+        $merchant_authentication = $this->get_merchant_authentication();
+
+        if ( is_wp_error( $merchant_authentication ) ) {
+            return $merchant_authentication;
+        }
+
+        $amount = isset( $args['amount'] ) ? (float) $args['amount'] : 0.0;
+
+        if ( $amount <= 0 ) {
+            return new WP_Error(
+                'teqcidb_authorizenet_invalid_amount',
+                __( 'A valid class cost is required before checkout can begin.', 'teqcidb' )
+            );
+        }
+
+        $invoice_number = isset( $args['invoice_number'] ) ? sanitize_text_field( (string) $args['invoice_number'] ) : '';
+        $description    = isset( $args['description'] ) ? sanitize_text_field( (string) $args['description'] ) : '';
+        $first_name     = isset( $args['first_name'] ) ? sanitize_text_field( (string) $args['first_name'] ) : '';
+        $last_name      = isset( $args['last_name'] ) ? sanitize_text_field( (string) $args['last_name'] ) : '';
+        $email          = isset( $args['email'] ) ? sanitize_email( (string) $args['email'] ) : '';
+        $customer_id    = isset( $args['customer_id'] ) ? sanitize_text_field( (string) $args['customer_id'] ) : '';
+
+        $transaction_request = new AnetAPI\TransactionRequestType();
+        $transaction_request->setTransactionType( 'authCaptureTransaction' );
+        $transaction_request->setAmount( number_format( $amount, 2, '.', '' ) );
+
+        $order = new AnetAPI\OrderType();
+
+        if ( '' !== $invoice_number ) {
+            $order->setInvoiceNumber( substr( $invoice_number, 0, 20 ) );
+        }
+
+        if ( '' !== $description ) {
+            $order->setDescription( substr( $description, 0, 255 ) );
+        }
+
+        $transaction_request->setOrder( $order );
+
+        if ( '' !== $first_name || '' !== $last_name ) {
+            $customer = new AnetAPI\CustomerAddressType();
+            $customer->setFirstName( $first_name );
+            $customer->setLastName( $last_name );
+            $transaction_request->setBillTo( $customer );
+        }
+
+        if ( '' !== $email || '' !== $customer_id ) {
+            $customer_data = new AnetAPI\CustomerDataType();
+
+            if ( '' !== $email ) {
+                $customer_data->setEmail( $email );
+            }
+
+            if ( '' !== $customer_id ) {
+                $customer_data->setId( substr( $customer_id, 0, 20 ) );
+            }
+
+            $transaction_request->setCustomer( $customer_data );
+        }
+
+        $request = new AnetAPI\GetHostedPaymentPageRequest();
+        $request->setMerchantAuthentication( $merchant_authentication );
+        $request->setTransactionRequest( $transaction_request );
+
+        $hosted_settings = array();
+
+        $hosted_payment_button_options = new AnetAPI\SettingType();
+        $hosted_payment_button_options->setSettingName( 'hostedPaymentButtonOptions' );
+        $hosted_payment_button_options->setSettingValue( wp_json_encode( array( 'text' => __( 'Pay', 'teqcidb' ) ) ) );
+        $hosted_settings[] = $hosted_payment_button_options;
+
+        $hosted_payment_iframe_options = new AnetAPI\SettingType();
+        $hosted_payment_iframe_options->setSettingName( 'hostedPaymentIFrameCommunicatorUrl' );
+
+        $communicator_url = class_exists( 'TEQCIDB_Ajax' )
+            ? TEQCIDB_Ajax::get_authorizenet_communicator_url()
+            : admin_url( 'admin-ajax.php?action=teqcidb_authorizenet_iframe_communicator' );
+
+        $hosted_payment_iframe_options->setSettingValue( wp_json_encode( array( 'url' => esc_url_raw( $communicator_url ) ) ) );
+        $hosted_settings[] = $hosted_payment_iframe_options;
+
+        $return_url = home_url('/register-for-a-class-qci/');
+        $hosted_payment_return_options = new AnetAPI\SettingType();
+        $hosted_payment_return_options->setSettingName( 'hostedPaymentReturnOptions' );
+        $hosted_payment_return_options->setSettingValue(
+            wp_json_encode(
+                array(
+                    'showReceipt' => false,
+                    'url'         => esc_url_raw($return_url),
+                    'urlText'     => 'Return',
+                )
+            )
+        );
+
+        $hosted_settings[] = $hosted_payment_return_options;
+
+        $request->setHostedPaymentSettings( $hosted_settings );
+
+        $controller = new GetHostedPaymentPageController( $request );
+
+        try {
+            $response = $controller->executeWithApiResponse( $this->get_api_environment() );
+        } catch ( Exception $exception ) {
+            return new WP_Error(
+                "teqcidb_authorizenet_request_exception",
+                sprintf(
+                    /* translators: %s: gateway error details. */
+                    __( "Unable to initialize Authorize.Net checkout: %s", "teqcidb" ),
+                    sanitize_text_field( $exception->getMessage() )
+                )
+            );
+        }
+
+        if ( ! $response ) {
+            return new WP_Error(
+                'teqcidb_authorizenet_empty_response',
+                __( 'Authorize.Net did not return a response. Please try again.', 'teqcidb' )
+            );
+        }
+
+        $messages = $response->getMessages();
+
+        if ( $messages && 'Ok' === $messages->getResultCode() ) {
+            $token = $response->getToken();
+
+            if ( ! is_string( $token ) || '' === $token ) {
+                return new WP_Error(
+                    'teqcidb_authorizenet_missing_token',
+                    __( 'Authorize.Net did not return a payment token. Please try again.', 'teqcidb' )
+                );
+            }
+
+            return array(
+                'token'      => $token,
+                'post_url'   => $this->get_accept_hosted_iframe_url(),
+                'environment' => ANetEnvironment::PRODUCTION === $this->get_api_environment() ? 'live' : 'sandbox',
+            );
+        }
+
+        $error_message = __( 'Unable to initialize Authorize.Net checkout. Please try again.', 'teqcidb' );
+
+        if ( $messages && is_array( $messages->getMessage() ) ) {
+            $first_message = reset( $messages->getMessage() );
+
+            if ( $first_message && method_exists( $first_message, 'getText' ) ) {
+                $text = sanitize_text_field( (string) $first_message->getText() );
+
+                if ( '' !== $text ) {
+                    $error_message = $text;
+                }
+            }
+        }
+
+        return new WP_Error( 'teqcidb_authorizenet_token_error', $error_message );
     }
 }

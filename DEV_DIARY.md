@@ -239,3 +239,9 @@
 236. 2026-02-14: Updated mobile registration accordion styles so class names wrap naturally (white-space: initial) and the registration section uses 0px padding on narrow screens.
 237. 2026-02-11: Added Composer-based Authorize.Net SDK integration with a reusable service that reads teqcidb_api_settings payment gateway credentials and surfaces registration-shortcode data attributes for upcoming Accept Hosted iframe checkout.
 238. 2026-02-11: Updated deployment packaging to track the Composer `vendor/` directory in git so WordPress dashboard ZIP installs include the Authorize.Net SDK without running Composer on production.
+239. 2026-02-12: Added logged-in student registration checkout actions that request Authorize.Net Accept Hosted tokens via AJAX and load embedded per-class payment iframes from each class accordion's Register & Pay Online button.
+240. 2026-02-12: Fixed student registration Accept Hosted checkout token generation by switching to the SDK's GetHostedPaymentPageController and hardened front-end token request parsing so server-side errors no longer surface as raw JSON parse exceptions.
+241. 2026-02-12: Added a parent-page AuthorizeNetIFrame communication handler in registration checkout JS so embedded Accept Hosted callbacks (resize/cancel/transactResponse) update in-page payment status instead of leaving the hosted form stuck in processing.
+242. 2026-02-12: Moved the Authorize.Net Accept Hosted communicator target from admin-ajax to the public `/teqcidb-authorize-communicator/` route with rewrite/query-var handling to reduce iframe CSP conflicts on hosts that lock down `/wp-admin/` responses.
+243. 2026-02-13: Replaced the Authorize.Net service file with the provided version, including hosted return URL settings (`/register-for-a-class-qci/`) in hostedPaymentReturnOptions for Accept Hosted token generation.
+
