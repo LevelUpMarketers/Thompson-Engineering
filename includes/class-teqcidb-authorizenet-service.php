@@ -212,15 +212,19 @@ class TEQCIDB_AuthorizeNet_Service {
         $hosted_payment_iframe_options->setSettingValue( wp_json_encode( array( 'url' => esc_url_raw( $communicator_url ) ) ) );
         $hosted_settings[] = $hosted_payment_iframe_options;
 
+        $return_url = home_url('/register-for-a-class-qci/');
         $hosted_payment_return_options = new AnetAPI\SettingType();
         $hosted_payment_return_options->setSettingName( 'hostedPaymentReturnOptions' );
         $hosted_payment_return_options->setSettingValue(
             wp_json_encode(
                 array(
                     'showReceipt' => false,
+                    'url'         => esc_url_raw($return_url),
+                    'urlText'     => 'Return',
                 )
             )
         );
+
         $hosted_settings[] = $hosted_payment_return_options;
 
         $request->setHostedPaymentSettings( $hosted_settings );
