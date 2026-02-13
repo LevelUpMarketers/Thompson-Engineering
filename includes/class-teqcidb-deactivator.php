@@ -28,5 +28,7 @@ class TEQCIDB_Deactivator {
         }
 
         delete_option( 'teqcidb_demo_cron_last_run' );
+
+        flush_rewrite_rules();
     }
 }

@@ -118,5 +118,10 @@ class TEQCIDB_Activator {
         dbDelta( $sql_content_log );
         dbDelta( $sql_classes );
         dbDelta( $sql_student_history );
+        if ( class_exists( 'TEQCIDB_Ajax' ) ) {
+            TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
+        }
+
+        flush_rewrite_rules();
     }
 }
