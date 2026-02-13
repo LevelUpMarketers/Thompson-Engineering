@@ -17,11 +17,13 @@ class TEQCIDB_Plugin {
     private $content_logger;
     private $cron_manager;
     private $error_logger;
+    private $authorizenet_communicator;
 
     public function __construct() {
         $this->i18n     = new TEQCIDB_I18n();
         $this->admin    = new TEQCIDB_Admin();
         $this->ajax     = new TEQCIDB_Ajax();
+        $this->authorizenet_communicator = new TEQCIDB_AuthorizeNet_Communicator();
         $this->shortcode = new TEQCIDB_Shortcode_Student();
         $this->dashboard_shortcode = new TEQCIDB_Shortcode_Student_Dashboard();
         $this->registration_shortcode = new TEQCIDB_Shortcode_Student_Registration( $this->dashboard_shortcode );
@@ -41,6 +43,7 @@ class TEQCIDB_Plugin {
         }
         $this->admin->register();
         $this->ajax->register();
+        $this->authorizenet_communicator->register();
         $this->shortcode->register();
         $this->dashboard_shortcode->register();
         $this->registration_shortcode->register();

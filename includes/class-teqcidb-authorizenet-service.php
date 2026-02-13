@@ -22,7 +22,6 @@ class TEQCIDB_AuthorizeNet_Service {
     const FIELD_ENVIRONMENT    = 'payment_gateway_environment';
     const FIELD_LOGIN_ID       = 'payment_gateway_login_id';
     const FIELD_TRANSACTION_KEY = 'payment_gateway_transaction_key';
-    const FIELD_CLIENT_KEY     = 'payment_gateway_client_key';
 
     /**
      * Retrieve the stored payment gateway settings.
@@ -44,7 +43,6 @@ class TEQCIDB_AuthorizeNet_Service {
             self::FIELD_ENVIRONMENT     => isset( $stored[ self::FIELD_ENVIRONMENT ] ) ? sanitize_key( $stored[ self::FIELD_ENVIRONMENT ] ) : 'sandbox',
             self::FIELD_LOGIN_ID        => isset( $stored[ self::FIELD_LOGIN_ID ] ) ? sanitize_text_field( $stored[ self::FIELD_LOGIN_ID ] ) : '',
             self::FIELD_TRANSACTION_KEY => isset( $stored[ self::FIELD_TRANSACTION_KEY ] ) ? sanitize_text_field( $stored[ self::FIELD_TRANSACTION_KEY ] ) : '',
-            self::FIELD_CLIENT_KEY      => isset( $stored[ self::FIELD_CLIENT_KEY ] ) ? sanitize_text_field( $stored[ self::FIELD_CLIENT_KEY ] ) : '',
         );
     }
 

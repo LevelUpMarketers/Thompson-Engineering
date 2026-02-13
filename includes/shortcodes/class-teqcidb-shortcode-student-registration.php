@@ -64,9 +64,6 @@ class TEQCIDB_Shortcode_Student_Registration {
         $authorize_environment = isset( $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ] )
             ? $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ]
             : 'sandbox';
-        $authorize_client_key = isset( $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_CLIENT_KEY ] )
-            ? $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_CLIENT_KEY ]
-            : '';
         $authorize_has_credentials = $this->authorizenet_service->has_credentials() ? 'yes' : 'no';
         $authorize_hosted_post_url = $this->authorizenet_service->get_accept_hosted_iframe_url();
 
@@ -76,7 +73,6 @@ class TEQCIDB_Shortcode_Student_Registration {
             class="teqcidb-registration-section teqcidb-registration-classes"
             data-teqcidb-registration="true"
             data-authorizenet-environment="<?php echo esc_attr( $authorize_environment ); ?>"
-            data-authorizenet-client-key="<?php echo esc_attr( $authorize_client_key ); ?>"
             data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
             data-authorizenet-hosted-post-url="<?php echo esc_url( $authorize_hosted_post_url ); ?>"
         >
