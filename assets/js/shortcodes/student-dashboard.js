@@ -2016,6 +2016,7 @@
         return new URLSearchParams(normalized);
     };
 
+
     if (registrationSections.length) {
         window.AuthorizeNetIFrame = window.AuthorizeNetIFrame || {};
         const previousOnReceiveCommunication =
@@ -2024,9 +2025,11 @@
                 : null;
 
         window.AuthorizeNetIFrame.onReceiveCommunication = (payload) => {
+
             if (previousOnReceiveCommunication) {
                 previousOnReceiveCommunication(payload);
             }
+            
 
             if (!activeRegistrationCheckout) {
                 return;
@@ -2034,6 +2037,35 @@
 
             const params = parseIframeCommunication(payload);
             const action = params.get('action') || '';
+
+            const responseRaw = params.get('response') || '';
+            const response = responseRaw ? JSON.parse(responseRaw) : null;
+
+            console.log('params:', params)
+            console.log('action:', action);
+            console.log('response:', response);
+            console.log(response.accountNumber);
+            console.log(response.accountType);
+            console.log(response.authorization);
+            console.log(response.billTo);
+            console.log(response.customerID); // This has come back and 'undefined'.
+            console.log(response.dateTime);
+            console.log(response.orderDescription);
+            console.log(response.orderInvoiceNumber);
+            console.log(response.responseCode);
+            console.log(response.totalAmount);
+            console.log(response.transId);
+            console.log(response.billTo.phoneNumber);
+            console.log(response.billTo.firstName);
+            console.log(response.billTo.lastName);
+            console.log(response.billTo.address);
+            console.log(response.billTo.city);
+            console.log(response.billTo.state);
+            console.log(response.billTo.zip);
+            console.log(response.billTo.country);
+
+
+
 
             if (!action) {
                 return;
@@ -2063,7 +2095,7 @@
             }
 
             if (action === 'transactResponse') {
-                const responseCode = (params.get('responseCode') || '').trim();
+                const responseCode = response.responseCode;
                 const responseReasonText = (params.get('responseReasonText') || '').trim();
 
                 if (responseCode === '1') {
