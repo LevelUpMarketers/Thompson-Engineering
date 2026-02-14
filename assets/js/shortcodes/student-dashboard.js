@@ -2040,10 +2040,22 @@
         return `${month}/${day}/${year}`;
     };
 
+    const formatPaymentAmount = (value) => {
+        const raw = value === null || value === undefined ? '' : String(value);
+        const normalized = raw.replace(/[^0-9.\-]/g, '');
+        const amount = parseFloat(normalized);
+
+        if (Number.isFinite(amount)) {
+            return `$${amount.toFixed(2)}`;
+        }
+
+        return 'N/A';
+    };
+
     const buildRegistrationReceiptData = (checkout, response = {}) => ({
         className: checkout && checkout.className ? String(checkout.className) : 'N/A',
         registrationDate: formatRegistrationDate(),
-        paymentAmount: response && response.totalAmount ? String(response.totalAmount) : 'N/A',
+        paymentAmount: formatPaymentAmount(response && response.totalAmount ? response.totalAmount : ''),
         transactionId: response && response.transId ? String(response.transId) : 'N/A',
         invoiceNumber: response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : 'N/A',
     });
@@ -2069,8 +2081,15 @@
             const img = doc.getImageProperties(logoData);
             const logoWidth = 210;
             const logoHeight = img.width ? (logoWidth * img.height) / img.width : 54;
-            doc.addImage(logoData, img.fileType || 'PNG', (pageWidth - logoWidth) / 2, y, logoWidth, logoHeight);
-            y += logoHeight + 20;
+            const logoPadding = 16;
+            const logoBoxWidth = logoWidth + logoPadding * 2;
+            const logoBoxHeight = logoHeight + logoPadding * 2;
+            const logoBoxX = (pageWidth - logoBoxWidth) / 2;
+
+            doc.setFillColor(61, 61, 61);
+            doc.rect(logoBoxX, y, logoBoxWidth, logoBoxHeight, 'F');
+            doc.addImage(logoData, img.fileType || 'PNG', logoBoxX + logoPadding, y + logoPadding, logoWidth, logoHeight);
+            y += logoBoxHeight + 20;
         }
 
         doc.setFont('helvetica', 'bold');
@@ -2111,7 +2130,7 @@
             y += 16;
         });
 
-        y += 10;
+        y += 50;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text("What's Next?", margin, y);
@@ -2177,6 +2196,22 @@
                 Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you <strong><em>still</em></strong> don't see an email, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a>, or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for more info.
             </p>
         `;
+    };
+
+    const scrollRegistrationFeedbackIntoView = (paymentWrapper) => {
+        if (!paymentWrapper) {
+            return;
+        }
+
+        const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
+
+        if (!feedback) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            feedback.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 140);
     };
 
     const hideRegistrationPaymentIframe = (paymentWrapper, paymentIframe) => {
@@ -2275,6 +2310,7 @@
                     paymentWrapper.dataset.teqcidbReceiptData = JSON.stringify(receiptData);
                     const successMessage = buildRegistrationSuccessMessage(receiptData);
                     setPaymentFeedback(paymentWrapper, successMessage, false, { allowHtml: true });
+                    scrollRegistrationFeedbackIntoView(paymentWrapper);
                     hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
                 } else {
                     const failedMessage = responseReasonText ||
@@ -2408,11 +2444,11 @@
                 const paymentIframe = paymentWrapper
                     ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
                     : null;
-                const classPanel = button.closest('.teqcidb-registration-class-panel');
-                const classTitleElement = classPanel
-                    ? classPanel.querySelector('.teqcidb-registration-class-section-title')
+                const classItem = button.closest('.teqcidb-registration-class-item');
+                const classNameElement = classItem
+                    ? classItem.querySelector('.teqcidb-registration-class-name')
                     : null;
-                const className = classTitleElement ? classTitleElement.textContent.trim() : '';
+                const className = classNameElement ? classNameElement.textContent.trim() : '';
 
                 if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
                     setPaymentFeedback(
