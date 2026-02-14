@@ -253,3 +253,4 @@
 250. 2026-02-14: Slowed registration payment success animations, expanded success feedback with transaction detail/next-steps messaging and placeholder receipt link UI, and switched Authorize.Net invoice-number generation to per-transaction unique values.
 251. 2026-02-14: Implemented student registration receipt PDF downloads from payment success messaging with Thompson Engineering branding, transaction details, next-steps copy, and policy text in a smaller footer section.
 252. 2026-02-14: Corrected registration success/receipt class naming and currency formatting, added scroll-to-success feedback behavior, added top margin for registration form feedback messages, and enhanced receipt logo/header spacing with a dark branded background panel.
+253. 2026-02-14: Increased top spacing between the branded receipt logo block and the "Registration Payment Receipt" heading for improved visual separation in generated registration PDFs.

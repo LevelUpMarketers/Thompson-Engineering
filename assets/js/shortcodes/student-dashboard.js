@@ -2089,7 +2089,7 @@
             doc.setFillColor(61, 61, 61);
             doc.rect(logoBoxX, y, logoBoxWidth, logoBoxHeight, 'F');
             doc.addImage(logoData, img.fileType || 'PNG', logoBoxX + logoPadding, y + logoPadding, logoWidth, logoHeight);
-            y += logoBoxHeight + 20;
+            y += logoBoxHeight + 38;
         }
 
         doc.setFont('helvetica', 'bold');
