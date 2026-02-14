@@ -249,3 +249,4 @@
 246. 2026-02-14: Replaced the registration form PDF action link with a button-style control that opens the PDF in a new tab so both class actions render as matching dashboard buttons.
 247. 2026-02-14: Added a registration payment policy/instructions panel above each class action button row, including linked phone/email contact details and centered mailing address styling for form-based registration guidance.
 248. 2026-02-14: Reduced registration payment policy text to 16px for readability and increased the embedded Authorize.Net registration iframe height to 920px so hosted checkout content remains fully visible after the new policy panel was added.
+249. 2026-02-14: Centered registration payment feedback text and added successful-checkout UI transitions that fade out the visible payment iframe while animating each class panel height back after payment completion.

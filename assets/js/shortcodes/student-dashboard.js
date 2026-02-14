@@ -2016,6 +2016,33 @@
         return new URLSearchParams(normalized);
     };
 
+    const hideRegistrationPaymentIframe = (paymentWrapper, paymentIframe) => {
+        if (!paymentWrapper || !paymentIframe || !paymentIframe.classList.contains('is-visible')) {
+            return;
+        }
+
+        const classPanel = paymentWrapper.closest('.teqcidb-registration-class-panel');
+        if (classPanel) {
+            classPanel.style.maxHeight = `${classPanel.scrollHeight}px`;
+        }
+
+        paymentIframe.classList.add('is-fading-out');
+
+        const completeHide = () => {
+            paymentIframe.classList.remove('is-visible', 'is-fading-out');
+
+            if (classPanel) {
+                classPanel.style.maxHeight = `${classPanel.scrollHeight}px`;
+
+                window.setTimeout(() => {
+                    classPanel.style.maxHeight = '';
+                }, 380);
+            }
+        };
+
+        window.setTimeout(completeHide, 340);
+    };
+
 
     if (registrationSections.length) {
         window.AuthorizeNetIFrame = window.AuthorizeNetIFrame || {};
@@ -2103,6 +2130,7 @@
                         settings.messagePaymentSuccess ||
                         'Payment completed successfully.';
                     setPaymentFeedback(paymentWrapper, successMessage, false);
+                    hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
                 } else {
                     const failedMessage = responseReasonText ||
                         settings.messagePaymentFailed ||
@@ -2234,6 +2262,7 @@
                         }
 
                         tokenInput.value = payload.data.token;
+                        paymentIframe.classList.remove('is-fading-out');
                         paymentIframe.classList.add('is-visible');
                         activeRegistrationCheckout = {
                             classId,
