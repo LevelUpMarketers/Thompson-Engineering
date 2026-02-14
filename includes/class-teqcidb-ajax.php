@@ -417,17 +417,20 @@ class TEQCIDB_Ajax {
 
         $payment_history_id = (int) $wpdb->insert_id;
 
-        $enrollment_date = '';
+        $eastern_timezone = new DateTimeZone( 'America/New_York' );
+        $enrollment_date  = '';
 
         if ( '' !== $gateway_time ) {
             try {
                 $gateway_datetime = new DateTimeImmutable( trim( $gateway_time ), new DateTimeZone( 'UTC' ) );
-                $enrollment_date  = $gateway_datetime->setTimezone( new DateTimeZone( 'America/New_York' ) )->format( 'Y-m-d' );
+                $enrollment_date  = $gateway_datetime->setTimezone( $eastern_timezone )->format( 'Y-m-d' );
             } catch ( Exception $exception ) {
-                $enrollment_date = wp_date( 'Y-m-d', null, new DateTimeZone( 'America/New_York' ) );
+                $enrollment_date = '';
             }
-        } else {
-            $enrollment_date = wp_date( 'Y-m-d', null, new DateTimeZone( 'America/New_York' ) );
+        }
+
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $enrollment_date ) ) {
+            $enrollment_date = ( new DateTimeImmutable( 'now', $eastern_timezone ) )->format( 'Y-m-d' );
         }
 
         $student_history_table = $wpdb->prefix . 'teqcidb_studenthistory';

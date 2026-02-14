@@ -258,3 +258,4 @@
 255. 2026-02-14: Adjusted successful-payment auto-scroll to stop 100px higher so registration success feedback remains visible below sticky site headers/menus.
 256. 2026-02-14: Increased registration action button minimum widths to 280px for both online payment and printable form buttons to keep the paired controls visually consistent.
 257. 2026-02-14: Added successful registration payment inserts into teqcidb_studenthistory with Yes/Upcoming/Paid in Full defaults, class linkage, amount paid, enrollment date, and registered-by metadata.
+258. 2026-02-14: Fixed successful-payment studenthistory enrollmentdate persistence by hardening Eastern-time date fallback logic so invalid/empty gateway datetimes can no longer insert as 0000-00-00.
