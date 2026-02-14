@@ -2233,7 +2233,8 @@
         }
 
         window.setTimeout(() => {
-            feedback.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const top = feedback.getBoundingClientRect().top + window.pageYOffset - 100;
+            window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
         }, 140);
     };
 
