@@ -154,14 +154,72 @@ class TEQCIDB_Shortcode_Student_Registration {
                                 </dl>
 
                                 <div class="teqcidb-registration-payment" data-teqcidb-registration-payment="<?php echo esc_attr( $class['class_id'] ); ?>">
-                                    <button
-                                        type="button"
-                                        class="teqcidb-dashboard-button teqcidb-registration-pay-button"
-                                        data-teqcidb-registration-pay
-                                        data-class-id="<?php echo esc_attr( $class['class_id'] ); ?>"
-                                    >
-                                        <?php echo esc_html_x( 'Register & Pay Online', 'Student registration checkout button label', 'teqcidb' ); ?>
-                                    </button>
+                                    <div class="teqcidb-registration-payment-policy" role="note">
+                                        <p class="teqcidb-registration-payment-policy-intro"><?php echo esc_html_x( 'Please read this information before completing your registration and payment below!', 'Student registration payment policy intro text', 'teqcidb' ); ?></p>
+                                        <p>
+                                            <strong><?php echo esc_html_x( 'Cancellation & Payment Policy:', 'Student registration payment policy heading', 'teqcidb' ); ?></strong>
+                                            <?php echo esc_html_x( 'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.', 'Student registration payment policy details', 'teqcidb' ); ?>
+                                        </p>
+                                        <p><?php echo esc_html_x( 'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.', 'Student registration payment policy completion details', 'teqcidb' ); ?></p>
+                                        <p>
+                                            <?php
+                                            echo wp_kses(
+                                                sprintf(
+                                                    /* translators: %1$s: phone link open tag, %2$s: phone link close tag. */
+                                                    __( 'For more information or clarification, please call %1$s(251) 666-2443%2$s.', 'teqcidb' ),
+                                                    '<a href="tel:2516662443">',
+                                                    '</a>'
+                                                ),
+                                                array(
+                                                    'a' => array(
+                                                        'href' => true,
+                                                    ),
+                                                )
+                                            );
+                                            ?>
+                                        </p>
+                                        <p>
+                                            <?php
+                                            echo wp_kses(
+                                                sprintf(
+                                                    /* translators: %1$s: email link open tag, %2$s: email link close tag. */
+                                                    __( 'If you choose to register by registration form, please email the completed form to %1$sQCI@thompsonengineering.com%2$s, or mail to the address below. Payments can be mailed to this address as well.', 'teqcidb' ),
+                                                    '<a href="mailto:QCI@thompsonengineering.com">',
+                                                    '</a>'
+                                                ),
+                                                array(
+                                                    'a' => array(
+                                                        'href' => true,
+                                                    ),
+                                                )
+                                            );
+                                            ?>
+                                        </p>
+                                        <p class="teqcidb-registration-payment-policy-address">
+                                            <?php echo esc_html_x( 'Thompson Engineering', 'Student registration mailing address line 1', 'teqcidb' ); ?><br>
+                                            <?php echo esc_html_x( 'ATTN: QCI Program', 'Student registration mailing address line 2', 'teqcidb' ); ?><br>
+                                            <?php echo esc_html_x( '2970 Cottage Hill Road, Suite 190', 'Student registration mailing address line 3', 'teqcidb' ); ?><br>
+                                            <?php echo esc_html_x( 'Mobile, AL 36606', 'Student registration mailing address line 4', 'teqcidb' ); ?>
+                                        </p>
+                                    </div>
+
+                                    <div class="teqcidb-registration-payment-actions">
+                                        <button
+                                            type="button"
+                                            class="teqcidb-dashboard-button teqcidb-registration-pay-button"
+                                            data-teqcidb-registration-pay
+                                            data-class-id="<?php echo esc_attr( $class['class_id'] ); ?>"
+                                        >
+                                            <?php echo esc_html_x( 'Register & Pay Online', 'Student registration checkout button label', 'teqcidb' ); ?>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="teqcidb-dashboard-button teqcidb-registration-pay-button teqcidb-registration-form-button"
+                                            onclick="window.open('<?php echo esc_url( 'https://training.thompsonengineering.com/wp-content/uploads/2024/07/1-QCI-FORM-2024-NEW.pdf' ); ?>', '_blank', 'noopener');"
+                                        >
+                                            <?php echo esc_html_x( 'Print & Email Your Registration Form', 'Student registration printable form button label', 'teqcidb' ); ?>
+                                        </button>
+                                    </div>
                                     <div class="teqcidb-form-feedback teqcidb-registration-payment-feedback" aria-live="polite" aria-atomic="true">
                                         <span class="spinner is-active" aria-hidden="true"></span>
                                         <span class="teqcidb-form-message"></span>
@@ -503,6 +561,7 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'ajaxAction'      => 'teqcidb_save_student',
                     'ajaxLoginAction' => 'teqcidb_login_user',
                     'ajaxTokenAction' => 'teqcidb_get_accept_hosted_token',
+                    'ajaxRecordPaymentAction' => 'teqcidb_record_registration_payment',
                     'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
                     'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
                     'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),
@@ -516,6 +575,11 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'messagePaymentSuccess' => esc_html_x( 'Payment completed successfully.', 'Registration checkout success message', 'teqcidb' ),
                     'messagePaymentFailed' => esc_html_x( 'Payment could not be completed. Please verify your payment details and try again.', 'Registration checkout failure message', 'teqcidb' ),
                     'messagePaymentCancelled' => esc_html_x( 'Payment was canceled before completion.', 'Registration checkout canceled message', 'teqcidb' ),
+                    'registrationReceipt' => array(
+                        'logoUrl' => esc_url( home_url( '/wp-content/uploads/2021/11/TE-Stormwater-Training-logo.png' ) ),
+                        'downloadFileName' => esc_html_x( 'qci-registration-receipt.pdf', 'Registration payment receipt download file name', 'teqcidb' ),
+                        'missingPdfMessage' => esc_html_x( 'Unable to generate the transaction receipt right now. Please try again.', 'Registration payment receipt generation error message', 'teqcidb' ),
+                    ),
                 )
             );
         }

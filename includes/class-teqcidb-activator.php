@@ -18,6 +18,7 @@ class TEQCIDB_Activator {
         $content_log     = $wpdb->prefix . 'teqcidb_content_log';
         $classes_table   = $wpdb->prefix . 'teqcidb_classes';
         $student_history = $wpdb->prefix . 'teqcidb_studenthistory';
+        $payment_history = $wpdb->prefix . 'teqcidb_paymenthistory';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -113,11 +114,31 @@ class TEQCIDB_Activator {
             KEY uniqueclassid (uniqueclassid)
         ) $charset_collate;";
 
+        $sql_payment_history = "CREATE TABLE $payment_history (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            wpuserid bigint(20) unsigned DEFAULT NULL,
+            uniquestudentid varchar(255) NOT NULL DEFAULT '',
+            email varchar(191) NOT NULL DEFAULT '',
+            uniqueclassid varchar(255) NOT NULL DEFAULT '',
+            totalpaid decimal(10,2) DEFAULT NULL,
+            transid varchar(100) NOT NULL DEFAULT '',
+            transtime varchar(80) NOT NULL DEFAULT '',
+            multiplestudents longtext,
+            invoicenumber varchar(50) NOT NULL DEFAULT '',
+            PRIMARY KEY  (id),
+            KEY wpuserid (wpuserid),
+            KEY uniquestudentid (uniquestudentid),
+            KEY uniqueclassid (uniqueclassid),
+            KEY transid (transid),
+            KEY invoicenumber (invoicenumber)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
         dbDelta( $sql_classes );
         dbDelta( $sql_student_history );
+        dbDelta( $sql_payment_history );
         if ( class_exists( 'TEQCIDB_Ajax' ) ) {
             TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
         }
