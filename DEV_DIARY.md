@@ -251,3 +251,4 @@
 248. 2026-02-14: Reduced registration payment policy text to 16px for readability and increased the embedded Authorize.Net registration iframe height to 920px so hosted checkout content remains fully visible after the new policy panel was added.
 249. 2026-02-14: Centered registration payment feedback text and added successful-checkout UI transitions that fade out the visible payment iframe while animating each class panel height back after payment completion.
 250. 2026-02-14: Slowed registration payment success animations, expanded success feedback with transaction detail/next-steps messaging and placeholder receipt link UI, and switched Authorize.Net invoice-number generation to per-transaction unique values.
+251. 2026-02-14: Implemented student registration receipt PDF downloads from payment success messaging with Thompson Engineering branding, transaction details, next-steps copy, and policy text in a smaller footer section.

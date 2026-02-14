@@ -1814,6 +1814,7 @@
     initCountdowns();
 
     const walletCardSettings = settings.walletCard || {};
+    const registrationReceiptSettings = settings.registrationReceipt || {};
 
     const loadWalletCardImage = (url) => {
         if (!url) {
@@ -2039,12 +2040,125 @@
         return `${month}/${day}/${year}`;
     };
 
-    const buildRegistrationSuccessMessage = (checkout, response = {}) => {
-        const className = escapeHtml(checkout && checkout.className ? checkout.className : 'N/A');
-        const registrationDate = escapeHtml(formatRegistrationDate());
-        const paymentAmount = escapeHtml(response.totalAmount || 'N/A');
-        const transactionId = escapeHtml(response.transId || 'N/A');
-        const invoiceNumber = escapeHtml(response.orderInvoiceNumber || 'N/A');
+    const buildRegistrationReceiptData = (checkout, response = {}) => ({
+        className: checkout && checkout.className ? String(checkout.className) : 'N/A',
+        registrationDate: formatRegistrationDate(),
+        paymentAmount: response && response.totalAmount ? String(response.totalAmount) : 'N/A',
+        transactionId: response && response.transId ? String(response.transId) : 'N/A',
+        invoiceNumber: response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : 'N/A',
+    });
+
+    const renderRegistrationReceiptPdf = async (receiptData) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const logoData = await loadWalletCardImage(registrationReceiptSettings.logoUrl || '');
+
+        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 54;
+        const contentWidth = pageWidth - margin * 2;
+        let y = margin;
+
+        if (logoData) {
+            const img = doc.getImageProperties(logoData);
+            const logoWidth = 210;
+            const logoHeight = img.width ? (logoWidth * img.height) / img.width : 54;
+            doc.addImage(logoData, img.fileType || 'PNG', (pageWidth - logoWidth) / 2, y, logoWidth, logoHeight);
+            y += logoHeight + 20;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(19);
+        doc.text('Registration Payment Receipt', pageWidth / 2, y, { align: 'center' });
+        y += 24;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const intro = doc.splitTextToSize(
+            'Your class registration & payment are successful! Please retain this receipt for your records.',
+            contentWidth
+        );
+        doc.text(intro, margin, y);
+        y += intro.length * 14 + 12;
+
+        doc.setLineWidth(0.8);
+        doc.setDrawColor(207, 207, 207);
+        doc.rect(margin, y, contentWidth, 114);
+
+        y += 20;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('Transaction Details', margin + 12, y);
+        y += 18;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const details = [
+            `Class Name: ${receiptData.className}`,
+            `Date of Registration & Payment: ${receiptData.registrationDate}`,
+            `Payment Amount: ${receiptData.paymentAmount}`,
+            `Transaction ID: ${receiptData.transactionId}`,
+            `Invoice Number: ${receiptData.invoiceNumber}`,
+        ];
+        details.forEach((line) => {
+            doc.text(line, margin + 12, y);
+            y += 16;
+        });
+
+        y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text("What's Next?", margin, y);
+        y += 18;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const nextSteps = doc.splitTextToSize(
+            "Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you still don't see an email, please contact Ilka Porter at (251) 666-2443, or QCI@thompsonengineering.com for more info.",
+            contentWidth
+        );
+        doc.text(nextSteps, margin, y);
+        y += nextSteps.length * 14 + 20;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Cancellation & Payment Policy', margin, y);
+        y += 14;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        const policyParagraphs = [
+            'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.',
+            'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.',
+            'For more information or clarification, please call (251) 666-2443.',
+        ];
+
+        policyParagraphs.forEach((paragraph) => {
+            const lines = doc.splitTextToSize(paragraph, contentWidth);
+            if (y + lines.length * 12 > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.text(lines, margin, y);
+            y += lines.length * 12 + 8;
+        });
+
+        const fileName = registrationReceiptSettings.downloadFileName || 'qci-registration-receipt.pdf';
+        doc.save(fileName);
+    };
+
+    const buildRegistrationSuccessMessage = (receiptData = {}) => {
+        const className = escapeHtml(receiptData.className || 'N/A');
+        const registrationDate = escapeHtml(receiptData.registrationDate || 'N/A');
+        const paymentAmount = escapeHtml(receiptData.paymentAmount || 'N/A');
+        const transactionId = escapeHtml(receiptData.transactionId || 'N/A');
+        const invoiceNumber = escapeHtml(receiptData.invoiceNumber || 'N/A');
 
         return `
             <p>
@@ -2157,7 +2271,9 @@
                 const responseReasonText = (params.get('responseReasonText') || '').trim();
 
                 if (responseCode === '1') {
-                    const successMessage = buildRegistrationSuccessMessage(activeRegistrationCheckout, response);
+                    const receiptData = buildRegistrationReceiptData(activeRegistrationCheckout, response);
+                    paymentWrapper.dataset.teqcidbReceiptData = JSON.stringify(receiptData);
+                    const successMessage = buildRegistrationSuccessMessage(receiptData);
                     setPaymentFeedback(paymentWrapper, successMessage, false, { allowHtml: true });
                     hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
                 } else {
@@ -2248,6 +2364,34 @@
             }
 
             event.preventDefault();
+
+            const paymentWrapper = receiptLink.closest('[data-teqcidb-registration-payment]');
+            const rawReceiptData = paymentWrapper ? paymentWrapper.dataset.teqcidbReceiptData || '' : '';
+
+            if (!rawReceiptData) {
+                return;
+            }
+
+            let receiptData = null;
+
+            try {
+                receiptData = JSON.parse(rawReceiptData);
+            } catch (error) {
+                receiptData = null;
+            }
+
+            if (!receiptData) {
+                return;
+            }
+
+            renderRegistrationReceiptPdf(receiptData).catch(() => {
+                setPaymentFeedback(
+                    paymentWrapper,
+                    registrationReceiptSettings.missingPdfMessage ||
+                        'Unable to generate the transaction receipt right now. Please try again.',
+                    false
+                );
+            });
         });
 
         paymentButtons.forEach((button) => {

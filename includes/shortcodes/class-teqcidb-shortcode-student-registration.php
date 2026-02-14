@@ -574,6 +574,11 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'messagePaymentSuccess' => esc_html_x( 'Payment completed successfully.', 'Registration checkout success message', 'teqcidb' ),
                     'messagePaymentFailed' => esc_html_x( 'Payment could not be completed. Please verify your payment details and try again.', 'Registration checkout failure message', 'teqcidb' ),
                     'messagePaymentCancelled' => esc_html_x( 'Payment was canceled before completion.', 'Registration checkout canceled message', 'teqcidb' ),
+                    'registrationReceipt' => array(
+                        'logoUrl' => esc_url( home_url( '/wp-content/uploads/2021/11/TE-Stormwater-Training-logo.png' ) ),
+                        'downloadFileName' => esc_html_x( 'qci-registration-receipt.pdf', 'Registration payment receipt download file name', 'teqcidb' ),
+                        'missingPdfMessage' => esc_html_x( 'Unable to generate the transaction receipt right now. Please try again.', 'Registration payment receipt generation error message', 'teqcidb' ),
+                    ),
                 )
             );
         }
