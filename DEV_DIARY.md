@@ -256,3 +256,4 @@
 253. 2026-02-14: Increased top spacing between the branded receipt logo block and the "Registration Payment Receipt" heading for improved visual separation in generated registration PDFs.
 254. 2026-02-14: Added successful registration payment-history logging via AJAX into teqcidb_paymenthistory (including invoice number + Eastern-time transaction timestamps) and added activation/runtime schema support for the new invoicenumber column.
 255. 2026-02-14: Adjusted successful-payment auto-scroll to stop 100px higher so registration success feedback remains visible below sticky site headers/menus.
+256. 2026-02-14: Increased registration action button minimum widths to 280px for both online payment and printable form buttons to keep the paired controls visually consistent.
