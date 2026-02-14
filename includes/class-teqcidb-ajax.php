@@ -162,16 +162,22 @@ class TEQCIDB_Ajax {
 
         $current_user = wp_get_current_user();
 
+        $class_fragment  = strtoupper( substr( base_convert( (string) $class_id, 10, 36 ), -3 ) );
+        $user_fragment   = strtoupper( substr( base_convert( (string) get_current_user_id(), 10, 36 ), -3 ) );
+        $time_fragment   = strtoupper( base_convert( (string) time(), 10, 36 ) );
+        $random_fragment = strtoupper( wp_generate_password( 4, false, false ) );
+        $invoice_number  = substr( 'TQ' . $class_fragment . $user_fragment . $time_fragment . $random_fragment, 0, 20 );
+
         $service = new TEQCIDB_AuthorizeNet_Service();
         $token   = $service->create_accept_hosted_token(
             array(
-                'amount'        => $amount,
-                'invoice_number' => sprintf( 'TEQCIDB-%d-%d', $class_id, get_current_user_id() ),
-                'description'   => isset( $row['classname'] ) ? (string) $row['classname'] : '',
-                'first_name'    => $current_user instanceof WP_User ? (string) $current_user->first_name : '',
-                'last_name'     => $current_user instanceof WP_User ? (string) $current_user->last_name : '',
-                'email'         => $current_user instanceof WP_User ? (string) $current_user->user_email : '',
-                'customer_id'   => (string) get_current_user_id(),
+                'amount'         => $amount,
+                'invoice_number' => $invoice_number,
+                'description'    => isset( $row['classname'] ) ? (string) $row['classname'] : '',
+                'first_name'     => $current_user instanceof WP_User ? (string) $current_user->first_name : '',
+                'last_name'      => $current_user instanceof WP_User ? (string) $current_user->last_name : '',
+                'email'          => $current_user instanceof WP_User ? (string) $current_user->user_email : '',
+                'customer_id'    => (string) get_current_user_id(),
             )
         );
 

@@ -1988,7 +1988,7 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
-    const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
+    const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
             return;
         }
@@ -2000,7 +2000,11 @@
 
         const messageEl = feedback.querySelector('.teqcidb-form-message');
         if (messageEl) {
-            messageEl.textContent = message || '';
+            if (options.allowHtml) {
+                messageEl.innerHTML = message || '';
+            } else {
+                messageEl.textContent = message || '';
+            }
         }
 
         feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
@@ -2014,6 +2018,51 @@
 
         const normalized = payload.charAt(0) === '?' ? payload.substring(1) : payload;
         return new URLSearchParams(normalized);
+    };
+
+    const escapeHtml = (value) => {
+        const html = value === null || value === undefined ? '' : String(value);
+
+        return html
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const formatRegistrationDate = (date = new Date()) => {
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        const day = `${date.getDate()}`.padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${month}/${day}/${year}`;
+    };
+
+    const buildRegistrationSuccessMessage = (checkout, response = {}) => {
+        const className = escapeHtml(checkout && checkout.className ? checkout.className : 'N/A');
+        const registrationDate = escapeHtml(formatRegistrationDate());
+        const paymentAmount = escapeHtml(response.totalAmount || 'N/A');
+        const transactionId = escapeHtml(response.transId || 'N/A');
+        const invoiceNumber = escapeHtml(response.orderInvoiceNumber || 'N/A');
+
+        return `
+            <p>
+                Your class registration &amp; payment are successful! Below are your details.
+                <a href="#" data-teqcidb-receipt-download-link>Click here to download and save a copy of this transaction.</a>
+            </p>
+            <p class="teqcidb-registration-payment-success-details">
+                Class Name: ${className}<br>
+                Date of Registration &amp; Payment: ${registrationDate}<br>
+                Payment Amount: ${paymentAmount}<br>
+                Transaction ID: ${transactionId}<br>
+                Invoice Number: ${invoiceNumber}
+            </p>
+            <p class="teqcidb-registration-payment-success-next-title">What's Next?</p>
+            <p>
+                Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you <strong><em>still</em></strong> don't see an email, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a>, or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for more info.
+            </p>
+        `;
     };
 
     const hideRegistrationPaymentIframe = (paymentWrapper, paymentIframe) => {
@@ -2036,11 +2085,11 @@
 
                 window.setTimeout(() => {
                     classPanel.style.maxHeight = '';
-                }, 380);
+                }, 840);
             }
         };
 
-        window.setTimeout(completeHide, 340);
+        window.setTimeout(completeHide, 760);
     };
 
 
@@ -2066,33 +2115,15 @@
             const action = params.get('action') || '';
 
             const responseRaw = params.get('response') || '';
-            const response = responseRaw ? JSON.parse(responseRaw) : null;
+            let response = {};
 
-            console.log('params:', params)
-            console.log('action:', action);
-            console.log('response:', response);
-            console.log(response.accountNumber);
-            console.log(response.accountType);
-            console.log(response.authorization);
-            console.log(response.billTo);
-            console.log(response.customerID); // This has come back and 'undefined'.
-            console.log(response.dateTime);
-            console.log(response.orderDescription);
-            console.log(response.orderInvoiceNumber);
-            console.log(response.responseCode);
-            console.log(response.totalAmount);
-            console.log(response.transId);
-            console.log(response.billTo.phoneNumber);
-            console.log(response.billTo.firstName);
-            console.log(response.billTo.lastName);
-            console.log(response.billTo.address);
-            console.log(response.billTo.city);
-            console.log(response.billTo.state);
-            console.log(response.billTo.zip);
-            console.log(response.billTo.country);
-
-
-
+            if (responseRaw) {
+                try {
+                    response = JSON.parse(responseRaw) || {};
+                } catch (error) {
+                    response = {};
+                }
+            }
 
             if (!action) {
                 return;
@@ -2122,14 +2153,12 @@
             }
 
             if (action === 'transactResponse') {
-                const responseCode = response.responseCode;
+                const responseCode = response && response.responseCode ? String(response.responseCode) : "";
                 const responseReasonText = (params.get('responseReasonText') || '').trim();
 
                 if (responseCode === '1') {
-                    const successMessage =
-                        settings.messagePaymentSuccess ||
-                        'Payment completed successfully.';
-                    setPaymentFeedback(paymentWrapper, successMessage, false);
+                    const successMessage = buildRegistrationSuccessMessage(activeRegistrationCheckout, response);
+                    setPaymentFeedback(paymentWrapper, successMessage, false, { allowHtml: true });
                     hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
                 } else {
                     const failedMessage = responseReasonText ||
@@ -2212,6 +2241,15 @@
             section.querySelectorAll('[data-teqcidb-registration-pay]')
         );
 
+        section.addEventListener('click', (event) => {
+            const receiptLink = event.target.closest('[data-teqcidb-receipt-download-link]');
+            if (!receiptLink) {
+                return;
+            }
+
+            event.preventDefault();
+        });
+
         paymentButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const hasCredentials = section.dataset.authorizenetHasCredentials === 'yes';
@@ -2226,6 +2264,11 @@
                 const paymentIframe = paymentWrapper
                     ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
                     : null;
+                const classPanel = button.closest('.teqcidb-registration-class-panel');
+                const classTitleElement = classPanel
+                    ? classPanel.querySelector('.teqcidb-registration-class-section-title')
+                    : null;
+                const className = classTitleElement ? classTitleElement.textContent.trim() : '';
 
                 if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
                     setPaymentFeedback(
@@ -2266,6 +2309,7 @@
                         paymentIframe.classList.add('is-visible');
                         activeRegistrationCheckout = {
                             classId,
+                            className,
                             paymentWrapper,
                             paymentIframe,
                         };
