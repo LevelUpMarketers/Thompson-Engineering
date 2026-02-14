@@ -247,3 +247,4 @@
 244. 2026-02-13: Centered the registration checkout action by updating `.teqcidb-registration-pay-button` to a block element with auto left/right margins while keeping the shared 220px minimum width.
 245. 2026-02-14: Added a second registration class action button, "Print & Email Your Registration Form," to open the shared QCI PDF in a new tab and updated registration payment action layout styling so the two buttons render side by side.
 246. 2026-02-14: Replaced the registration form PDF action link with a button-style control that opens the PDF in a new tab so both class actions render as matching dashboard buttons.
+247. 2026-02-14: Added a registration payment policy/instructions panel above each class action button row, including linked phone/email contact details and centered mailing address styling for form-based registration guidance.

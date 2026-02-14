@@ -977,6 +977,49 @@
     padding-top: 24px;
 }
 
+.teqcidb-registration-payment-policy {
+    background: #f3f3f3;
+    border-radius: 10px;
+    color: #3f556d;
+    font-size: 2.05rem;
+    line-height: 1.55;
+    margin-bottom: 18px;
+    padding: 24px;
+}
+
+.teqcidb-registration-payment-policy p {
+    margin: 0 0 22px;
+}
+
+.teqcidb-registration-payment-policy p:last-child {
+    margin-bottom: 0;
+}
+
+.teqcidb-registration-payment-policy-intro {
+    color: #ef3e2f;
+    font-weight: 700;
+}
+
+.teqcidb-registration-payment-policy strong {
+    color: #3b4f65;
+    font-weight: 700;
+}
+
+.teqcidb-registration-payment-policy a {
+    color: #ef8b2c;
+    text-decoration: none;
+}
+
+.teqcidb-registration-payment-policy a:hover,
+.teqcidb-registration-payment-policy a:focus {
+    text-decoration: underline;
+}
+
+.teqcidb-registration-payment-policy-address {
+    font-weight: 700;
+    text-align: center;
+}
+
 .teqcidb-registration-payment-actions {
     display: flex;
     gap: 12px;
@@ -1036,6 +1079,11 @@
 
     .teqcidb-registration-class-details {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .teqcidb-registration-payment-policy {
+        font-size: 1.8rem;
+        padding: 20px;
     }
 }
 
