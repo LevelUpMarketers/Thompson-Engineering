@@ -561,6 +561,7 @@ class TEQCIDB_Shortcode_Student_Registration {
                     'ajaxAction'      => 'teqcidb_save_student',
                     'ajaxLoginAction' => 'teqcidb_login_user',
                     'ajaxTokenAction' => 'teqcidb_get_accept_hosted_token',
+                    'ajaxRecordPaymentAction' => 'teqcidb_record_registration_payment',
                     'messageRequired' => esc_html_x( 'Please complete all required fields.', 'Create account form validation message', 'teqcidb' ),
                     'messageEmail'    => esc_html_x( 'The email addresses do not match.', 'Create account form validation message', 'teqcidb' ),
                     'messagePassword' => esc_html_x( 'The passwords do not match.', 'Create account form validation message', 'teqcidb' ),

@@ -2060,6 +2060,29 @@
         invoiceNumber: response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : 'N/A',
     });
 
+    const recordRegistrationPaymentHistory = (checkout, response = {}, receiptData = {}) => {
+        if (!settings.ajaxUrl || !settings.ajaxNonce) {
+            return Promise.resolve();
+        }
+
+        const formData = new FormData();
+        formData.append('action', settings.ajaxRecordPaymentAction || 'teqcidb_record_registration_payment');
+        formData.append('_ajax_nonce', settings.ajaxNonce || '');
+        formData.append('class_id', checkout && checkout.classId ? checkout.classId : '');
+        formData.append('total_paid', receiptData && receiptData.paymentAmount ? receiptData.paymentAmount : '');
+        formData.append('trans_id', response && response.transId ? String(response.transId) : '');
+        formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
+        formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
+
+        return fetch(settings.ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData,
+        })
+            .then((responseData) => responseData.json())
+            .catch(() => null);
+    };
+
     const renderRegistrationReceiptPdf = async (receiptData) => {
         const jspdf = window.jspdf || {};
         const { jsPDF } = jspdf;
@@ -2312,6 +2335,7 @@
                     setPaymentFeedback(paymentWrapper, successMessage, false, { allowHtml: true });
                     scrollRegistrationFeedbackIntoView(paymentWrapper);
                     hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
+                    recordRegistrationPaymentHistory(activeRegistrationCheckout, response, receiptData);
                 } else {
                     const failedMessage = responseReasonText ||
                         settings.messagePaymentFailed ||
