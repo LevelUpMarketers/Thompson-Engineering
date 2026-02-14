@@ -245,4 +245,4 @@
 242. 2026-02-12: Moved the Authorize.Net Accept Hosted communicator target from admin-ajax to the public `/teqcidb-authorize-communicator/` route with rewrite/query-var handling to reduce iframe CSP conflicts on hosts that lock down `/wp-admin/` responses.
 243. 2026-02-13: Replaced the Authorize.Net service file with the provided version, including hosted return URL settings (`/register-for-a-class-qci/`) in hostedPaymentReturnOptions for Accept Hosted token generation.
 244. 2026-02-13: Centered the registration checkout action by updating `.teqcidb-registration-pay-button` to a block element with auto left/right margins while keeping the shared 220px minimum width.
-
+245. 2026-02-14: Added a second registration class action button, "Print & Email Your Registration Form," to open the shared QCI PDF in a new tab and updated registration payment action layout styling so the two buttons render side by side.

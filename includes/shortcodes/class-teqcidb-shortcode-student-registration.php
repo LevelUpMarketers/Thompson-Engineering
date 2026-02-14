@@ -154,14 +154,24 @@ class TEQCIDB_Shortcode_Student_Registration {
                                 </dl>
 
                                 <div class="teqcidb-registration-payment" data-teqcidb-registration-payment="<?php echo esc_attr( $class['class_id'] ); ?>">
-                                    <button
-                                        type="button"
-                                        class="teqcidb-dashboard-button teqcidb-registration-pay-button"
-                                        data-teqcidb-registration-pay
-                                        data-class-id="<?php echo esc_attr( $class['class_id'] ); ?>"
-                                    >
-                                        <?php echo esc_html_x( 'Register & Pay Online', 'Student registration checkout button label', 'teqcidb' ); ?>
-                                    </button>
+                                    <div class="teqcidb-registration-payment-actions">
+                                        <button
+                                            type="button"
+                                            class="teqcidb-dashboard-button teqcidb-registration-pay-button"
+                                            data-teqcidb-registration-pay
+                                            data-class-id="<?php echo esc_attr( $class['class_id'] ); ?>"
+                                        >
+                                            <?php echo esc_html_x( 'Register & Pay Online', 'Student registration checkout button label', 'teqcidb' ); ?>
+                                        </button>
+                                        <a
+                                            class="teqcidb-dashboard-button teqcidb-registration-form-button"
+                                            href="<?php echo esc_url( 'https://training.thompsonengineering.com/wp-content/uploads/2024/07/1-QCI-FORM-2024-NEW.pdf' ); ?>"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            <?php echo esc_html_x( 'Print & Email Your Registration Form', 'Student registration printable form button label', 'teqcidb' ); ?>
+                                        </a>
+                                    </div>
                                     <div class="teqcidb-form-feedback teqcidb-registration-payment-feedback" aria-live="polite" aria-atomic="true">
                                         <span class="spinner is-active" aria-hidden="true"></span>
                                         <span class="teqcidb-form-message"></span>
