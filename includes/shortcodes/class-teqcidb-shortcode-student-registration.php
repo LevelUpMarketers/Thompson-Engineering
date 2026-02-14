@@ -163,14 +163,13 @@ class TEQCIDB_Shortcode_Student_Registration {
                                         >
                                             <?php echo esc_html_x( 'Register & Pay Online', 'Student registration checkout button label', 'teqcidb' ); ?>
                                         </button>
-                                        <a
-                                            class="teqcidb-dashboard-button teqcidb-registration-form-button"
-                                            href="<?php echo esc_url( 'https://training.thompsonengineering.com/wp-content/uploads/2024/07/1-QCI-FORM-2024-NEW.pdf' ); ?>"
-                                            target="_blank"
-                                            rel="noopener"
+                                        <button
+                                            type="button"
+                                            class="teqcidb-dashboard-button teqcidb-registration-pay-button teqcidb-registration-form-button"
+                                            onclick="window.open('<?php echo esc_url( 'https://training.thompsonengineering.com/wp-content/uploads/2024/07/1-QCI-FORM-2024-NEW.pdf' ); ?>', '_blank', 'noopener');"
                                         >
                                             <?php echo esc_html_x( 'Print & Email Your Registration Form', 'Student registration printable form button label', 'teqcidb' ); ?>
-                                        </a>
+                                        </button>
                                     </div>
                                     <div class="teqcidb-form-feedback teqcidb-registration-payment-feedback" aria-live="polite" aria-atomic="true">
                                         <span class="spinner is-active" aria-hidden="true"></span>
