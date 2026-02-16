@@ -1437,6 +1437,12 @@ class TEQCIDB_Ajax {
             'instructors'             => $this->sanitize_items_value( 'instructors' ),
         );
 
+        $class_resources = $this->sanitize_class_resources_value( 'classresources' );
+
+        if ( null !== $class_resources ) {
+            $data['classresources'] = $class_resources;
+        }
+
         $formats = array_fill( 0, count( $data ), '%s' );
 
         if ( $id > 0 ) {
@@ -4216,6 +4222,57 @@ class TEQCIDB_Ajax {
         }
 
         return $this->format_phone_for_response( $value );
+    }
+
+    private function sanitize_class_resources_value( $key ) {
+        $value = $this->get_post_value( $key );
+
+        if ( null === $value ) {
+            return null;
+        }
+
+        if ( ! is_array( $value ) ) {
+            return '';
+        }
+
+        $names = isset( $value['name'] ) && is_array( $value['name'] ) ? $value['name'] : array();
+        $types = isset( $value['type'] ) && is_array( $value['type'] ) ? $value['type'] : array();
+        $urls  = isset( $value['url'] ) && is_array( $value['url'] ) ? $value['url'] : array();
+
+        $max_count = max( count( $names ), count( $types ), count( $urls ) );
+
+        if ( $max_count < 1 ) {
+            return '';
+        }
+
+        $allowed_types = array( 'pdf', 'video', 'external_link' );
+        $resources     = array();
+
+        for ( $index = 0; $index < $max_count; $index++ ) {
+            $name = isset( $names[ $index ] ) ? $this->normalize_plain_text( $names[ $index ] ) : '';
+            $type = isset( $types[ $index ] ) ? sanitize_text_field( $types[ $index ] ) : '';
+            $url  = isset( $urls[ $index ] ) ? esc_url_raw( $urls[ $index ] ) : '';
+
+            if ( ! in_array( $type, $allowed_types, true ) ) {
+                $type = '';
+            }
+
+            if ( '' === $name && '' === $type && '' === $url ) {
+                continue;
+            }
+
+            $resources[] = array(
+                'name' => $name,
+                'type' => $type,
+                'url'  => $url,
+            );
+        }
+
+        if ( empty( $resources ) ) {
+            return '';
+        }
+
+        return wp_json_encode( $resources );
     }
 
     private function sanitize_class_address() {

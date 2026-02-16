@@ -264,3 +264,4 @@
 261. 2026-02-16: Added base teqcidb_classes schema support and admin create/edit field handling for Teams Link and Class URL values so new classes can store virtual meeting and future route URLs.
 262. 2026-02-16: Scoped Class URL entry to edit/manage class forms, made the field readonly with a clickable placeholder label link, and kept URL persistence handling unchanged for future generated routes.
 263. 2026-02-16: Added create-class UI scaffolding for repeatable Class Resources rows (resource name/type/url) with per-row add/remove controls, full-width layout, and tooltip-guided subfields.
+264. 2026-02-16: Added teqcidb_classes schema columns for classresources (JSON longtext storage) and updated_at auto-timestamps, plus class-save sanitization/persistence for create-form resource rows.
