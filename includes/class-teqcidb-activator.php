@@ -145,6 +145,7 @@ class TEQCIDB_Activator {
         dbDelta( $sql_payment_history );
         if ( class_exists( 'TEQCIDB_Ajax' ) ) {
             TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
+            TEQCIDB_Ajax::register_class_page_rewrite();
         }
 
         flush_rewrite_rules();

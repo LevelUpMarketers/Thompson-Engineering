@@ -1929,9 +1929,15 @@ jQuery(document).ready(function($){
                 }));
             }
 
-            if (field.labelLink){
+            var resolvedLabelLink = field.labelLink || '';
+
+            if (fieldName === 'classurl' && stringValue){
+                resolvedLabelLink = String(stringValue);
+            }
+
+            if (resolvedLabelLink){
                 $label.append($('<a/>', {
-                    href: field.labelLink,
+                    href: resolvedLabelLink,
                     target: '_blank',
                     rel: 'noopener noreferrer'
                 }).text(field.label || ''));

@@ -9,6 +9,8 @@ class TEQCIDB_Ajax {
 
     const AUTHORIZENET_COMMUNICATOR_QUERY_VAR = 'teqcidb_authorizenet_communicator';
     const AUTHORIZENET_COMMUNICATOR_PATH      = 'teqcidb-authorize-communicator';
+    const CLASS_PAGE_QUERY_VAR                = 'teqcidb_class_page';
+    const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -37,8 +39,10 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
+        add_action( 'init', array( __CLASS__, 'register_class_page_rewrite' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
         add_action( 'template_redirect', array( $this, 'maybe_render_authorizenet_communicator' ) );
+        add_action( 'template_redirect', array( $this, 'maybe_render_class_page' ) );
         add_action( 'wp_ajax_nopriv_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
         add_action( 'wp_ajax_teqcidb_authorizenet_iframe_communicator', array( $this, 'authorizenet_iframe_communicator' ) );
     }
@@ -57,6 +61,18 @@ class TEQCIDB_Ajax {
     }
 
     /**
+     * Register rewrite support for lightweight class pages.
+     */
+    public static function register_class_page_rewrite() {
+        add_rewrite_tag( '%' . self::CLASS_PAGE_QUERY_VAR . '%', '([^&]+)' );
+        add_rewrite_rule(
+            '^' . self::CLASS_PAGE_PATH_PREFIX . '/([^/]+)/?$',
+            'index.php?' . self::CLASS_PAGE_QUERY_VAR . '=$matches[1]',
+            'top'
+        );
+    }
+
+    /**
      * Register custom query vars.
      *
      * @param array<int, string> $vars Existing vars.
@@ -65,6 +81,7 @@ class TEQCIDB_Ajax {
      */
     public function register_query_vars( $vars ) {
         $vars[] = self::AUTHORIZENET_COMMUNICATOR_QUERY_VAR;
+        $vars[] = self::CLASS_PAGE_QUERY_VAR;
 
         return $vars;
     }
@@ -87,6 +104,60 @@ class TEQCIDB_Ajax {
         }
 
         $this->authorizenet_iframe_communicator();
+    }
+
+    /**
+     * Output lightweight class page markup when the class route is requested.
+     */
+    public function maybe_render_class_page() {
+        $route_token = get_query_var( self::CLASS_PAGE_QUERY_VAR, '' );
+
+        if ( '' === $route_token ) {
+            return;
+        }
+
+        $route_token = sanitize_title( $route_token );
+
+        if ( '' === $route_token ) {
+            status_header( 404 );
+            nocache_headers();
+            exit;
+        }
+
+        global $wpdb;
+
+        $table     = $wpdb->prefix . 'teqcidb_classes';
+        $class_url = $this->generate_class_page_relative_url( $route_token );
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT classname, uniqueclassid FROM $table WHERE classurl = %s LIMIT 1",
+                $class_url
+            ),
+            ARRAY_A
+        );
+
+        if ( empty( $class_row ) ) {
+            status_header( 404 );
+            nocache_headers();
+            exit;
+        }
+
+        status_header( 200 );
+        nocache_headers();
+        header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
+
+        $class_name = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+
+        echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title></head><body>';
+        echo '<main><h1>' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
+
+        if ( '' !== $class_name ) {
+            echo '<p>' . esc_html( $class_name ) . '</p>';
+        }
+
+        echo '<p>' . esc_html__( 'This lightweight class route is reserved for upcoming class quiz/resources content.', 'teqcidb' ) . '</p>';
+        echo '</main></body></html>';
+        exit;
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
@@ -1403,18 +1474,33 @@ class TEQCIDB_Ajax {
         }
 
         $existing_unique_id = '';
+        $existing_class_url = '';
 
         if ( $id > 0 ) {
-            $existing_unique_id = (string) $wpdb->get_var(
+            $existing_class = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT uniqueclassid FROM $table WHERE id = %d",
+                    "SELECT uniqueclassid, classurl FROM $table WHERE id = %d",
                     $id
-                )
+                ),
+                ARRAY_A
             );
+
+            if ( is_array( $existing_class ) ) {
+                $existing_unique_id = isset( $existing_class['uniqueclassid'] ) ? (string) $existing_class['uniqueclassid'] : '';
+                $existing_class_url = isset( $existing_class['classurl'] ) ? (string) $existing_class['classurl'] : '';
+            }
+        }
+
+        $unique_class_id = '' !== $existing_unique_id ? $existing_unique_id : $this->generate_unique_class_id( $class_name );
+
+        if ( '' !== $existing_class_url ) {
+            $class_url = $existing_class_url;
+        } else {
+            $class_url = $this->generate_class_page_relative_url( $this->get_class_page_route_segment( $unique_class_id ) );
         }
 
         $data = array(
-            'uniqueclassid'           => '' !== $existing_unique_id ? $existing_unique_id : $this->generate_unique_class_id( $class_name ),
+            'uniqueclassid'           => $unique_class_id,
             'classname'               => $class_name,
             'classformat'             => $this->sanitize_select_value( 'classformat', $format_options ),
             'classtype'               => $this->sanitize_select_value( 'classtype', $type_options ),
@@ -1426,7 +1512,7 @@ class TEQCIDB_Ajax {
             'classcost'               => $this->sanitize_decimal_value( 'classcost' ),
             'classdescription'        => $this->sanitize_textarea_value( 'classdescription' ),
             'teamslink'               => $this->sanitize_url_value( 'teamslink' ),
-            'classurl'                => $this->sanitize_url_value( 'classurl' ),
+            'classurl'                => $class_url,
             'classhide'               => $this->sanitize_yes_no_value( 'classhide' ),
             'allallowedcourse'        => $this->sanitize_select_value( 'allallowedcourse', $access_options ),
             'allallowedquiz'          => $this->sanitize_select_value( 'allallowedquiz', $access_options ),
@@ -5027,6 +5113,27 @@ class TEQCIDB_Ajax {
         }
 
         return esc_url_raw( $url );
+    }
+
+
+    private function get_class_page_route_segment( $unique_class_id ) {
+        $segment = sanitize_title( (string) $unique_class_id );
+
+        if ( '' === $segment ) {
+            $segment = strtolower( wp_generate_password( 12, false, false ) );
+        }
+
+        return $segment;
+    }
+
+    private function generate_class_page_relative_url( $route_segment ) {
+        $segment = sanitize_title( (string) $route_segment );
+
+        if ( '' === $segment ) {
+            return '/';
+        }
+
+        return '/' . self::CLASS_PAGE_PATH_PREFIX . '/' . $segment . '/';
     }
 
     private function generate_unique_class_id( $class_name ) {

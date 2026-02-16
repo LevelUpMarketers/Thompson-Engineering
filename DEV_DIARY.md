@@ -266,3 +266,4 @@
 263. 2026-02-16: Added create-class UI scaffolding for repeatable Class Resources rows (resource name/type/url) with per-row add/remove controls, full-width layout, and tooltip-guided subfields.
 264. 2026-02-16: Added teqcidb_classes schema columns for classresources (JSON longtext storage) and updated_at auto-timestamps, plus class-save sanitization/persistence for create-form resource rows.
 265. 2026-02-16: Added class resources UI rendering on Edit & Manage Classes with prefilled rows from saved JSON and full edit/save support for classresources updates.
+266. 2026-02-16: Added lightweight per-class virtual route scaffolding (`/teqcidb-class/{token}/`) with create-time classurl generation/persistence and edit-time class URL label linking to the saved route.
