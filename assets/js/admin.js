@@ -1904,7 +1904,16 @@ jQuery(document).ready(function($){
                 }));
             }
 
-            $label.append(document.createTextNode(field.label || ''));
+            if (field.labelLink){
+                $label.append($('<a/>', {
+                    href: field.labelLink,
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                }).text(field.label || ''));
+            } else {
+                $label.append(document.createTextNode(field.label || ''));
+            }
+
             $wrapper.append($label);
 
             switch (field.type){

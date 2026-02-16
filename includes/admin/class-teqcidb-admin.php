@@ -475,7 +475,7 @@ class TEQCIDB_Admin {
 
     private function normalize_token_group( $group ) {
         if ( ! is_array( $group ) ) {
-            return array(
+            $fields = array(
                 'title'  => '',
                 'tokens' => array(),
             );
@@ -1322,7 +1322,7 @@ class TEQCIDB_Admin {
         );
     }
 
-    private function get_class_fields() {
+    private function get_class_fields( $context = 'all' ) {
         $tooltips = $this->get_class_tooltips();
         $yes_no   = array(
             ''  => __( 'Make a Selection...', 'teqcidb' ),
@@ -1350,7 +1350,7 @@ class TEQCIDB_Admin {
             'blocked'  => __( 'Access Blocked', 'teqcidb' ),
         );
 
-        return array(
+        $fields = array(
             array(
                 'name'    => 'classname',
                 'label'   => __( 'Class Name', 'teqcidb' ),
@@ -1441,10 +1441,12 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['teamslink'],
             ),
             array(
-                'name'    => 'classurl',
-                'label'   => __( 'Class URL', 'teqcidb' ),
-                'type'    => 'url',
-                'tooltip' => $tooltips['classurl'],
+                'name'      => 'classurl',
+                'label'     => __( 'Class URL', 'teqcidb' ),
+                'type'      => 'url',
+                'attrs'     => ' readonly="readonly"',
+                'tooltip'   => $tooltips['classurl'],
+                'label_link'=> '#',
             ),
             array(
                 'name'    => 'classhide',
@@ -1510,6 +1512,19 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['instructors'],
             ),
         );
+
+        if ( 'create' === $context ) {
+            $fields = array_values(
+                array_filter(
+                    $fields,
+                    function( $field ) {
+                        return ! isset( $field['name'] ) || 'classurl' !== $field['name'];
+                    }
+                )
+            );
+        }
+
+        return $fields;
     }
 
     private function prepare_student_fields_for_js() {
@@ -1742,7 +1757,7 @@ class TEQCIDB_Admin {
     }
 
     private function prepare_class_fields_for_js() {
-        $fields   = $this->get_class_fields();
+        $fields   = $this->get_class_fields( 'edit' );
         $prepared = array();
 
         foreach ( $fields as $field ) {
@@ -1764,6 +1779,10 @@ class TEQCIDB_Admin {
 
             if ( isset( $field['autocomplete'] ) ) {
                 $prepared_field['autocomplete'] = $field['autocomplete'];
+            }
+
+            if ( isset( $field['label_link'] ) ) {
+                $prepared_field['labelLink'] = $field['label_link'];
             }
 
             $prepared[] = $prepared_field;
@@ -1962,7 +1981,7 @@ class TEQCIDB_Admin {
     }
 
     private function render_class_create_tab() {
-        $fields = $this->get_class_fields();
+        $fields = $this->get_class_fields( 'create' );
 
         $this->render_entity_form(
             $fields,

@@ -262,3 +262,4 @@
 259. 2026-02-16: Updated admin form field label/tooltip alignment styles so fixed-width class form labels bottom-align with extra label height and right-anchored tooltip icons in each .teqcidb-field wrapper.
 260. 2026-02-16: Added a checkbox-group label override in admin CSS so the new fixed field-label min-height no longer applies to labels inside .teqcidb-checkbox-group.
 261. 2026-02-16: Added base teqcidb_classes schema support and admin create/edit field handling for Teams Link and Class URL values so new classes can store virtual meeting and future route URLs.
+262. 2026-02-16: Scoped Class URL entry to edit/manage class forms, made the field readonly with a clickable placeholder label link, and kept URL persistence handling unchanged for future generated routes.
