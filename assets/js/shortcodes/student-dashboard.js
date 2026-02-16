@@ -1814,6 +1814,7 @@
     initCountdowns();
 
     const walletCardSettings = settings.walletCard || {};
+    const registrationReceiptSettings = settings.registrationReceipt || {};
 
     const loadWalletCardImage = (url) => {
         if (!url) {
@@ -1988,7 +1989,7 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
-    const setPaymentFeedback = (paymentWrapper, message, isLoading) => {
+    const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
             return;
         }
@@ -2000,7 +2001,11 @@
 
         const messageEl = feedback.querySelector('.teqcidb-form-message');
         if (messageEl) {
-            messageEl.textContent = message || '';
+            if (options.allowHtml) {
+                messageEl.innerHTML = message || '';
+            } else {
+                messageEl.textContent = message || '';
+            }
         }
 
         feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
@@ -2014,6 +2019,250 @@
 
         const normalized = payload.charAt(0) === '?' ? payload.substring(1) : payload;
         return new URLSearchParams(normalized);
+    };
+
+    const escapeHtml = (value) => {
+        const html = value === null || value === undefined ? '' : String(value);
+
+        return html
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const formatRegistrationDate = (date = new Date()) => {
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        const day = `${date.getDate()}`.padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${month}/${day}/${year}`;
+    };
+
+    const formatPaymentAmount = (value) => {
+        const raw = value === null || value === undefined ? '' : String(value);
+        const normalized = raw.replace(/[^0-9.\-]/g, '');
+        const amount = parseFloat(normalized);
+
+        if (Number.isFinite(amount)) {
+            return `$${amount.toFixed(2)}`;
+        }
+
+        return 'N/A';
+    };
+
+    const buildRegistrationReceiptData = (checkout, response = {}) => ({
+        className: checkout && checkout.className ? String(checkout.className) : 'N/A',
+        registrationDate: formatRegistrationDate(),
+        paymentAmount: formatPaymentAmount(response && response.totalAmount ? response.totalAmount : ''),
+        transactionId: response && response.transId ? String(response.transId) : 'N/A',
+        invoiceNumber: response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : 'N/A',
+    });
+
+    const recordRegistrationPaymentHistory = (checkout, response = {}, receiptData = {}) => {
+        if (!settings.ajaxUrl || !settings.ajaxNonce) {
+            return Promise.resolve();
+        }
+
+        const formData = new FormData();
+        formData.append('action', settings.ajaxRecordPaymentAction || 'teqcidb_record_registration_payment');
+        formData.append('_ajax_nonce', settings.ajaxNonce || '');
+        formData.append('class_id', checkout && checkout.classId ? checkout.classId : '');
+        formData.append('total_paid', receiptData && receiptData.paymentAmount ? receiptData.paymentAmount : '');
+        formData.append('trans_id', response && response.transId ? String(response.transId) : '');
+        formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
+        formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
+
+        return fetch(settings.ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData,
+        })
+            .then((responseData) => responseData.json())
+            .catch(() => null);
+    };
+
+    const renderRegistrationReceiptPdf = async (receiptData) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const logoData = await loadWalletCardImage(registrationReceiptSettings.logoUrl || '');
+
+        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 54;
+        const contentWidth = pageWidth - margin * 2;
+        let y = margin;
+
+        if (logoData) {
+            const img = doc.getImageProperties(logoData);
+            const logoWidth = 210;
+            const logoHeight = img.width ? (logoWidth * img.height) / img.width : 54;
+            const logoPadding = 16;
+            const logoBoxWidth = logoWidth + logoPadding * 2;
+            const logoBoxHeight = logoHeight + logoPadding * 2;
+            const logoBoxX = (pageWidth - logoBoxWidth) / 2;
+
+            doc.setFillColor(61, 61, 61);
+            doc.rect(logoBoxX, y, logoBoxWidth, logoBoxHeight, 'F');
+            doc.addImage(logoData, img.fileType || 'PNG', logoBoxX + logoPadding, y + logoPadding, logoWidth, logoHeight);
+            y += logoBoxHeight + 38;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(19);
+        doc.text('Registration Payment Receipt', pageWidth / 2, y, { align: 'center' });
+        y += 24;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const intro = doc.splitTextToSize(
+            'Your class registration & payment are successful! Please retain this receipt for your records.',
+            contentWidth
+        );
+        doc.text(intro, margin, y);
+        y += intro.length * 14 + 12;
+
+        doc.setLineWidth(0.8);
+        doc.setDrawColor(207, 207, 207);
+        doc.rect(margin, y, contentWidth, 114);
+
+        y += 20;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('Transaction Details', margin + 12, y);
+        y += 18;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const details = [
+            `Class Name: ${receiptData.className}`,
+            `Date of Registration & Payment: ${receiptData.registrationDate}`,
+            `Payment Amount: ${receiptData.paymentAmount}`,
+            `Transaction ID: ${receiptData.transactionId}`,
+            `Invoice Number: ${receiptData.invoiceNumber}`,
+        ];
+        details.forEach((line) => {
+            doc.text(line, margin + 12, y);
+            y += 16;
+        });
+
+        y += 50;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text("What's Next?", margin, y);
+        y += 18;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const nextSteps = doc.splitTextToSize(
+            "Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you still don't see an email, please contact Ilka Porter at (251) 666-2443, or QCI@thompsonengineering.com for more info.",
+            contentWidth
+        );
+        doc.text(nextSteps, margin, y);
+        y += nextSteps.length * 14 + 20;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Cancellation & Payment Policy', margin, y);
+        y += 14;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        const policyParagraphs = [
+            'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.',
+            'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.',
+            'For more information or clarification, please call (251) 666-2443.',
+        ];
+
+        policyParagraphs.forEach((paragraph) => {
+            const lines = doc.splitTextToSize(paragraph, contentWidth);
+            if (y + lines.length * 12 > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.text(lines, margin, y);
+            y += lines.length * 12 + 8;
+        });
+
+        const fileName = registrationReceiptSettings.downloadFileName || 'qci-registration-receipt.pdf';
+        doc.save(fileName);
+    };
+
+    const buildRegistrationSuccessMessage = (receiptData = {}) => {
+        const className = escapeHtml(receiptData.className || 'N/A');
+        const registrationDate = escapeHtml(receiptData.registrationDate || 'N/A');
+        const paymentAmount = escapeHtml(receiptData.paymentAmount || 'N/A');
+        const transactionId = escapeHtml(receiptData.transactionId || 'N/A');
+        const invoiceNumber = escapeHtml(receiptData.invoiceNumber || 'N/A');
+
+        return `
+            <p>
+                Your class registration &amp; payment are successful! Below are your details.
+                <a href="#" data-teqcidb-receipt-download-link>Click here to download and save a copy of this transaction.</a>
+            </p>
+            <p class="teqcidb-registration-payment-success-details">
+                Class Name: ${className}<br>
+                Date of Registration &amp; Payment: ${registrationDate}<br>
+                Payment Amount: ${paymentAmount}<br>
+                Transaction ID: ${transactionId}<br>
+                Invoice Number: ${invoiceNumber}
+            </p>
+            <p class="teqcidb-registration-payment-success-next-title">What's Next?</p>
+            <p>
+                Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you <strong><em>still</em></strong> don't see an email, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a>, or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for more info.
+            </p>
+        `;
+    };
+
+    const scrollRegistrationFeedbackIntoView = (paymentWrapper) => {
+        if (!paymentWrapper) {
+            return;
+        }
+
+        const feedback = paymentWrapper.querySelector('.teqcidb-registration-payment-feedback');
+
+        if (!feedback) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            const top = feedback.getBoundingClientRect().top + window.pageYOffset - 100;
+            window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
+        }, 140);
+    };
+
+    const hideRegistrationPaymentIframe = (paymentWrapper, paymentIframe) => {
+        if (!paymentWrapper || !paymentIframe || !paymentIframe.classList.contains('is-visible')) {
+            return;
+        }
+
+        const classPanel = paymentWrapper.closest('.teqcidb-registration-class-panel');
+        if (classPanel) {
+            classPanel.style.maxHeight = `${classPanel.scrollHeight}px`;
+        }
+
+        paymentIframe.classList.add('is-fading-out');
+
+        const completeHide = () => {
+            paymentIframe.classList.remove('is-visible', 'is-fading-out');
+
+            if (classPanel) {
+                classPanel.style.maxHeight = `${classPanel.scrollHeight}px`;
+
+                window.setTimeout(() => {
+                    classPanel.style.maxHeight = '';
+                }, 840);
+            }
+        };
+
+        window.setTimeout(completeHide, 760);
     };
 
 
@@ -2039,33 +2288,15 @@
             const action = params.get('action') || '';
 
             const responseRaw = params.get('response') || '';
-            const response = responseRaw ? JSON.parse(responseRaw) : null;
+            let response = {};
 
-            console.log('params:', params)
-            console.log('action:', action);
-            console.log('response:', response);
-            console.log(response.accountNumber);
-            console.log(response.accountType);
-            console.log(response.authorization);
-            console.log(response.billTo);
-            console.log(response.customerID); // This has come back and 'undefined'.
-            console.log(response.dateTime);
-            console.log(response.orderDescription);
-            console.log(response.orderInvoiceNumber);
-            console.log(response.responseCode);
-            console.log(response.totalAmount);
-            console.log(response.transId);
-            console.log(response.billTo.phoneNumber);
-            console.log(response.billTo.firstName);
-            console.log(response.billTo.lastName);
-            console.log(response.billTo.address);
-            console.log(response.billTo.city);
-            console.log(response.billTo.state);
-            console.log(response.billTo.zip);
-            console.log(response.billTo.country);
-
-
-
+            if (responseRaw) {
+                try {
+                    response = JSON.parse(responseRaw) || {};
+                } catch (error) {
+                    response = {};
+                }
+            }
 
             if (!action) {
                 return;
@@ -2095,14 +2326,17 @@
             }
 
             if (action === 'transactResponse') {
-                const responseCode = response.responseCode;
+                const responseCode = response && response.responseCode ? String(response.responseCode) : "";
                 const responseReasonText = (params.get('responseReasonText') || '').trim();
 
                 if (responseCode === '1') {
-                    const successMessage =
-                        settings.messagePaymentSuccess ||
-                        'Payment completed successfully.';
-                    setPaymentFeedback(paymentWrapper, successMessage, false);
+                    const receiptData = buildRegistrationReceiptData(activeRegistrationCheckout, response);
+                    paymentWrapper.dataset.teqcidbReceiptData = JSON.stringify(receiptData);
+                    const successMessage = buildRegistrationSuccessMessage(receiptData);
+                    setPaymentFeedback(paymentWrapper, successMessage, false, { allowHtml: true });
+                    scrollRegistrationFeedbackIntoView(paymentWrapper);
+                    hideRegistrationPaymentIframe(paymentWrapper, paymentIframe);
+                    recordRegistrationPaymentHistory(activeRegistrationCheckout, response, receiptData);
                 } else {
                     const failedMessage = responseReasonText ||
                         settings.messagePaymentFailed ||
@@ -2184,6 +2418,43 @@
             section.querySelectorAll('[data-teqcidb-registration-pay]')
         );
 
+        section.addEventListener('click', (event) => {
+            const receiptLink = event.target.closest('[data-teqcidb-receipt-download-link]');
+            if (!receiptLink) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const paymentWrapper = receiptLink.closest('[data-teqcidb-registration-payment]');
+            const rawReceiptData = paymentWrapper ? paymentWrapper.dataset.teqcidbReceiptData || '' : '';
+
+            if (!rawReceiptData) {
+                return;
+            }
+
+            let receiptData = null;
+
+            try {
+                receiptData = JSON.parse(rawReceiptData);
+            } catch (error) {
+                receiptData = null;
+            }
+
+            if (!receiptData) {
+                return;
+            }
+
+            renderRegistrationReceiptPdf(receiptData).catch(() => {
+                setPaymentFeedback(
+                    paymentWrapper,
+                    registrationReceiptSettings.missingPdfMessage ||
+                        'Unable to generate the transaction receipt right now. Please try again.',
+                    false
+                );
+            });
+        });
+
         paymentButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const hasCredentials = section.dataset.authorizenetHasCredentials === 'yes';
@@ -2198,6 +2469,11 @@
                 const paymentIframe = paymentWrapper
                     ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
                     : null;
+                const classItem = button.closest('.teqcidb-registration-class-item');
+                const classNameElement = classItem
+                    ? classItem.querySelector('.teqcidb-registration-class-name')
+                    : null;
+                const className = classNameElement ? classNameElement.textContent.trim() : '';
 
                 if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
                     setPaymentFeedback(
@@ -2234,9 +2510,11 @@
                         }
 
                         tokenInput.value = payload.data.token;
+                        paymentIframe.classList.remove('is-fading-out');
                         paymentIframe.classList.add('is-visible');
                         activeRegistrationCheckout = {
                             classId,
+                            className,
                             paymentWrapper,
                             paymentIframe,
                         };

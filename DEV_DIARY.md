@@ -245,4 +245,17 @@
 242. 2026-02-12: Moved the Authorize.Net Accept Hosted communicator target from admin-ajax to the public `/teqcidb-authorize-communicator/` route with rewrite/query-var handling to reduce iframe CSP conflicts on hosts that lock down `/wp-admin/` responses.
 243. 2026-02-13: Replaced the Authorize.Net service file with the provided version, including hosted return URL settings (`/register-for-a-class-qci/`) in hostedPaymentReturnOptions for Accept Hosted token generation.
 244. 2026-02-13: Centered the registration checkout action by updating `.teqcidb-registration-pay-button` to a block element with auto left/right margins while keeping the shared 220px minimum width.
-
+245. 2026-02-14: Added a second registration class action button, "Print & Email Your Registration Form," to open the shared QCI PDF in a new tab and updated registration payment action layout styling so the two buttons render side by side.
+246. 2026-02-14: Replaced the registration form PDF action link with a button-style control that opens the PDF in a new tab so both class actions render as matching dashboard buttons.
+247. 2026-02-14: Added a registration payment policy/instructions panel above each class action button row, including linked phone/email contact details and centered mailing address styling for form-based registration guidance.
+248. 2026-02-14: Reduced registration payment policy text to 16px for readability and increased the embedded Authorize.Net registration iframe height to 920px so hosted checkout content remains fully visible after the new policy panel was added.
+249. 2026-02-14: Centered registration payment feedback text and added successful-checkout UI transitions that fade out the visible payment iframe while animating each class panel height back after payment completion.
+250. 2026-02-14: Slowed registration payment success animations, expanded success feedback with transaction detail/next-steps messaging and placeholder receipt link UI, and switched Authorize.Net invoice-number generation to per-transaction unique values.
+251. 2026-02-14: Implemented student registration receipt PDF downloads from payment success messaging with Thompson Engineering branding, transaction details, next-steps copy, and policy text in a smaller footer section.
+252. 2026-02-14: Corrected registration success/receipt class naming and currency formatting, added scroll-to-success feedback behavior, added top margin for registration form feedback messages, and enhanced receipt logo/header spacing with a dark branded background panel.
+253. 2026-02-14: Increased top spacing between the branded receipt logo block and the "Registration Payment Receipt" heading for improved visual separation in generated registration PDFs.
+254. 2026-02-14: Added successful registration payment-history logging via AJAX into teqcidb_paymenthistory (including invoice number + Eastern-time transaction timestamps) and added activation/runtime schema support for the new invoicenumber column.
+255. 2026-02-14: Adjusted successful-payment auto-scroll to stop 100px higher so registration success feedback remains visible below sticky site headers/menus.
+256. 2026-02-14: Increased registration action button minimum widths to 280px for both online payment and printable form buttons to keep the paired controls visually consistent.
+257. 2026-02-14: Added successful registration payment inserts into teqcidb_studenthistory with Yes/Upcoming/Paid in Full defaults, class linkage, amount paid, enrollment date, and registered-by metadata.
+258. 2026-02-14: Fixed successful-payment studenthistory enrollmentdate persistence by hardening Eastern-time date fallback logic so invalid/empty gateway datetimes can no longer insert as 0000-00-00.

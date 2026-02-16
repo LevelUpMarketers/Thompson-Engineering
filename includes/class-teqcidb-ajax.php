@@ -35,6 +35,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
         add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
+        add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
         add_action( 'template_redirect', array( $this, 'maybe_render_authorizenet_communicator' ) );
@@ -162,16 +163,22 @@ class TEQCIDB_Ajax {
 
         $current_user = wp_get_current_user();
 
+        $class_fragment  = strtoupper( substr( base_convert( (string) $class_id, 10, 36 ), -3 ) );
+        $user_fragment   = strtoupper( substr( base_convert( (string) get_current_user_id(), 10, 36 ), -3 ) );
+        $time_fragment   = strtoupper( base_convert( (string) time(), 10, 36 ) );
+        $random_fragment = strtoupper( wp_generate_password( 4, false, false ) );
+        $invoice_number  = substr( 'TQ' . $class_fragment . $user_fragment . $time_fragment . $random_fragment, 0, 20 );
+
         $service = new TEQCIDB_AuthorizeNet_Service();
         $token   = $service->create_accept_hosted_token(
             array(
-                'amount'        => $amount,
-                'invoice_number' => sprintf( 'TEQCIDB-%d-%d', $class_id, get_current_user_id() ),
-                'description'   => isset( $row['classname'] ) ? (string) $row['classname'] : '',
-                'first_name'    => $current_user instanceof WP_User ? (string) $current_user->first_name : '',
-                'last_name'     => $current_user instanceof WP_User ? (string) $current_user->last_name : '',
-                'email'         => $current_user instanceof WP_User ? (string) $current_user->user_email : '',
-                'customer_id'   => (string) get_current_user_id(),
+                'amount'         => $amount,
+                'invoice_number' => $invoice_number,
+                'description'    => isset( $row['classname'] ) ? (string) $row['classname'] : '',
+                'first_name'     => $current_user instanceof WP_User ? (string) $current_user->first_name : '',
+                'last_name'      => $current_user instanceof WP_User ? (string) $current_user->last_name : '',
+                'email'          => $current_user instanceof WP_User ? (string) $current_user->user_email : '',
+                'customer_id'    => (string) get_current_user_id(),
             )
         );
 
@@ -188,6 +195,290 @@ class TEQCIDB_Ajax {
                 'token'      => isset( $token['token'] ) ? (string) $token['token'] : '',
                 'postUrl'    => isset( $token['post_url'] ) ? esc_url_raw( $token['post_url'] ) : '',
                 'classId'    => $class_id,
+            )
+        );
+    }
+
+
+    /**
+     * Ensure the payment history table exists and contains expected columns.
+     */
+    private function ensure_payment_history_table_schema() {
+        global $wpdb;
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        $table_name      = $wpdb->prefix . 'teqcidb_paymenthistory';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE $table_name (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            wpuserid bigint(20) unsigned DEFAULT NULL,
+            uniquestudentid varchar(255) NOT NULL DEFAULT '',
+            email varchar(191) NOT NULL DEFAULT '',
+            uniqueclassid varchar(255) NOT NULL DEFAULT '',
+            totalpaid decimal(10,2) DEFAULT NULL,
+            transid varchar(100) NOT NULL DEFAULT '',
+            transtime varchar(80) NOT NULL DEFAULT '',
+            multiplestudents longtext,
+            invoicenumber varchar(50) NOT NULL DEFAULT '',
+            PRIMARY KEY  (id),
+            KEY wpuserid (wpuserid),
+            KEY uniquestudentid (uniquestudentid),
+            KEY uniqueclassid (uniqueclassid),
+            KEY transid (transid),
+            KEY invoicenumber (invoicenumber)
+        ) $charset_collate;";
+
+        dbDelta( $sql );
+    }
+
+    /**
+     * Format payment transaction time in U.S. Eastern time.
+     *
+     * @param string $gateway_datetime_raw Raw gateway datetime value.
+     *
+     * @return string
+     */
+    private function format_payment_history_time( $gateway_datetime_raw ) {
+        $timezone = new DateTimeZone( 'America/New_York' );
+
+        if ( is_string( $gateway_datetime_raw ) && '' !== trim( $gateway_datetime_raw ) ) {
+            try {
+                $date = new DateTimeImmutable( trim( $gateway_datetime_raw ), new DateTimeZone( 'UTC' ) );
+                $date = $date->setTimezone( $timezone );
+            } catch ( Exception $exception ) {
+                $date = new DateTimeImmutable( 'now', $timezone );
+            }
+        } else {
+            $date = new DateTimeImmutable( 'now', $timezone );
+        }
+
+        $day = (int) $date->format( 'j' );
+
+        if ( $day >= 11 && $day <= 13 ) {
+            $suffix = 'th';
+        } else {
+            switch ( $day % 10 ) {
+                case 1:
+                    $suffix = 'st';
+                    break;
+                case 2:
+                    $suffix = 'nd';
+                    break;
+                case 3:
+                    $suffix = 'rd';
+                    break;
+                default:
+                    $suffix = 'th';
+                    break;
+            }
+        }
+
+        $month = strtolower( $date->format( 'M.' ) );
+
+        return sprintf(
+            '%1$s %2$d%3$s, %4$s %5$s',
+            $month,
+            $day,
+            $suffix,
+            $date->format( 'Y' ),
+            $date->format( 'g:i:s a' )
+        );
+    }
+
+    /**
+     * Record a successful registration payment in teqcidb_paymenthistory.
+     */
+    public function record_registration_payment() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Please log in before saving payment history.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->ensure_payment_history_table_schema();
+
+        $user_id        = get_current_user_id();
+        $class_id       = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+        $total_paid_raw = isset( $_POST['total_paid'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['total_paid'] ) ) : '';
+        $trans_id       = isset( $_POST['trans_id'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['trans_id'] ) ) : '';
+        $invoice_number = isset( $_POST['invoice_number'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['invoice_number'] ) ) : '';
+        $gateway_time   = isset( $_POST['gateway_datetime'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['gateway_datetime'] ) ) : '';
+        $multiple_raw   = isset( $_POST['multiple_students'] ) ? wp_unslash( (string) $_POST['multiple_students'] ) : '';
+
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table  = $wpdb->prefix . 'teqcidb_classes';
+        $history_table  = $wpdb->prefix . 'teqcidb_paymenthistory';
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniquestudentid, is_a_representative, email FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        $uniquestudentid   = is_array( $student_row ) && ! empty( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '';
+        $is_representative = is_array( $student_row ) && ! empty( $student_row['is_a_representative'] );
+        $email             = is_array( $student_row ) && ! empty( $student_row['email'] ) ? sanitize_email( (string) $student_row['email'] ) : '';
+
+        if ( '' === $email ) {
+            $current_user = wp_get_current_user();
+            $email        = $current_user instanceof WP_User ? sanitize_email( (string) $current_user->user_email ) : '';
+        }
+
+        $unique_class_id = '';
+        $class_row       = null;
+
+        if ( $class_id > 0 ) {
+            $class_row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                    $class_id
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $class_row ) && ! empty( $class_row['uniqueclassid'] ) ) {
+                $unique_class_id = sanitize_text_field( (string) $class_row['uniqueclassid'] );
+            }
+        }
+
+        $class_name = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+
+        $amount_numeric = (float) preg_replace( '/[^0-9.\-]/', '', $total_paid_raw );
+        $total_paid     = number_format( $amount_numeric, 2, '.', '' );
+
+        $multiple_students = '';
+
+        if ( $is_representative && '' !== $multiple_raw ) {
+            $decoded = json_decode( $multiple_raw, true );
+
+            if ( is_array( $decoded ) ) {
+                $normalized = array();
+
+                foreach ( $decoded as $entry ) {
+                    if ( ! is_array( $entry ) ) {
+                        continue;
+                    }
+
+                    $normalized[] = array(
+                        'wpid'            => isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0,
+                        'uniquestudentid' => isset( $entry['uniquestudentid'] ) ? sanitize_text_field( (string) $entry['uniquestudentid'] ) : '',
+                    );
+                }
+
+                if ( ! empty( $normalized ) ) {
+                    $multiple_students = wp_json_encode( $normalized );
+                }
+            }
+        }
+
+        $inserted = $wpdb->insert(
+            $history_table,
+            array(
+                'wpuserid'        => $user_id,
+                'uniquestudentid' => $uniquestudentid,
+                'email'           => $email,
+                'uniqueclassid'   => $unique_class_id,
+                'totalpaid'       => $total_paid,
+                'transid'         => $trans_id,
+                'transtime'       => $this->format_payment_history_time( $gateway_time ),
+                'multiplestudents' => $multiple_students,
+                'invoicenumber'   => $invoice_number,
+            ),
+            array(
+                '%d',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+            )
+        );
+
+        if ( false === $inserted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to store payment history right now.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $payment_history_id = (int) $wpdb->insert_id;
+
+        $eastern_timezone = new DateTimeZone( 'America/New_York' );
+        $enrollment_date  = '';
+
+        if ( '' !== $gateway_time ) {
+            try {
+                $gateway_datetime = new DateTimeImmutable( trim( $gateway_time ), new DateTimeZone( 'UTC' ) );
+                $enrollment_date  = $gateway_datetime->setTimezone( $eastern_timezone )->format( 'Y-m-d' );
+            } catch ( Exception $exception ) {
+                $enrollment_date = '';
+            }
+        }
+
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $enrollment_date ) ) {
+            $enrollment_date = ( new DateTimeImmutable( 'now', $eastern_timezone ) )->format( 'Y-m-d' );
+        }
+
+        $student_history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+
+        $student_history_inserted = $wpdb->insert(
+            $student_history_table,
+            array(
+                'uniquestudentid'  => $uniquestudentid,
+                'wpuserid'         => $user_id,
+                'classname'        => $class_name,
+                'uniqueclassid'    => $unique_class_id,
+                'registered'       => 'Yes',
+                'attended'         => 'Upcoming',
+                'outcome'          => 'Upcoming',
+                'paymentstatus'    => 'Paid in Full',
+                'amountpaid'       => $total_paid,
+                'enrollmentdate'   => $enrollment_date,
+                'registeredby'     => $user_id,
+                'courseinprogress' => 'no',
+                'quizinprogress'   => 'no',
+            ),
+            array(
+                '%s',
+                '%d',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%d',
+                '%s',
+                '%s',
+            )
+        );
+
+        if ( false === $student_history_inserted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Payment was captured, but student history could not be saved.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'id' => $payment_history_id,
             )
         );
     }
