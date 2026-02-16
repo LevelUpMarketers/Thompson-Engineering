@@ -898,6 +898,10 @@
     max-width: 90%;
 }
 
+.teqcidb-checkbox-group label {
+    min-height: initial;
+}
+
 .teqcidb-tooltip-icon {
     font-family: dashicons;
     margin-right: 4px;
