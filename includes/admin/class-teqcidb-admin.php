@@ -1000,6 +1000,8 @@ class TEQCIDB_Admin {
             'classendtime'              => __( 'Local end time for the session.', 'teqcidb' ),
             'classcost'                 => __( 'Tuition or registration fee for the full class.', 'teqcidb' ),
             'classdescription'          => __( 'Agenda, prerequisites, or any notes students should know.', 'teqcidb' ),
+            'teamslink'                 => __( 'Microsoft Teams meeting URL students should use for this class.', 'teqcidb' ),
+            'classurl'                  => __( 'Virtual class page URL reserved for this class record.', 'teqcidb' ),
             'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
             'allallowedcourse'          => __( 'Whether all enrolled students can access the course content by default.', 'teqcidb' ),
             'allallowedquiz'            => __( 'Whether all enrolled students can access the quiz content by default.', 'teqcidb' ),
@@ -1431,6 +1433,18 @@ class TEQCIDB_Admin {
                 'type'    => 'number',
                 'attrs'   => ' min="0" step="0.01"',
                 'tooltip' => $tooltips['classcost'],
+            ),
+            array(
+                'name'    => 'teamslink',
+                'label'   => __( 'Teams Link', 'teqcidb' ),
+                'type'    => 'url',
+                'tooltip' => $tooltips['teamslink'],
+            ),
+            array(
+                'name'    => 'classurl',
+                'label'   => __( 'Class URL', 'teqcidb' ),
+                'type'    => 'url',
+                'tooltip' => $tooltips['classurl'],
             ),
             array(
                 'name'    => 'classhide',

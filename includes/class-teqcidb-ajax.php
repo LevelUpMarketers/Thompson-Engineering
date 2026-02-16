@@ -1425,6 +1425,8 @@ class TEQCIDB_Ajax {
             'classendtime'            => $this->sanitize_time_value( 'classendtime' ),
             'classcost'               => $this->sanitize_decimal_value( 'classcost' ),
             'classdescription'        => $this->sanitize_textarea_value( 'classdescription' ),
+            'teamslink'               => $this->sanitize_url_value( 'teamslink' ),
+            'classurl'                => $this->sanitize_url_value( 'classurl' ),
             'classhide'               => $this->sanitize_yes_no_value( 'classhide' ),
             'allallowedcourse'        => $this->sanitize_select_value( 'allallowedcourse', $access_options ),
             'allallowedquiz'          => $this->sanitize_select_value( 'allallowedquiz', $access_options ),

@@ -80,6 +80,8 @@ class TEQCIDB_Activator {
             classendtime time DEFAULT NULL,
             classcost decimal(10,2) DEFAULT NULL,
             classdescription longtext,
+            teamslink varchar(2048) NOT NULL DEFAULT '',
+            classurl varchar(2048) NOT NULL DEFAULT '',
             classhide tinyint(1) NOT NULL DEFAULT 0,
             allallowedcourse varchar(20) DEFAULT '',
             allallowedquiz varchar(20) DEFAULT '',
