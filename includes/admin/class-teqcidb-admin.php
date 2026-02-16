@@ -1009,6 +1009,9 @@ class TEQCIDB_Admin {
             'quizstudentsallowed'       => __( 'Specific students who should be allowed to access the quiz even if access is blocked globally.', 'teqcidb' ),
             'coursestudentsrestricted'  => __( 'Students who should be blocked from this course even when course access is generally allowed.', 'teqcidb' ),
             'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam even when quiz access is generally allowed.', 'teqcidb' ),
+            'resource_name'             => __( 'The name of this class resource item.', 'teqcidb' ),
+            'resource_type'             => __( 'The type of resource, such as PDF, video, or external link.', 'teqcidb' ),
+            'resource_url'              => __( 'Direct URL associated with this resource item.', 'teqcidb' ),
         );
     }
 
@@ -1511,7 +1514,30 @@ class TEQCIDB_Admin {
                 'type'    => 'items',
                 'tooltip' => $tooltips['instructors'],
             ),
+            array(
+                'name'       => 'classresources',
+                'label'      => __( 'Class Resources', 'teqcidb' ),
+                'type'       => 'resource_rows',
+                'tooltip'    => __( 'Resource rows for this class, including name, type, and URL.', 'teqcidb' ),
+                'full_width' => true,
+                'resource_tooltips' => array(
+                    'name' => $tooltips['resource_name'],
+                    'type' => $tooltips['resource_type'],
+                    'url'  => $tooltips['resource_url'],
+                ),
+            ),
         );
+
+        if ( 'create' !== $context ) {
+            $fields = array_values(
+                array_filter(
+                    $fields,
+                    function( $field ) {
+                        return ! isset( $field['name'] ) || 'classresources' !== $field['name'];
+                    }
+                )
+            );
+        }
 
         if ( 'create' === $context ) {
             $fields = array_values(
@@ -1941,6 +1967,50 @@ class TEQCIDB_Admin {
                     }
 
                     echo '<button type="button"' . $add_button_attrs . '>' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
+                    break;
+                case 'resource_rows':
+                    $resource_tooltips = isset( $field['resource_tooltips'] ) && is_array( $field['resource_tooltips'] ) ? $field['resource_tooltips'] : array();
+                    $resource_types = array(
+                        ''              => __( 'Make a Selection...', 'teqcidb' ),
+                        'pdf'           => __( 'PDF', 'teqcidb' ),
+                        'video'         => __( 'Video', 'teqcidb' ),
+                        'external_link' => __( 'External Link', 'teqcidb' ),
+                    );
+
+                    echo '<div class="teqcidb-resource-rows" data-resource-field="' . esc_attr( $field['name'] ) . '">';
+                    echo '<div class="teqcidb-resource-row">';
+                    echo '<div class="teqcidb-resource-row__fields">';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['name'] ) ? $resource_tooltips['name'] : '' ) . '"></span>' . esc_html__( 'Resource Name', 'teqcidb' ) . '</label>';
+                    echo '<input type="text" name="' . esc_attr( $field['name'] ) . '[name][]" class="regular-text teqcidb-resource-name" />';
+                    echo '</div>';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['type'] ) ? $resource_tooltips['type'] : '' ) . '"></span>' . esc_html__( 'Resource Type', 'teqcidb' ) . '</label>';
+                    echo '<select name="' . esc_attr( $field['name'] ) . '[type][]" class="teqcidb-resource-type">';
+                    foreach ( $resource_types as $value => $option_label ) {
+                        if ( '' === $value ) {
+                            echo '<option value="" disabled selected>' . esc_html( $option_label ) . '</option>';
+                        } else {
+                            echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $option_label ) . '</option>';
+                        }
+                    }
+                    echo '</select>';
+                    echo '</div>';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['url'] ) ? $resource_tooltips['url'] : '' ) . '"></span>' . esc_html__( 'Resource URL', 'teqcidb' ) . '</label>';
+                    echo '<input type="url" name="' . esc_attr( $field['name'] ) . '[url][]" class="regular-text teqcidb-resource-url" />';
+                    echo '</div>';
+
+                    echo '</div>';
+                    echo '<div class="teqcidb-resource-row__actions">';
+                    echo '<button type="button" class="button teqcidb-add-resource-row" data-field-name="' . esc_attr( $field['name'] ) . '">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
+                    echo '<button type="button" class="teqcidb-remove-resource-row" aria-label="' . esc_attr__( 'Remove', 'teqcidb' ) . '"><span class="dashicons dashicons-no-alt"></span></button>';
+                    echo '</div>';
+                    echo '</div>';
+                    echo '</div>';
                     break;
                 case 'textarea':
                     $textarea_attrs = isset( $field['attrs'] ) ? ' ' . $field['attrs'] : '';

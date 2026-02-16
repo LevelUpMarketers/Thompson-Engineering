@@ -938,6 +938,47 @@
     opacity: 1;
 }
 
+
+.teqcidb-resource-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.teqcidb-resource-row {
+    border: 1px solid #dcdcde;
+    padding: 14px;
+    background: #fff;
+}
+
+.teqcidb-resource-row__fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.teqcidb-resource-subfield {
+    position: relative;
+}
+
+.teqcidb-resource-subfield label {
+    min-height: auto;
+    max-width: 100%;
+}
+
+.teqcidb-resource-row__actions {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.teqcidb-remove-resource-row {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
 .teqcidb-radio-option {
     font-weight: 400;
     display: flex;

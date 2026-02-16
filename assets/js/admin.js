@@ -2679,6 +2679,55 @@ jQuery(document).ready(function($){
         }
     });
 
+
+    $(document).on('click', '.teqcidb-add-resource-row', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $row = $button.closest('.teqcidb-resource-row');
+        var $rowsContainer = $button.closest('.teqcidb-resource-rows');
+
+        if (!$row.length || !$rowsContainer.length){
+            return;
+        }
+
+        var $newRow = $row.clone();
+        $newRow.find('input').val('');
+        $newRow.find('select').each(function(){
+            var $select = $(this);
+            $select.val('');
+            $select.find('option[value=""]').prop('selected', true);
+        });
+
+        $rowsContainer.append($newRow);
+    });
+
+    $(document).on('click', '.teqcidb-remove-resource-row', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $row = $button.closest('.teqcidb-resource-row');
+        var $rowsContainer = $button.closest('.teqcidb-resource-rows');
+
+        if (!$row.length || !$rowsContainer.length){
+            return;
+        }
+
+        if ($rowsContainer.find('.teqcidb-resource-row').length <= 1){
+            $row.find('input').val('');
+            $row.find('select').each(function(){
+                var $select = $(this);
+                $select.val('');
+                $select.find('option[value=""]').prop('selected', true);
+            });
+            return;
+        }
+
+        $row.remove();
+    });
+
     var $activeTokenTarget = null;
 
     function resolveTokenTarget($button){
