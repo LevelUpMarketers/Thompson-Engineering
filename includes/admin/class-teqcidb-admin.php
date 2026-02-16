@@ -795,6 +795,12 @@ class TEQCIDB_Admin {
             'studentSearchPlaceholder' => __( 'Start typing a name or email...', 'teqcidb' ),
             'studentSearchNoResults' => __( 'No matching students found.', 'teqcidb' ),
             'classEditHeading' => __( 'Edit Class Details', 'teqcidb' ),
+            'resourceNameLabel' => __( 'Resource Name', 'teqcidb' ),
+            'resourceTypeLabel' => __( 'Resource Type', 'teqcidb' ),
+            'resourceUrlLabel' => __( 'Resource URL', 'teqcidb' ),
+            'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
+            'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
+            'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
         ) );
     }
 
@@ -1528,16 +1534,6 @@ class TEQCIDB_Admin {
             ),
         );
 
-        if ( 'create' !== $context ) {
-            $fields = array_values(
-                array_filter(
-                    $fields,
-                    function( $field ) {
-                        return ! isset( $field['name'] ) || 'classresources' !== $field['name'];
-                    }
-                )
-            );
-        }
 
         if ( 'create' === $context ) {
             $fields = array_values(
@@ -1809,6 +1805,10 @@ class TEQCIDB_Admin {
 
             if ( isset( $field['label_link'] ) ) {
                 $prepared_field['labelLink'] = $field['label_link'];
+            }
+
+            if ( isset( $field['resource_tooltips'] ) ) {
+                $prepared_field['resourceTooltips'] = $field['resource_tooltips'];
             }
 
             $prepared[] = $prepared_field;
