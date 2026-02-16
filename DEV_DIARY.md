@@ -259,3 +259,4 @@
 256. 2026-02-14: Increased registration action button minimum widths to 280px for both online payment and printable form buttons to keep the paired controls visually consistent.
 257. 2026-02-14: Added successful registration payment inserts into teqcidb_studenthistory with Yes/Upcoming/Paid in Full defaults, class linkage, amount paid, enrollment date, and registered-by metadata.
 258. 2026-02-14: Fixed successful-payment studenthistory enrollmentdate persistence by hardening Eastern-time date fallback logic so invalid/empty gateway datetimes can no longer insert as 0000-00-00.
+259. 2026-02-16: Updated admin form field label/tooltip alignment styles so fixed-width class form labels bottom-align with extra label height and right-anchored tooltip icons in each .teqcidb-field wrapper.
