@@ -267,3 +267,4 @@
 264. 2026-02-16: Added teqcidb_classes schema columns for classresources (JSON longtext storage) and updated_at auto-timestamps, plus class-save sanitization/persistence for create-form resource rows.
 265. 2026-02-16: Added class resources UI rendering on Edit & Manage Classes with prefilled rows from saved JSON and full edit/save support for classresources updates.
 266. 2026-02-16: Added lightweight per-class virtual route scaffolding (`/teqcidb-class/{token}/`) with create-time classurl generation/persistence and edit-time class URL label linking to the saved route.
+267. 2026-02-16: Added activation-time schema creation for teqcidb_quizzes, teqcidb_quiz_questions, teqcidb_quiz_attempts, and teqcidb_quiz_answers to support scalable quiz metadata, question authoring, attempt tracking, and JSON autosave storage.

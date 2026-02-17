@@ -19,6 +19,10 @@ class TEQCIDB_Activator {
         $classes_table   = $wpdb->prefix . 'teqcidb_classes';
         $student_history = $wpdb->prefix . 'teqcidb_studenthistory';
         $payment_history = $wpdb->prefix . 'teqcidb_paymenthistory';
+        $quizzes_table   = $wpdb->prefix . 'teqcidb_quizzes';
+        $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $answers_table   = $wpdb->prefix . 'teqcidb_quiz_answers';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -137,12 +141,73 @@ class TEQCIDB_Activator {
             KEY invoicenumber (invoicenumber)
         ) $charset_collate;";
 
+
+        $sql_quizzes = "CREATE TABLE $quizzes_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            class_id bigint(20) unsigned DEFAULT NULL,
+            public_token varchar(64) NOT NULL,
+            name varchar(255) NOT NULL,
+            status tinyint NOT NULL DEFAULT 0,
+            settings_json longtext,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY public_token (public_token),
+            KEY class_id (class_id),
+            KEY status (status)
+        ) $charset_collate;";
+
+        $sql_quiz_questions = "CREATE TABLE $questions_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            quiz_id bigint(20) unsigned NOT NULL,
+            sort_order int NOT NULL DEFAULT 0,
+            type varchar(30) NOT NULL,
+            prompt longtext NOT NULL,
+            choices_json longtext,
+            required tinyint(1) NOT NULL DEFAULT 0,
+            points int NOT NULL DEFAULT 1,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY quiz_sort (quiz_id, sort_order),
+            KEY quiz_id (quiz_id)
+        ) $charset_collate;";
+
+        $sql_quiz_attempts = "CREATE TABLE $attempts_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            quiz_id bigint(20) unsigned NOT NULL,
+            class_id bigint(20) unsigned DEFAULT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            status tinyint NOT NULL DEFAULT 0,
+            score int DEFAULT NULL,
+            started_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            submitted_at datetime DEFAULT NULL,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY quiz_user (quiz_id, user_id),
+            KEY class_user (class_id, user_id),
+            KEY status (status)
+        ) $charset_collate;";
+
+        $sql_quiz_answers = "CREATE TABLE $answers_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            attempt_id bigint(20) unsigned NOT NULL,
+            answers_json longtext NOT NULL,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY attempt_id (attempt_id)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
         dbDelta( $sql_classes );
         dbDelta( $sql_student_history );
         dbDelta( $sql_payment_history );
+        dbDelta( $sql_quizzes );
+        dbDelta( $sql_quiz_questions );
+        dbDelta( $sql_quiz_attempts );
+        dbDelta( $sql_quiz_answers );
         if ( class_exists( 'TEQCIDB_Ajax' ) ) {
             TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
             TEQCIDB_Ajax::register_class_page_rewrite();
