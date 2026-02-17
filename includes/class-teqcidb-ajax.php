@@ -130,7 +130,7 @@ class TEQCIDB_Ajax {
         $class_url = $this->generate_class_page_relative_url( $route_token );
         $class_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT classname, uniqueclassid FROM $table WHERE classurl = %s LIMIT 1",
+                "SELECT id, classname, uniqueclassid FROM $table WHERE classurl = %s LIMIT 1",
                 $class_url
             ),
             ARRAY_A
@@ -146,7 +146,8 @@ class TEQCIDB_Ajax {
         nocache_headers();
         header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
 
-        $class_name          = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_name            = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_id              = isset( $class_row['id'] ) ? absint( $class_row['id'] ) : 0;
         $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
 
         echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title><link rel="stylesheet" href="' . esc_url( $class_page_stylesheet ) . '" /></head><body class="teqcidb-class-route">';
@@ -161,9 +162,9 @@ class TEQCIDB_Ajax {
         echo '</header>';
 
         if ( ! is_user_logged_in() ) {
-            $request_uri      = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
-            $redirect_url     = esc_url_raw( home_url( $request_uri ) );
-            $login_action_url = wp_login_url( $redirect_url );
+            $request_uri       = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
+            $redirect_url      = esc_url_raw( home_url( $request_uri ) );
+            $login_action_url  = wp_login_url( $redirect_url );
             $lost_password_url = wp_lostpassword_url( $redirect_url );
 
             echo '<article class="teqcidb-auth-card">';
@@ -193,16 +194,75 @@ class TEQCIDB_Ajax {
             exit;
         }
 
+        $feedback_message = __( 'Welcome! Please wait for your QCI instructor to enable the Quiz below or tell you that you may start your quiz.', 'teqcidb' );
+        $current_user_id  = get_current_user_id();
+
+        if ( $class_id > 0 && $current_user_id > 0 ) {
+            $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
+            $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+            $students_table = $wpdb->prefix . 'teqcidb_students';
+
+            $quiz_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $quizzes_table WHERE class_id = %d ORDER BY updated_at DESC, id DESC LIMIT 1",
+                    $class_id
+                )
+            );
+
+            if ( $quiz_id > 0 ) {
+                $attempt = $wpdb->get_row(
+                    $wpdb->prepare(
+                        "SELECT status, updated_at FROM $attempts_table WHERE quiz_id = %d AND user_id = %d ORDER BY updated_at DESC, id DESC LIMIT 1",
+                        $quiz_id,
+                        $current_user_id
+                    ),
+                    ARRAY_A
+                );
+
+                if ( is_array( $attempt ) && isset( $attempt['status'] ) ) {
+                    $attempt_status = (int) $attempt['status'];
+
+                    if ( 2 === $attempt_status ) {
+                        $elapsed_since_save = $this->format_elapsed_duration_from_datetime( isset( $attempt['updated_at'] ) ? $attempt['updated_at'] : '' );
+                        $feedback_message   = sprintf(
+                            /* translators: %s: elapsed time since last quiz save. */
+                            __( 'Welcome back! Looks like you\'ve already started this quiz. The last save was %s.', 'teqcidb' ),
+                            $elapsed_since_save
+                        );
+                    } elseif ( 0 === $attempt_status ) {
+                        $qci_number = (string) $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                                $current_user_id
+                            )
+                        );
+
+                        $dashboard_url = $this->get_student_dashboard_certificates_url();
+                        $feedback_message = sprintf(
+                            /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
+                            __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
+                            '<a href="' . esc_url( $dashboard_url ) . '">',
+                            '</a>',
+                            esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
+                        );
+                    } elseif ( 1 === $attempt_status ) {
+                        $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                    }
+                }
+            }
+        }
+
+        $allowed_feedback_html = array(
+            'a'      => array(
+                'href' => array(),
+            ),
+            'strong' => array(),
+        );
+
         echo '<section class="teqcidb-class-route__panel">';
         echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Welcome to Your Class Session', 'teqcidb' ) . '</h2>';
         echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'You are logged in. Class quiz and resources content will appear here in upcoming updates.', 'teqcidb' ) . '</p>';
-        echo '<div class="teqcidb-class-route__feedback">' . esc_html__( 'Status: Authenticated and ready to load class content.', 'teqcidb' ) . '</div>';
-        echo '</section>';
-
-        echo '<section class="teqcidb-class-route__resources">';
-        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Resources', 'teqcidb' ) . '</h2>';
-        echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Resources assigned to this class will be listed here.', 'teqcidb' ) . '</p>';
-        echo '<ul class="teqcidb-class-route__resource-list"><li class="teqcidb-class-route__resource-item">' . esc_html__( 'No resources loaded yet.', 'teqcidb' ) . '</li></ul>';
+        echo '<div class="teqcidb-class-route__feedback">' . wp_kses( $feedback_message, $allowed_feedback_html ) . '</div>';
         echo '</section>';
 
         echo '<section class="teqcidb-class-route__quiz">';
@@ -210,8 +270,77 @@ class TEQCIDB_Ajax {
         echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Quiz instructions and questions will be rendered in this section.', 'teqcidb' ) . '</p>';
         echo '<ul class="teqcidb-class-route__quiz-list"><li class="teqcidb-class-route__quiz-item">' . esc_html__( 'Quiz content coming soon.', 'teqcidb' ) . '</li></ul>';
         echo '</section>';
+
+        echo '<section class="teqcidb-class-route__resources">';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Resources', 'teqcidb' ) . '</h2>';
+        echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Resources assigned to this class will be listed here.', 'teqcidb' ) . '</p>';
+        echo '<ul class="teqcidb-class-route__resource-list"><li class="teqcidb-class-route__resource-item">' . esc_html__( 'No resources loaded yet.', 'teqcidb' ) . '</li></ul>';
+        echo '</section>';
         echo '</main></body></html>';
         exit;
+    }
+
+
+    private function format_elapsed_duration_from_datetime( $datetime_value ) {
+        $timestamp = strtotime( (string) $datetime_value );
+
+        if ( ! $timestamp ) {
+            return __( 'just now', 'teqcidb' );
+        }
+
+        $now_timestamp = current_time( 'timestamp' );
+
+        if ( $now_timestamp <= $timestamp ) {
+            return __( 'just now', 'teqcidb' );
+        }
+
+        $start = new DateTimeImmutable( '@' . $timestamp );
+        $end   = new DateTimeImmutable( '@' . $now_timestamp );
+        $diff  = $start->diff( $end );
+
+        $months  = ( $diff->y * 12 ) + $diff->m;
+        $weeks   = intdiv( (int) $diff->d, 7 );
+        $days    = (int) $diff->d % 7;
+        $hours   = (int) $diff->h;
+        $minutes = (int) $diff->i;
+        $seconds = (int) $diff->s;
+
+        return sprintf(
+            /* translators: 1: months, 2: weeks, 3: days, 4: hours, 5: minutes, 6: seconds elapsed since last save. */
+            __( '%1$s Months, %2$s Weeks, %3$s Days, %4$s Hours, %5$s Minutes, %6$s Seconds ago', 'teqcidb' ),
+            $months,
+            $weeks,
+            $days,
+            $hours,
+            $minutes,
+            $seconds
+        );
+    }
+
+    private function get_student_dashboard_certificates_url() {
+        global $wpdb;
+
+        $base_url      = home_url( '/' );
+        $posts_table   = $wpdb->posts;
+        $shortcode_tag = '[' . TEQCIDB_Shortcode_Student_Dashboard::SHORTCODE_TAG;
+
+        $post_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT ID FROM $posts_table WHERE post_status = %s AND post_type IN ('page','post') AND post_content LIKE %s ORDER BY ID ASC LIMIT 1",
+                'publish',
+                '%' . $wpdb->esc_like( $shortcode_tag ) . '%'
+            )
+        );
+
+        if ( $post_id > 0 ) {
+            $permalink = get_permalink( $post_id );
+
+            if ( is_string( $permalink ) && '' !== $permalink ) {
+                $base_url = $permalink;
+            }
+        }
+
+        return add_query_arg( 'tab', 'certificates-dates', $base_url );
     }
 
     private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {

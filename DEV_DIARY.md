@@ -271,3 +271,4 @@
 268. 2026-02-16: Added login gating on lightweight class routes so logged-out visitors see only a login form (no create-account UI) and successful authentication returns them to the same class URL.
 269. 2026-02-16: Replaced stripped class-route login markup with a dedicated login form (username/email, password, remember me, redirect, and lost-password link) so logged-out users see functional inputs on lightweight class pages.
 270. 2026-02-16: Added a dedicated class-route stylesheet (desktop/mobile responsive) and updated lightweight class-route markup to use structured login, panel, resources, quiz, and feedback sections with shortcode-matching auth form styling.
+271. 2026-02-16: Reordered logged-in class-route sections to panel/quiz/resources and added attempt-aware feedback logic (2=in progress, 1=failed, 0=passed), including elapsed-last-save output, dashboard certificates deep link with QCI number, and failure contact links.

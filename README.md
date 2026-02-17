@@ -18,6 +18,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Manage entities under **Students**, switching between **Create a Student** and **Edit Students** tabs.
 - Manage classes under **Classes**, including storing each session's **Teams Link**, auto-generating a dedicated lightweight **Class URL** route on class creation, and maintaining **Class Resources** rows (name, type, and URL) saved as structured JSON per class. Class routes now require login, render a dedicated login-only form (without account-creation UI) for logged-out users, and load a class-route-specific stylesheet for quiz/resources/login layouts across desktop and mobile viewports.
 - Activation now also provisions foundational quiz tables (`teqcidb_quizzes`, `teqcidb_quiz_questions`, `teqcidb_quiz_attempts`, `teqcidb_quiz_answers`) for upcoming high-concurrency class quiz workflows.
+- Class-route feedback now reflects per-user quiz-attempt status (`2 = in progress`, `1 = failed`, `0 = passed`) with resume timing, pass guidance, and fail contact messaging.
 - The creation form showcases twenty-seven demo fields (**Placeholder 1**–**Placeholder 27**) with varied inputs (text, textarea, select, radio, checkbox, color), tooltips, and an image selector that opens the media library.
 - Fields share a consistent 178px width, and hovering the help icon reveals centralized, translation-ready tooltips.
 - **Placeholder 14** presents generic options ("Option 1"–"Option 3") with a default "Make a Selection..." prompt.
