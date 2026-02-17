@@ -1,0 +1,172 @@
+.teqcidb-class-route {
+    background: #f7f6f3;
+    color: #2c2c2c;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+}
+
+.teqcidb-class-route__main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 42px 16px 64px;
+}
+
+.teqcidb-class-route__header {
+    margin-bottom: 24px;
+}
+
+.teqcidb-class-route__title {
+    color: #000;
+    margin: 0 0 8px;
+    font-size: 1.9rem;
+}
+
+.teqcidb-class-route__subtitle {
+    margin: 0;
+    color: #4d4d4d;
+}
+
+.teqcidb-class-route__panel,
+.teqcidb-auth-card,
+.teqcidb-class-route__resources,
+.teqcidb-class-route__quiz {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 18px 30px rgba(24, 24, 24, 0.08);
+}
+
+.teqcidb-class-route__panel + .teqcidb-class-route__resources,
+.teqcidb-class-route__panel + .teqcidb-class-route__quiz,
+.teqcidb-class-route__resources + .teqcidb-class-route__quiz {
+    margin-top: 20px;
+}
+
+.teqcidb-auth-title,
+.teqcidb-class-route__section-title {
+    color: #000;
+    margin: 0 0 8px;
+    font-size: 1.3rem;
+}
+
+.teqcidb-auth-description,
+.teqcidb-class-route__section-description {
+    color: #4d4d4d;
+    margin: 0 0 22px;
+    line-height: 1.55;
+}
+
+.teqcidb-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.teqcidb-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.teqcidb-form-field label {
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+.teqcidb-form-field input,
+.teqcidb-form-field select,
+.teqcidb-form-field textarea {
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.teqcidb-form-field input:focus,
+.teqcidb-form-field select:focus,
+.teqcidb-form-field textarea:focus {
+    border-color: #9d4b36;
+    outline: none;
+}
+
+.teqcidb-form-checkbox label {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.teqcidb-form-checkbox input {
+    width: auto;
+}
+
+.teqcidb-button {
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 14px 20px;
+    text-transform: uppercase;
+}
+
+.teqcidb-button-primary {
+    background: #f8991d;
+    color: #fff;
+}
+
+.teqcidb-auth-link {
+    font-weight: 700;
+    color: #6a3b2e;
+}
+
+.teqcidb-auth-link:hover,
+.teqcidb-auth-link:focus {
+    text-decoration: underline;
+}
+
+.teqcidb-class-route__feedback {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #e1e1e1;
+    background: #fafafa;
+    color: #4d4d4d;
+}
+
+.teqcidb-class-route__resource-list,
+.teqcidb-class-route__quiz-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+}
+
+.teqcidb-class-route__resource-item,
+.teqcidb-class-route__quiz-item {
+    border: 1px solid #e1e1e1;
+    border-radius: 10px;
+    padding: 14px;
+    background: #fafafa;
+}
+
+@media (max-width: 720px) {
+    .teqcidb-class-route__main {
+        padding-top: 28px;
+    }
+
+    .teqcidb-class-route__panel,
+    .teqcidb-auth-card,
+    .teqcidb-class-route__resources,
+    .teqcidb-class-route__quiz {
+        padding: 22px;
+    }
+
+    .teqcidb-button-primary {
+        width: 100%;
+    }
+}

@@ -146,14 +146,19 @@ class TEQCIDB_Ajax {
         nocache_headers();
         header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
 
-        $class_name = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_name          = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
 
-        echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title></head><body>';
-        echo '<main><h1>' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
+        echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title><link rel="stylesheet" href="' . esc_url( $class_page_stylesheet ) . '" /></head><body class="teqcidb-class-route">';
+        echo '<main class="teqcidb-class-route__main">';
+        echo '<header class="teqcidb-class-route__header">';
+        echo '<h1 class="teqcidb-class-route__title">' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
 
         if ( '' !== $class_name ) {
-            echo '<p>' . esc_html( $class_name ) . '</p>';
+            echo '<p class="teqcidb-class-route__subtitle">' . esc_html( $class_name ) . '</p>';
         }
+
+        echo '</header>';
 
         if ( ! is_user_logged_in() ) {
             $request_uri      = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
@@ -188,7 +193,23 @@ class TEQCIDB_Ajax {
             exit;
         }
 
-        echo '<p>' . esc_html__( 'You are logged in. Class quiz and resources content will appear here soon.', 'teqcidb' ) . '</p>';
+        echo '<section class="teqcidb-class-route__panel">';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Welcome to Your Class Session', 'teqcidb' ) . '</h2>';
+        echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'You are logged in. Class quiz and resources content will appear here in upcoming updates.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-class-route__feedback">' . esc_html__( 'Status: Authenticated and ready to load class content.', 'teqcidb' ) . '</div>';
+        echo '</section>';
+
+        echo '<section class="teqcidb-class-route__resources">';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Resources', 'teqcidb' ) . '</h2>';
+        echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Resources assigned to this class will be listed here.', 'teqcidb' ) . '</p>';
+        echo '<ul class="teqcidb-class-route__resource-list"><li class="teqcidb-class-route__resource-item">' . esc_html__( 'No resources loaded yet.', 'teqcidb' ) . '</li></ul>';
+        echo '</section>';
+
+        echo '<section class="teqcidb-class-route__quiz">';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Quiz', 'teqcidb' ) . '</h2>';
+        echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Quiz instructions and questions will be rendered in this section.', 'teqcidb' ) . '</p>';
+        echo '<ul class="teqcidb-class-route__quiz-list"><li class="teqcidb-class-route__quiz-item">' . esc_html__( 'Quiz content coming soon.', 'teqcidb' ) . '</li></ul>';
+        echo '</section>';
         echo '</main></body></html>';
         exit;
     }
