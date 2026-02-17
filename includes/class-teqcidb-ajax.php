@@ -209,8 +209,6 @@ class TEQCIDB_Ajax {
                 )
             );
 
-            $attempt = null;
-
             if ( $quiz_id > 0 ) {
                 $attempt = $wpdb->get_row(
                     $wpdb->prepare(
@@ -220,47 +218,36 @@ class TEQCIDB_Ajax {
                     ),
                     ARRAY_A
                 );
-            }
 
-            if ( ! is_array( $attempt ) ) {
-                $attempt = $wpdb->get_row(
-                    $wpdb->prepare(
-                        "SELECT status, updated_at FROM $attempts_table WHERE class_id = %d AND user_id = %d ORDER BY updated_at DESC, id DESC LIMIT 1",
-                        $class_id,
-                        $current_user_id
-                    ),
-                    ARRAY_A
-                );
-            }
+                if ( is_array( $attempt ) && isset( $attempt['status'] ) ) {
+                    $attempt_status = (int) $attempt['status'];
 
-            if ( is_array( $attempt ) && isset( $attempt['status'] ) ) {
-                $attempt_status = (int) $attempt['status'];
+                    if ( 1 === $attempt_status ) {
+                        $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                    } elseif ( 0 === $attempt_status ) {
+                        $qci_number = (string) $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                                $current_user_id
+                            )
+                        );
 
-                if ( 2 === $attempt_status ) {
-                    $elapsed_since_save = $this->format_elapsed_duration_from_datetime( isset( $attempt['updated_at'] ) ? $attempt['updated_at'] : '' );
-                    $feedback_message   = sprintf(
-                        /* translators: %s: elapsed time since last quiz save. */
-                        __( 'Welcome back! Looks like you\'ve already started this quiz. The last save was %s.', 'teqcidb' ),
-                        $elapsed_since_save
-                    );
-                } elseif ( 0 === $attempt_status ) {
-                    $qci_number = (string) $wpdb->get_var(
-                        $wpdb->prepare(
-                            "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
-                            $current_user_id
-                        )
-                    );
-
-                    $dashboard_url = $this->get_student_dashboard_certificates_url();
-                    $feedback_message = sprintf(
-                        /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
-                        __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
-                        '<a href="' . esc_url( $dashboard_url ) . '">',
-                        '</a>',
-                        esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
-                    );
-                } elseif ( 1 === $attempt_status ) {
-                    $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                        $dashboard_url = $this->get_student_dashboard_certificates_url();
+                        $feedback_message = sprintf(
+                            /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
+                            __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
+                            '<a href="' . esc_url( $dashboard_url ) . '">',
+                            '</a>',
+                            esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
+                        );
+                    } elseif ( 2 === $attempt_status ) {
+                        $elapsed_since_save = $this->format_elapsed_duration_from_datetime( isset( $attempt['updated_at'] ) ? $attempt['updated_at'] : '' );
+                        $feedback_message   = sprintf(
+                            /* translators: %s: elapsed time since last quiz save. */
+                            __( 'Welcome back! Looks like you\'ve already started this quiz. The last save was %s.', 'teqcidb' ),
+                            $elapsed_since_save
+                        );
+                    }
                 }
             }
         }
