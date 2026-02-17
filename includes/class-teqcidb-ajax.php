@@ -155,7 +155,28 @@ class TEQCIDB_Ajax {
             echo '<p>' . esc_html( $class_name ) . '</p>';
         }
 
-        echo '<p>' . esc_html__( 'This lightweight class route is reserved for upcoming class quiz/resources content.', 'teqcidb' ) . '</p>';
+        if ( ! is_user_logged_in() ) {
+            $request_uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
+            $redirect_url = esc_url_raw( home_url( $request_uri ) );
+            $login_form   = wp_login_form(
+                array(
+                    'echo'           => false,
+                    'redirect'       => $redirect_url,
+                    'remember'       => true,
+                    'label_username' => __( 'Email Address or Username', 'teqcidb' ),
+                    'label_password' => __( 'Password', 'teqcidb' ),
+                    'label_remember' => __( 'Remember Me', 'teqcidb' ),
+                    'label_log_in'   => __( 'Log In', 'teqcidb' ),
+                )
+            );
+
+            echo '<p>' . esc_html__( 'Please log in to access this class page.', 'teqcidb' ) . '</p>';
+            echo wp_kses_post( $login_form );
+            echo '</main></body></html>';
+            exit;
+        }
+
+        echo '<p>' . esc_html__( 'You are logged in. Class quiz and resources content will appear here soon.', 'teqcidb' ) . '</p>';
         echo '</main></body></html>';
         exit;
     }
