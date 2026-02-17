@@ -269,3 +269,4 @@
 266. 2026-02-16: Added lightweight per-class virtual route scaffolding (`/teqcidb-class/{token}/`) with create-time classurl generation/persistence and edit-time class URL label linking to the saved route.
 267. 2026-02-16: Added activation-time schema creation for teqcidb_quizzes, teqcidb_quiz_questions, teqcidb_quiz_attempts, and teqcidb_quiz_answers to support scalable quiz metadata, question authoring, attempt tracking, and JSON autosave storage.
 268. 2026-02-16: Added login gating on lightweight class routes so logged-out visitors see only a login form (no create-account UI) and successful authentication returns them to the same class URL.
+269. 2026-02-16: Replaced stripped class-route login markup with a dedicated login form (username/email, password, remember me, redirect, and lost-password link) so logged-out users see functional inputs on lightweight class pages.

@@ -156,22 +156,34 @@ class TEQCIDB_Ajax {
         }
 
         if ( ! is_user_logged_in() ) {
-            $request_uri  = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
-            $redirect_url = esc_url_raw( home_url( $request_uri ) );
-            $login_form   = wp_login_form(
-                array(
-                    'echo'           => false,
-                    'redirect'       => $redirect_url,
-                    'remember'       => true,
-                    'label_username' => __( 'Email Address or Username', 'teqcidb' ),
-                    'label_password' => __( 'Password', 'teqcidb' ),
-                    'label_remember' => __( 'Remember Me', 'teqcidb' ),
-                    'label_log_in'   => __( 'Log In', 'teqcidb' ),
-                )
-            );
+            $request_uri      = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : $class_url;
+            $redirect_url     = esc_url_raw( home_url( $request_uri ) );
+            $login_action_url = wp_login_url( $redirect_url );
+            $lost_password_url = wp_lostpassword_url( $redirect_url );
 
-            echo '<p>' . esc_html__( 'Please log in to access this class page.', 'teqcidb' ) . '</p>';
-            echo wp_kses_post( $login_form );
+            echo '<article class="teqcidb-auth-card">';
+            echo '<h2 class="teqcidb-auth-title">' . esc_html__( 'Already a registered QCI Student or Alternate Contact/Representative? Log in below!', 'teqcidb' ) . '</h2>';
+            echo '<p class="teqcidb-auth-description">' . esc_html__( 'Log in below to access this class page and continue to your quiz and class resources.', 'teqcidb' ) . '</p>';
+            echo '<form class="teqcidb-login-form" method="post" action="' . esc_url( $login_action_url ) . '">';
+            echo '<div class="teqcidb-form-field">';
+            echo '<label for="teqcidb-login-username">' . esc_html__( 'Username or Email Address', 'teqcidb' ) . '</label>';
+            echo '<input type="text" id="teqcidb-login-username" name="log" autocomplete="username" placeholder="' . esc_attr__( 'Your username or email', 'teqcidb' ) . '" required />';
+            echo '</div>';
+            echo '<div class="teqcidb-form-field">';
+            echo '<label for="teqcidb-login-password">' . esc_html__( 'Password', 'teqcidb' ) . '</label>';
+            echo '<input type="password" id="teqcidb-login-password" name="pwd" autocomplete="current-password" placeholder="' . esc_attr__( 'Your password', 'teqcidb' ) . '" required />';
+            echo '</div>';
+            echo '<div class="teqcidb-form-field teqcidb-form-checkbox">';
+            echo '<label for="teqcidb-login-remember">';
+            echo '<input type="checkbox" id="teqcidb-login-remember" name="rememberme" value="forever" />';
+            echo '<span>' . esc_html__( 'Remember me', 'teqcidb' ) . '</span>';
+            echo '</label>';
+            echo '</div>';
+            echo '<input type="hidden" name="redirect_to" value="' . esc_attr( $redirect_url ) . '" />';
+            echo '<button class="teqcidb-button teqcidb-button-primary" type="submit">' . esc_html__( 'Log In', 'teqcidb' ) . '</button>';
+            echo '<p><a class="teqcidb-auth-link" href="' . esc_url( $lost_password_url ) . '">' . esc_html__( 'Forgot your password? Reset it here!', 'teqcidb' ) . '</a></p>';
+            echo '</form>';
+            echo '</article>';
             echo '</main></body></html>';
             exit;
         }
