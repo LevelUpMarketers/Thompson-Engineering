@@ -475,7 +475,7 @@ class TEQCIDB_Admin {
 
     private function normalize_token_group( $group ) {
         if ( ! is_array( $group ) ) {
-            return array(
+            $fields = array(
                 'title'  => '',
                 'tokens' => array(),
             );
@@ -795,6 +795,12 @@ class TEQCIDB_Admin {
             'studentSearchPlaceholder' => __( 'Start typing a name or email...', 'teqcidb' ),
             'studentSearchNoResults' => __( 'No matching students found.', 'teqcidb' ),
             'classEditHeading' => __( 'Edit Class Details', 'teqcidb' ),
+            'resourceNameLabel' => __( 'Resource Name', 'teqcidb' ),
+            'resourceTypeLabel' => __( 'Resource Type', 'teqcidb' ),
+            'resourceUrlLabel' => __( 'Resource URL', 'teqcidb' ),
+            'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
+            'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
+            'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
         ) );
     }
 
@@ -1000,6 +1006,8 @@ class TEQCIDB_Admin {
             'classendtime'              => __( 'Local end time for the session.', 'teqcidb' ),
             'classcost'                 => __( 'Tuition or registration fee for the full class.', 'teqcidb' ),
             'classdescription'          => __( 'Agenda, prerequisites, or any notes students should know.', 'teqcidb' ),
+            'teamslink'                 => __( 'Microsoft Teams meeting URL students should use for this class.', 'teqcidb' ),
+            'classurl'                  => __( 'Virtual class page URL reserved for this class record.', 'teqcidb' ),
             'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
             'allallowedcourse'          => __( 'Whether all enrolled students can access the course content by default.', 'teqcidb' ),
             'allallowedquiz'            => __( 'Whether all enrolled students can access the quiz content by default.', 'teqcidb' ),
@@ -1007,6 +1015,9 @@ class TEQCIDB_Admin {
             'quizstudentsallowed'       => __( 'Specific students who should be allowed to access the quiz even if access is blocked globally.', 'teqcidb' ),
             'coursestudentsrestricted'  => __( 'Students who should be blocked from this course even when course access is generally allowed.', 'teqcidb' ),
             'quizstudentsrestricted'    => __( 'Students who should be blocked from this quiz or exam even when quiz access is generally allowed.', 'teqcidb' ),
+            'resource_name'             => __( 'The name of this class resource item.', 'teqcidb' ),
+            'resource_type'             => __( 'The type of resource, such as PDF, video, or external link.', 'teqcidb' ),
+            'resource_url'              => __( 'Direct URL associated with this resource item.', 'teqcidb' ),
         );
     }
 
@@ -1320,7 +1331,7 @@ class TEQCIDB_Admin {
         );
     }
 
-    private function get_class_fields() {
+    private function get_class_fields( $context = 'all' ) {
         $tooltips = $this->get_class_tooltips();
         $yes_no   = array(
             ''  => __( 'Make a Selection...', 'teqcidb' ),
@@ -1348,7 +1359,7 @@ class TEQCIDB_Admin {
             'blocked'  => __( 'Access Blocked', 'teqcidb' ),
         );
 
-        return array(
+        $fields = array(
             array(
                 'name'    => 'classname',
                 'label'   => __( 'Class Name', 'teqcidb' ),
@@ -1433,6 +1444,20 @@ class TEQCIDB_Admin {
                 'tooltip' => $tooltips['classcost'],
             ),
             array(
+                'name'    => 'teamslink',
+                'label'   => __( 'Teams Link', 'teqcidb' ),
+                'type'    => 'url',
+                'tooltip' => $tooltips['teamslink'],
+            ),
+            array(
+                'name'      => 'classurl',
+                'label'     => __( 'Class URL', 'teqcidb' ),
+                'type'      => 'url',
+                'attrs'     => ' readonly="readonly"',
+                'tooltip'   => $tooltips['classurl'],
+                'label_link'=> '#',
+            ),
+            array(
                 'name'    => 'classhide',
                 'label'   => __( 'Hide this Class?', 'teqcidb' ),
                 'type'    => 'select',
@@ -1495,7 +1520,33 @@ class TEQCIDB_Admin {
                 'type'    => 'items',
                 'tooltip' => $tooltips['instructors'],
             ),
+            array(
+                'name'       => 'classresources',
+                'label'      => __( 'Class Resources', 'teqcidb' ),
+                'type'       => 'resource_rows',
+                'tooltip'    => __( 'Resource rows for this class, including name, type, and URL.', 'teqcidb' ),
+                'full_width' => true,
+                'resource_tooltips' => array(
+                    'name' => $tooltips['resource_name'],
+                    'type' => $tooltips['resource_type'],
+                    'url'  => $tooltips['resource_url'],
+                ),
+            ),
         );
+
+
+        if ( 'create' === $context ) {
+            $fields = array_values(
+                array_filter(
+                    $fields,
+                    function( $field ) {
+                        return ! isset( $field['name'] ) || 'classurl' !== $field['name'];
+                    }
+                )
+            );
+        }
+
+        return $fields;
     }
 
     private function prepare_student_fields_for_js() {
@@ -1728,7 +1779,7 @@ class TEQCIDB_Admin {
     }
 
     private function prepare_class_fields_for_js() {
-        $fields   = $this->get_class_fields();
+        $fields   = $this->get_class_fields( 'edit' );
         $prepared = array();
 
         foreach ( $fields as $field ) {
@@ -1750,6 +1801,14 @@ class TEQCIDB_Admin {
 
             if ( isset( $field['autocomplete'] ) ) {
                 $prepared_field['autocomplete'] = $field['autocomplete'];
+            }
+
+            if ( isset( $field['label_link'] ) ) {
+                $prepared_field['labelLink'] = $field['label_link'];
+            }
+
+            if ( isset( $field['resource_tooltips'] ) ) {
+                $prepared_field['resourceTooltips'] = $field['resource_tooltips'];
             }
 
             $prepared[] = $prepared_field;
@@ -1909,6 +1968,50 @@ class TEQCIDB_Admin {
 
                     echo '<button type="button"' . $add_button_attrs . '>' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
                     break;
+                case 'resource_rows':
+                    $resource_tooltips = isset( $field['resource_tooltips'] ) && is_array( $field['resource_tooltips'] ) ? $field['resource_tooltips'] : array();
+                    $resource_types = array(
+                        ''              => __( 'Make a Selection...', 'teqcidb' ),
+                        'pdf'           => __( 'PDF', 'teqcidb' ),
+                        'video'         => __( 'Video', 'teqcidb' ),
+                        'external_link' => __( 'External Link', 'teqcidb' ),
+                    );
+
+                    echo '<div class="teqcidb-resource-rows" data-resource-field="' . esc_attr( $field['name'] ) . '">';
+                    echo '<div class="teqcidb-resource-row">';
+                    echo '<div class="teqcidb-resource-row__fields">';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['name'] ) ? $resource_tooltips['name'] : '' ) . '"></span>' . esc_html__( 'Resource Name', 'teqcidb' ) . '</label>';
+                    echo '<input type="text" name="' . esc_attr( $field['name'] ) . '[name][]" class="regular-text teqcidb-resource-name" />';
+                    echo '</div>';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['type'] ) ? $resource_tooltips['type'] : '' ) . '"></span>' . esc_html__( 'Resource Type', 'teqcidb' ) . '</label>';
+                    echo '<select name="' . esc_attr( $field['name'] ) . '[type][]" class="teqcidb-resource-type">';
+                    foreach ( $resource_types as $value => $option_label ) {
+                        if ( '' === $value ) {
+                            echo '<option value="" disabled selected>' . esc_html( $option_label ) . '</option>';
+                        } else {
+                            echo '<option value="' . esc_attr( $value ) . '">' . esc_html( $option_label ) . '</option>';
+                        }
+                    }
+                    echo '</select>';
+                    echo '</div>';
+
+                    echo '<div class="teqcidb-resource-subfield">';
+                    echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['url'] ) ? $resource_tooltips['url'] : '' ) . '"></span>' . esc_html__( 'Resource URL', 'teqcidb' ) . '</label>';
+                    echo '<input type="url" name="' . esc_attr( $field['name'] ) . '[url][]" class="regular-text teqcidb-resource-url" />';
+                    echo '</div>';
+
+                    echo '</div>';
+                    echo '<div class="teqcidb-resource-row__actions">';
+                    echo '<button type="button" class="button teqcidb-add-resource-row" data-field-name="' . esc_attr( $field['name'] ) . '">' . esc_html__( '+ Add Another Item', 'teqcidb' ) . '</button>';
+                    echo '<button type="button" class="teqcidb-remove-resource-row" aria-label="' . esc_attr__( 'Remove', 'teqcidb' ) . '"><span class="dashicons dashicons-no-alt"></span></button>';
+                    echo '</div>';
+                    echo '</div>';
+                    echo '</div>';
+                    break;
                 case 'textarea':
                     $textarea_attrs = isset( $field['attrs'] ) ? ' ' . $field['attrs'] : '';
                     echo '<textarea name="' . esc_attr( $field['name'] ) . '"' . $textarea_attrs . '></textarea>';
@@ -1948,7 +2051,7 @@ class TEQCIDB_Admin {
     }
 
     private function render_class_create_tab() {
-        $fields = $this->get_class_fields();
+        $fields = $this->get_class_fields( 'create' );
 
         $this->render_entity_form(
             $fields,

@@ -874,6 +874,7 @@
 
 .teqcidb-field {
     width: 178px;
+    position: relative;
 }
 
 .teqcidb-field input:not([type="radio"]):not([type="checkbox"]):not([type="color"]),
@@ -890,16 +891,23 @@
 
 .teqcidb-field label {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     margin-bottom: 4px;
     font-weight: 600;
+    min-height: 65px;
+    max-width: 90%;
+}
+
+.teqcidb-checkbox-group label {
+    min-height: initial;
 }
 
 .teqcidb-tooltip-icon {
     font-family: dashicons;
     margin-right: 4px;
-    position: relative;
+    position: absolute;
     cursor: help;
+    right: 0;
 }
 
 .teqcidb-tooltip-icon::after {
@@ -928,6 +936,47 @@
 
 .teqcidb-tooltip-icon:hover::after {
     opacity: 1;
+}
+
+
+.teqcidb-resource-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.teqcidb-resource-row {
+    border: 1px solid #dcdcde;
+    padding: 14px;
+    background: #fff;
+}
+
+.teqcidb-resource-row__fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.teqcidb-resource-subfield {
+    position: relative;
+}
+
+.teqcidb-resource-subfield label {
+    min-height: auto;
+    max-width: 100%;
+}
+
+.teqcidb-resource-row__actions {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.teqcidb-remove-resource-row {
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .teqcidb-radio-option {

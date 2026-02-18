@@ -1889,6 +1889,31 @@ jQuery(document).ready(function($){
             });
         }
 
+        function parseClassResourcesValue(value){
+            if (typeof value === 'string' && value){
+                try {
+                    value = JSON.parse(value);
+                } catch (error){
+                    value = [];
+                }
+            }
+
+            if (!Array.isArray(value)){
+                return [];
+            }
+
+            return value.map(function(item){
+                var resource = (item && typeof item === 'object') ? item : {};
+                return {
+                    name: resource.name ? String(resource.name) : '',
+                    type: resource.type ? String(resource.type) : '',
+                    url: resource.url ? String(resource.url) : ''
+                };
+            }).filter(function(item){
+                return item.name || item.type || item.url;
+            });
+        }
+
         function appendClassField($container, field, value){
             var fieldName = field.name || '';
             var baseId = fieldName + '-class-' + Math.random().toString(36).substring(2, 8);
@@ -1904,7 +1929,22 @@ jQuery(document).ready(function($){
                 }));
             }
 
-            $label.append(document.createTextNode(field.label || ''));
+            var resolvedLabelLink = field.labelLink || '';
+
+            if (fieldName === 'classurl' && stringValue){
+                resolvedLabelLink = String(stringValue);
+            }
+
+            if (resolvedLabelLink){
+                $label.append($('<a/>', {
+                    href: resolvedLabelLink,
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                }).text(field.label || ''));
+            } else {
+                $label.append(document.createTextNode(field.label || ''));
+            }
+
             $wrapper.append($label);
 
             switch (field.type){
@@ -2017,6 +2057,104 @@ jQuery(document).ready(function($){
                     }
 
                     $wrapper.append($addButton);
+                    break;
+                case 'resource_rows':
+                    var resources = parseClassResourcesValue(value);
+                    var resourceTooltips = field.resourceTooltips || {};
+                    var resourceTypes = {
+                        '': teqcidbAdmin.makeSelection || 'Make a Selection...',
+                        pdf: teqcidbAdmin.resourceTypePdf || 'PDF',
+                        video: teqcidbAdmin.resourceTypeVideo || 'Video',
+                        external_link: teqcidbAdmin.resourceTypeExternalLink || 'External Link'
+                    };
+
+                    if (!resources.length){
+                        resources = [{ name: '', type: '', url: '' }];
+                    }
+
+                    var $resourceRows = $('<div/>', {
+                        'class': 'teqcidb-resource-rows',
+                        'data-resource-field': fieldName
+                    });
+
+                    resources.forEach(function(resource){
+                        var $resourceRow = $('<div/>', { 'class': 'teqcidb-resource-row' });
+                        var $resourceFields = $('<div/>', { 'class': 'teqcidb-resource-row__fields' });
+
+                        var $nameSubfield = $('<div/>', { 'class': 'teqcidb-resource-subfield' });
+                        var $nameLabel = $('<label/>');
+                        $nameLabel.append($('<span/>', {
+                            'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
+                            'data-tooltip': resourceTooltips.name || ''
+                        }));
+                        $nameLabel.append(document.createTextNode(teqcidbAdmin.resourceNameLabel || 'Resource Name'));
+                        $nameSubfield.append($nameLabel).append($('<input/>', {
+                            type: 'text',
+                            name: fieldName + '[name][]',
+                            'class': 'regular-text teqcidb-resource-name',
+                            value: resource.name || ''
+                        }));
+
+                        var $typeSubfield = $('<div/>', { 'class': 'teqcidb-resource-subfield' });
+                        var $typeLabel = $('<label/>');
+                        $typeLabel.append($('<span/>', {
+                            'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
+                            'data-tooltip': resourceTooltips.type || ''
+                        }));
+                        $typeLabel.append(document.createTextNode(teqcidbAdmin.resourceTypeLabel || 'Resource Type'));
+                        var $typeSelect = $('<select/>', {
+                            name: fieldName + '[type][]',
+                            'class': 'teqcidb-resource-type'
+                        });
+                        Object.keys(resourceTypes).forEach(function(optionValue){
+                            var $option = $('<option/>', { value: optionValue, text: resourceTypes[optionValue] });
+                            if (optionValue === ''){
+                                $option.prop('disabled', true);
+                            }
+                            if (String(optionValue) === String(resource.type || '')){
+                                $option.prop('selected', true);
+                            }
+                            if (!resource.type && optionValue === ''){
+                                $option.prop('selected', true);
+                            }
+                            $typeSelect.append($option);
+                        });
+                        $typeSubfield.append($typeLabel).append($typeSelect);
+
+                        var $urlSubfield = $('<div/>', { 'class': 'teqcidb-resource-subfield' });
+                        var $urlLabel = $('<label/>');
+                        $urlLabel.append($('<span/>', {
+                            'class': 'teqcidb-tooltip-icon dashicons dashicons-editor-help',
+                            'data-tooltip': resourceTooltips.url || ''
+                        }));
+                        $urlLabel.append(document.createTextNode(teqcidbAdmin.resourceUrlLabel || 'Resource URL'));
+                        $urlSubfield.append($urlLabel).append($('<input/>', {
+                            type: 'url',
+                            name: fieldName + '[url][]',
+                            'class': 'regular-text teqcidb-resource-url',
+                            value: resource.url || ''
+                        }));
+
+                        $resourceFields.append($nameSubfield).append($typeSubfield).append($urlSubfield);
+
+                        var $resourceActions = $('<div/>', { 'class': 'teqcidb-resource-row__actions' });
+                        var $addResourceButton = $('<button/>', {
+                            type: 'button',
+                            'class': 'button teqcidb-add-resource-row',
+                            'data-field-name': fieldName
+                        }).text(teqcidbAdmin.addAnotherItem || '+ Add Another Item');
+                        var $removeResourceButton = $('<button/>', {
+                            type: 'button',
+                            'class': 'teqcidb-remove-resource-row',
+                            'aria-label': 'Remove'
+                        }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
+
+                        $resourceActions.append($addResourceButton).append($removeResourceButton);
+                        $resourceRow.append($resourceFields).append($resourceActions);
+                        $resourceRows.append($resourceRow);
+                    });
+
+                    $wrapper.append($resourceRows);
                     break;
                 case 'textarea':
                     var $textareaField = $('<textarea/>', { name: fieldName, id: baseId }).text(stringValue || '');
@@ -2668,6 +2806,55 @@ jQuery(document).ready(function($){
                 }
             });
         }
+    });
+
+
+    $(document).on('click', '.teqcidb-add-resource-row', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $row = $button.closest('.teqcidb-resource-row');
+        var $rowsContainer = $button.closest('.teqcidb-resource-rows');
+
+        if (!$row.length || !$rowsContainer.length){
+            return;
+        }
+
+        var $newRow = $row.clone();
+        $newRow.find('input').val('');
+        $newRow.find('select').each(function(){
+            var $select = $(this);
+            $select.val('');
+            $select.find('option[value=""]').prop('selected', true);
+        });
+
+        $rowsContainer.append($newRow);
+    });
+
+    $(document).on('click', '.teqcidb-remove-resource-row', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $row = $button.closest('.teqcidb-resource-row');
+        var $rowsContainer = $button.closest('.teqcidb-resource-rows');
+
+        if (!$row.length || !$rowsContainer.length){
+            return;
+        }
+
+        if ($rowsContainer.find('.teqcidb-resource-row').length <= 1){
+            $row.find('input').val('');
+            $row.find('select').each(function(){
+                var $select = $(this);
+                $select.val('');
+                $select.find('option[value=""]').prop('selected', true);
+            });
+            return;
+        }
+
+        $row.remove();
     });
 
     var $activeTokenTarget = null;
