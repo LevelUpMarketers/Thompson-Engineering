@@ -258,6 +258,10 @@
     border: solid 1px #C3C4C7;
 }
 
+#teqcidb-quiz-list .teqcidb-quiz-question-add {
+    margin-top: 20px;
+}
+
 
 .teqcidb-quiz-question__options {
     margin-top: 12px;
@@ -279,8 +283,8 @@
     width: 100%;
 }
 
-.teqcidb-quiz-question-option-add {
-    margin-top: 10px;
+#teqcidb-quiz-list .teqcidb-quiz-question-option-add {
+    margin-top: 20px;
 }
 
 .teqcidb-quiz-question__actions {

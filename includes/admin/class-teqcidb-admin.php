@@ -2097,38 +2097,6 @@ class TEQCIDB_Admin {
     }
 
 
-    private function get_truncated_question_preview( $question_prompt, $max_length = 60 ) {
-        if ( ! is_scalar( $question_prompt ) ) {
-            return __( 'No question text entered yet.', 'teqcidb' );
-        }
-
-        $preview = trim( sanitize_text_field( (string) $question_prompt ) );
-
-        if ( '' === $preview ) {
-            return __( 'No question text entered yet.', 'teqcidb' );
-        }
-
-        $max_length = absint( $max_length );
-
-        if ( $max_length <= 3 ) {
-            return $preview;
-        }
-
-        if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
-            if ( mb_strlen( $preview ) <= $max_length ) {
-                return $preview;
-            }
-
-            return rtrim( mb_substr( $preview, 0, $max_length - 3 ) ) . '...';
-        }
-
-        if ( strlen( $preview ) <= $max_length ) {
-            return $preview;
-        }
-
-        return rtrim( substr( $preview, 0, $max_length - 3 ) ) . '...';
-    }
-
     private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
         if ( ! is_scalar( $summary ) ) {
             return '';
@@ -2724,7 +2692,7 @@ class TEQCIDB_Admin {
 
                         /* translators: 1: question number, 2: question type label. */
                         $question_title   = sprintf( __( 'Question #%1$d (%2$s)', 'teqcidb' ), $question_number, $question_type_label );
-                        $question_preview = $this->get_truncated_question_preview( $question_prompt, 60 );
+                        $question_preview = '' === trim( sanitize_text_field( $question_prompt ) ) ? __( 'No question text entered yet.', 'teqcidb' ) : sanitize_text_field( $question_prompt );
                         $question_panel_id = 'teqcidb-quiz-' . $quiz_id . '-question-panel-' . $question_id;
 
                         echo '<button type="button" class="teqcidb-quiz-question__summary" aria-expanded="false" aria-controls="' . esc_attr( $question_panel_id ) . '">';
