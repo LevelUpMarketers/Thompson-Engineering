@@ -204,7 +204,7 @@ class TEQCIDB_Ajax {
 
             $quiz_id = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM $quizzes_table WHERE class_id = %d ORDER BY updated_at DESC, id DESC LIMIT 1",
+                    "SELECT id FROM $quizzes_table WHERE FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 ORDER BY updated_at DESC, id DESC LIMIT 1",
                     $class_id
                 )
             );

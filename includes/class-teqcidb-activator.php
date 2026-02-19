@@ -144,7 +144,7 @@ class TEQCIDB_Activator {
 
         $sql_quizzes = "CREATE TABLE $quizzes_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            class_id bigint(20) unsigned DEFAULT NULL,
+            class_id varchar(255) NOT NULL DEFAULT '',
             public_token varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
             status tinyint NOT NULL DEFAULT 2,
@@ -153,7 +153,6 @@ class TEQCIDB_Activator {
             updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY public_token (public_token),
-            KEY class_id (class_id),
             KEY status (status)
         ) $charset_collate;";
 

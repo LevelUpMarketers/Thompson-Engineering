@@ -1032,11 +1032,8 @@ class TEQCIDB_Admin {
 
     private function get_quiz_tooltips() {
         return array(
-            'class_id'      => __( 'Choose the class this quiz belongs to. This value maps to the teqcidb_quizzes.class_id column.', 'teqcidb' ),
-            'name'          => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
-            'public_token'  => __( 'Unique route token used for quiz URLs. Leave this blank to auto-generate one when quiz saves are wired in.', 'teqcidb' ),
-            'status'        => __( 'Numeric status flag stored in teqcidb_quizzes.status. The table defaults to 2 until a different workflow is configured.', 'teqcidb' ),
-            'settings_json' => __( 'Optional JSON configuration for quiz-level settings, such as timer rules or pass thresholds.', 'teqcidb' ),
+            'name'     => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
+            'class_id' => __( 'Select every class that should use this quiz. Selected IDs are saved as a comma-separated list in teqcidb_quizzes.class_id.', 'teqcidb' ),
         );
     }
 
@@ -1393,43 +1390,18 @@ class TEQCIDB_Admin {
 
         return array(
             array(
-                'name'    => 'class_id',
-                'label'   => __( 'Related Class', 'teqcidb' ),
-                'type'    => 'select',
-                'options' => $this->get_quiz_class_options(),
-                'tooltip' => $tooltips['class_id'],
-            ),
-            array(
                 'name'    => 'name',
                 'label'   => __( 'Quiz Name', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['name'],
             ),
             array(
-                'name'    => 'public_token',
-                'label'   => __( 'Public Token', 'teqcidb' ),
-                'type'    => 'text',
-                'tooltip' => $tooltips['public_token'],
-            ),
-            array(
-                'name'    => 'status',
-                'label'   => __( 'Quiz Status', 'teqcidb' ),
-                'type'    => 'select',
-                'options' => array(
-                    ''  => __( 'Make a Selection...', 'teqcidb' ),
-                    '2' => __( '2 (Default)', 'teqcidb' ),
-                    '1' => __( '1', 'teqcidb' ),
-                    '0' => __( '0', 'teqcidb' ),
-                ),
-                'tooltip' => $tooltips['status'],
-            ),
-            array(
-                'name'       => 'settings_json',
-                'label'      => __( 'Settings JSON', 'teqcidb' ),
-                'type'       => 'textarea',
+                'name'       => 'class_id',
+                'label'      => __( 'Related Classes', 'teqcidb' ),
+                'type'       => 'checkboxes',
                 'full_width' => true,
-                'tooltip'    => $tooltips['settings_json'],
-                'attrs'      => ' rows="6" placeholder="{&quot;time_limit_minutes&quot;: 30}"',
+                'options'    => $this->get_quiz_class_options(),
+                'tooltip'    => $tooltips['class_id'],
             ),
         );
     }
@@ -1848,9 +1820,7 @@ class TEQCIDB_Admin {
         $table   = $wpdb->prefix . 'teqcidb_classes';
         $results = $wpdb->get_results( "SELECT id, classname, classstartdate FROM $table ORDER BY classstartdate DESC, classname ASC", ARRAY_A );
 
-        $options = array(
-            '' => __( 'Make a Selection...', 'teqcidb' ),
-        );
+        $options = array();
 
         if ( ! is_array( $results ) ) {
             return $options;
