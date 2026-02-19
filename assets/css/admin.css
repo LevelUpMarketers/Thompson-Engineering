@@ -192,10 +192,45 @@
     margin-top: 12px;
 }
 
+.teqcidb-quiz-question__summary {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    text-align: left;
+    cursor: pointer;
+}
+
+.teqcidb-quiz-question__summary-text {
+    display: grid;
+    gap: 6px;
+}
+
 .teqcidb-quiz-question__title {
     font-weight: 700;
     font-size: 16px;
-    margin: 0 0 10px;
+    margin: 0;
+}
+
+.teqcidb-quiz-question__preview {
+    color: #50575e;
+    font-size: 13px;
+}
+
+.teqcidb-quiz-question__summary-icon {
+    color: #1d2327;
+    transition: transform 0.2s ease;
+}
+
+.teqcidb-quiz-question.is-open .teqcidb-quiz-question__summary-icon {
+    transform: rotate(180deg);
+}
+
+.teqcidb-quiz-question__panel {
+    margin-top: 12px;
 }
 
 .teqcidb-quiz-question .teqcidb-quiz-question__answer-label,

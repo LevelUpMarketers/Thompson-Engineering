@@ -2598,6 +2598,38 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
+    function toggleQuizQuestionAccordion($summary){
+        if (!$summary || !$summary.length){
+            return;
+        }
+
+        var panelId = $summary.attr('aria-controls');
+        var $question = $summary.closest('.teqcidb-quiz-question');
+        var $panel = panelId ? $('#' + panelId) : $question.find('.teqcidb-quiz-question__panel').first();
+        var isOpen = $summary.attr('aria-expanded') === 'true';
+
+        if (!$panel.length){
+            return;
+        }
+
+        if (isOpen){
+            $summary.attr('aria-expanded', 'false');
+            $question.removeClass('is-open');
+            $panel.stop(true, true).slideUp(180, function(){
+                $panel.attr('hidden', 'hidden');
+            });
+        } else {
+            $summary.attr('aria-expanded', 'true');
+            $question.addClass('is-open');
+            $panel.removeAttr('hidden').hide().stop(true, true).slideDown(180);
+        }
+    }
+
+    $(document).on('click', '.teqcidb-quiz-question__summary', function(e){
+        e.preventDefault();
+        toggleQuizQuestionAccordion($(this));
+    });
+
     function handleQuizQuestionSave($question){
         if (!$question || !$question.length){
             return;
