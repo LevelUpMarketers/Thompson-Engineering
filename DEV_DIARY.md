@@ -278,3 +278,4 @@
 275. 2026-02-19: Updated Create a Quiz UI to only require Quiz Name plus Related Classes checkboxes, and updated quiz schema/query handling so teqcidb_quizzes.class_id stores one-or-many class IDs as a comma-separated list consumed via FIND_IN_SET lookups.
 276. 2026-02-19: Implemented Create a Quiz form submission handling via admin-post with nonce/capability checks, CSV class_id persistence, auto-generated unique public_token values, and success/error top-message feedback after redirect.
 277. 2026-02-19: Implemented Edit Quizzes accordion management UI that lists saved quizzes with expandable forms, plus admin-post update handling for editing quiz name and associated class checkboxes with validation and success/error top-message feedback.
+278. 2026-02-19: Truncated the Edit Quizzes accordion Related Classes summary text to 55 characters with ellipsis so long class-association lists remain readable in the table column.

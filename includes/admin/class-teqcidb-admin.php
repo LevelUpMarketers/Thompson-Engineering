@@ -1933,6 +1933,39 @@ class TEQCIDB_Admin {
         return array_values( array_unique( $ids ) );
     }
 
+
+    private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
+        if ( ! is_scalar( $summary ) ) {
+            return '';
+        }
+
+        $summary = trim( sanitize_text_field( (string) $summary ) );
+
+        if ( '' === $summary ) {
+            return '';
+        }
+
+        $max_length = absint( $max_length );
+
+        if ( $max_length <= 3 ) {
+            return $summary;
+        }
+
+        if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+            if ( mb_strlen( $summary ) <= $max_length ) {
+                return $summary;
+            }
+
+            return rtrim( mb_substr( $summary, 0, $max_length - 3 ) ) . '...';
+        }
+
+        if ( strlen( $summary ) <= $max_length ) {
+            return $summary;
+        }
+
+        return rtrim( substr( $summary, 0, $max_length - 3 ) ) . '...';
+    }
+
     private function get_student_history_class_map() {
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_classes';
@@ -2414,6 +2447,7 @@ class TEQCIDB_Admin {
                 }
 
                 $summary_classes = empty( $selected_labels ) ? __( 'No classes selected', 'teqcidb' ) : implode( ', ', $selected_labels );
+                $summary_classes = $this->get_truncated_quiz_class_summary( $summary_classes, 55 );
                 $panel_id        = 'teqcidb-quiz-panel-' . $quiz_id;
 
                 echo '<tr class="teqcidb-accordion__summary-row" tabindex="0" role="button" aria-expanded="false" aria-controls="' . esc_attr( $panel_id ) . '">';
