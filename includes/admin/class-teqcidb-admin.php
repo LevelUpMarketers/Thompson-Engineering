@@ -14,6 +14,7 @@ class TEQCIDB_Admin {
         add_action( 'admin_post_teqcidb_delete_cron_event', array( $this, 'handle_delete_cron_event' ) );
         add_action( 'admin_post_teqcidb_download_email_log', array( $this, 'handle_download_email_log' ) );
         add_action( 'admin_post_teqcidb_delete_generated_content', array( $this, 'handle_delete_generated_content' ) );
+        add_action( 'admin_post_teqcidb_save_quiz', array( $this, 'handle_save_quiz' ) );
     }
 
     public function add_menu() {
@@ -1206,6 +1207,8 @@ class TEQCIDB_Admin {
         $title       = isset( $tab_titles[ $active_tab ] ) ? $tab_titles[ $active_tab ] : '';
         $description = isset( $tab_descriptions[ $active_tab ] ) ? $tab_descriptions[ $active_tab ] : '';
 
+        $this->render_quiz_top_message();
+
         $this->render_tab_intro( $title, $description );
 
         if ( 'edit' === $active_tab ) {
@@ -1215,6 +1218,41 @@ class TEQCIDB_Admin {
         }
 
         echo '</div>';
+    }
+
+    private function render_quiz_top_message() {
+        $message_key = isset( $_GET['teqcidb_quiz_message'] ) ? sanitize_key( wp_unslash( $_GET['teqcidb_quiz_message'] ) ) : '';
+
+        if ( '' === $message_key ) {
+            return;
+        }
+
+        $messages = array(
+            'created' => array(
+                'class' => 'notice notice-success is-dismissible teqcidb-top-message',
+                'text'  => __( 'Quiz saved successfully.', 'teqcidb' ),
+            ),
+            'missing_name' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Please enter a quiz name before saving.', 'teqcidb' ),
+            ),
+            'missing_classes' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Please select at least one related class.', 'teqcidb' ),
+            ),
+            'save_failed' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Unable to save this quiz right now. Please try again.', 'teqcidb' ),
+            ),
+        );
+
+        if ( ! isset( $messages[ $message_key ] ) ) {
+            return;
+        }
+
+        $message = $messages[ $message_key ];
+
+        echo '<div class="' . esc_attr( $message['class'] ) . '"><p>' . esc_html( $message['text'] ) . '</p></div>';
     }
 
     private function get_student_fields() {
@@ -2174,12 +2212,121 @@ class TEQCIDB_Admin {
 
     private function render_quiz_create_tab() {
         $fields = $this->get_quiz_fields();
+        echo '<form id="teqcidb-quiz-create-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="teqcidb_save_quiz" />';
+        wp_nonce_field( 'teqcidb_save_quiz', 'teqcidb_save_quiz_nonce' );
+        echo '<div class="teqcidb-flex-form">';
 
-        $this->render_entity_form(
-            $fields,
-            'teqcidb-quiz-create-form',
-            __( 'Save Quiz', 'teqcidb' )
+        foreach ( $fields as $field ) {
+            $classes = 'teqcidb-field';
+
+            if ( ! empty( $field['full_width'] ) ) {
+                $classes .= ' teqcidb-field-full';
+            }
+
+            $tooltip = isset( $field['tooltip'] ) ? $field['tooltip'] : '';
+
+            echo '<div class="' . esc_attr( $classes ) . '">';
+            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $tooltip ) . '"></span>' . esc_html( $field['label'] ) . '</label>';
+
+            if ( 'checkboxes' === $field['type'] ) {
+                echo '<fieldset class="teqcidb-checkbox-group">';
+
+                if ( ! empty( $field['options'] ) ) {
+                    foreach ( $field['options'] as $value => $option_label ) {
+                        $input_id = $field['name'] . '-' . sanitize_html_class( (string) $value );
+                        echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
+                        echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $field['name'] ) . '[]" value="' . esc_attr( $value ) . '" /> ';
+                        echo esc_html( $option_label );
+                        echo '</label>';
+                    }
+                }
+
+                echo '</fieldset>';
+            } else {
+                echo '<input type="text" name="' . esc_attr( $field['name'] ) . '" />';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '<p class="submit">';
+        echo get_submit_button( __( 'Save Quiz', 'teqcidb' ), 'primary', 'submit', false );
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span id="teqcidb-spinner" class="spinner" aria-hidden="true"></span><span id="teqcidb-feedback" role="status" aria-live="polite"></span></span>';
+        echo '</p>';
+        echo '</form>';
+    }
+
+    public function handle_save_quiz() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Insufficient permissions.', 'teqcidb' ) );
+        }
+
+        check_admin_referer( 'teqcidb_save_quiz', 'teqcidb_save_quiz_nonce' );
+
+        $redirect = add_query_arg(
+            array(
+                'page' => 'teqcidb-quizzes',
+                'tab'  => 'create',
+            ),
+            admin_url( 'admin.php' )
         );
+
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( '' === $name ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_name', $redirect ) );
+            exit;
+        }
+
+        $class_ids_raw = isset( $_POST['class_id'] ) ? (array) wp_unslash( $_POST['class_id'] ) : array();
+        $class_ids     = array();
+
+        foreach ( $class_ids_raw as $class_id_raw ) {
+            $class_id = absint( $class_id_raw );
+
+            if ( $class_id > 0 ) {
+                $class_ids[] = $class_id;
+            }
+        }
+
+        $class_ids = array_values( array_unique( $class_ids ) );
+
+        if ( empty( $class_ids ) ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_classes', $redirect ) );
+            exit;
+        }
+
+        $class_ids_csv = implode( ',', $class_ids );
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_quizzes';
+
+        $public_token = wp_generate_password( 32, false, false );
+
+        while ( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE public_token = %s LIMIT 1", $public_token ) ) ) {
+            $public_token = wp_generate_password( 32, false, false );
+        }
+
+        $inserted = $wpdb->insert(
+            $table,
+            array(
+                'class_id'     => $class_ids_csv,
+                'public_token' => $public_token,
+                'name'         => $name,
+                'status'       => 2,
+                'settings_json'=> '',
+            ),
+            array( '%s', '%s', '%s', '%d', '%s' )
+        );
+
+        if ( false === $inserted ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'save_failed', $redirect ) );
+            exit;
+        }
+
+        wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'created', $redirect ) );
+        exit;
     }
 
     private function render_quiz_edit_tab() {
