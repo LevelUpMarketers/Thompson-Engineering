@@ -47,6 +47,15 @@ class TEQCIDB_Admin {
 
         add_submenu_page(
             'teqcidb-student',
+            __( 'Quizzes', 'teqcidb' ),
+            __( 'Quizzes', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-quizzes',
+            array( $this, 'render_quizzes_page' )
+        );
+
+        add_submenu_page(
+            'teqcidb-student',
             __( 'Communications', 'teqcidb' ),
             __( 'Communications', 'teqcidb' ),
             'manage_options',
@@ -1021,6 +1030,16 @@ class TEQCIDB_Admin {
         );
     }
 
+    private function get_quiz_tooltips() {
+        return array(
+            'class_id'      => __( 'Choose the class this quiz belongs to. This value maps to the teqcidb_quizzes.class_id column.', 'teqcidb' ),
+            'name'          => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
+            'public_token'  => __( 'Unique route token used for quiz URLs. Leave this blank to auto-generate one when quiz saves are wired in.', 'teqcidb' ),
+            'status'        => __( 'Numeric status flag stored in teqcidb_quizzes.status. The table defaults to 2 until a different workflow is configured.', 'teqcidb' ),
+            'settings_json' => __( 'Optional JSON configuration for quiz-level settings, such as timer rules or pass thresholds.', 'teqcidb' ),
+        );
+    }
+
     private function render_tab_intro( $title, $description ) {
         if ( empty( $title ) && empty( $description ) ) {
             return;
@@ -1159,6 +1178,43 @@ class TEQCIDB_Admin {
             $this->render_edit_tab();
         } else {
             $this->render_create_tab();
+        }
+
+        echo '</div>';
+    }
+
+
+    public function render_quizzes_page() {
+        $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'create';
+        echo '<div class="wrap"><h1>' . esc_html__( 'Quizzes', 'teqcidb' ) . '</h1>';
+        echo '<h2 class="nav-tab-wrapper">';
+        echo '<a href="?page=teqcidb-quizzes&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Quiz', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-quizzes&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Quizzes', 'teqcidb' ) . '</a>';
+        echo '</h2>';
+
+        $tab_titles = array(
+            'create' => __( 'Create a Quiz', 'teqcidb' ),
+            'edit'   => __( 'Edit Quizzes', 'teqcidb' ),
+        );
+
+        $tab_descriptions = array(
+            'create' => __( 'Define the quiz record metadata now so questions and delivery workflows can be connected in upcoming updates.', 'teqcidb' ),
+            'edit'   => __( 'Review existing quizzes and open each record for future editing and question-management actions.', 'teqcidb' ),
+        );
+
+        if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
+            $active_tab = 'create';
+        }
+
+        $title       = isset( $tab_titles[ $active_tab ] ) ? $tab_titles[ $active_tab ] : '';
+        $description = isset( $tab_descriptions[ $active_tab ] ) ? $tab_descriptions[ $active_tab ] : '';
+
+        $this->render_tab_intro( $title, $description );
+
+        if ( 'edit' === $active_tab ) {
+            $this->render_quiz_edit_tab();
+        } else {
+            $this->render_quiz_create_tab();
         }
 
         echo '</div>';
@@ -1327,6 +1383,53 @@ class TEQCIDB_Admin {
                 'full_width' => true,
                 'tooltip'    => $tooltips['comments'],
                 'attrs'      => ' rows="4"',
+            ),
+        );
+    }
+
+
+    private function get_quiz_fields() {
+        $tooltips = $this->get_quiz_tooltips();
+
+        return array(
+            array(
+                'name'    => 'class_id',
+                'label'   => __( 'Related Class', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $this->get_quiz_class_options(),
+                'tooltip' => $tooltips['class_id'],
+            ),
+            array(
+                'name'    => 'name',
+                'label'   => __( 'Quiz Name', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['name'],
+            ),
+            array(
+                'name'    => 'public_token',
+                'label'   => __( 'Public Token', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['public_token'],
+            ),
+            array(
+                'name'    => 'status',
+                'label'   => __( 'Quiz Status', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => array(
+                    ''  => __( 'Make a Selection...', 'teqcidb' ),
+                    '2' => __( '2 (Default)', 'teqcidb' ),
+                    '1' => __( '1', 'teqcidb' ),
+                    '0' => __( '0', 'teqcidb' ),
+                ),
+                'tooltip' => $tooltips['status'],
+            ),
+            array(
+                'name'       => 'settings_json',
+                'label'      => __( 'Settings JSON', 'teqcidb' ),
+                'type'       => 'textarea',
+                'full_width' => true,
+                'tooltip'    => $tooltips['settings_json'],
+                'attrs'      => ' rows="6" placeholder="{&quot;time_limit_minutes&quot;: 30}"',
             ),
         );
     }
@@ -1738,6 +1841,44 @@ class TEQCIDB_Admin {
         return $options;
     }
 
+
+    private function get_quiz_class_options() {
+        global $wpdb;
+
+        $table   = $wpdb->prefix . 'teqcidb_classes';
+        $results = $wpdb->get_results( "SELECT id, classname, classstartdate FROM $table ORDER BY classstartdate DESC, classname ASC", ARRAY_A );
+
+        $options = array(
+            '' => __( 'Make a Selection...', 'teqcidb' ),
+        );
+
+        if ( ! is_array( $results ) ) {
+            return $options;
+        }
+
+        foreach ( $results as $row ) {
+            $class_id   = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+            $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
+
+            if ( $class_id <= 0 || '' === $class_name ) {
+                continue;
+            }
+
+            $class_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+
+            if ( '' !== $class_date ) {
+                /* translators: 1: class name, 2: class start date. */
+                $label = sprintf( __( '%1$s (%2$s)', 'teqcidb' ), $class_name, $class_date );
+            } else {
+                $label = $class_name;
+            }
+
+            $options[ (string) $class_id ] = $label;
+        }
+
+        return $options;
+    }
+
     private function get_student_history_class_map() {
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_classes';
@@ -2058,6 +2199,87 @@ class TEQCIDB_Admin {
             'teqcidb-class-create-form',
             __( 'Save Class', 'teqcidb' )
         );
+    }
+
+
+    private function render_quiz_create_tab() {
+        $fields = $this->get_quiz_fields();
+
+        $this->render_entity_form(
+            $fields,
+            'teqcidb-quiz-create-form',
+            __( 'Save Quiz', 'teqcidb' )
+        );
+    }
+
+    private function render_quiz_edit_tab() {
+        $per_page     = 10;
+        $column_count = 5;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
+        echo '<div class="teqcidb-entity-search" role="search">';
+        echo '<form id="teqcidb-quiz-search" class="teqcidb-entity-search__form" method="post">';
+        echo '<h3 class="teqcidb-entity-search__title">' . esc_html__( 'Search Quizzes', 'teqcidb' ) . '</h3>';
+        echo '<p class="teqcidb-entity-search__description">' . esc_html__( 'Filter quiz records by quiz name, class, or status to find the item you need.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-entity-search__fields">';
+
+        $search_fields = array(
+            array(
+                'key'   => 'quiz_name',
+                'label' => __( 'Quiz Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'class_name',
+                'label' => __( 'Class Name', 'teqcidb' ),
+            ),
+            array(
+                'key'   => 'quiz_status',
+                'label' => __( 'Status', 'teqcidb' ),
+            ),
+        );
+
+        foreach ( $search_fields as $field ) {
+            $field_id = 'teqcidb-quiz-search-' . $field['key'];
+
+            echo '<div class="teqcidb-entity-search__field">';
+            echo '<label class="teqcidb-entity-search__label" for="' . esc_attr( $field_id ) . '">';
+            echo esc_html( $field['label'] );
+            echo '</label>';
+            echo '<input type="text" id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $field['key'] ) . '" class="regular-text" />';
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__actions">';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-quiz-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+        echo '<span id="teqcidb-quiz-search-spinner" class="spinner" aria-hidden="true"></span>';
+        echo '<span id="teqcidb-quiz-search-feedback" role="status" aria-live="polite"></span>';
+        echo '</span>';
+        echo '</div>';
+        echo '</form>';
+        echo '</div>';
+
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="quizzes">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--quiz-name">' . esc_html__( 'Quiz Name', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Class', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--quiz-status">' . esc_html__( 'Status', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--updated">' . esc_html__( 'Last Updated', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+        printf(
+            '<tbody id="teqcidb-quiz-list" data-per-page="%1$d" data-column-count="%2$d"></tbody>',
+            absint( $per_page ),
+            absint( $column_count )
+        );
+        echo '</table>';
+        echo '</div>';
+        echo '<div class="tablenav"><div id="teqcidb-quiz-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-quiz-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }
 
     private function render_class_edit_tab() {
