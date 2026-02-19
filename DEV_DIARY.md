@@ -279,3 +279,4 @@
 276. 2026-02-19: Implemented Create a Quiz form submission handling via admin-post with nonce/capability checks, CSV class_id persistence, auto-generated unique public_token values, and success/error top-message feedback after redirect.
 277. 2026-02-19: Implemented Edit Quizzes accordion management UI that lists saved quizzes with expandable forms, plus admin-post update handling for editing quiz name and associated class checkboxes with validation and success/error top-message feedback.
 278. 2026-02-19: Truncated the Edit Quizzes accordion Related Classes summary text to 55 characters with ellipsis so long class-association lists remain readable in the table column.
+279. 2026-02-19: Added initial Quiz Questions management scaffolding inside each Edit Quizzes accordion panel, including per-quiz question-count detection from teqcidb_quiz_questions, no-questions empty-state messaging, and an Add Quiz Question button for upcoming authoring workflows.

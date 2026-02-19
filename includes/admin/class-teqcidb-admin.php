@@ -1933,6 +1933,44 @@ class TEQCIDB_Admin {
         return array_values( array_unique( $ids ) );
     }
 
+    private function get_quiz_question_count_map( array $quiz_ids ) {
+        global $wpdb;
+
+        $quiz_ids = array_values( array_filter( array_map( 'absint', $quiz_ids ) ) );
+
+        if ( empty( $quiz_ids ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $quiz_ids ), '%d' ) );
+        $table        = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+        $query = $wpdb->prepare(
+            "SELECT quiz_id, COUNT(*) AS total FROM $table WHERE quiz_id IN ($placeholders) GROUP BY quiz_id",
+            $quiz_ids
+        );
+
+        $results = $wpdb->get_results( $query, ARRAY_A );
+        $map     = array();
+
+        if ( ! is_array( $results ) ) {
+            return $map;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+            $total   = isset( $row['total'] ) ? absint( $row['total'] ) : 0;
+
+            if ( $quiz_id <= 0 ) {
+                continue;
+            }
+
+            $map[ $quiz_id ] = $total;
+        }
+
+        return $map;
+    }
+
 
     private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
         if ( ! is_scalar( $summary ) ) {
@@ -2412,6 +2450,17 @@ class TEQCIDB_Admin {
         $quizzes      = $this->get_saved_quizzes();
         $class_map    = $this->get_quiz_class_options();
         $column_count = 4;
+        $quiz_ids     = array();
+
+        foreach ( $quizzes as $quiz ) {
+            $quiz_id = isset( $quiz['id'] ) ? absint( $quiz['id'] ) : 0;
+
+            if ( $quiz_id > 0 ) {
+                $quiz_ids[] = $quiz_id;
+            }
+        }
+
+        $question_count_map = $this->get_quiz_question_count_map( $quiz_ids );
 
         echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
         echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="quizzes">';
@@ -2487,6 +2536,23 @@ class TEQCIDB_Admin {
                 echo '</div>';
 
                 echo '</div>';
+
+                $question_count = isset( $question_count_map[ $quiz_id ] ) ? absint( $question_count_map[ $quiz_id ] ) : 0;
+
+                echo '<div class="teqcidb-quiz-questions" data-quiz-id="' . esc_attr( $quiz_id ) . '">';
+                echo '<h4 class="teqcidb-quiz-questions__title">' . esc_html__( 'Quiz Questions', 'teqcidb' ) . '</h4>';
+
+                if ( $question_count > 0 ) {
+                    /* translators: %d: number of saved quiz questions. */
+                    $question_count_text = sprintf( _n( 'This quiz currently has %d saved question.', 'This quiz currently has %d saved questions.', $question_count, 'teqcidb' ), $question_count );
+                    echo '<p class="description teqcidb-quiz-questions__count">' . esc_html( $question_count_text ) . '</p>';
+                } else {
+                    echo '<p class="description teqcidb-quiz-questions__empty">' . esc_html__( 'No questions found for this quiz.', 'teqcidb' ) . '</p>';
+                }
+
+                echo '<button type="button" class="button button-secondary teqcidb-quiz-question-add">' . esc_html__( 'Add Quiz Question', 'teqcidb' ) . '</button>';
+                echo '</div>';
+
                 echo '<p class="submit">';
                 echo get_submit_button( __( 'Save Changes', 'teqcidb' ), 'primary', 'submit', false );
                 echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span class="spinner" aria-hidden="true"></span><span role="status" aria-live="polite"></span></span>';
