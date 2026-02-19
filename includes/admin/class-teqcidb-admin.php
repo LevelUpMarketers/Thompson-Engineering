@@ -1984,7 +1984,7 @@ class TEQCIDB_Admin {
         $table        = $wpdb->prefix . 'teqcidb_quiz_questions';
 
         $query = $wpdb->prepare(
-            "SELECT id, quiz_id, type, prompt, sort_order FROM $table WHERE quiz_id IN ($placeholders) ORDER BY quiz_id ASC, sort_order ASC, id ASC",
+            "SELECT id, quiz_id, type, prompt, choices_json, sort_order FROM $table WHERE quiz_id IN ($placeholders) ORDER BY quiz_id ASC, sort_order ASC, id ASC",
             $quiz_ids
         );
 
@@ -2010,6 +2010,7 @@ class TEQCIDB_Admin {
                 'id'        => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
                 'type'      => isset( $row['type'] ) ? sanitize_key( (string) $row['type'] ) : '',
                 'prompt'    => isset( $row['prompt'] ) ? (string) $row['prompt'] : '',
+                'choices_json' => isset( $row['choices_json'] ) ? (string) $row['choices_json'] : '',
                 'sort_order'=> isset( $row['sort_order'] ) ? absint( $row['sort_order'] ) : 0,
             );
         }
@@ -2030,6 +2031,26 @@ class TEQCIDB_Admin {
             default:
                 return __( 'Question', 'teqcidb' );
         }
+    }
+
+    private function get_true_false_answer_from_choices_json( $choices_json ) {
+        if ( ! is_scalar( $choices_json ) ) {
+            return '';
+        }
+
+        $decoded = json_decode( (string) $choices_json, true );
+
+        if ( ! is_array( $decoded ) || empty( $decoded[0] ) || ! is_array( $decoded[0] ) || ! isset( $decoded[0]['correct'] ) ) {
+            return '';
+        }
+
+        $value = strtolower( sanitize_text_field( (string) $decoded[0]['correct'] ) );
+
+        if ( 'true' === $value || 'false' === $value ) {
+            return $value;
+        }
+
+        return '';
     }
 
 
@@ -2616,6 +2637,7 @@ class TEQCIDB_Admin {
                         $question_type       = isset( $question['type'] ) ? $question['type'] : '';
                         $question_type_label = $this->get_quiz_question_type_label( $question_type );
                         $question_prompt     = isset( $question['prompt'] ) ? (string) $question['prompt'] : '';
+                        $question_choices_json = isset( $question['choices_json'] ) ? $question['choices_json'] : '';
 
                         if ( $question_id <= 0 ) {
                             continue;
@@ -2630,6 +2652,18 @@ class TEQCIDB_Admin {
                         echo '<input type="hidden" name="question_ids[]" value="' . esc_attr( $question_id ) . '" />';
                         echo '<label class="screen-reader-text" for="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '">' . esc_html__( 'Question prompt', 'teqcidb' ) . '</label>';
                         echo '<textarea id="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '" name="question_prompt[' . esc_attr( $question_id ) . ']" rows="4" class="widefat">' . esc_textarea( $question_prompt ) . '</textarea>';
+
+                        if ( 'true_false' === $question_type ) {
+                            $true_false_value = $this->get_true_false_answer_from_choices_json( $question_choices_json );
+
+                            echo '<p class="teqcidb-quiz-question__answer-label"><strong>' . esc_html__( 'Select an Answer', 'teqcidb' ) . '</strong></p>';
+                            echo '<select name="question_correct[' . esc_attr( $question_id ) . ']">';
+                            echo '<option value="" disabled ' . selected( '', $true_false_value, false ) . '>' . esc_html__( 'Choose True or False...', 'teqcidb' ) . '</option>';
+                            echo '<option value="true" ' . selected( 'true', $true_false_value, false ) . '>' . esc_html__( 'True', 'teqcidb' ) . '</option>';
+                            echo '<option value="false" ' . selected( 'false', $true_false_value, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
+                            echo '</select>';
+                        }
+
                         echo '</div>';
                     }
                 } else {
@@ -2726,6 +2760,7 @@ class TEQCIDB_Admin {
 
         $question_ids_raw = isset( $_POST['question_ids'] ) ? (array) wp_unslash( $_POST['question_ids'] ) : array();
         $question_prompts = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
+        $question_correct = isset( $_POST['question_correct'] ) ? (array) wp_unslash( $_POST['question_correct'] ) : array();
 
         if ( ! empty( $question_ids_raw ) && ! empty( $question_prompts ) ) {
             $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
@@ -2754,6 +2789,44 @@ class TEQCIDB_Admin {
                     array( '%s' ),
                     array( '%d', '%d' )
                 );
+
+                if ( isset( $question_correct[ $question_id ] ) || isset( $question_correct[ (string) $question_id ] ) ) {
+                    $correct_value_raw = isset( $question_correct[ $question_id ] ) ? $question_correct[ $question_id ] : $question_correct[ (string) $question_id ];
+                    $correct_value     = strtolower( sanitize_text_field( (string) $correct_value_raw ) );
+
+                    if ( 'true' === $correct_value || 'false' === $correct_value ) {
+                        $question_type = $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT type FROM $questions_table WHERE id = %d AND quiz_id = %d LIMIT 1",
+                                $question_id,
+                                $quiz_id
+                            )
+                        );
+
+                        if ( 'true_false' === sanitize_key( (string) $question_type ) ) {
+                            $choices_json = wp_json_encode(
+                                array(
+                                    array(
+                                        'correct' => $correct_value,
+                                    ),
+                                )
+                            );
+
+                            if ( $choices_json ) {
+                                $wpdb->update(
+                                    $questions_table,
+                                    array( 'choices_json' => $choices_json ),
+                                    array(
+                                        'id'      => $question_id,
+                                        'quiz_id' => $quiz_id,
+                                    ),
+                                    array( '%s' ),
+                                    array( '%d', '%d' )
+                                );
+                            }
+                        }
+                    }
+                }
             }
         }
 
