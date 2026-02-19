@@ -205,6 +205,24 @@
     font-weight: 600;
 }
 
+#teqcidb-quiz-list .teqcidb-checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 20px;
+}
+
+#teqcidb-quiz-list .teqcidb-checkbox-group label {
+    min-height: 65px !important;
+    align-items: baseline;
+}
+
+#teqcidb-quiz-list .teqcidb-field.teqcidb-field-full {
+    background-color: #fff;
+    padding: 10px 15px 20px 15px;
+    border-radius: 10px;
+    border: solid 1px #C3C4C7;
+}
+
 .teqcidb-restore-highlight {
     animation: teqcidb-restore-highlight 1.6s ease-out;
 }
