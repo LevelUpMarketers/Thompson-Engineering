@@ -2608,6 +2608,17 @@ jQuery(document).ready(function($){
         var questionType = String($question.find('.teqcidb-quiz-question__type').val() || '').toLowerCase();
         var prompt = $question.find('textarea[name^="question_prompt["]').val() || '';
         var correct = $question.find('select[name^="question_correct["]').val() || '';
+        var optionIds = [];
+        var optionLabels = [];
+        var optionCorrect = [];
+        var payload = {
+            action: 'teqcidb_save_quiz_question',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            question_id: questionId,
+            question_type: questionType,
+            prompt: prompt
+        };
         var $spinner = $question.find('.teqcidb-quiz-question-spinner');
         var $feedback = $question.find('.teqcidb-quiz-question-feedback');
         var $buttons = $question.find('.teqcidb-quiz-question-save, .teqcidb-quiz-question-delete');
@@ -2619,16 +2630,49 @@ jQuery(document).ready(function($){
             return;
         }
 
-        if (questionType !== 'true_false'){
+        if (questionType === 'true_false'){
+            if (correct !== 'true' && correct !== 'false'){
+                if ($feedback.length){
+                    $feedback.text(teqcidbAdmin.quizQuestionAnswerRequired || teqcidbAdmin.error || '').addClass('is-visible');
+                }
+                return;
+            }
+
+            payload.correct = correct;
+        } else if (questionType === 'multi_select'){
+            $question.find('.teqcidb-quiz-question-option-row').each(function(index){
+                var $row = $(this);
+                var choiceId = String($row.find('.teqcidb-quiz-question-option-id').val() || '').trim();
+                var label = String($row.find('.teqcidb-quiz-question-option-label').val() || '').trim();
+                var isCorrect = String($row.find('.teqcidb-quiz-question-option-correct').val() || 'false').toLowerCase();
+
+                if (!choiceId){
+                    choiceId = 'choice_' + (index + 1);
+                    $row.find('.teqcidb-quiz-question-option-id').val(choiceId);
+                }
+
+                if (!label){
+                    return;
+                }
+
+                optionIds.push(choiceId);
+                optionLabels.push(label);
+                optionCorrect.push(isCorrect === 'true' ? 'true' : 'false');
+            });
+
+            if (!optionLabels.length){
+                if ($feedback.length){
+                    $feedback.text(teqcidbAdmin.quizQuestionMultiSelectOptionRequired || teqcidbAdmin.error || '').addClass('is-visible');
+                }
+                return;
+            }
+
+            payload.option_ids = optionIds;
+            payload.option_labels = optionLabels;
+            payload.option_correct = optionCorrect;
+        } else {
             if ($feedback.length){
                 $feedback.text(teqcidbAdmin.quizQuestionUnsupportedType || teqcidbAdmin.error || '').addClass('is-visible');
-            }
-            return;
-        }
-
-        if (correct !== 'true' && correct !== 'false'){
-            if ($feedback.length){
-                $feedback.text(teqcidbAdmin.quizQuestionAnswerRequired || teqcidbAdmin.error || '').addClass('is-visible');
             }
             return;
         }
@@ -2643,15 +2687,7 @@ jQuery(document).ready(function($){
 
         $buttons.prop('disabled', true);
 
-        $.post(teqcidbAjax.ajaxurl, {
-            action: 'teqcidb_save_quiz_question',
-            _ajax_nonce: teqcidbAjax.nonce,
-            quiz_id: quizId,
-            question_id: questionId,
-            question_type: questionType,
-            prompt: prompt,
-            correct: correct
-        })
+        $.post(teqcidbAjax.ajaxurl, payload)
             .done(function(resp){
                 if (resp && resp.success){
                     var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizQuestionSaved || '');
@@ -2679,6 +2715,34 @@ jQuery(document).ready(function($){
                 }
             });
     }
+
+    $(document).on('click', '.teqcidb-quiz-question-option-add', function(e){
+        e.preventDefault();
+        var $question = $(this).closest('.teqcidb-quiz-question');
+        var questionId = parseInt($question.data('question-id'), 10) || 0;
+        var $options = $question.find('.teqcidb-quiz-question-options');
+        var nextIndex = $options.find('.teqcidb-quiz-question-option-row').length + 1;
+        var optionId = 'choice_' + nextIndex;
+        var optionInputId = 'teqcidb-quiz-question-' + questionId + '-option-' + optionId;
+        var rowHtml = '';
+
+        rowHtml += '<div class="teqcidb-quiz-question-option-row" data-option-row="' + optionId + '">';
+        rowHtml += '<textarea rows="2" class="widefat teqcidb-quiz-question-option-label" name="question_option_label[' + questionId + '][]" placeholder="' + (teqcidbAdmin.quizQuestionOptionPlaceholder || 'Enter answer option text…') + '"></textarea>';
+        rowHtml += '<div class="teqcidb-quiz-question-option-meta">';
+        rowHtml += '<input type="hidden" class="teqcidb-quiz-question-option-id" name="question_option_id[' + questionId + '][]" value="' + optionId + '" />';
+        rowHtml += '<label class="screen-reader-text" for="' + optionInputId + '">' + (teqcidbAdmin.quizQuestionOptionCorrectLabel || 'Select whether this answer option is correct') + '</label>';
+        rowHtml += '<select id="' + optionInputId + '" class="teqcidb-quiz-question-option-correct" name="question_option_correct[' + questionId + '][]">';
+        rowHtml += '<option value="true">' + (teqcidbAdmin.trueLabel || 'True') + '</option>';
+        rowHtml += '<option value="false" selected="selected">' + (teqcidbAdmin.falseLabel || 'False') + '</option>';
+        rowHtml += '</select>';
+        rowHtml += '</div>';
+        rowHtml += '</div>';
+
+        if ($options.length){
+            $options.append(rowHtml);
+            $options.find('.teqcidb-quiz-question-option-row:last .teqcidb-quiz-question-option-label').trigger('focus');
+        }
+    });
 
     $(document).on('click', '.teqcidb-quiz-question-save', function(e){
         e.preventDefault();

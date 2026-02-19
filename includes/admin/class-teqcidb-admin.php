@@ -816,6 +816,11 @@ class TEQCIDB_Admin {
             'quizQuestionDeletePending' => __( 'Delete functionality is coming soon.', 'teqcidb' ),
             'quizQuestionUnsupportedType' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
             'quizQuestionAnswerRequired' => __( 'Select True or False before saving this question.', 'teqcidb' ),
+            'quizQuestionMultiSelectOptionRequired' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
+            'quizQuestionOptionPlaceholder' => __( 'Enter answer option text…', 'teqcidb' ),
+            'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
+            'trueLabel' => __( 'True', 'teqcidb' ),
+            'falseLabel' => __( 'False', 'teqcidb' ),
         ) );
     }
 
@@ -2057,6 +2062,40 @@ class TEQCIDB_Admin {
         return '';
     }
 
+    private function get_multi_select_choices_from_choices_json( $choices_json ) {
+        if ( ! is_scalar( $choices_json ) ) {
+            return array();
+        }
+
+        $decoded = json_decode( (string) $choices_json, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return array();
+        }
+
+        $choices = array();
+
+        foreach ( $decoded as $index => $item ) {
+            if ( ! is_array( $item ) ) {
+                continue;
+            }
+
+            $choice_id = isset( $item['id'] ) ? sanitize_key( (string) $item['id'] ) : 'choice_' . ( $index + 1 );
+
+            if ( '' === $choice_id ) {
+                $choice_id = 'choice_' . ( $index + 1 );
+            }
+
+            $choices[] = array(
+                'id'      => $choice_id,
+                'label'   => isset( $item['label'] ) ? sanitize_textarea_field( (string) $item['label'] ) : '',
+                'correct' => ! empty( $item['correct'] ),
+            );
+        }
+
+        return $choices;
+    }
+
 
     private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
         if ( ! is_scalar( $summary ) ) {
@@ -2668,6 +2707,50 @@ class TEQCIDB_Admin {
                             echo '<option value="true" ' . selected( 'true', $true_false_value, false ) . '>' . esc_html__( 'True', 'teqcidb' ) . '</option>';
                             echo '<option value="false" ' . selected( 'false', $true_false_value, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
                             echo '</select>';
+                        }
+
+                        if ( 'multi_select' === $question_type ) {
+                            $multi_select_choices = $this->get_multi_select_choices_from_choices_json( $question_choices_json );
+
+                            if ( empty( $multi_select_choices ) ) {
+                                $multi_select_choices = array(
+                                    array(
+                                        'id'      => 'choice_1',
+                                        'label'   => '',
+                                        'correct' => false,
+                                    ),
+                                );
+                            }
+
+                            echo '<div class="teqcidb-quiz-question__options" data-question-id="' . esc_attr( $question_id ) . '">';
+                            echo '<p class="teqcidb-quiz-question__answer-label"><strong>' . esc_html__( 'Possible Answers', 'teqcidb' ) . '</strong></p>';
+                            echo '<div class="teqcidb-quiz-question-options">';
+
+                            foreach ( $multi_select_choices as $choice_index => $choice ) {
+                                $choice_key     = isset( $choice['id'] ) ? sanitize_key( (string) $choice['id'] ) : 'choice_' . ( $choice_index + 1 );
+                                $choice_label   = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+                                $choice_correct = ! empty( $choice['correct'] ) ? 'true' : 'false';
+
+                                if ( '' === $choice_key ) {
+                                    $choice_key = 'choice_' . ( $choice_index + 1 );
+                                }
+
+                                echo '<div class="teqcidb-quiz-question-option-row" data-option-row="' . esc_attr( $choice_key ) . '">';
+                                echo '<textarea rows="2" class="widefat teqcidb-quiz-question-option-label" name="question_option_label[' . esc_attr( $question_id ) . '][]" placeholder="' . esc_attr__( 'Enter answer option text…', 'teqcidb' ) . '">' . esc_textarea( $choice_label ) . '</textarea>';
+                                echo '<div class="teqcidb-quiz-question-option-meta">';
+                                echo '<input type="hidden" class="teqcidb-quiz-question-option-id" name="question_option_id[' . esc_attr( $question_id ) . '][]" value="' . esc_attr( $choice_key ) . '" />';
+                                echo '<label class="screen-reader-text" for="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '-option-' . esc_attr( $choice_key ) . '">' . esc_html__( 'Select whether this answer option is correct', 'teqcidb' ) . '</label>';
+                                echo '<select id="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '-option-' . esc_attr( $choice_key ) . '" class="teqcidb-quiz-question-option-correct" name="question_option_correct[' . esc_attr( $question_id ) . '][]">';
+                                echo '<option value="true" ' . selected( 'true', $choice_correct, false ) . '>' . esc_html__( 'True', 'teqcidb' ) . '</option>';
+                                echo '<option value="false" ' . selected( 'false', $choice_correct, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
+                                echo '</select>';
+                                echo '</div>';
+                                echo '</div>';
+                            }
+
+                            echo '</div>';
+                            echo '<button type="button" class="button button-secondary teqcidb-quiz-question-option-add">' . esc_html__( 'Add Another Answer', 'teqcidb' ) . '</button>';
+                            echo '</div>';
                         }
 
                         echo '<div class="teqcidb-quiz-question__actions">';

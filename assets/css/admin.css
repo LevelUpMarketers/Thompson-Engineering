@@ -223,6 +223,31 @@
     border: solid 1px #C3C4C7;
 }
 
+
+.teqcidb-quiz-question__options {
+    margin-top: 12px;
+}
+
+.teqcidb-quiz-question-options {
+    display: grid;
+    gap: 10px;
+}
+
+.teqcidb-quiz-question-option-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 10px;
+    align-items: start;
+}
+
+.teqcidb-quiz-question-option-meta select {
+    width: 100%;
+}
+
+.teqcidb-quiz-question-option-add {
+    margin-top: 10px;
+}
+
 .teqcidb-quiz-question__actions {
     margin-top: 12px;
 }

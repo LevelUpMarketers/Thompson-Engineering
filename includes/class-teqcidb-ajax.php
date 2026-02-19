@@ -1777,7 +1777,11 @@ class TEQCIDB_Ajax {
             );
         }
 
-        if ( 'true_false' !== $question_type ) {
+        $option_ids_raw     = isset( $_POST['option_ids'] ) ? (array) wp_unslash( $_POST['option_ids'] ) : array();
+        $option_labels_raw  = isset( $_POST['option_labels'] ) ? (array) wp_unslash( $_POST['option_labels'] ) : array();
+        $option_correct_raw = isset( $_POST['option_correct'] ) ? (array) wp_unslash( $_POST['option_correct'] ) : array();
+
+        if ( ! in_array( $question_type, array( 'true_false', 'multi_select' ), true ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -1786,7 +1790,7 @@ class TEQCIDB_Ajax {
             );
         }
 
-        if ( 'true' !== $correct && 'false' !== $correct ) {
+        if ( 'true_false' === $question_type && 'true' !== $correct && 'false' !== $correct ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -1806,30 +1810,78 @@ class TEQCIDB_Ajax {
             )
         );
 
-        if ( 'true_false' !== sanitize_key( (string) $type ) ) {
+        $saved_type = sanitize_key( (string) $type );
+
+        if ( $question_type !== $saved_type ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
-                    'message' => __( 'This question is no longer available for true/false updates.', 'teqcidb' ),
+                    'message' => __( 'This question type changed. Refresh and try again.', 'teqcidb' ),
                 )
             );
         }
 
-        $choices_json = wp_json_encode(
-            array(
+        if ( 'true_false' === $question_type ) {
+            $choices_json = wp_json_encode(
                 array(
-                    'correct' => $correct,
-                ),
-            )
-        );
-
-        if ( ! $choices_json ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to encode the true/false answer.', 'teqcidb' ),
+                    array(
+                        'correct' => $correct,
+                    ),
                 )
             );
+
+            if ( ! $choices_json ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unable to encode the true/false answer.', 'teqcidb' ),
+                    )
+                );
+            }
+        } else {
+            $choices = array();
+
+            foreach ( $option_labels_raw as $index => $label_raw ) {
+                $label = sanitize_textarea_field( (string) $label_raw );
+
+                if ( '' === trim( $label ) ) {
+                    continue;
+                }
+
+                $option_id = isset( $option_ids_raw[ $index ] ) ? sanitize_key( (string) $option_ids_raw[ $index ] ) : '';
+
+                if ( '' === $option_id ) {
+                    $option_id = 'choice_' . ( $index + 1 );
+                }
+
+                $is_correct = isset( $option_correct_raw[ $index ] ) && 'true' === sanitize_key( (string) $option_correct_raw[ $index ] );
+
+                $choices[] = array(
+                    'id'      => $option_id,
+                    'label'   => $label,
+                    'correct' => $is_correct,
+                );
+            }
+
+            if ( empty( $choices ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            $choices_json = wp_json_encode( $choices );
+
+            if ( ! $choices_json ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unable to encode the answer options.', 'teqcidb' ),
+                    )
+                );
+            }
         }
 
         $updated = $wpdb->update(
@@ -1837,12 +1889,13 @@ class TEQCIDB_Ajax {
             array(
                 'prompt'       => $prompt,
                 'choices_json' => $choices_json,
+                'updated_at'   => current_time( 'mysql' ),
             ),
             array(
                 'id'      => $question_id,
                 'quiz_id' => $quiz_id,
             ),
-            array( '%s', '%s' ),
+            array( '%s', '%s', '%s' ),
             array( '%d', '%d' )
         );
 
