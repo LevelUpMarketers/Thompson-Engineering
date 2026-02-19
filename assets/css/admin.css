@@ -184,6 +184,27 @@
     border-left: 4px solid #ffb900;
 }
 
+.teqcidb-quiz-question {
+    background-color: #fff;
+    padding: 10px 15px 20px 15px;
+    border-radius: 10px;
+    border: solid 1px #C3C4C7;
+    margin-top: 12px;
+}
+
+.teqcidb-quiz-question__title {
+    font-weight: 700;
+    font-size: 16px;
+    margin: 0 0 10px;
+}
+
+.teqcidb-quiz-question .teqcidb-quiz-question__answer-label,
+.teqcidb-quiz-question label,
+.teqcidb-quiz-question h6 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
 .teqcidb-restore-highlight {
     animation: teqcidb-restore-highlight 1.6s ease-out;
 }
