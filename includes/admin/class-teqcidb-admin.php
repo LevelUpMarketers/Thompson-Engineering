@@ -812,6 +812,10 @@ class TEQCIDB_Admin {
             'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
             'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
             'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
+            'quizQuestionSaved' => __( 'Question saved.', 'teqcidb' ),
+            'quizQuestionDeletePending' => __( 'Delete functionality is coming soon.', 'teqcidb' ),
+            'quizQuestionUnsupportedType' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
+            'quizQuestionAnswerRequired' => __( 'Select True or False before saving this question.', 'teqcidb' ),
         ) );
     }
 
@@ -2644,6 +2648,8 @@ class TEQCIDB_Admin {
                         }
 
                         echo '<div class="teqcidb-quiz-question" data-question-id="' . esc_attr( $question_id ) . '">';
+                        echo '<input type="hidden" class="teqcidb-quiz-question__quiz-id" value="' . esc_attr( $quiz_id ) . '" />';
+                        echo '<input type="hidden" class="teqcidb-quiz-question__type" value="' . esc_attr( $question_type ) . '" />';
 
                         /* translators: 1: question number, 2: question type label. */
                         $question_title = sprintf( __( 'Question #%1$d (%2$s)', 'teqcidb' ), $question_number, $question_type_label );
@@ -2663,6 +2669,15 @@ class TEQCIDB_Admin {
                             echo '<option value="false" ' . selected( 'false', $true_false_value, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
                             echo '</select>';
                         }
+
+                        echo '<div class="teqcidb-quiz-question__actions">';
+                        echo '<button type="button" class="button button-primary teqcidb-quiz-question-save">' . esc_html__( 'Save Changes', 'teqcidb' ) . '</button> ';
+                        echo '<button type="button" class="button button-secondary teqcidb-quiz-question-delete">' . esc_html__( 'Delete', 'teqcidb' ) . '</button>';
+                        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+                        echo '<span class="spinner teqcidb-quiz-question-spinner" aria-hidden="true"></span>';
+                        echo '<span class="teqcidb-quiz-question-feedback" role="status" aria-live="polite"></span>';
+                        echo '</span>';
+                        echo '</div>';
 
                         echo '</div>';
                     }

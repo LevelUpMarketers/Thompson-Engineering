@@ -223,6 +223,14 @@
     border: solid 1px #C3C4C7;
 }
 
+.teqcidb-quiz-question__actions {
+    margin-top: 12px;
+}
+
+.teqcidb-quiz-question-feedback {
+    display: inline-block;
+}
+
 .teqcidb-restore-highlight {
     animation: teqcidb-restore-highlight 1.6s ease-out;
 }

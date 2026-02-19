@@ -2598,6 +2598,104 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
+    function handleQuizQuestionSave($question){
+        if (!$question || !$question.length){
+            return;
+        }
+
+        var questionId = parseInt($question.data('question-id'), 10) || 0;
+        var quizId = parseInt($question.find('.teqcidb-quiz-question__quiz-id').val(), 10) || 0;
+        var questionType = String($question.find('.teqcidb-quiz-question__type').val() || '').toLowerCase();
+        var prompt = $question.find('textarea[name^="question_prompt["]').val() || '';
+        var correct = $question.find('select[name^="question_correct["]').val() || '';
+        var $spinner = $question.find('.teqcidb-quiz-question-spinner');
+        var $feedback = $question.find('.teqcidb-quiz-question-feedback');
+        var $buttons = $question.find('.teqcidb-quiz-question-save, .teqcidb-quiz-question-delete');
+
+        if (questionId <= 0 || quizId <= 0){
+            if ($feedback.length){
+                $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        if (questionType !== 'true_false'){
+            if ($feedback.length){
+                $feedback.text(teqcidbAdmin.quizQuestionUnsupportedType || teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        if (correct !== 'true' && correct !== 'false'){
+            if ($feedback.length){
+                $feedback.text(teqcidbAdmin.quizQuestionAnswerRequired || teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        if ($spinner.length){
+            $spinner.addClass('is-active');
+        }
+
+        if ($feedback.length){
+            $feedback.removeClass('is-visible').text('');
+        }
+
+        $buttons.prop('disabled', true);
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_save_quiz_question',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            question_id: questionId,
+            question_type: questionType,
+            prompt: prompt,
+            correct: correct
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizQuestionSaved || '');
+                    if ($feedback.length && message){
+                        $feedback.text(message).addClass('is-visible');
+                    }
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($feedback.length && errorMessage){
+                        $feedback.text(errorMessage).addClass('is-visible');
+                    }
+                }
+            })
+            .fail(function(){
+                if ($feedback.length && teqcidbAdmin.error){
+                    $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+            })
+            .always(function(){
+                $buttons.prop('disabled', false);
+                if ($spinner.length){
+                    setTimeout(function(){
+                        $spinner.removeClass('is-active');
+                    }, 150);
+                }
+            });
+    }
+
+    $(document).on('click', '.teqcidb-quiz-question-save', function(e){
+        e.preventDefault();
+        var $question = $(this).closest('.teqcidb-quiz-question');
+        handleQuizQuestionSave($question);
+    });
+
+    $(document).on('click', '.teqcidb-quiz-question-delete', function(e){
+        e.preventDefault();
+        var $question = $(this).closest('.teqcidb-quiz-question');
+        var $feedback = $question.find('.teqcidb-quiz-question-feedback');
+
+        if ($feedback.length){
+            $feedback.text(teqcidbAdmin.quizQuestionDeletePending || '').addClass('is-visible');
+        }
+    });
+
     function buildStudentDisplay(student){
         var first = student.first_name || '';
         var last = student.last_name || '';

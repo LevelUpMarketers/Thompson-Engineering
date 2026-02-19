@@ -19,6 +19,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_teqcidb_update_profile', array( $this, 'update_profile' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
+        add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
@@ -1744,6 +1745,120 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    public function save_quiz_question() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to save quiz questions.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $question_id   = isset( $_POST['question_id'] ) ? absint( wp_unslash( $_POST['question_id'] ) ) : 0;
+        $question_type = isset( $_POST['question_type'] ) ? sanitize_key( wp_unslash( $_POST['question_type'] ) ) : '';
+        $prompt        = isset( $_POST['prompt'] ) ? sanitize_textarea_field( wp_unslash( $_POST['prompt'] ) ) : '';
+        $correct       = isset( $_POST['correct'] ) ? sanitize_key( wp_unslash( $_POST['correct'] ) ) : '';
+
+        if ( $quiz_id <= 0 || $question_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid quiz question selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( 'true_false' !== $question_type ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( 'true' !== $correct && 'false' !== $correct ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Select True or False before saving this question.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $type  = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT type FROM $table WHERE id = %d AND quiz_id = %d LIMIT 1",
+                $question_id,
+                $quiz_id
+            )
+        );
+
+        if ( 'true_false' !== sanitize_key( (string) $type ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'This question is no longer available for true/false updates.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $choices_json = wp_json_encode(
+            array(
+                array(
+                    'correct' => $correct,
+                ),
+            )
+        );
+
+        if ( ! $choices_json ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to encode the true/false answer.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'prompt'       => $prompt,
+                'choices_json' => $choices_json,
+            ),
+            array(
+                'id'      => $question_id,
+                'quiz_id' => $quiz_id,
+            ),
+            array( '%s', '%s' ),
+            array( '%d', '%d' )
+        );
+
+        if ( false === $updated ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to save the quiz question. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Question saved.', 'teqcidb' ),
             )
         );
     }
