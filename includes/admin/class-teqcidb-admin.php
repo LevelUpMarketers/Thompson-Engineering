@@ -1971,6 +1971,67 @@ class TEQCIDB_Admin {
         return $map;
     }
 
+    private function get_quiz_questions_map( array $quiz_ids ) {
+        global $wpdb;
+
+        $quiz_ids = array_values( array_filter( array_map( 'absint', $quiz_ids ) ) );
+
+        if ( empty( $quiz_ids ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $quiz_ids ), '%d' ) );
+        $table        = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+        $query = $wpdb->prepare(
+            "SELECT id, quiz_id, type, prompt, sort_order FROM $table WHERE quiz_id IN ($placeholders) ORDER BY quiz_id ASC, sort_order ASC, id ASC",
+            $quiz_ids
+        );
+
+        $results = $wpdb->get_results( $query, ARRAY_A );
+        $map     = array();
+
+        if ( ! is_array( $results ) ) {
+            return $map;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+
+            if ( $quiz_id <= 0 ) {
+                continue;
+            }
+
+            if ( ! isset( $map[ $quiz_id ] ) ) {
+                $map[ $quiz_id ] = array();
+            }
+
+            $map[ $quiz_id ][] = array(
+                'id'        => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'type'      => isset( $row['type'] ) ? sanitize_key( (string) $row['type'] ) : '',
+                'prompt'    => isset( $row['prompt'] ) ? (string) $row['prompt'] : '',
+                'sort_order'=> isset( $row['sort_order'] ) ? absint( $row['sort_order'] ) : 0,
+            );
+        }
+
+        return $map;
+    }
+
+    private function get_quiz_question_type_label( $question_type ) {
+        $question_type = sanitize_key( (string) $question_type );
+
+        switch ( $question_type ) {
+            case 'multiple_choice':
+                return __( 'Multiple Choice', 'teqcidb' );
+            case 'true_false':
+                return __( 'True or False', 'teqcidb' );
+            case 'multi_select':
+                return __( 'Multi-Select', 'teqcidb' );
+            default:
+                return __( 'Question', 'teqcidb' );
+        }
+    }
+
 
     private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
         if ( ! is_scalar( $summary ) ) {
@@ -2461,6 +2522,7 @@ class TEQCIDB_Admin {
         }
 
         $question_count_map = $this->get_quiz_question_count_map( $quiz_ids );
+        $question_map       = $this->get_quiz_questions_map( $quiz_ids );
 
         echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
         echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="quizzes">';
@@ -2538,6 +2600,7 @@ class TEQCIDB_Admin {
                 echo '</div>';
 
                 $question_count = isset( $question_count_map[ $quiz_id ] ) ? absint( $question_count_map[ $quiz_id ] ) : 0;
+                $quiz_questions = isset( $question_map[ $quiz_id ] ) && is_array( $question_map[ $quiz_id ] ) ? $question_map[ $quiz_id ] : array();
 
                 echo '<div class="teqcidb-quiz-questions" data-quiz-id="' . esc_attr( $quiz_id ) . '">';
                 echo '<h4 class="teqcidb-quiz-questions__title">' . esc_html__( 'Quiz Questions', 'teqcidb' ) . '</h4>';
@@ -2546,6 +2609,29 @@ class TEQCIDB_Admin {
                     /* translators: %d: number of saved quiz questions. */
                     $question_count_text = sprintf( _n( 'This quiz currently has %d saved question.', 'This quiz currently has %d saved questions.', $question_count, 'teqcidb' ), $question_count );
                     echo '<p class="description teqcidb-quiz-questions__count">' . esc_html( $question_count_text ) . '</p>';
+
+                    foreach ( $quiz_questions as $index => $question ) {
+                        $question_id         = isset( $question['id'] ) ? absint( $question['id'] ) : 0;
+                        $question_number     = $index + 1;
+                        $question_type       = isset( $question['type'] ) ? $question['type'] : '';
+                        $question_type_label = $this->get_quiz_question_type_label( $question_type );
+                        $question_prompt     = isset( $question['prompt'] ) ? (string) $question['prompt'] : '';
+
+                        if ( $question_id <= 0 ) {
+                            continue;
+                        }
+
+                        echo '<div class="teqcidb-quiz-question" data-question-id="' . esc_attr( $question_id ) . '">';
+
+                        /* translators: 1: question number, 2: question type label. */
+                        $question_title = sprintf( __( 'Question #%1$d (%2$s)', 'teqcidb' ), $question_number, $question_type_label );
+                        echo '<h5 class="teqcidb-quiz-question__title">' . esc_html( $question_title ) . '</h5>';
+
+                        echo '<input type="hidden" name="question_ids[]" value="' . esc_attr( $question_id ) . '" />';
+                        echo '<label class="screen-reader-text" for="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '">' . esc_html__( 'Question prompt', 'teqcidb' ) . '</label>';
+                        echo '<textarea id="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '" name="question_prompt[' . esc_attr( $question_id ) . ']" rows="4" class="widefat">' . esc_textarea( $question_prompt ) . '</textarea>';
+                        echo '</div>';
+                    }
                 } else {
                     echo '<p class="description teqcidb-quiz-questions__empty">' . esc_html__( 'No questions found for this quiz.', 'teqcidb' ) . '</p>';
                 }
@@ -2636,6 +2722,39 @@ class TEQCIDB_Admin {
         if ( false === $updated ) {
             wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'update_failed', $redirect ) );
             exit;
+        }
+
+        $question_ids_raw = isset( $_POST['question_ids'] ) ? (array) wp_unslash( $_POST['question_ids'] ) : array();
+        $question_prompts = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
+
+        if ( ! empty( $question_ids_raw ) && ! empty( $question_prompts ) ) {
+            $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+            foreach ( $question_ids_raw as $question_id_raw ) {
+                $question_id = absint( $question_id_raw );
+
+                if ( $question_id <= 0 ) {
+                    continue;
+                }
+
+                if ( ! isset( $question_prompts[ $question_id ] ) && ! isset( $question_prompts[ (string) $question_id ] ) ) {
+                    continue;
+                }
+
+                $prompt_value = isset( $question_prompts[ $question_id ] ) ? $question_prompts[ $question_id ] : $question_prompts[ (string) $question_id ];
+                $prompt       = sanitize_textarea_field( (string) $prompt_value );
+
+                $wpdb->update(
+                    $questions_table,
+                    array( 'prompt' => $prompt ),
+                    array(
+                        'id'      => $question_id,
+                        'quiz_id' => $quiz_id,
+                    ),
+                    array( '%s' ),
+                    array( '%d', '%d' )
+                );
+            }
         }
 
         wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'updated', $redirect ) );
