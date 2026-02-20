@@ -1781,7 +1781,7 @@ class TEQCIDB_Ajax {
         $option_labels_raw  = isset( $_POST['option_labels'] ) ? (array) wp_unslash( $_POST['option_labels'] ) : array();
         $option_correct_raw = isset( $_POST['option_correct'] ) ? (array) wp_unslash( $_POST['option_correct'] ) : array();
 
-        if ( ! in_array( $question_type, array( 'true_false', 'multi_select' ), true ) ) {
+        if ( ! in_array( $question_type, array( 'true_false', 'multi_select', 'multiple_choice' ), true ) ) {
             $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
@@ -1870,6 +1870,25 @@ class TEQCIDB_Ajax {
                         'message' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
                     )
                 );
+            }
+
+            if ( 'multiple_choice' === $question_type ) {
+                $correct_count = 0;
+
+                foreach ( $choices as $choice ) {
+                    if ( ! empty( $choice['correct'] ) ) {
+                        $correct_count++;
+                    }
+                }
+
+                if ( 1 !== $correct_count ) {
+                    $this->maybe_delay( $start );
+                    wp_send_json_error(
+                        array(
+                            'message' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
+                        )
+                    );
+                }
             }
 
             $choices_json = wp_json_encode( $choices );

@@ -2671,7 +2671,7 @@ jQuery(document).ready(function($){
             }
 
             payload.correct = correct;
-        } else if (questionType === 'multi_select'){
+        } else if (questionType === 'multi_select' || questionType === 'multiple_choice'){
             $question.find('.teqcidb-quiz-question-option-row').each(function(index){
                 var $row = $(this);
                 var choiceId = String($row.find('.teqcidb-quiz-question-option-id').val() || '').trim();
@@ -2697,6 +2697,16 @@ jQuery(document).ready(function($){
                     $feedback.text(teqcidbAdmin.quizQuestionMultiSelectOptionRequired || teqcidbAdmin.error || '').addClass('is-visible');
                 }
                 return;
+            }
+
+            if (questionType === 'multiple_choice'){
+                var trueCount = optionCorrect.filter(function(v){ return v === 'true'; }).length;
+                if (trueCount !== 1){
+                    if ($feedback.length){
+                        $feedback.text(teqcidbAdmin.quizQuestionMultipleChoiceSingleTrue || teqcidbAdmin.error || '').addClass('is-visible');
+                    }
+                    return;
+                }
             }
 
             payload.option_ids = optionIds;
@@ -2747,6 +2757,24 @@ jQuery(document).ready(function($){
                 }
             });
     }
+
+    $(document).on('change', '.teqcidb-quiz-question-option-correct', function(){
+        var $select = $(this);
+        var selected = String($select.val() || '').toLowerCase();
+        var $question = $select.closest('.teqcidb-quiz-question');
+        var questionType = String($question.find('.teqcidb-quiz-question__type').val() || '').toLowerCase();
+
+        if (questionType !== 'multiple_choice' || selected !== 'true'){
+            return;
+        }
+
+        $question.find('.teqcidb-quiz-question-option-correct').not($select).each(function(){
+            var $other = $(this);
+            if (String($other.val() || '').toLowerCase() === 'true'){
+                $other.val('false');
+            }
+        });
+    });
 
     $(document).on('click', '.teqcidb-quiz-question-option-add', function(e){
         e.preventDefault();

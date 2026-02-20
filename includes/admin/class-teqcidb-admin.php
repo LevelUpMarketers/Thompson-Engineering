@@ -817,6 +817,7 @@ class TEQCIDB_Admin {
             'quizQuestionUnsupportedType' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
             'quizQuestionAnswerRequired' => __( 'Select True or False before saving this question.', 'teqcidb' ),
             'quizQuestionMultiSelectOptionRequired' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
+            'quizQuestionMultipleChoiceSingleTrue' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
             'quizQuestionOptionPlaceholder' => __( 'Enter answer option text…', 'teqcidb' ),
             'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
@@ -2720,7 +2721,7 @@ class TEQCIDB_Admin {
                             echo '</select>';
                         }
 
-                        if ( 'multi_select' === $question_type ) {
+                        if ( in_array( $question_type, array( 'multi_select', 'multiple_choice' ), true ) ) {
                             $multi_select_choices = $this->get_multi_select_choices_from_choices_json( $question_choices_json );
 
                             if ( empty( $multi_select_choices ) ) {
@@ -2733,7 +2734,7 @@ class TEQCIDB_Admin {
                                 );
                             }
 
-                            echo '<div class="teqcidb-quiz-question__options" data-question-id="' . esc_attr( $question_id ) . '">';
+                            echo '<div class="teqcidb-quiz-question__options" data-question-id="' . esc_attr( $question_id ) . '" data-question-type="' . esc_attr( $question_type ) . '">';
                             echo '<p class="teqcidb-quiz-question__answer-label"><strong>' . esc_html__( 'Possible Answers', 'teqcidb' ) . '</strong></p>';
                             echo '<div class="teqcidb-quiz-question-options">';
 
