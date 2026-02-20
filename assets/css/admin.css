@@ -287,6 +287,16 @@
     margin-top: 20px;
 }
 
+
+#teqcidb-quiz-list .teqcidb-accordion__summary-row > .teqcidb-accordion__cell {
+    border-bottom: 1px solid #dcdcde;
+    background-color: #fff;
+    vertical-align: top;
+    min-height: 50px;
+    width: 30%;
+    display: table-cell;
+}
+
 .teqcidb-quiz-question__actions {
     margin-top: 12px;
 }
