@@ -39,6 +39,7 @@
 
 .teqcidb-class-route__panel + .teqcidb-class-route__resources,
 .teqcidb-class-route__panel + .teqcidb-class-route__quiz,
+.teqcidb-class-route__quiz + .teqcidb-class-route__resources,
 .teqcidb-class-route__resources + .teqcidb-class-route__quiz {
     margin-top: 20px;
 }
