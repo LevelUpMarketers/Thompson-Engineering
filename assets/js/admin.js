@@ -2598,6 +2598,64 @@ jQuery(document).ready(function($){
 
     initAccordionGroups();
 
+    function saveQuizRestoreState(quizId){
+        if (!quizId || typeof sessionStorage === 'undefined'){
+            return;
+        }
+
+        sessionStorage.setItem('teqcidbQuizRestore', JSON.stringify({
+            quizId: quizId
+        }));
+    }
+
+    function applyQuizRestoreState(){
+        if (typeof sessionStorage === 'undefined'){
+            return;
+        }
+
+        var stored = sessionStorage.getItem('teqcidbQuizRestore');
+
+        if (!stored){
+            return;
+        }
+
+        sessionStorage.removeItem('teqcidbQuizRestore');
+
+        var restore;
+        try {
+            restore = JSON.parse(stored);
+        } catch (error){
+            return;
+        }
+
+        var quizId = parseInt((restore && restore.quizId) || 0, 10) || 0;
+        if (quizId <= 0){
+            return;
+        }
+
+        var panelId = 'teqcidb-quiz-panel-' + quizId;
+        var $summary = $('#teqcidb-quiz-list .teqcidb-accordion__summary-row[aria-controls="' + panelId + '"]');
+
+        if (!$summary.length){
+            return;
+        }
+
+        if ($summary.attr('aria-expanded') !== 'true'){
+            $summary.trigger('click');
+        }
+
+        setTimeout(function(){
+            var $panel = $('#' + panelId).find('.teqcidb-quiz-questions').first();
+            var $target = $panel.length ? $panel : $summary;
+
+            if ($target.length && $target[0] && typeof $target[0].scrollIntoView === 'function'){
+                $target[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 260);
+    }
+
+    applyQuizRestoreState();
+
     function toggleQuizQuestionAccordion($summary){
         if (!$summary || !$summary.length){
             return;
@@ -2810,14 +2868,79 @@ jQuery(document).ready(function($){
         handleQuizQuestionSave($question);
     });
 
+    function handleQuizQuestionDelete($question){
+        if (!$question || !$question.length){
+            return;
+        }
+
+        var questionId = parseInt($question.data('question-id'), 10) || 0;
+        var quizId = parseInt($question.find('.teqcidb-quiz-question__quiz-id').val(), 10) || 0;
+        var $spinner = $question.find('.teqcidb-quiz-question-spinner');
+        var $feedback = $question.find('.teqcidb-quiz-question-feedback');
+        var $buttons = $question.find('.teqcidb-quiz-question-save, .teqcidb-quiz-question-delete');
+
+        if (questionId <= 0 || quizId <= 0){
+            if ($feedback.length){
+                $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        if ($spinner.length){
+            $spinner.addClass('is-active');
+        }
+
+        if ($feedback.length){
+            $feedback.text(teqcidbAdmin.quizQuestionDeleting || '').addClass('is-visible');
+        }
+
+        $buttons.prop('disabled', true);
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_delete_quiz_question',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            question_id: questionId
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizQuestionDeletedReloading || '');
+
+                    if ($feedback.length && message){
+                        $feedback.text(message).addClass('is-visible');
+                    }
+
+                    saveQuizRestoreState(quizId);
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($feedback.length && errorMessage){
+                        $feedback.text(errorMessage).addClass('is-visible');
+                    }
+                }
+            })
+            .fail(function(){
+                if ($feedback.length && teqcidbAdmin.error){
+                    $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+            })
+            .always(function(){
+                $buttons.prop('disabled', false);
+                if ($spinner.length){
+                    setTimeout(function(){
+                        $spinner.removeClass('is-active');
+                    }, 150);
+                }
+            });
+    }
+
     $(document).on('click', '.teqcidb-quiz-question-delete', function(e){
         e.preventDefault();
         var $question = $(this).closest('.teqcidb-quiz-question');
-        var $feedback = $question.find('.teqcidb-quiz-question-feedback');
-
-        if ($feedback.length){
-            $feedback.text(teqcidbAdmin.quizQuestionDeletePending || '').addClass('is-visible');
-        }
+        handleQuizQuestionDelete($question);
     });
 
     function buildStudentDisplay(student){

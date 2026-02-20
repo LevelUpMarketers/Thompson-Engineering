@@ -20,6 +20,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_update_profile', array( $this, 'update_profile' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
+        add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
@@ -1931,6 +1932,79 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => __( 'Question saved.', 'teqcidb' ),
+            )
+        );
+    }
+
+
+    public function delete_quiz_question() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to delete quiz questions.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id     = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $question_id = isset( $_POST['question_id'] ) ? absint( wp_unslash( $_POST['question_id'] ) ) : 0;
+
+        if ( $quiz_id <= 0 || $question_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid quiz question selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $exists = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $table WHERE id = %d AND quiz_id = %d LIMIT 1",
+                $question_id,
+                $quiz_id
+            )
+        );
+
+        if ( ! $exists ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'That question no longer exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $deleted = $wpdb->delete(
+            $table,
+            array(
+                'id'      => $question_id,
+                'quiz_id' => $quiz_id,
+            ),
+            array( '%d', '%d' )
+        );
+
+        if ( false === $deleted ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to delete the quiz question. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Question deleted. Reloading…', 'teqcidb' ),
+                'quiz_id' => $quiz_id,
             )
         );
     }
