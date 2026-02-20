@@ -14,6 +14,8 @@ class TEQCIDB_Admin {
         add_action( 'admin_post_teqcidb_delete_cron_event', array( $this, 'handle_delete_cron_event' ) );
         add_action( 'admin_post_teqcidb_download_email_log', array( $this, 'handle_download_email_log' ) );
         add_action( 'admin_post_teqcidb_delete_generated_content', array( $this, 'handle_delete_generated_content' ) );
+        add_action( 'admin_post_teqcidb_save_quiz', array( $this, 'handle_save_quiz' ) );
+        add_action( 'admin_post_teqcidb_update_quiz', array( $this, 'handle_update_quiz' ) );
     }
 
     public function add_menu() {
@@ -43,6 +45,15 @@ class TEQCIDB_Admin {
             'manage_options',
             'teqcidb-classes',
             array( $this, 'render_classes_page' )
+        );
+
+        add_submenu_page(
+            'teqcidb-student',
+            __( 'Quizzes', 'teqcidb' ),
+            __( 'Quizzes', 'teqcidb' ),
+            'manage_options',
+            'teqcidb-quizzes',
+            array( $this, 'render_quizzes_page' )
         );
 
         add_submenu_page(
@@ -801,6 +812,34 @@ class TEQCIDB_Admin {
             'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
             'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
             'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
+            'quizQuestionSaved' => __( 'Question saved.', 'teqcidb' ),
+            'quizQuestionCreatedReloading' => __( 'Question created. Reloading…', 'teqcidb' ),
+            'quizQuestionCreateTypeRequired' => __( 'Choose a question type before saving.', 'teqcidb' ),
+            'quizQuestionCreatePromptRequired' => __( 'Enter the question text before saving.', 'teqcidb' ),
+            'quizQuestionTypePlaceholder' => __( 'Choose a Question Type...', 'teqcidb' ),
+            'quizQuestionTypeTrueFalse' => __( 'True or False', 'teqcidb' ),
+            'quizQuestionTypeMultipleChoice' => __( 'Multiple Choice', 'teqcidb' ),
+            'quizQuestionTypeMultiSelect' => __( 'Multi-Select', 'teqcidb' ),
+            'quizQuestionCreateButton' => __( 'Create Question', 'teqcidb' ),
+            'quizQuestionCancelButton' => __( 'Cancel', 'teqcidb' ),
+            'quizQuestionPromptLabel' => __( 'Question', 'teqcidb' ),
+            'quizQuestionTypeLabel' => __( 'Question Type', 'teqcidb' ),
+            'quizQuestionPromptPlaceholder' => __( 'Type the question text...', 'teqcidb' ),
+            'quizQuestionSelectAnswerLabel' => __( 'Select an Answer', 'teqcidb' ),
+            'quizQuestionAnswerPlaceholder' => __( 'Choose True or False...', 'teqcidb' ),
+            'quizQuestionPossibleAnswersLabel' => __( 'Possible Answers', 'teqcidb' ),
+            'quizQuestionAddAnotherAnswer' => __( 'Add Another Answer', 'teqcidb' ),
+            'quizQuestionNewTitle' => __( 'New Question', 'teqcidb' ),
+            'quizQuestionDeleting' => __( 'Deleting question…', 'teqcidb' ),
+            'quizQuestionDeletedReloading' => __( 'Question deleted. Reloading…', 'teqcidb' ),
+            'quizQuestionUnsupportedType' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
+            'quizQuestionAnswerRequired' => __( 'Select True or False before saving this question.', 'teqcidb' ),
+            'quizQuestionMultiSelectOptionRequired' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
+            'quizQuestionMultipleChoiceSingleTrue' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
+            'quizQuestionOptionPlaceholder' => __( 'Enter answer option text…', 'teqcidb' ),
+            'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
+            'trueLabel' => __( 'True', 'teqcidb' ),
+            'falseLabel' => __( 'False', 'teqcidb' ),
         ) );
     }
 
@@ -1021,6 +1060,13 @@ class TEQCIDB_Admin {
         );
     }
 
+    private function get_quiz_tooltips() {
+        return array(
+            'name'     => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
+            'class_id' => __( 'Select every class that should use this quiz. Selected IDs are saved as a comma-separated list in teqcidb_quizzes.class_id.', 'teqcidb' ),
+        );
+    }
+
     private function render_tab_intro( $title, $description ) {
         if ( empty( $title ) && empty( $description ) ) {
             return;
@@ -1162,6 +1208,92 @@ class TEQCIDB_Admin {
         }
 
         echo '</div>';
+    }
+
+
+    public function render_quizzes_page() {
+        $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'create';
+        echo '<div class="wrap"><h1>' . esc_html__( 'Quizzes', 'teqcidb' ) . '</h1>';
+        echo '<h2 class="nav-tab-wrapper">';
+        echo '<a href="?page=teqcidb-quizzes&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Quiz', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-quizzes&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Quizzes', 'teqcidb' ) . '</a>';
+        echo '</h2>';
+
+        $tab_titles = array(
+            'create' => __( 'Create a Quiz', 'teqcidb' ),
+            'edit'   => __( 'Edit Quizzes', 'teqcidb' ),
+        );
+
+        $tab_descriptions = array(
+            'create' => __( 'Define the quiz record metadata now so questions and delivery workflows can be connected in upcoming updates.', 'teqcidb' ),
+            'edit'   => __( 'Review existing quizzes and open each record for future editing and question-management actions.', 'teqcidb' ),
+        );
+
+        if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
+            $active_tab = 'create';
+        }
+
+        $title       = isset( $tab_titles[ $active_tab ] ) ? $tab_titles[ $active_tab ] : '';
+        $description = isset( $tab_descriptions[ $active_tab ] ) ? $tab_descriptions[ $active_tab ] : '';
+
+        $this->render_quiz_top_message();
+
+        $this->render_tab_intro( $title, $description );
+
+        if ( 'edit' === $active_tab ) {
+            $this->render_quiz_edit_tab();
+        } else {
+            $this->render_quiz_create_tab();
+        }
+
+        echo '</div>';
+    }
+
+    private function render_quiz_top_message() {
+        $message_key = isset( $_GET['teqcidb_quiz_message'] ) ? sanitize_key( wp_unslash( $_GET['teqcidb_quiz_message'] ) ) : '';
+
+        if ( '' === $message_key ) {
+            return;
+        }
+
+        $messages = array(
+            'created' => array(
+                'class' => 'notice notice-success is-dismissible teqcidb-top-message',
+                'text'  => __( 'Quiz saved successfully.', 'teqcidb' ),
+            ),
+            'missing_name' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Please enter a quiz name before saving.', 'teqcidb' ),
+            ),
+            'missing_classes' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Please select at least one related class.', 'teqcidb' ),
+            ),
+            'save_failed' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Unable to save this quiz right now. Please try again.', 'teqcidb' ),
+            ),
+            'updated' => array(
+                'class' => 'notice notice-success is-dismissible teqcidb-top-message',
+                'text'  => __( 'Quiz updated successfully.', 'teqcidb' ),
+            ),
+            'missing_quiz' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Please choose a valid quiz before saving changes.', 'teqcidb' ),
+            ),
+            'update_failed' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Unable to update this quiz right now. Please try again.', 'teqcidb' ),
+            ),
+        );
+
+        if ( ! isset( $messages[ $message_key ] ) ) {
+            return;
+        }
+
+        $message = $messages[ $message_key ];
+
+        echo '<div class="' . esc_attr( $message['class'] ) . '"><p>' . esc_html( $message['text'] ) . '</p></div>';
     }
 
     private function get_student_fields() {
@@ -1327,6 +1459,28 @@ class TEQCIDB_Admin {
                 'full_width' => true,
                 'tooltip'    => $tooltips['comments'],
                 'attrs'      => ' rows="4"',
+            ),
+        );
+    }
+
+
+    private function get_quiz_fields() {
+        $tooltips = $this->get_quiz_tooltips();
+
+        return array(
+            array(
+                'name'    => 'name',
+                'label'   => __( 'Quiz Name', 'teqcidb' ),
+                'type'    => 'text',
+                'tooltip' => $tooltips['name'],
+            ),
+            array(
+                'name'       => 'class_id',
+                'label'      => __( 'Related Classes', 'teqcidb' ),
+                'type'       => 'checkboxes',
+                'full_width' => true,
+                'options'    => $this->get_quiz_class_options(),
+                'tooltip'    => $tooltips['class_id'],
             ),
         );
     }
@@ -1738,6 +1892,262 @@ class TEQCIDB_Admin {
         return $options;
     }
 
+
+    private function get_quiz_class_options() {
+        global $wpdb;
+
+        $table   = $wpdb->prefix . 'teqcidb_classes';
+        $results = $wpdb->get_results( "SELECT id, classname, classstartdate FROM $table ORDER BY classstartdate DESC, classname ASC", ARRAY_A );
+
+        $options = array();
+
+        if ( ! is_array( $results ) ) {
+            return $options;
+        }
+
+        foreach ( $results as $row ) {
+            $class_id   = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+            $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
+
+            if ( $class_id <= 0 || '' === $class_name ) {
+                continue;
+            }
+
+            $class_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+
+            if ( '' !== $class_date ) {
+                /* translators: 1: class name, 2: class start date. */
+                $label = sprintf( __( '%1$s (%2$s)', 'teqcidb' ), $class_name, $class_date );
+            } else {
+                $label = $class_name;
+            }
+
+            $options[ (string) $class_id ] = $label;
+        }
+
+        return $options;
+    }
+
+    private function get_saved_quizzes() {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teqcidb_quizzes';
+
+        $results = $wpdb->get_results( "SELECT id, name, class_id, updated_at FROM $table ORDER BY updated_at DESC, id DESC", ARRAY_A );
+
+        if ( ! is_array( $results ) ) {
+            return array();
+        }
+
+        return $results;
+    }
+
+    private function parse_quiz_class_ids( $class_ids_csv ) {
+        if ( ! is_scalar( $class_ids_csv ) ) {
+            return array();
+        }
+
+        $parts = explode( ',', (string) $class_ids_csv );
+        $ids   = array();
+
+        foreach ( $parts as $part ) {
+            $class_id = absint( trim( (string) $part ) );
+
+            if ( $class_id > 0 ) {
+                $ids[] = (string) $class_id;
+            }
+        }
+
+        return array_values( array_unique( $ids ) );
+    }
+
+    private function get_quiz_question_count_map( array $quiz_ids ) {
+        global $wpdb;
+
+        $quiz_ids = array_values( array_filter( array_map( 'absint', $quiz_ids ) ) );
+
+        if ( empty( $quiz_ids ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $quiz_ids ), '%d' ) );
+        $table        = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+        $query = $wpdb->prepare(
+            "SELECT quiz_id, COUNT(*) AS total FROM $table WHERE quiz_id IN ($placeholders) GROUP BY quiz_id",
+            $quiz_ids
+        );
+
+        $results = $wpdb->get_results( $query, ARRAY_A );
+        $map     = array();
+
+        if ( ! is_array( $results ) ) {
+            return $map;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+            $total   = isset( $row['total'] ) ? absint( $row['total'] ) : 0;
+
+            if ( $quiz_id <= 0 ) {
+                continue;
+            }
+
+            $map[ $quiz_id ] = $total;
+        }
+
+        return $map;
+    }
+
+    private function get_quiz_questions_map( array $quiz_ids ) {
+        global $wpdb;
+
+        $quiz_ids = array_values( array_filter( array_map( 'absint', $quiz_ids ) ) );
+
+        if ( empty( $quiz_ids ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $quiz_ids ), '%d' ) );
+        $table        = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+        $query = $wpdb->prepare(
+            "SELECT id, quiz_id, type, prompt, choices_json, sort_order FROM $table WHERE quiz_id IN ($placeholders) ORDER BY quiz_id ASC, sort_order ASC, id ASC",
+            $quiz_ids
+        );
+
+        $results = $wpdb->get_results( $query, ARRAY_A );
+        $map     = array();
+
+        if ( ! is_array( $results ) ) {
+            return $map;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+
+            if ( $quiz_id <= 0 ) {
+                continue;
+            }
+
+            if ( ! isset( $map[ $quiz_id ] ) ) {
+                $map[ $quiz_id ] = array();
+            }
+
+            $map[ $quiz_id ][] = array(
+                'id'        => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'type'      => isset( $row['type'] ) ? sanitize_key( (string) $row['type'] ) : '',
+                'prompt'    => isset( $row['prompt'] ) ? (string) $row['prompt'] : '',
+                'choices_json' => isset( $row['choices_json'] ) ? (string) $row['choices_json'] : '',
+                'sort_order'=> isset( $row['sort_order'] ) ? absint( $row['sort_order'] ) : 0,
+            );
+        }
+
+        return $map;
+    }
+
+    private function get_quiz_question_type_label( $question_type ) {
+        $question_type = sanitize_key( (string) $question_type );
+
+        switch ( $question_type ) {
+            case 'multiple_choice':
+                return __( 'Multiple Choice', 'teqcidb' );
+            case 'true_false':
+                return __( 'True or False', 'teqcidb' );
+            case 'multi_select':
+                return __( 'Multi-Select', 'teqcidb' );
+            default:
+                return __( 'Question', 'teqcidb' );
+        }
+    }
+
+    private function get_true_false_answer_from_choices_json( $choices_json ) {
+        if ( ! is_scalar( $choices_json ) ) {
+            return '';
+        }
+
+        $decoded = json_decode( (string) $choices_json, true );
+
+        if ( ! is_array( $decoded ) || empty( $decoded[0] ) || ! is_array( $decoded[0] ) || ! isset( $decoded[0]['correct'] ) ) {
+            return '';
+        }
+
+        $value = strtolower( sanitize_text_field( (string) $decoded[0]['correct'] ) );
+
+        if ( 'true' === $value || 'false' === $value ) {
+            return $value;
+        }
+
+        return '';
+    }
+
+    private function get_multi_select_choices_from_choices_json( $choices_json ) {
+        if ( ! is_scalar( $choices_json ) ) {
+            return array();
+        }
+
+        $decoded = json_decode( (string) $choices_json, true );
+
+        if ( ! is_array( $decoded ) ) {
+            return array();
+        }
+
+        $choices = array();
+
+        foreach ( $decoded as $index => $item ) {
+            if ( ! is_array( $item ) ) {
+                continue;
+            }
+
+            $choice_id = isset( $item['id'] ) ? sanitize_key( (string) $item['id'] ) : 'choice_' . ( $index + 1 );
+
+            if ( '' === $choice_id ) {
+                $choice_id = 'choice_' . ( $index + 1 );
+            }
+
+            $choices[] = array(
+                'id'      => $choice_id,
+                'label'   => isset( $item['label'] ) ? sanitize_textarea_field( (string) $item['label'] ) : '',
+                'correct' => ! empty( $item['correct'] ),
+            );
+        }
+
+        return $choices;
+    }
+
+
+    private function get_truncated_quiz_class_summary( $summary, $max_length = 55 ) {
+        if ( ! is_scalar( $summary ) ) {
+            return '';
+        }
+
+        $summary = trim( sanitize_text_field( (string) $summary ) );
+
+        if ( '' === $summary ) {
+            return '';
+        }
+
+        $max_length = absint( $max_length );
+
+        if ( $max_length <= 3 ) {
+            return $summary;
+        }
+
+        if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+            if ( mb_strlen( $summary ) <= $max_length ) {
+                return $summary;
+            }
+
+            return rtrim( mb_substr( $summary, 0, $max_length - 3 ) ) . '...';
+        }
+
+        if ( strlen( $summary ) <= $max_length ) {
+            return $summary;
+        }
+
+        return rtrim( substr( $summary, 0, $max_length - 3 ) ) . '...';
+    }
+
     private function get_student_history_class_map() {
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_classes';
@@ -2058,6 +2468,499 @@ class TEQCIDB_Admin {
             'teqcidb-class-create-form',
             __( 'Save Class', 'teqcidb' )
         );
+    }
+
+
+    private function render_quiz_create_tab() {
+        $fields = $this->get_quiz_fields();
+        echo '<form id="teqcidb-quiz-create-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="teqcidb_save_quiz" />';
+        wp_nonce_field( 'teqcidb_save_quiz', 'teqcidb_save_quiz_nonce' );
+        echo '<div class="teqcidb-flex-form">';
+
+        foreach ( $fields as $field ) {
+            $classes = 'teqcidb-field';
+
+            if ( ! empty( $field['full_width'] ) ) {
+                $classes .= ' teqcidb-field-full';
+            }
+
+            $tooltip = isset( $field['tooltip'] ) ? $field['tooltip'] : '';
+
+            echo '<div class="' . esc_attr( $classes ) . '">';
+            echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( $tooltip ) . '"></span>' . esc_html( $field['label'] ) . '</label>';
+
+            if ( 'checkboxes' === $field['type'] ) {
+                echo '<fieldset class="teqcidb-checkbox-group">';
+
+                if ( ! empty( $field['options'] ) ) {
+                    foreach ( $field['options'] as $value => $option_label ) {
+                        $input_id = $field['name'] . '-' . sanitize_html_class( (string) $value );
+                        echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
+                        echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $field['name'] ) . '[]" value="' . esc_attr( $value ) . '" /> ';
+                        echo esc_html( $option_label );
+                        echo '</label>';
+                    }
+                }
+
+                echo '</fieldset>';
+            } else {
+                echo '<input type="text" name="' . esc_attr( $field['name'] ) . '" />';
+            }
+
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '<p class="submit">';
+        echo get_submit_button( __( 'Save Quiz', 'teqcidb' ), 'primary', 'submit', false );
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span id="teqcidb-spinner" class="spinner" aria-hidden="true"></span><span id="teqcidb-feedback" role="status" aria-live="polite"></span></span>';
+        echo '</p>';
+        echo '</form>';
+    }
+
+    public function handle_save_quiz() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Insufficient permissions.', 'teqcidb' ) );
+        }
+
+        check_admin_referer( 'teqcidb_save_quiz', 'teqcidb_save_quiz_nonce' );
+
+        $redirect = add_query_arg(
+            array(
+                'page' => 'teqcidb-quizzes',
+                'tab'  => 'create',
+            ),
+            admin_url( 'admin.php' )
+        );
+
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( '' === $name ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_name', $redirect ) );
+            exit;
+        }
+
+        $class_ids_raw = isset( $_POST['class_id'] ) ? (array) wp_unslash( $_POST['class_id'] ) : array();
+        $class_ids     = array();
+
+        foreach ( $class_ids_raw as $class_id_raw ) {
+            $class_id = absint( $class_id_raw );
+
+            if ( $class_id > 0 ) {
+                $class_ids[] = $class_id;
+            }
+        }
+
+        $class_ids = array_values( array_unique( $class_ids ) );
+
+        if ( empty( $class_ids ) ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_classes', $redirect ) );
+            exit;
+        }
+
+        $class_ids_csv = implode( ',', $class_ids );
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_quizzes';
+
+        $public_token = wp_generate_password( 32, false, false );
+
+        while ( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE public_token = %s LIMIT 1", $public_token ) ) ) {
+            $public_token = wp_generate_password( 32, false, false );
+        }
+
+        $inserted = $wpdb->insert(
+            $table,
+            array(
+                'class_id'     => $class_ids_csv,
+                'public_token' => $public_token,
+                'name'         => $name,
+                'status'       => 2,
+                'settings_json'=> '',
+            ),
+            array( '%s', '%s', '%s', '%d', '%s' )
+        );
+
+        if ( false === $inserted ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'save_failed', $redirect ) );
+            exit;
+        }
+
+        wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'created', $redirect ) );
+        exit;
+    }
+
+    private function render_quiz_edit_tab() {
+        $quizzes      = $this->get_saved_quizzes();
+        $class_map    = $this->get_quiz_class_options();
+        $column_count = 4;
+        $quiz_ids     = array();
+
+        foreach ( $quizzes as $quiz ) {
+            $quiz_id = isset( $quiz['id'] ) ? absint( $quiz['id'] ) : 0;
+
+            if ( $quiz_id > 0 ) {
+                $quiz_ids[] = $quiz_id;
+            }
+        }
+
+        $question_count_map = $this->get_quiz_question_count_map( $quiz_ids );
+        $question_map       = $this->get_quiz_questions_map( $quiz_ids );
+
+        echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="quizzes">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--quiz-name">' . esc_html__( 'Quiz Name', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Related Classes', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--updated">' . esc_html__( 'Last Updated', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+
+        echo '<tbody id="teqcidb-quiz-list" data-column-count="' . esc_attr( $column_count ) . '">';
+
+        if ( empty( $quizzes ) ) {
+            echo '<tr><td colspan="' . esc_attr( $column_count ) . '">' . esc_html__( 'No quizzes found yet.', 'teqcidb' ) . '</td></tr>';
+        } else {
+            foreach ( $quizzes as $quiz ) {
+                $quiz_id    = isset( $quiz['id'] ) ? absint( $quiz['id'] ) : 0;
+                $quiz_name  = isset( $quiz['name'] ) ? sanitize_text_field( (string) $quiz['name'] ) : '';
+                $updated_at = isset( $quiz['updated_at'] ) ? sanitize_text_field( (string) $quiz['updated_at'] ) : '';
+
+                if ( $quiz_id <= 0 ) {
+                    continue;
+                }
+
+                $selected_class_ids = $this->parse_quiz_class_ids( isset( $quiz['class_id'] ) ? $quiz['class_id'] : '' );
+                $selected_labels    = array();
+
+                foreach ( $selected_class_ids as $class_id ) {
+                    if ( isset( $class_map[ $class_id ] ) ) {
+                        $selected_labels[] = $class_map[ $class_id ];
+                    }
+                }
+
+                $summary_classes = empty( $selected_labels ) ? __( 'No classes selected', 'teqcidb' ) : implode( ', ', $selected_labels );
+                $summary_classes = $this->get_truncated_quiz_class_summary( $summary_classes, 55 );
+                $panel_id        = 'teqcidb-quiz-panel-' . $quiz_id;
+
+                echo '<tr class="teqcidb-accordion__summary-row" tabindex="0" role="button" aria-expanded="false" aria-controls="' . esc_attr( $panel_id ) . '">';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--title"><span class="teqcidb-accordion__title-text">' . esc_html( $quiz_name ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $summary_classes ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $updated_at ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--actions"><span class="teqcidb-accordion__action-link" aria-hidden="true">' . esc_html__( 'Edit', 'teqcidb' ) . '</span><span class="dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Toggle quiz details', 'teqcidb' ) . '</span></td>';
+                echo '</tr>';
+
+                echo '<tr id="' . esc_attr( $panel_id ) . '" class="teqcidb-accordion__panel-row" aria-hidden="true">';
+                echo '<td colspan="' . esc_attr( $column_count ) . '">';
+                echo '<div class="teqcidb-accordion__panel">';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                echo '<input type="hidden" name="action" value="teqcidb_update_quiz" />';
+                echo '<input type="hidden" name="quiz_id" value="' . esc_attr( $quiz_id ) . '" />';
+                wp_nonce_field( 'teqcidb_update_quiz_' . $quiz_id, 'teqcidb_update_quiz_nonce' );
+                echo '<div class="teqcidb-flex-form">';
+
+                echo '<div class="teqcidb-field">';
+                echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Update the quiz name shown in admin quiz management lists.', 'teqcidb' ) . '"></span>' . esc_html__( 'Quiz Name', 'teqcidb' ) . '</label>';
+                echo '<input type="text" name="name" value="' . esc_attr( $quiz_name ) . '" />';
+                echo '</div>';
+
+                echo '<div class="teqcidb-field teqcidb-field-full">';
+                echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Select every class that should use this quiz. Selected IDs are saved as a comma-separated list in teqcidb_quizzes.class_id.', 'teqcidb' ) . '"></span>' . esc_html__( 'Related Classes', 'teqcidb' ) . '</label>';
+                echo '<fieldset class="teqcidb-checkbox-group">';
+
+                foreach ( $class_map as $class_id => $class_label ) {
+                    $input_id = 'teqcidb-quiz-' . $quiz_id . '-class-' . sanitize_html_class( (string) $class_id );
+                    echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
+                    echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="class_id[]" value="' . esc_attr( $class_id ) . '" ' . checked( in_array( (string) $class_id, $selected_class_ids, true ), true, false ) . ' /> ';
+                    echo esc_html( $class_label );
+                    echo '</label>';
+                }
+
+                echo '</fieldset>';
+                echo '</div>';
+
+                echo '</div>';
+
+                $question_count = isset( $question_count_map[ $quiz_id ] ) ? absint( $question_count_map[ $quiz_id ] ) : 0;
+                $quiz_questions = isset( $question_map[ $quiz_id ] ) && is_array( $question_map[ $quiz_id ] ) ? $question_map[ $quiz_id ] : array();
+
+                echo '<div class="teqcidb-quiz-questions" data-quiz-id="' . esc_attr( $quiz_id ) . '">';
+                echo '<h4 class="teqcidb-quiz-questions__title">' . esc_html__( 'Quiz Questions', 'teqcidb' ) . '</h4>';
+
+                if ( $question_count > 0 ) {
+                    /* translators: %d: number of saved quiz questions. */
+                    $question_count_text = sprintf( _n( 'This quiz currently has %d saved question.', 'This quiz currently has %d saved questions.', $question_count, 'teqcidb' ), $question_count );
+                    echo '<p class="description teqcidb-quiz-questions__count">' . esc_html( $question_count_text ) . '</p>';
+
+                    foreach ( $quiz_questions as $index => $question ) {
+                        $question_id         = isset( $question['id'] ) ? absint( $question['id'] ) : 0;
+                        $question_number     = $index + 1;
+                        $question_type       = isset( $question['type'] ) ? $question['type'] : '';
+                        $question_type_label = $this->get_quiz_question_type_label( $question_type );
+                        $question_prompt     = isset( $question['prompt'] ) ? (string) $question['prompt'] : '';
+                        $question_choices_json = isset( $question['choices_json'] ) ? $question['choices_json'] : '';
+
+                        if ( $question_id <= 0 ) {
+                            continue;
+                        }
+
+                        echo '<div class="teqcidb-quiz-question" data-question-id="' . esc_attr( $question_id ) . '">';
+                        echo '<input type="hidden" class="teqcidb-quiz-question__quiz-id" value="' . esc_attr( $quiz_id ) . '" />';
+                        echo '<input type="hidden" class="teqcidb-quiz-question__type" value="' . esc_attr( $question_type ) . '" />';
+
+                        /* translators: 1: question number, 2: question type label. */
+                        $question_title   = sprintf( __( 'Question #%1$d (%2$s)', 'teqcidb' ), $question_number, $question_type_label );
+                        $question_preview = '' === trim( sanitize_text_field( $question_prompt ) ) ? __( 'No question text entered yet.', 'teqcidb' ) : sanitize_text_field( $question_prompt );
+                        $question_panel_id = 'teqcidb-quiz-' . $quiz_id . '-question-panel-' . $question_id;
+
+                        echo '<button type="button" class="teqcidb-quiz-question__summary" aria-expanded="false" aria-controls="' . esc_attr( $question_panel_id ) . '">';
+                        echo '<span class="teqcidb-quiz-question__summary-text">';
+                        echo '<span class="teqcidb-quiz-question__title">' . esc_html( $question_title ) . '</span>';
+                        echo '<span class="teqcidb-quiz-question__preview">' . esc_html( $question_preview ) . '</span>';
+                        echo '</span>';
+                        echo '<span class="dashicons dashicons-arrow-down-alt2 teqcidb-quiz-question__summary-icon" aria-hidden="true"></span>';
+                        echo '</button>';
+
+                        echo '<div id="' . esc_attr( $question_panel_id ) . '" class="teqcidb-quiz-question__panel" hidden="hidden">';
+
+                        echo '<input type="hidden" name="question_ids[]" value="' . esc_attr( $question_id ) . '" />';
+                        echo '<label class="screen-reader-text" for="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '">' . esc_html__( 'Question prompt', 'teqcidb' ) . '</label>';
+                        echo '<textarea id="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '" name="question_prompt[' . esc_attr( $question_id ) . ']" rows="4" class="widefat">' . esc_textarea( $question_prompt ) . '</textarea>';
+
+                        if ( 'true_false' === $question_type ) {
+                            $true_false_value = $this->get_true_false_answer_from_choices_json( $question_choices_json );
+
+                            echo '<p class="teqcidb-quiz-question__answer-label"><strong>' . esc_html__( 'Select an Answer', 'teqcidb' ) . '</strong></p>';
+                            echo '<select name="question_correct[' . esc_attr( $question_id ) . ']">';
+                            echo '<option value="" disabled ' . selected( '', $true_false_value, false ) . '>' . esc_html__( 'Choose True or False...', 'teqcidb' ) . '</option>';
+                            echo '<option value="true" ' . selected( 'true', $true_false_value, false ) . '>' . esc_html__( 'True', 'teqcidb' ) . '</option>';
+                            echo '<option value="false" ' . selected( 'false', $true_false_value, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
+                            echo '</select>';
+                        }
+
+                        if ( in_array( $question_type, array( 'multi_select', 'multiple_choice' ), true ) ) {
+                            $multi_select_choices = $this->get_multi_select_choices_from_choices_json( $question_choices_json );
+
+                            if ( empty( $multi_select_choices ) ) {
+                                $multi_select_choices = array(
+                                    array(
+                                        'id'      => 'choice_1',
+                                        'label'   => '',
+                                        'correct' => false,
+                                    ),
+                                );
+                            }
+
+                            echo '<div class="teqcidb-quiz-question__options" data-question-id="' . esc_attr( $question_id ) . '" data-question-type="' . esc_attr( $question_type ) . '">';
+                            echo '<p class="teqcidb-quiz-question__answer-label"><strong>' . esc_html__( 'Possible Answers', 'teqcidb' ) . '</strong></p>';
+                            echo '<div class="teqcidb-quiz-question-options">';
+
+                            foreach ( $multi_select_choices as $choice_index => $choice ) {
+                                $choice_key     = isset( $choice['id'] ) ? sanitize_key( (string) $choice['id'] ) : 'choice_' . ( $choice_index + 1 );
+                                $choice_label   = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+                                $choice_correct = ! empty( $choice['correct'] ) ? 'true' : 'false';
+
+                                if ( '' === $choice_key ) {
+                                    $choice_key = 'choice_' . ( $choice_index + 1 );
+                                }
+
+                                echo '<div class="teqcidb-quiz-question-option-row" data-option-row="' . esc_attr( $choice_key ) . '">';
+                                echo '<textarea rows="2" class="widefat teqcidb-quiz-question-option-label" name="question_option_label[' . esc_attr( $question_id ) . '][]" placeholder="' . esc_attr__( 'Enter answer option text…', 'teqcidb' ) . '">' . esc_textarea( $choice_label ) . '</textarea>';
+                                echo '<div class="teqcidb-quiz-question-option-meta">';
+                                echo '<input type="hidden" class="teqcidb-quiz-question-option-id" name="question_option_id[' . esc_attr( $question_id ) . '][]" value="' . esc_attr( $choice_key ) . '" />';
+                                echo '<label class="screen-reader-text" for="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '-option-' . esc_attr( $choice_key ) . '">' . esc_html__( 'Select whether this answer option is correct', 'teqcidb' ) . '</label>';
+                                echo '<select id="teqcidb-quiz-' . esc_attr( $quiz_id ) . '-question-' . esc_attr( $question_id ) . '-option-' . esc_attr( $choice_key ) . '" class="teqcidb-quiz-question-option-correct" name="question_option_correct[' . esc_attr( $question_id ) . '][]">';
+                                echo '<option value="true" ' . selected( 'true', $choice_correct, false ) . '>' . esc_html__( 'True', 'teqcidb' ) . '</option>';
+                                echo '<option value="false" ' . selected( 'false', $choice_correct, false ) . '>' . esc_html__( 'False', 'teqcidb' ) . '</option>';
+                                echo '</select>';
+                                echo '</div>';
+                                echo '</div>';
+                            }
+
+                            echo '</div>';
+                            echo '<button type="button" class="button button-secondary teqcidb-quiz-question-option-add">' . esc_html__( 'Add Another Answer', 'teqcidb' ) . '</button>';
+                            echo '</div>';
+                        }
+
+                        echo '<div class="teqcidb-quiz-question__actions">';
+                        echo '<button type="button" class="button button-primary teqcidb-quiz-question-save">' . esc_html__( 'Save Changes', 'teqcidb' ) . '</button> ';
+                        echo '<button type="button" class="button button-secondary teqcidb-quiz-question-delete">' . esc_html__( 'Delete', 'teqcidb' ) . '</button>';
+                        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+                        echo '<span class="spinner teqcidb-quiz-question-spinner" aria-hidden="true"></span>';
+                        echo '<span class="teqcidb-quiz-question-feedback" role="status" aria-live="polite"></span>';
+                        echo '</span>';
+                        echo '</div>';
+
+                        echo '</div>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p class="description teqcidb-quiz-questions__empty">' . esc_html__( 'No questions found for this quiz.', 'teqcidb' ) . '</p>';
+                }
+
+                echo '<button type="button" class="button button-secondary teqcidb-quiz-question-add">' . esc_html__( 'Add Quiz Question', 'teqcidb' ) . '</button>';
+                echo '</div>';
+
+                echo '<p class="submit">';
+                echo get_submit_button( __( 'Save Changes', 'teqcidb' ), 'primary', 'submit', false );
+                echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span class="spinner" aria-hidden="true"></span><span role="status" aria-live="polite"></span></span>';
+                echo '</p>';
+                echo '</form>';
+                echo '</div>';
+                echo '</td>';
+                echo '</tr>';
+            }
+        }
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '</div>';
+    }
+
+    public function handle_update_quiz() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Insufficient permissions.', 'teqcidb' ) );
+        }
+
+        $quiz_id = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+
+        $redirect = add_query_arg(
+            array(
+                'page' => 'teqcidb-quizzes',
+                'tab'  => 'edit',
+            ),
+            admin_url( 'admin.php' )
+        );
+
+        if ( $quiz_id <= 0 ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_quiz', $redirect ) );
+            exit;
+        }
+
+        check_admin_referer( 'teqcidb_update_quiz_' . $quiz_id, 'teqcidb_update_quiz_nonce' );
+
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( '' === $name ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_name', $redirect ) );
+            exit;
+        }
+
+        $class_ids_raw = isset( $_POST['class_id'] ) ? (array) wp_unslash( $_POST['class_id'] ) : array();
+        $class_ids     = array();
+
+        foreach ( $class_ids_raw as $class_id_raw ) {
+            $class_id = absint( $class_id_raw );
+
+            if ( $class_id > 0 ) {
+                $class_ids[] = $class_id;
+            }
+        }
+
+        $class_ids = array_values( array_unique( $class_ids ) );
+
+        if ( empty( $class_ids ) ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_classes', $redirect ) );
+            exit;
+        }
+
+        $class_ids_csv = implode( ',', $class_ids );
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'teqcidb_quizzes';
+
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'name'     => $name,
+                'class_id' => $class_ids_csv,
+            ),
+            array( 'id' => $quiz_id ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+
+        if ( false === $updated ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'update_failed', $redirect ) );
+            exit;
+        }
+
+        $question_ids_raw = isset( $_POST['question_ids'] ) ? (array) wp_unslash( $_POST['question_ids'] ) : array();
+        $question_prompts = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
+        $question_correct = isset( $_POST['question_correct'] ) ? (array) wp_unslash( $_POST['question_correct'] ) : array();
+
+        if ( ! empty( $question_ids_raw ) && ! empty( $question_prompts ) ) {
+            $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+
+            foreach ( $question_ids_raw as $question_id_raw ) {
+                $question_id = absint( $question_id_raw );
+
+                if ( $question_id <= 0 ) {
+                    continue;
+                }
+
+                if ( ! isset( $question_prompts[ $question_id ] ) && ! isset( $question_prompts[ (string) $question_id ] ) ) {
+                    continue;
+                }
+
+                $prompt_value = isset( $question_prompts[ $question_id ] ) ? $question_prompts[ $question_id ] : $question_prompts[ (string) $question_id ];
+                $prompt       = sanitize_textarea_field( (string) $prompt_value );
+
+                $wpdb->update(
+                    $questions_table,
+                    array( 'prompt' => $prompt ),
+                    array(
+                        'id'      => $question_id,
+                        'quiz_id' => $quiz_id,
+                    ),
+                    array( '%s' ),
+                    array( '%d', '%d' )
+                );
+
+                if ( isset( $question_correct[ $question_id ] ) || isset( $question_correct[ (string) $question_id ] ) ) {
+                    $correct_value_raw = isset( $question_correct[ $question_id ] ) ? $question_correct[ $question_id ] : $question_correct[ (string) $question_id ];
+                    $correct_value     = strtolower( sanitize_text_field( (string) $correct_value_raw ) );
+
+                    if ( 'true' === $correct_value || 'false' === $correct_value ) {
+                        $question_type = $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT type FROM $questions_table WHERE id = %d AND quiz_id = %d LIMIT 1",
+                                $question_id,
+                                $quiz_id
+                            )
+                        );
+
+                        if ( 'true_false' === sanitize_key( (string) $question_type ) ) {
+                            $choices_json = wp_json_encode(
+                                array(
+                                    array(
+                                        'correct' => $correct_value,
+                                    ),
+                                )
+                            );
+
+                            if ( $choices_json ) {
+                                $wpdb->update(
+                                    $questions_table,
+                                    array( 'choices_json' => $choices_json ),
+                                    array(
+                                        'id'      => $question_id,
+                                        'quiz_id' => $quiz_id,
+                                    ),
+                                    array( '%s' ),
+                                    array( '%d', '%d' )
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'updated', $redirect ) );
+        exit;
     }
 
     private function render_class_edit_tab() {
