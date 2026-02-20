@@ -21,6 +21,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
+        add_action( 'wp_ajax_teqcidb_create_quiz_question', array( $this, 'create_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
@@ -2005,6 +2006,192 @@ class TEQCIDB_Ajax {
             array(
                 'message' => __( 'Question deleted. Reloading…', 'teqcidb' ),
                 'quiz_id' => $quiz_id,
+            )
+        );
+    }
+
+
+    public function create_quiz_question() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to create quiz questions.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $question_type = isset( $_POST['question_type'] ) ? sanitize_key( wp_unslash( $_POST['question_type'] ) ) : '';
+        $prompt        = isset( $_POST['prompt'] ) ? sanitize_textarea_field( wp_unslash( $_POST['prompt'] ) ) : '';
+        $correct       = isset( $_POST['correct'] ) ? sanitize_key( wp_unslash( $_POST['correct'] ) ) : '';
+
+        if ( $quiz_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid quiz selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( ! in_array( $question_type, array( 'true_false', 'multi_select', 'multiple_choice' ), true ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Choose a valid question type before saving.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( '' === trim( $prompt ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Enter the question text before saving.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $option_ids_raw     = isset( $_POST['option_ids'] ) ? (array) wp_unslash( $_POST['option_ids'] ) : array();
+        $option_labels_raw  = isset( $_POST['option_labels'] ) ? (array) wp_unslash( $_POST['option_labels'] ) : array();
+        $option_correct_raw = isset( $_POST['option_correct'] ) ? (array) wp_unslash( $_POST['option_correct'] ) : array();
+
+        $choices_json = '';
+
+        if ( 'true_false' === $question_type ) {
+            if ( 'true' !== $correct && 'false' !== $correct ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Select True or False before saving this question.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            $choices_json = wp_json_encode(
+                array(
+                    array(
+                        'correct' => $correct,
+                    ),
+                )
+            );
+        } else {
+            $choices = array();
+
+            foreach ( $option_labels_raw as $index => $label_raw ) {
+                $label = sanitize_textarea_field( (string) $label_raw );
+
+                if ( '' === trim( $label ) ) {
+                    continue;
+                }
+
+                $option_id = isset( $option_ids_raw[ $index ] ) ? sanitize_key( (string) $option_ids_raw[ $index ] ) : '';
+
+                if ( '' === $option_id ) {
+                    $option_id = 'choice_' . ( $index + 1 );
+                }
+
+                $is_correct = isset( $option_correct_raw[ $index ] ) && 'true' === sanitize_key( (string) $option_correct_raw[ $index ] );
+
+                $choices[] = array(
+                    'id'      => $option_id,
+                    'label'   => $label,
+                    'correct' => $is_correct,
+                );
+            }
+
+            if ( empty( $choices ) ) {
+                $this->maybe_delay( $start );
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
+                    )
+                );
+            }
+
+            if ( 'multiple_choice' === $question_type ) {
+                $correct_count = 0;
+
+                foreach ( $choices as $choice ) {
+                    if ( ! empty( $choice['correct'] ) ) {
+                        $correct_count++;
+                    }
+                }
+
+                if ( 1 !== $correct_count ) {
+                    $this->maybe_delay( $start );
+                    wp_send_json_error(
+                        array(
+                            'message' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
+                        )
+                    );
+                }
+            }
+
+            $choices_json = wp_json_encode( $choices );
+        }
+
+        if ( ! $choices_json ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to encode question data for saving.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $quiz_table = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $quiz_table WHERE id = %d LIMIT 1", $quiz_id ) );
+
+        if ( ! $quiz_exists ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected quiz no longer exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $max_sort_order = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(sort_order) FROM $table WHERE quiz_id = %d", $quiz_id ) );
+        $next_sort_order = absint( $max_sort_order ) + 1;
+
+        $inserted = $wpdb->insert(
+            $table,
+            array(
+                'quiz_id'      => $quiz_id,
+                'type'         => $question_type,
+                'prompt'       => $prompt,
+                'choices_json' => $choices_json,
+                'sort_order'   => $next_sort_order,
+                'updated_at'   => current_time( 'mysql' ),
+            ),
+            array( '%d', '%s', '%s', '%s', '%d', '%s' )
+        );
+
+        if ( false === $inserted ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to create the quiz question. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $question_id = absint( $wpdb->insert_id );
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message'     => __( 'Question created. Reloading…', 'teqcidb' ),
+                'quiz_id'     => $quiz_id,
+                'question_id' => $question_id,
             )
         );
     }

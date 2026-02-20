@@ -297,6 +297,23 @@
     display: table-cell;
 }
 
+
+#teqcidb-quiz-list .teqcidb-quiz-question-create-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 12px;
+    align-items: start;
+}
+
+#teqcidb-quiz-list .teqcidb-quiz-question-create-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+#teqcidb-quiz-list .teqcidb-quiz-question-create-type-area {
+    margin-top: 12px;
+}
 .teqcidb-quiz-question__actions {
     margin-top: 12px;
 }
