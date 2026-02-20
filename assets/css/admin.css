@@ -262,6 +262,10 @@
     margin-top: 20px;
 }
 
+#teqcidb-quiz-list p.description.teqcidb-quiz-questions__empty {
+    display: block;
+}
+
 
 .teqcidb-quiz-question__options {
     margin-top: 12px;

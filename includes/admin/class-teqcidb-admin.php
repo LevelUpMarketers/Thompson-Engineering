@@ -2887,75 +2887,163 @@ class TEQCIDB_Admin {
             exit;
         }
 
-        $question_ids_raw = isset( $_POST['question_ids'] ) ? (array) wp_unslash( $_POST['question_ids'] ) : array();
-        $question_prompts = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
-        $question_correct = isset( $_POST['question_correct'] ) ? (array) wp_unslash( $_POST['question_correct'] ) : array();
+        $question_prompts       = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
+        $question_types_input   = isset( $_POST['question_type'] ) ? (array) wp_unslash( $_POST['question_type'] ) : array();
+        $question_correct       = isset( $_POST['question_correct'] ) ? (array) wp_unslash( $_POST['question_correct'] ) : array();
+        $question_option_ids    = isset( $_POST['question_option_id'] ) ? (array) wp_unslash( $_POST['question_option_id'] ) : array();
+        $question_option_labels = isset( $_POST['question_option_label'] ) ? (array) wp_unslash( $_POST['question_option_label'] ) : array();
+        $question_option_values = isset( $_POST['question_option_correct'] ) ? (array) wp_unslash( $_POST['question_option_correct'] ) : array();
 
-        if ( ! empty( $question_ids_raw ) && ! empty( $question_prompts ) ) {
+        if ( ! empty( $question_prompts ) ) {
             $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+            $existing_rows   = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, type, prompt, choices_json FROM $questions_table WHERE quiz_id = %d",
+                    $quiz_id
+                ),
+                ARRAY_A
+            );
+            $existing_map    = array();
 
-            foreach ( $question_ids_raw as $question_id_raw ) {
-                $question_id = absint( $question_id_raw );
+            foreach ( $existing_rows as $existing_row ) {
+                $existing_id = isset( $existing_row['id'] ) ? absint( $existing_row['id'] ) : 0;
 
-                if ( $question_id <= 0 ) {
+                if ( $existing_id > 0 ) {
+                    $existing_map[ $existing_id ] = $existing_row;
+                }
+            }
+
+            foreach ( $question_prompts as $question_key => $prompt_raw ) {
+                $question_key_string = (string) $question_key;
+                $prompt              = sanitize_textarea_field( (string) $prompt_raw );
+                $question_id         = absint( $question_key );
+
+                $is_existing_question = ctype_digit( $question_key_string ) && $question_id > 0 && isset( $existing_map[ $question_id ] );
+                $is_new_question      = ! ctype_digit( $question_key_string );
+
+                if ( ! $is_existing_question && ! $is_new_question ) {
                     continue;
                 }
 
-                if ( ! isset( $question_prompts[ $question_id ] ) && ! isset( $question_prompts[ (string) $question_id ] ) ) {
-                    continue;
+                $correct_lookup_key = $is_existing_question ? $question_key_string : '0';
+                $correct_value_raw  = isset( $question_correct[ $correct_lookup_key ] ) ? $question_correct[ $correct_lookup_key ] : '';
+                $correct_value      = strtolower( sanitize_text_field( (string) $correct_value_raw ) );
+
+                $question_type = '';
+
+                if ( $is_existing_question ) {
+                    $question_type = sanitize_key( (string) $existing_map[ $question_id ]['type'] );
+                } elseif ( isset( $question_types_input[ $question_key_string ] ) ) {
+                    $question_type = sanitize_key( (string) $question_types_input[ $question_key_string ] );
                 }
 
-                $prompt_value = isset( $question_prompts[ $question_id ] ) ? $question_prompts[ $question_id ] : $question_prompts[ (string) $question_id ];
-                $prompt       = sanitize_textarea_field( (string) $prompt_value );
+                $choices_json = '';
 
-                $wpdb->update(
-                    $questions_table,
-                    array( 'prompt' => $prompt ),
-                    array(
-                        'id'      => $question_id,
-                        'quiz_id' => $quiz_id,
-                    ),
-                    array( '%s' ),
-                    array( '%d', '%d' )
-                );
-
-                if ( isset( $question_correct[ $question_id ] ) || isset( $question_correct[ (string) $question_id ] ) ) {
-                    $correct_value_raw = isset( $question_correct[ $question_id ] ) ? $question_correct[ $question_id ] : $question_correct[ (string) $question_id ];
-                    $correct_value     = strtolower( sanitize_text_field( (string) $correct_value_raw ) );
-
+                if ( 'true_false' === $question_type ) {
                     if ( 'true' === $correct_value || 'false' === $correct_value ) {
-                        $question_type = $wpdb->get_var(
-                            $wpdb->prepare(
-                                "SELECT type FROM $questions_table WHERE id = %d AND quiz_id = %d LIMIT 1",
-                                $question_id,
-                                $quiz_id
+                        $choices_json = wp_json_encode(
+                            array(
+                                array(
+                                    'correct' => $correct_value,
+                                ),
                             )
                         );
+                    }
+                } elseif ( 'multi_select' === $question_type || 'multiple_choice' === $question_type ) {
+                    $options_lookup_key = $is_existing_question ? $question_key_string : '0';
+                    $option_ids_raw     = isset( $question_option_ids[ $options_lookup_key ] ) ? (array) $question_option_ids[ $options_lookup_key ] : array();
+                    $option_labels_raw  = isset( $question_option_labels[ $options_lookup_key ] ) ? (array) $question_option_labels[ $options_lookup_key ] : array();
+                    $option_values_raw  = isset( $question_option_values[ $options_lookup_key ] ) ? (array) $question_option_values[ $options_lookup_key ] : array();
+                    $choices            = array();
+                    $correct_count      = 0;
 
-                        if ( 'true_false' === sanitize_key( (string) $question_type ) ) {
-                            $choices_json = wp_json_encode(
-                                array(
-                                    array(
-                                        'correct' => $correct_value,
-                                    ),
-                                )
-                            );
+                    foreach ( $option_labels_raw as $index => $label_raw ) {
+                        $label = sanitize_textarea_field( (string) $label_raw );
 
-                            if ( $choices_json ) {
-                                $wpdb->update(
-                                    $questions_table,
-                                    array( 'choices_json' => $choices_json ),
-                                    array(
-                                        'id'      => $question_id,
-                                        'quiz_id' => $quiz_id,
-                                    ),
-                                    array( '%s' ),
-                                    array( '%d', '%d' )
-                                );
-                            }
+                        if ( '' === trim( $label ) ) {
+                            continue;
                         }
+
+                        $option_id = isset( $option_ids_raw[ $index ] ) ? sanitize_key( (string) $option_ids_raw[ $index ] ) : '';
+
+                        if ( '' === $option_id ) {
+                            $option_id = 'choice_' . ( $index + 1 );
+                        }
+
+                        $is_correct = isset( $option_values_raw[ $index ] ) && 'true' === sanitize_key( (string) $option_values_raw[ $index ] );
+
+                        if ( $is_correct ) {
+                            ++$correct_count;
+                        }
+
+                        $choices[] = array(
+                            'id'      => $option_id,
+                            'label'   => $label,
+                            'correct' => $is_correct,
+                        );
+                    }
+
+                    if ( 'multiple_choice' === $question_type && 1 !== $correct_count ) {
+                        $choices = array();
+                    }
+
+                    if ( ! empty( $choices ) ) {
+                        $choices_json = wp_json_encode( $choices );
                     }
                 }
+
+                if ( $is_existing_question ) {
+                    $update_data = array();
+                    $formats     = array();
+
+                    $saved_prompt = isset( $existing_map[ $question_id ]['prompt'] ) ? (string) $existing_map[ $question_id ]['prompt'] : '';
+
+                    if ( $prompt !== $saved_prompt ) {
+                        $update_data['prompt'] = $prompt;
+                        $formats[]             = '%s';
+                    }
+
+                    $saved_choices = isset( $existing_map[ $question_id ]['choices_json'] ) ? (string) $existing_map[ $question_id ]['choices_json'] : '';
+
+                    if ( '' !== $choices_json && $choices_json !== $saved_choices ) {
+                        $update_data['choices_json'] = $choices_json;
+                        $formats[]                   = '%s';
+                    }
+
+                    if ( ! empty( $update_data ) ) {
+                        $update_data['updated_at'] = current_time( 'mysql' );
+                        $formats[]                 = '%s';
+
+                        $wpdb->update(
+                            $questions_table,
+                            $update_data,
+                            array(
+                                'id'      => $question_id,
+                                'quiz_id' => $quiz_id,
+                            ),
+                            $formats,
+                            array( '%d', '%d' )
+                        );
+                    }
+
+                    continue;
+                }
+
+                if ( '' === trim( $prompt ) || ! in_array( $question_type, array( 'true_false', 'multi_select', 'multiple_choice' ), true ) || '' === $choices_json ) {
+                    continue;
+                }
+
+                $wpdb->insert(
+                    $questions_table,
+                    array(
+                        'quiz_id'      => $quiz_id,
+                        'type'         => $question_type,
+                        'prompt'       => $prompt,
+                        'choices_json' => $choices_json,
+                        'updated_at'   => current_time( 'mysql' ),
+                    ),
+                    array( '%d', '%s', '%s', '%s', '%s' )
+                );
             }
         }
 
