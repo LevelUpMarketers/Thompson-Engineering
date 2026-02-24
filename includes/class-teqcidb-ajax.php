@@ -209,7 +209,26 @@ class TEQCIDB_Ajax {
         $current_user_id  = get_current_user_id();
         $quiz_runtime     = array();
         $current_user     = wp_get_current_user();
-        $student_name     = trim( (string) $current_user->first_name . ' ' . (string) $current_user->last_name );
+        $students_table   = $wpdb->prefix . 'teqcidb_students';
+        $student_name     = '';
+
+        $student_name_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT first_name, last_name FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $current_user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( is_array( $student_name_row ) ) {
+            $student_first_name = isset( $student_name_row['first_name'] ) ? sanitize_text_field( (string) $student_name_row['first_name'] ) : '';
+            $student_last_name  = isset( $student_name_row['last_name'] ) ? sanitize_text_field( (string) $student_name_row['last_name'] ) : '';
+            $student_name       = trim( $student_first_name . ' ' . $student_last_name );
+        }
+
+        if ( '' === $student_name ) {
+            $student_name = trim( (string) $current_user->first_name . ' ' . (string) $current_user->last_name );
+        }
 
         if ( '' === $student_name ) {
             $student_name = (string) $current_user->display_name;
@@ -282,12 +301,7 @@ class TEQCIDB_Ajax {
                             esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
                         );
                     } elseif ( 2 === $attempt_status ) {
-                        $elapsed_since_save = $this->format_elapsed_duration_from_datetime( isset( $attempt['updated_at'] ) ? $attempt['updated_at'] : '' );
-                        $feedback_message   = sprintf(
-                            /* translators: %s: elapsed time since last quiz save. */
-                            __( 'Welcome back! Looks like you\'ve already started this quiz. The last save was %s.', 'teqcidb' ),
-                            $elapsed_since_save
-                        );
+                        $feedback_message = __( 'Welcome back! Looks like you\'ve already started this quiz.', 'teqcidb' );
                     }
                 }
             }
@@ -332,7 +346,13 @@ class TEQCIDB_Ajax {
             echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
         } else {
             if ( ! $quiz_access_allowed ) {
-                echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled quiz access for your account yet. Please contact your QCI instructor for next steps.', 'teqcidb' ) . '</p>';
+                if ( 'initial' === $class_type ) {
+                    echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled this Exam yet!', 'teqcidb' ) . '</p>';
+                } elseif ( 'refresher' === $class_type ) {
+                    echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled this Refresher Quiz yet!', 'teqcidb' ) . '</p>';
+                } else {
+                    echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled this quiz yet!', 'teqcidb' ) . '</p>';
+                }
             } else {
                 echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'No quiz is assigned to this class yet.', 'teqcidb' ) . '</p>';
             }
@@ -845,42 +865,6 @@ class TEQCIDB_Ajax {
         );
     }
 
-
-    private function format_elapsed_duration_from_datetime( $datetime_value ) {
-        $timestamp = strtotime( (string) $datetime_value );
-
-        if ( ! $timestamp ) {
-            return __( 'just now', 'teqcidb' );
-        }
-
-        $now_timestamp = current_time( 'timestamp' );
-
-        if ( $now_timestamp <= $timestamp ) {
-            return __( 'just now', 'teqcidb' );
-        }
-
-        $start = new DateTimeImmutable( '@' . $timestamp );
-        $end   = new DateTimeImmutable( '@' . $now_timestamp );
-        $diff  = $start->diff( $end );
-
-        $months  = ( $diff->y * 12 ) + $diff->m;
-        $weeks   = intdiv( (int) $diff->d, 7 );
-        $days    = (int) $diff->d % 7;
-        $hours   = (int) $diff->h;
-        $minutes = (int) $diff->i;
-        $seconds = (int) $diff->s;
-
-        return sprintf(
-            /* translators: 1: months, 2: weeks, 3: days, 4: hours, 5: minutes, 6: seconds elapsed since last save. */
-            __( '%1$s Months, %2$s Weeks, %3$s Days, %4$s Hours, %5$s Minutes, %6$s Seconds ago', 'teqcidb' ),
-            $months,
-            $weeks,
-            $days,
-            $hours,
-            $minutes,
-            $seconds
-        );
-    }
 
     private function get_student_dashboard_certificates_url() {
         global $wpdb;
