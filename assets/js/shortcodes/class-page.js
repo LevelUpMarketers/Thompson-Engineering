@@ -172,6 +172,13 @@
 
         bindChoiceEvents(question);
         bindNextButton(question, atEnd);
+
+        var noticeEl = root.querySelector('.teqcidb-class-quiz__notice');
+        if (noticeEl) {
+            window.setTimeout(function(){
+                noticeEl.classList.add('is-fading-out');
+            }, 10000);
+        }
     }
 
     function buildIncorrectHtml(incorrect){

@@ -150,6 +150,16 @@
     background: #fafafa;
 }
 
+.teqcidb-class-route__resource-title {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.teqcidb-class-route__resource-link-wrap {
+    margin: 0;
+    word-break: break-word;
+}
+
 @media (max-width: 720px) {
     .teqcidb-class-route__main {
         padding-top: 28px;
@@ -249,4 +259,9 @@
     padding: 8px 10px;
     border-radius: 8px;
     margin-bottom: 14px;
+    transition: opacity 0.45s ease;
+}
+
+.teqcidb-class-quiz__notice.is-fading-out {
+    opacity: 0;
 }
