@@ -22,11 +22,6 @@
     font-size: 1.9rem;
 }
 
-.teqcidb-class-route__subtitle {
-    margin: 0;
-    color: #4d4d4d;
-}
-
 .teqcidb-class-route__panel,
 .teqcidb-auth-card,
 .teqcidb-class-route__resources,
@@ -155,6 +150,16 @@
     background: #fafafa;
 }
 
+.teqcidb-class-route__resource-title {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.teqcidb-class-route__resource-link-wrap {
+    margin: 0;
+    word-break: break-word;
+}
+
 @media (max-width: 720px) {
     .teqcidb-class-route__main {
         padding-top: 28px;
@@ -170,4 +175,93 @@
     .teqcidb-button-primary {
         width: 100%;
     }
+}
+
+.teqcidb-class-quiz__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.teqcidb-class-quiz__progress {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #e9e9e9;
+    overflow: hidden;
+    margin-bottom: 18px;
+}
+
+.teqcidb-class-quiz__progress span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: #f8991d;
+    transition: width 0.2s ease;
+}
+
+.teqcidb-class-quiz__prompt {
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+
+.teqcidb-class-quiz__choices {
+    display: grid;
+    gap: 10px;
+}
+
+.teqcidb-class-quiz__choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #e1e1e1;
+}
+
+.teqcidb-class-quiz__actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    align-items: center;
+}
+
+.teqcidb-class-quiz__save-state {
+    color: #585858;
+    font-size: 0.9rem;
+}
+
+.teqcidb-class-quiz__error {
+    margin-top: 10px;
+    color: #8f0000;
+    min-height: 20px;
+}
+
+.teqcidb-class-quiz__result {
+    border: 1px solid #e1e1e1;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fafafa;
+}
+
+.teqcidb-class-quiz__incorrect-item {
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+.teqcidb-class-quiz__notice {
+    background: #eef7ff;
+    border: 1px solid #bfdfff;
+    color: #1a4f7a;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    transition: opacity 0.45s ease;
+}
+
+.teqcidb-class-quiz__notice.is-fading-out {
+    opacity: 0;
 }
