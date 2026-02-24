@@ -296,3 +296,4 @@
 293. 2026-02-20: Added Edit Quizzes empty-question description display:block scoping on #teqcidb-quiz-list and updated class-page section spacing selectors so both panel→quiz/resources and quiz↔resources ordering keep a 20px vertical gap.
 
 294. 2026-02-20: Implemented class-page quiz runtime with one-question-at-a-time UI, progress bar + question counter, debounced autosave/beacon recovery writes to teqcidb_quiz_attempts + teqcidb_quiz_answers, and final pass/fail scoring (75% initial, 80% refresher) with incorrect-question detail capture for post-submit review.
+295. 2026-02-20: Updated class-page quiz header/content UX by removing the subtitle row, showing '[Class Name] Class Page' in the H1, greeting logged-in students by first+last name in the welcome title, and switching exam/quiz section titles + descriptions to class-type-specific Initial (QCI Exam, 75%) vs Refresher (Refresher Quiz, 80%) language with contact links.

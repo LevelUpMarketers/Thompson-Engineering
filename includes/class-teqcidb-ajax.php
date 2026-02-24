@@ -135,7 +135,7 @@ class TEQCIDB_Ajax {
         $class_url = $this->generate_class_page_relative_url( $route_token );
         $class_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, uniqueclassid FROM $table WHERE classurl = %s LIMIT 1",
+                "SELECT id, classname, uniqueclassid, classtype FROM $table WHERE classurl = %s LIMIT 1",
                 $class_url
             ),
             ARRAY_A
@@ -155,14 +155,17 @@ class TEQCIDB_Ajax {
         $class_id              = isset( $class_row['id'] ) ? absint( $class_row['id'] ) : 0;
         $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
         $class_page_script     = TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/class-page.js';
+        $class_type            = isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '';
 
         echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title><link rel="stylesheet" href="' . esc_url( $class_page_stylesheet ) . '" /></head><body class="teqcidb-class-route">';
         echo '<main class="teqcidb-class-route__main">';
         echo '<header class="teqcidb-class-route__header">';
-        echo '<h1 class="teqcidb-class-route__title">' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
 
         if ( '' !== $class_name ) {
-            echo '<p class="teqcidb-class-route__subtitle">' . esc_html( $class_name ) . '</p>';
+            /* translators: %s: class name. */
+            echo '<h1 class="teqcidb-class-route__title">' . esc_html( sprintf( __( '%s Class Page', 'teqcidb' ), $class_name ) ) . '</h1>';
+        } else {
+            echo '<h1 class="teqcidb-class-route__title">' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
         }
 
         echo '</header>';
@@ -203,6 +206,16 @@ class TEQCIDB_Ajax {
         $feedback_message = __( 'Welcome! Please wait for your QCI instructor to enable the Quiz below or tell you that you may start your quiz.', 'teqcidb' );
         $current_user_id  = get_current_user_id();
         $quiz_runtime     = array();
+        $current_user     = wp_get_current_user();
+        $student_name     = trim( (string) $current_user->first_name . ' ' . (string) $current_user->last_name );
+
+        if ( '' === $student_name ) {
+            $student_name = (string) $current_user->display_name;
+        }
+
+        if ( '' === $student_name ) {
+            $student_name = __( 'Student', 'teqcidb' );
+        }
 
         if ( $class_id > 0 && $current_user_id > 0 ) {
             $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
@@ -269,16 +282,33 @@ class TEQCIDB_Ajax {
         );
 
         echo '<section class="teqcidb-class-route__panel">';
-        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Welcome to Your Class Session', 'teqcidb' ) . '</h2>';
+        /* translators: %s: student's first and last name. */
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html( sprintf( __( 'Welcome, %s!', 'teqcidb' ), $student_name ) ) . '</h2>';
         echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'You are logged in. Class quiz and resources content will appear here in upcoming updates.', 'teqcidb' ) . '</p>';
         echo '<div class="teqcidb-class-route__feedback">' . wp_kses( $feedback_message, $allowed_feedback_html ) . '</div>';
         echo '</section>';
 
+        $quiz_section_title = __( 'Class Quiz', 'teqcidb' );
+
+        if ( 'initial' === $class_type ) {
+            $quiz_section_title = __( 'QCI Exam', 'teqcidb' );
+        } elseif ( 'refresher' === $class_type ) {
+            $quiz_section_title = __( 'Refresher Quiz', 'teqcidb' );
+        }
+
         echo '<section class="teqcidb-class-route__quiz">';
-        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Quiz', 'teqcidb' ) . '</h2>';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
         if ( ! empty( $quiz_runtime ) ) {
-            echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' ) . '</p>';
+            if ( 'initial' === $class_type ) {
+                $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is considered passing. Anything below a 75% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Exam attempt. Good luck!', 'teqcidb' );
+            } elseif ( 'refresher' === $class_type ) {
+                $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Quiz attempt. Good luck!', 'teqcidb' );
+            } else {
+                $quiz_intro = __( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' );
+            }
+
+            echo '<p class="teqcidb-class-route__section-description">' . wp_kses( $quiz_intro, $allowed_feedback_html ) . '</p>';
             echo '<div id="teqcidb-class-quiz-app" class="teqcidb-class-quiz-app" data-quiz-runtime="' . esc_attr( wp_json_encode( $quiz_runtime ) ) . '"></div>';
             echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
         } else {
