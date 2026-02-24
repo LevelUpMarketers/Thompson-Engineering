@@ -135,7 +135,7 @@ class TEQCIDB_Ajax {
         $class_url = $this->generate_class_page_relative_url( $route_token );
         $class_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, uniqueclassid, classtype FROM $table WHERE classurl = %s LIMIT 1",
+                "SELECT id, classname, uniqueclassid, classtype, allallowedquiz, quizstudentsallowed FROM $table WHERE classurl = %s LIMIT 1",
                 $class_url
             ),
             ARRAY_A
@@ -156,6 +156,8 @@ class TEQCIDB_Ajax {
         $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
         $class_page_script     = TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/class-page.js';
         $class_type            = isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '';
+        $quiz_access_mode      = isset( $class_row['allallowedquiz'] ) ? sanitize_key( (string) $class_row['allallowedquiz'] ) : '';
+        $quiz_access_allowed   = true;
 
         echo '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>' . esc_html__( 'Class Page', 'teqcidb' ) . '</title><link rel="stylesheet" href="' . esc_url( $class_page_stylesheet ) . '" /></head><body class="teqcidb-class-route">';
         echo '<main class="teqcidb-class-route__main">';
@@ -217,6 +219,23 @@ class TEQCIDB_Ajax {
             $student_name = __( 'Student', 'teqcidb' );
         }
 
+        if ( 'blocked' === $quiz_access_mode ) {
+            $quiz_access_allowed = false;
+
+            $quiz_students_allowed = $this->format_class_student_list_for_response( isset( $class_row['quizstudentsallowed'] ) ? $class_row['quizstudentsallowed'] : '' );
+
+            if ( ! empty( $quiz_students_allowed ) ) {
+                foreach ( $quiz_students_allowed as $allowed_student ) {
+                    $allowed_wp_user_id = isset( $allowed_student['wpuserid'] ) ? absint( $allowed_student['wpuserid'] ) : 0;
+
+                    if ( $allowed_wp_user_id > 0 && $allowed_wp_user_id === $current_user_id ) {
+                        $quiz_access_allowed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
         if ( $class_id > 0 && $current_user_id > 0 ) {
             $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
             $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -229,7 +248,7 @@ class TEQCIDB_Ajax {
                 )
             );
 
-            if ( $quiz_id > 0 ) {
+            if ( $quiz_id > 0 && $quiz_access_allowed ) {
                 $quiz_runtime = $this->build_class_quiz_runtime_payload( $quiz_id, $class_id, $current_user_id );
 
                 $attempt = $wpdb->get_row(
@@ -312,7 +331,11 @@ class TEQCIDB_Ajax {
             echo '<div id="teqcidb-class-quiz-app" class="teqcidb-class-quiz-app" data-quiz-runtime="' . esc_attr( wp_json_encode( $quiz_runtime ) ) . '"></div>';
             echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
         } else {
-            echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'No quiz is assigned to this class yet.', 'teqcidb' ) . '</p>';
+            if ( ! $quiz_access_allowed ) {
+                echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled quiz access for your account yet. Please contact your QCI instructor for next steps.', 'teqcidb' ) . '</p>';
+            } else {
+                echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'No quiz is assigned to this class yet.', 'teqcidb' ) . '</p>';
+            }
         }
 
         echo '</section>';
