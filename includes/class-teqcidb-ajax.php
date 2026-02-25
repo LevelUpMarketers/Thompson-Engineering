@@ -688,9 +688,14 @@ class TEQCIDB_Ajax {
             wp_send_json_error( array( 'message' => __( 'Unable to save quiz progress because the request payload was invalid.', 'teqcidb' ) ) );
         }
 
-        $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $current_user, $answers_payload, $current_index, false );
+        $progress_result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $current_user, $answers_payload, $current_index, false );
 
-        wp_send_json_success( array( 'message' => __( 'Quiz progress saved.', 'teqcidb' ) ) );
+        wp_send_json_success(
+            array(
+                'message'   => __( 'Quiz progress saved.', 'teqcidb' ),
+                'attemptId' => isset( $progress_result['attempt_id'] ) ? (int) $progress_result['attempt_id'] : 0,
+            )
+        );
     }
 
     public function submit_quiz_attempt() {
@@ -780,8 +785,6 @@ class TEQCIDB_Ajax {
         }
 
         $sanitized_answers = array();
-        $correct_count     = 0;
-        $incorrect_details = array();
 
         foreach ( $question_rows as $row ) {
             $question_id = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
@@ -797,39 +800,14 @@ class TEQCIDB_Ajax {
                 $selected = $this->sanitize_runtime_selected_values( array( 'selected' => $answers_payload[ $question_key ] ) );
             }
 
-            $evaluation = $this->evaluate_runtime_answer( isset( $row['type'] ) ? $row['type'] : '', isset( $row['choices_json'] ) ? $row['choices_json'] : '', $selected );
-
-            if ( $evaluation['answered'] && $evaluation['is_correct'] ) {
-                $correct_count++;
-            }
-
-            if ( $evaluation['answered'] && ! $evaluation['is_correct'] ) {
-                $incorrect_details[] = array(
-                    'questionId'        => $question_id,
-                    'prompt'            => wp_strip_all_tags( isset( $row['prompt'] ) ? (string) $row['prompt'] : '' ),
-                    'type'              => sanitize_key( isset( $row['type'] ) ? (string) $row['type'] : '' ),
-                    'choices'           => $this->normalize_question_choices_for_runtime( isset( $row['type'] ) ? $row['type'] : '', isset( $row['choices_json'] ) ? $row['choices_json'] : '' ),
-                    'selected'          => $selected,
-                    'correctSelections' => $evaluation['correct_values'],
-                );
-            }
-
             $sanitized_answers[ $question_key ] = array(
                 'selected' => $selected,
-                'answered' => $evaluation['answered'],
-                'correct'  => $evaluation['is_correct'],
             );
         }
 
-        $total_questions = count( $question_rows );
-        $score = $total_questions > 0 ? (int) round( ( $correct_count / $total_questions ) * 100 ) : 0;
-
         $payload = array(
-            'answers'          => $sanitized_answers,
-            'current_index'    => max( 0, $current_index ),
-            'total_questions'  => $total_questions,
-            'score'            => $score,
-            'incorrect_details'=> $incorrect_details,
+            'answers'       => $sanitized_answers,
+            'current_index' => max( 0, $current_index ),
         );
 
         $encoded_payload = wp_json_encode( $payload );
@@ -877,6 +855,83 @@ class TEQCIDB_Ajax {
                 'attempt_id' => $attempt_id,
             );
         }
+
+        $stored_progress_json = (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT answers_json FROM $answers_table WHERE attempt_id = %d LIMIT 1",
+                $attempt_id
+            )
+        );
+
+        $decoded_progress = json_decode( $stored_progress_json, true );
+
+        if ( ! is_array( $decoded_progress ) || ! isset( $decoded_progress['answers'] ) || ! is_array( $decoded_progress['answers'] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Unable to load quiz progress for submission.', 'teqcidb' ) ) );
+        }
+
+        $progress_answers = $decoded_progress['answers'];
+        $correct_count    = 0;
+        $incorrect_details = array();
+
+        foreach ( $question_rows as $row ) {
+            $question_id  = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+            $question_key = (string) $question_id;
+
+            if ( $question_id <= 0 ) {
+                continue;
+            }
+
+            $selected = array();
+
+            if ( isset( $progress_answers[ $question_key ]['selected'] ) ) {
+                $selected = $this->sanitize_runtime_selected_values( array( 'selected' => $progress_answers[ $question_key ]['selected'] ) );
+            }
+
+            $evaluation = $this->evaluate_runtime_answer( isset( $row['type'] ) ? $row['type'] : '', isset( $row['choices_json'] ) ? $row['choices_json'] : '', $selected );
+
+            if ( $evaluation['answered'] && $evaluation['is_correct'] ) {
+                $correct_count++;
+            }
+
+            if ( $evaluation['answered'] && ! $evaluation['is_correct'] ) {
+                $incorrect_details[] = array(
+                    'questionId'        => $question_id,
+                    'prompt'            => wp_strip_all_tags( isset( $row['prompt'] ) ? (string) $row['prompt'] : '' ),
+                    'type'              => sanitize_key( isset( $row['type'] ) ? (string) $row['type'] : '' ),
+                    'choices'           => $this->normalize_question_choices_for_runtime( isset( $row['type'] ) ? $row['type'] : '', isset( $row['choices_json'] ) ? $row['choices_json'] : '' ),
+                    'selected'          => $selected,
+                    'correctSelections' => $evaluation['correct_values'],
+                );
+            }
+
+            $progress_answers[ $question_key ] = array(
+                'selected' => $selected,
+                'answered' => $evaluation['answered'],
+                'correct'  => $evaluation['is_correct'],
+            );
+        }
+
+        $total_questions = count( $question_rows );
+        $score           = $total_questions > 0 ? (int) round( ( $correct_count / $total_questions ) * 100 ) : 0;
+
+        $decoded_progress['answers']           = $progress_answers;
+        $decoded_progress['total_questions']   = $total_questions;
+        $decoded_progress['score']             = $score;
+        $decoded_progress['incorrect_details'] = $incorrect_details;
+
+        $final_payload = wp_json_encode( $decoded_progress );
+
+        if ( ! $final_payload ) {
+            wp_send_json_error( array( 'message' => __( 'Unable to finalize quiz answers for submission.', 'teqcidb' ) ) );
+        }
+
+        $wpdb->update(
+            $answers_table,
+            array( 'answers_json' => $final_payload ),
+            array( 'attempt_id' => $attempt_id ),
+            array( '%s' ),
+            array( '%d' )
+        );
 
         $class_type = (string) $wpdb->get_var(
             $wpdb->prepare(
