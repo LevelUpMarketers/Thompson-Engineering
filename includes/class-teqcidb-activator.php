@@ -22,7 +22,8 @@ class TEQCIDB_Activator {
         $quizzes_table   = $wpdb->prefix . 'teqcidb_quizzes';
         $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
         $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
-        $answers_table   = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -179,6 +180,7 @@ class TEQCIDB_Activator {
             user_id bigint(20) unsigned NOT NULL,
             status tinyint NOT NULL DEFAULT 2,
             score int DEFAULT NULL,
+            current_index int NOT NULL DEFAULT 0,
             started_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
             submitted_at datetime DEFAULT NULL,
             updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -197,6 +199,18 @@ class TEQCIDB_Activator {
             UNIQUE KEY attempt_id (attempt_id)
         ) $charset_collate;";
 
+        $sql_quiz_answer_items = "CREATE TABLE $answer_items_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            attempt_id bigint(20) unsigned NOT NULL,
+            question_id bigint(20) unsigned NOT NULL,
+            selected_json longtext NOT NULL,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY attempt_question (attempt_id, question_id),
+            KEY attempt_id (attempt_id),
+            KEY question_id (question_id)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
@@ -207,6 +221,7 @@ class TEQCIDB_Activator {
         dbDelta( $sql_quiz_questions );
         dbDelta( $sql_quiz_attempts );
         dbDelta( $sql_quiz_answers );
+        dbDelta( $sql_quiz_answer_items );
         if ( class_exists( 'TEQCIDB_Ajax' ) ) {
             TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
             TEQCIDB_Ajax::register_class_page_rewrite();
