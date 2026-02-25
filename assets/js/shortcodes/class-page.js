@@ -27,6 +27,7 @@
     var currentIndex = Math.max(0, parseInt((runtime.attempt && runtime.attempt.currentIndex) || 0, 10) || 0);
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var saveTimer = null;
+    var saveMessageTimer = null;
     var saveState = {
         isSaving: false,
         hasPending: false
@@ -329,7 +330,6 @@
                 setCurrentSelection(question.id, normalizeSelected(question, selected));
                 markDirty();
                 queueAutosave();
-                updateSaveStatus(i18n.saving || 'Saving…');
             });
         });
     }
@@ -366,9 +366,46 @@
 
     function updateSaveStatus(message){
         var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-        if (stateEl) {
-            stateEl.textContent = message || '';
+
+        if (!stateEl) {
+            return;
         }
+
+        stateEl.textContent = message || '';
+        stateEl.classList.remove('is-fading-out');
+    }
+
+    function clearSaveStatus(){
+        var stateEl = root.querySelector('#teqcidb-quiz-save-state');
+
+        if (!stateEl) {
+            return;
+        }
+
+        stateEl.classList.add('is-fading-out');
+
+        window.setTimeout(function(){
+            var refreshedEl = root.querySelector('#teqcidb-quiz-save-state');
+
+            if (refreshedEl) {
+                refreshedEl.textContent = '';
+                refreshedEl.classList.remove('is-fading-out');
+            }
+        }, 350);
+    }
+
+    function showProgressSavedStatus(){
+        if (saveMessageTimer) {
+            clearTimeout(saveMessageTimer);
+            saveMessageTimer = null;
+        }
+
+        updateSaveStatus(i18n.saved || 'Progress saved.');
+
+        saveMessageTimer = setTimeout(function(){
+            clearSaveStatus();
+            saveMessageTimer = null;
+        }, 3000);
     }
 
     function queueAutosave(immediate){
@@ -417,7 +454,6 @@
         saveState.isSaving = true;
         metrics.saveAttempts += 1;
         recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
-        updateSaveStatus(i18n.saving || 'Saving…');
 
         requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
@@ -425,11 +461,12 @@
             isDirty = false;
             metrics.saveSuccess += 1;
             recordMetric('quiz_save_success', { reason: saveOptions.reason || 'unspecified' });
-            updateSaveStatus(i18n.saved || 'Progress saved.');
+            if (saveOptions.reason === 'boundary') {
+                showProgressSavedStatus();
+            }
         }).catch(function(err){
             metrics.saveFailures += 1;
             recordMetric('quiz_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
-            updateSaveStatus(err.message || (i18n.saveError || 'Save failed.'));
         }).finally(function(){
             saveState.isSaving = false;
             if (saveState.hasPending) {
@@ -446,7 +483,6 @@
         }
 
         markDirty();
-        updateSaveStatus(i18n.submitting || 'Submitting quiz…');
 
         requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
