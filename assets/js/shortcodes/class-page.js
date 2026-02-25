@@ -33,6 +33,15 @@
     };
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
+    var autosaveIntervalMs = 8000;
+    var isDirty = false;
+    var lastSavedHash = '';
+    var metrics = {
+        saveAttempts: 0,
+        saveSuccess: 0,
+        saveFailures: 0,
+        skippedNoop: 0
+    };
 
     function esc(text){
         return String(text || '').replace(/[&<>"]+/g, function(char){
@@ -78,6 +87,30 @@
 
     function setCurrentSelection(questionId, selected){
         answers[String(questionId)] = selected;
+    }
+
+    function buildProgressPayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            attempt_id: attemptId,
+            current_question_index: currentIndex,
+            answers: answers
+        };
+    }
+
+    function getProgressPayloadHash(){
+        return JSON.stringify(buildProgressPayload());
+    }
+
+    function markDirty(){
+        isDirty = true;
+    }
+
+    function recordMetric(eventName, extra){
+        if (window && typeof window.teqcidbQuizMetricHook === 'function') {
+            window.teqcidbQuizMetricHook(eventName, extra || {});
+        }
     }
 
     function progressPercent(){
@@ -185,13 +218,7 @@
 
 
     function toQueryPayload(){
-        return {
-            quiz_id: runtime.quiz.id,
-            class_id: runtime.quiz.classId,
-            attempt_id: attemptId,
-            current_question_index: currentIndex,
-            answers: answers
-        };
+        return buildProgressPayload();
     }
 
     function parseAjaxResponse(payload){
@@ -300,6 +327,7 @@
                     }
                 });
                 setCurrentSelection(question.id, normalizeSelected(question, selected));
+                markDirty();
                 queueAutosave();
                 updateSaveStatus(i18n.saving || 'Saving…');
             });
@@ -330,6 +358,7 @@
             }
 
             currentIndex += 1;
+            markDirty();
             queueAutosave(true);
             render();
         });
@@ -343,21 +372,40 @@
     }
 
     function queueAutosave(immediate){
-        if (saveTimer) {
-            clearTimeout(saveTimer);
-            saveTimer = null;
-        }
-
-        if (immediate) {
-            saveProgress();
+        if (isSubmitted) {
             return;
         }
 
-        saveTimer = setTimeout(saveProgress, 1000);
+        if (immediate) {
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+            }
+            saveProgress({ reason: 'boundary' });
+            return;
+        }
+
+        if (saveTimer) {
+            return;
+        }
+
+        saveTimer = setTimeout(function(){
+            saveTimer = null;
+            saveProgress({ reason: 'interval' });
+        }, autosaveIntervalMs);
     }
 
-    function saveProgress(){
+    function saveProgress(options){
+        var saveOptions = options || {};
+        var payloadHash = getProgressPayloadHash();
+
         if (isSubmitted) {
+            return;
+        }
+
+        if (!isDirty || payloadHash === lastSavedHash) {
+            metrics.skippedNoop += 1;
+            recordMetric('quiz_save_noop', { reason: saveOptions.reason || 'unspecified' });
             return;
         }
 
@@ -367,28 +415,44 @@
         }
 
         saveState.isSaving = true;
+        metrics.saveAttempts += 1;
+        recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
         updateSaveStatus(i18n.saving || 'Saving…');
 
         requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
+            lastSavedHash = payloadHash;
+            isDirty = false;
+            metrics.saveSuccess += 1;
+            recordMetric('quiz_save_success', { reason: saveOptions.reason || 'unspecified' });
             updateSaveStatus(i18n.saved || 'Progress saved.');
         }).catch(function(err){
+            metrics.saveFailures += 1;
+            recordMetric('quiz_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
             updateSaveStatus(err.message || (i18n.saveError || 'Save failed.'));
         }).finally(function(){
             saveState.isSaving = false;
             if (saveState.hasPending) {
                 saveState.hasPending = false;
-                saveProgress();
+                saveProgress({ reason: 'pending' });
             }
         });
     }
 
     function submitQuiz(){
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
+
+        markDirty();
         updateSaveStatus(i18n.submitting || 'Submitting quiz…');
 
         requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             isSubmitted = true;
+            isDirty = false;
+            lastSavedHash = getProgressPayloadHash();
             render({
                 score: payload.score,
                 passThreshold: payload.passThreshold,
@@ -403,10 +467,18 @@
         });
     }
 
+    document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'hidden' && !isSubmitted) {
+            saveProgress({ reason: 'visibility_hidden' });
+        }
+    });
+
     window.addEventListener('beforeunload', function(){
-        if (!runtime.ajaxUrl || isSubmitted) {
+        if (!runtime.ajaxUrl || isSubmitted || !isDirty || getProgressPayloadHash() === lastSavedHash) {
             return;
         }
+
+        recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
 
         var body = new URLSearchParams();
         body.append('action', 'teqcidb_save_quiz_progress');
@@ -425,6 +497,8 @@
     if (completedCount() >= totalQuestions) {
         currentIndex = totalQuestions - 1;
     }
+
+    lastSavedHash = getProgressPayloadHash();
 
     render();
 })();
