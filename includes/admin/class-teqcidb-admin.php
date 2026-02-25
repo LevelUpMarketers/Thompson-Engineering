@@ -1063,7 +1063,7 @@ class TEQCIDB_Admin {
     private function get_quiz_tooltips() {
         return array(
             'name'     => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
-            'class_id' => __( 'Select every class that should use this quiz. Selected IDs are saved as a comma-separated list in teqcidb_quizzes.class_id.', 'teqcidb' ),
+            'class_id' => __( 'Select every class that should use this quiz. Class assignments are stored in the quiz/class mapping table.', 'teqcidb' ),
         );
     }
 
@@ -1931,13 +1931,24 @@ class TEQCIDB_Admin {
     private function get_saved_quizzes() {
         global $wpdb;
 
-        $table = $wpdb->prefix . 'teqcidb_quizzes';
+        $table              = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
 
-        $results = $wpdb->get_results( "SELECT id, name, class_id, updated_at FROM $table ORDER BY updated_at DESC, id DESC", ARRAY_A );
+        $results = $wpdb->get_results(
+            "SELECT q.id, q.name, q.class_id, q.updated_at, GROUP_CONCAT( qc.class_id ORDER BY qc.class_id ASC SEPARATOR ',' ) AS class_ids_joined FROM $table q LEFT JOIN $quiz_classes_table qc ON qc.quiz_id = q.id GROUP BY q.id ORDER BY q.updated_at DESC, q.id DESC",
+            ARRAY_A
+        );
 
         if ( ! is_array( $results ) ) {
             return array();
         }
+
+        foreach ( $results as &$result ) {
+            if ( isset( $result['class_ids_joined'] ) && '' !== (string) $result['class_ids_joined'] ) {
+                $result['class_id'] = (string) $result['class_ids_joined'];
+            }
+        }
+        unset( $result );
 
         return $results;
     }
@@ -2586,6 +2597,8 @@ class TEQCIDB_Admin {
             exit;
         }
 
+        $this->sync_quiz_class_mappings( (int) $wpdb->insert_id, $class_ids );
+
         wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'created', $redirect ) );
         exit;
     }
@@ -2666,7 +2679,7 @@ class TEQCIDB_Admin {
                 echo '</div>';
 
                 echo '<div class="teqcidb-field teqcidb-field-full">';
-                echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Select every class that should use this quiz. Selected IDs are saved as a comma-separated list in teqcidb_quizzes.class_id.', 'teqcidb' ) . '"></span>' . esc_html__( 'Related Classes', 'teqcidb' ) . '</label>';
+                echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Select every class that should use this quiz. Class assignments are stored in the quiz/class mapping table.', 'teqcidb' ) . '"></span>' . esc_html__( 'Related Classes', 'teqcidb' ) . '</label>';
                 echo '<fieldset class="teqcidb-checkbox-group">';
 
                 foreach ( $class_map as $class_id => $class_label ) {
@@ -2819,6 +2832,35 @@ class TEQCIDB_Admin {
         echo '</div>';
     }
 
+    private function sync_quiz_class_mappings( $quiz_id, array $class_ids ) {
+        global $wpdb;
+
+        $quiz_id            = absint( $quiz_id );
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+
+        if ( $quiz_id <= 0 ) {
+            return;
+        }
+
+        $wpdb->delete( $quiz_classes_table, array( 'quiz_id' => $quiz_id ), array( '%d' ) );
+
+        foreach ( $class_ids as $class_id ) {
+            $class_id = absint( $class_id );
+
+            if ( $class_id <= 0 ) {
+                continue;
+            }
+
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT IGNORE INTO $quiz_classes_table (quiz_id, class_id) VALUES (%d, %d)",
+                    $quiz_id,
+                    $class_id
+                )
+            );
+        }
+    }
+
     public function handle_update_quiz() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'teqcidb' ) );
@@ -2886,6 +2928,8 @@ class TEQCIDB_Admin {
             wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'update_failed', $redirect ) );
             exit;
         }
+
+        $this->sync_quiz_class_mappings( $quiz_id, $class_ids );
 
         $question_prompts       = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
         $question_types_input   = isset( $_POST['question_type'] ) ? (array) wp_unslash( $_POST['question_type'] ) : array();

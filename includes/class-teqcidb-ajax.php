@@ -256,16 +256,26 @@ class TEQCIDB_Ajax {
         }
 
         if ( $class_id > 0 && $current_user_id > 0 ) {
-            $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
-            $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
-            $students_table = $wpdb->prefix . 'teqcidb_students';
+            $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
+            $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+            $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
+            $students_table     = $wpdb->prefix . 'teqcidb_students';
 
             $quiz_id = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM $quizzes_table WHERE FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 ORDER BY updated_at DESC, id DESC LIMIT 1",
+                    "SELECT q.id FROM $quizzes_table q INNER JOIN $quiz_classes_table qc ON qc.quiz_id = q.id WHERE qc.class_id = %d ORDER BY q.updated_at DESC, q.id DESC LIMIT 1",
                     $class_id
                 )
             );
+
+            if ( $quiz_id <= 0 ) {
+                $quiz_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM $quizzes_table WHERE FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 ORDER BY updated_at DESC, id DESC LIMIT 1",
+                        $class_id
+                    )
+                );
+            }
 
             if ( $quiz_id > 0 && $quiz_access_allowed ) {
                 $quiz_runtime = $this->build_class_quiz_runtime_payload( $quiz_id, $class_id, $current_user_id );
@@ -823,8 +833,22 @@ class TEQCIDB_Ajax {
     public function is_quiz_assigned_to_class( $quiz_id, $class_id ) {
         global $wpdb;
 
-        $quizzes_table = $wpdb->prefix . 'teqcidb_quizzes';
-        $match_id      = (int) $wpdb->get_var(
+        $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+
+        $match_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT q.id FROM $quizzes_table q INNER JOIN $quiz_classes_table qc ON qc.quiz_id = q.id WHERE q.id = %d AND qc.class_id = %d LIMIT 1",
+                $quiz_id,
+                $class_id
+            )
+        );
+
+        if ( $match_id > 0 ) {
+            return true;
+        }
+
+        $legacy_match_id = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM $quizzes_table WHERE id = %d AND FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 LIMIT 1",
                 $quiz_id,
@@ -832,7 +856,7 @@ class TEQCIDB_Ajax {
             )
         );
 
-        return $match_id > 0;
+        return $legacy_match_id > 0;
     }
 
     public function user_can_access_class_quiz( $class_id, $user_id ) {
