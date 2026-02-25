@@ -198,7 +198,8 @@ class TEQCIDB_Activator {
             submitted_at datetime DEFAULT NULL,
             updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
-            KEY quiz_user (quiz_id, user_id),
+            KEY quiz_class_user_id (quiz_id, class_id, user_id, id),
+            KEY quiz_user_updated_id (quiz_id, user_id, updated_at, id),
             KEY class_user (class_id, user_id),
             KEY status (status)
         ) $charset_collate;";

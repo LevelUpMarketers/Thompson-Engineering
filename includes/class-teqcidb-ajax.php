@@ -282,8 +282,9 @@ class TEQCIDB_Ajax {
 
                 $attempt = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT status, updated_at FROM $attempts_table WHERE quiz_id = %d AND user_id = %d ORDER BY updated_at DESC, id DESC LIMIT 1",
+                        "SELECT status, updated_at FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
                         $quiz_id,
+                        $class_id,
                         $current_user_id
                     ),
                     ARRAY_A
