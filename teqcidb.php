@@ -38,6 +38,7 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-error-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-content-logger.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-cron.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-ajax.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-rest.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-authorizenet-communicator.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-authorizenet-service.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/admin/class-teqcidb-admin.php';

@@ -10,6 +10,7 @@ class TEQCIDB_Plugin {
     private $i18n;
     private $admin;
     private $ajax;
+    private $rest;
     private $shortcode;
     private $dashboard_shortcode;
     private $registration_shortcode;
@@ -23,6 +24,7 @@ class TEQCIDB_Plugin {
         $this->i18n     = new TEQCIDB_I18n();
         $this->admin    = new TEQCIDB_Admin();
         $this->ajax     = new TEQCIDB_Ajax();
+        $this->rest     = new TEQCIDB_Rest( $this->ajax );
         $this->authorizenet_communicator = new TEQCIDB_AuthorizeNet_Communicator();
         $this->shortcode = new TEQCIDB_Shortcode_Student();
         $this->dashboard_shortcode = new TEQCIDB_Shortcode_Student_Dashboard();
@@ -43,6 +45,7 @@ class TEQCIDB_Plugin {
         }
         $this->admin->register();
         $this->ajax->register();
+        $this->rest->register();
         $this->authorizenet_communicator->register();
         $this->shortcode->register();
         $this->dashboard_shortcode->register();

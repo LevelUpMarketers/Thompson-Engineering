@@ -590,8 +590,11 @@ class TEQCIDB_Ajax {
         }
 
         return array(
-            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce'   => wp_create_nonce( 'teqcidb_ajax_nonce' ),
+            'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'teqcidb_ajax_nonce' ),
+            'restUrl'      => rest_url( 'teqcidb/v1' ),
+            'restNonce'    => wp_create_nonce( 'wp_rest' ),
+            'useRestQuizApi'=> true,
             'i18n'    => array(
                 'validationAnswerRequired' => __( 'Please select an answer before continuing.', 'teqcidb' ),
                 'saveError'                => __( 'We could not save your latest answer. Please check your connection and try again.', 'teqcidb' ),
@@ -703,22 +706,35 @@ class TEQCIDB_Ajax {
 
         $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
         $class_id      = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
+        $attempt_id    = isset( $_POST['attempt_id'] ) ? absint( wp_unslash( $_POST['attempt_id'] ) ) : 0;
         $current_index = isset( $_POST['current_index'] ) ? absint( wp_unslash( $_POST['current_index'] ) ) : 0;
         $answers_json  = isset( $_POST['answers_json'] ) ? wp_unslash( $_POST['answers_json'] ) : '';
         $current_user  = get_current_user_id();
 
         $answers_payload = json_decode( (string) $answers_json, true );
 
-        if ( $quiz_id <= 0 || $class_id <= 0 || ! is_array( $answers_payload ) ) {
-            wp_send_json_error( array( 'message' => __( 'Unable to save quiz progress because the request payload was invalid.', 'teqcidb' ) ) );
-        }
+        $result = $this->process_quiz_attempt_request(
+            array(
+                'quiz_id'       => $quiz_id,
+                'class_id'      => $class_id,
+                'attempt_id'    => $attempt_id,
+                'current_index' => $current_index,
+                'answers'       => $answers_payload,
+            ),
+            $current_user,
+            false,
+            'ajax'
+        );
 
-        $progress_result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $current_user, $answers_payload, $current_index, false );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ), $this->get_error_status_code( $result ) );
+        }
 
         wp_send_json_success(
             array(
-                'message'   => __( 'Quiz progress saved.', 'teqcidb' ),
-                'attemptId' => isset( $progress_result['attempt_id'] ) ? (int) $progress_result['attempt_id'] : 0,
+                'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
+                'attemptId' => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
+                'savedAt'   => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : '',
             )
         );
     }
@@ -730,32 +746,178 @@ class TEQCIDB_Ajax {
             wp_send_json_error( array( 'message' => __( 'Please log in again and retry submitting your quiz.', 'teqcidb' ) ) );
         }
 
-        $quiz_id      = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
-        $class_id     = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
-        $answers_json   = isset( $_POST['answers_json'] ) ? wp_unslash( $_POST['answers_json'] ) : '';
+        $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $class_id      = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
+        $attempt_id    = isset( $_POST['attempt_id'] ) ? absint( wp_unslash( $_POST['attempt_id'] ) ) : 0;
+        $answers_json  = isset( $_POST['answers_json'] ) ? wp_unslash( $_POST['answers_json'] ) : '';
         $current_index = isset( $_POST['current_index'] ) ? absint( wp_unslash( $_POST['current_index'] ) ) : 0;
         $current_user  = get_current_user_id();
 
         $answers_payload = json_decode( (string) $answers_json, true );
 
-        if ( $quiz_id <= 0 || $class_id <= 0 || ! is_array( $answers_payload ) ) {
-            wp_send_json_error( array( 'message' => __( 'Unable to submit quiz because the request payload was invalid.', 'teqcidb' ) ) );
-        }
+        $result = $this->process_quiz_attempt_request(
+            array(
+                'quiz_id'       => $quiz_id,
+                'class_id'      => $class_id,
+                'attempt_id'    => $attempt_id,
+                'current_index' => $current_index,
+                'answers'       => $answers_payload,
+            ),
+            $current_user,
+            true,
+            'ajax'
+        );
 
-        $submission_result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $current_user, $answers_payload, $current_index, true );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ), $this->get_error_status_code( $result ) );
+        }
 
         wp_send_json_success(
             array(
                 'message'          => __( 'Quiz submitted.', 'teqcidb' ),
-                'score'            => isset( $submission_result['score'] ) ? (int) $submission_result['score'] : 0,
-                'passThreshold'    => isset( $submission_result['pass_threshold'] ) ? (int) $submission_result['pass_threshold'] : 75,
-                'passed'           => ! empty( $submission_result['passed'] ),
-                'incorrectDetails' => isset( $submission_result['incorrect_details'] ) ? $submission_result['incorrect_details'] : array(),
+                'score'            => isset( $result['score'] ) ? (int) $result['score'] : 0,
+                'passThreshold'    => isset( $result['pass_threshold'] ) ? (int) $result['pass_threshold'] : 75,
+                'passed'           => ! empty( $result['passed'] ),
+                'incorrectDetails' => isset( $result['incorrect_details'] ) ? $result['incorrect_details'] : array(),
+                'attemptId'        => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
+                'savedAt'          => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : '',
             )
         );
     }
 
-    private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission ) {
+    public function process_quiz_attempt_request( $request_data, $user_id, $is_final_submission, $request_source = 'ajax' ) {
+        $quiz_id       = isset( $request_data['quiz_id'] ) ? absint( $request_data['quiz_id'] ) : 0;
+        $class_id      = isset( $request_data['class_id'] ) ? absint( $request_data['class_id'] ) : 0;
+        $attempt_id    = isset( $request_data['attempt_id'] ) ? absint( $request_data['attempt_id'] ) : 0;
+        $current_index = isset( $request_data['current_index'] ) ? absint( $request_data['current_index'] ) : 0;
+        $answers       = isset( $request_data['answers'] ) && is_array( $request_data['answers'] ) ? $request_data['answers'] : null;
+        $user_id       = absint( $user_id );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || ! is_array( $answers ) || $user_id <= 0 ) {
+            return new WP_Error( 'teqcidb_invalid_payload', __( 'Unable to process quiz request because the payload was invalid.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! $this->is_quiz_assigned_to_class( $quiz_id, $class_id ) ) {
+            return new WP_Error( 'teqcidb_quiz_unavailable', __( 'This quiz is not available for the selected class.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
+        if ( ! $this->user_can_access_class_quiz( $class_id, $user_id ) ) {
+            return new WP_Error( 'teqcidb_quiz_forbidden', __( 'You do not have access to this quiz.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
+        if ( $attempt_id > 0 && ! $this->does_attempt_belong_to_user( $attempt_id, $quiz_id, $class_id, $user_id ) ) {
+            return new WP_Error( 'teqcidb_attempt_forbidden', __( 'That quiz attempt does not belong to the current user.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
+        $result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers, $current_index, $is_final_submission, $attempt_id );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        $this->log_quiz_endpoint_usage( $request_source . '_' . ( $is_final_submission ? 'submit' : 'progress' ) );
+
+        return $result;
+    }
+
+    public function is_quiz_assigned_to_class( $quiz_id, $class_id ) {
+        global $wpdb;
+
+        $quizzes_table = $wpdb->prefix . 'teqcidb_quizzes';
+        $match_id      = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $quizzes_table WHERE id = %d AND FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 LIMIT 1",
+                $quiz_id,
+                $class_id
+            )
+        );
+
+        return $match_id > 0;
+    }
+
+    public function user_can_access_class_quiz( $class_id, $user_id ) {
+        global $wpdb;
+
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $class_row     = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT allallowedquiz, quizstudentsallowed FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return false;
+        }
+
+        $quiz_access_mode = isset( $class_row['allallowedquiz'] ) ? sanitize_key( (string) $class_row['allallowedquiz'] ) : '';
+
+        if ( 'blocked' !== $quiz_access_mode ) {
+            return true;
+        }
+
+        $quiz_students_allowed = $this->format_class_student_list_for_response( isset( $class_row['quizstudentsallowed'] ) ? $class_row['quizstudentsallowed'] : '' );
+
+        foreach ( $quiz_students_allowed as $allowed_student ) {
+            if ( isset( $allowed_student['wpuserid'] ) && absint( $allowed_student['wpuserid'] ) === $user_id ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function does_attempt_belong_to_user( $attempt_id, $quiz_id, $class_id, $user_id ) {
+        global $wpdb;
+
+        $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $match_id       = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $attempts_table WHERE id = %d AND quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
+                $attempt_id,
+                $quiz_id,
+                $class_id,
+                $user_id
+            )
+        );
+
+        return $match_id > 0;
+    }
+
+    private function get_error_status_code( $error ) {
+        if ( ! ( $error instanceof WP_Error ) ) {
+            return 400;
+        }
+
+        $error_data = $error->get_error_data();
+
+        if ( is_array( $error_data ) && isset( $error_data['status'] ) ) {
+            return max( 400, absint( $error_data['status'] ) );
+        }
+
+        return 400;
+    }
+
+    private function log_quiz_endpoint_usage( $channel ) {
+        $option_key = 'teqcidb_quiz_endpoint_usage';
+        $usage      = get_option( $option_key, array() );
+
+        if ( ! is_array( $usage ) ) {
+            $usage = array();
+        }
+
+        $usage_key = sanitize_key( (string) $channel );
+
+        if ( '' === $usage_key ) {
+            return;
+        }
+
+        $usage[ $usage_key ] = isset( $usage[ $usage_key ] ) ? absint( $usage[ $usage_key ] ) + 1 : 1;
+        update_option( $option_key, $usage, false );
+    }
+
+    private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission, $attempt_id = 0 ) {
         global $wpdb;
 
         $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -764,20 +926,32 @@ class TEQCIDB_Ajax {
         $questions_table    = $wpdb->prefix . 'teqcidb_quiz_questions';
         $classes_table      = $wpdb->prefix . 'teqcidb_classes';
 
-        $attempt = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT id, status FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
-                $quiz_id,
-                $class_id,
-                $user_id
-            ),
-            ARRAY_A
-        );
+        $attempt = array();
+
+        if ( $attempt_id > 0 ) {
+            $attempt = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT id, status FROM $attempts_table WHERE id = %d LIMIT 1",
+                    $attempt_id
+                ),
+                ARRAY_A
+            );
+        } else {
+            $attempt = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT id, status FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
+                    $quiz_id,
+                    $class_id,
+                    $user_id
+                ),
+                ARRAY_A
+            );
+        }
 
         $attempt_id = isset( $attempt['id'] ) ? absint( $attempt['id'] ) : 0;
 
         if ( $attempt_id > 0 && isset( $attempt['status'] ) && in_array( (int) $attempt['status'], array( 0, 1 ), true ) ) {
-            wp_send_json_error( array( 'message' => __( 'This quiz attempt has already been submitted.', 'teqcidb' ) ) );
+            return new WP_Error( 'teqcidb_attempt_submitted', __( 'This quiz attempt has already been submitted.', 'teqcidb' ), array( 'status' => 409 ) );
         }
 
         if ( $attempt_id <= 0 ) {
@@ -794,7 +968,7 @@ class TEQCIDB_Ajax {
             );
 
             if ( false === $inserted ) {
-                wp_send_json_error( array( 'message' => __( 'Unable to create a new quiz attempt.', 'teqcidb' ) ) );
+                return new WP_Error( 'teqcidb_attempt_create_failed', __( 'Unable to create a new quiz attempt.', 'teqcidb' ), array( 'status' => 500 ) );
             }
 
             $attempt_id = (int) $wpdb->insert_id;
@@ -809,7 +983,7 @@ class TEQCIDB_Ajax {
         );
 
         if ( ! is_array( $question_rows ) || empty( $question_rows ) ) {
-            wp_send_json_error( array( 'message' => __( 'Quiz has no questions to save.', 'teqcidb' ) ) );
+            return new WP_Error( 'teqcidb_quiz_no_questions', __( 'Quiz has no questions to save.', 'teqcidb' ), array( 'status' => 400 ) );
         }
 
         $question_ids = array();
@@ -895,16 +1069,18 @@ class TEQCIDB_Ajax {
                     $wpdb->insert(
                         $answer_items_table,
                         array(
-                            'attempt_id'   => $attempt_id,
-                            'question_id'  => $question_id,
-                            'selected_json'=> $selected_json,
-                            'updated_at'   => current_time( 'mysql' ),
+                            'attempt_id'    => $attempt_id,
+                            'question_id'   => $question_id,
+                            'selected_json' => $selected_json,
+                            'updated_at'    => current_time( 'mysql' ),
                         ),
                         array( '%d', '%d', '%s', '%s' )
                     );
                 }
             }
         }
+
+        $saved_at = current_time( 'mysql' );
 
         $wpdb->update(
             $attempts_table,
@@ -920,6 +1096,8 @@ class TEQCIDB_Ajax {
         if ( ! $is_final_submission ) {
             return array(
                 'attempt_id' => $attempt_id,
+                'saved_at'   => $saved_at,
+                'message'    => __( 'Quiz progress saved.', 'teqcidb' ),
             );
         }
 
@@ -941,7 +1119,7 @@ class TEQCIDB_Ajax {
                     continue;
                 }
 
-                $selected_values = json_decode( isset( $stored_answer_item['selected_json'] ) ? (string) $stored_answer_item['selected_json'] : '', true );
+                $selected_values               = json_decode( isset( $stored_answer_item['selected_json'] ) ? (string) $stored_answer_item['selected_json'] : '', true );
                 $stored_answers[ $stored_question_id ] = $this->sanitize_runtime_selected_values( array( 'selected' => $selected_values ) );
             }
         }
@@ -997,15 +1175,15 @@ class TEQCIDB_Ajax {
         $pass_threshold = ( 'refresher' === strtolower( sanitize_key( $class_type ) ) ) ? 80 : 75;
         $passed         = $score >= $pass_threshold;
 
-        $legacy_payload = array(
-            'answers'           => $final_answers_data,
-            'current_index'     => max( 0, absint( $current_index ) ),
-            'total_questions'   => $total_questions,
-            'score'             => $score,
-            'incorrect_details' => $incorrect_details,
+        $legacy_payload_json = wp_json_encode(
+            array(
+                'answers'           => $final_answers_data,
+                'current_index'     => max( 0, absint( $current_index ) ),
+                'total_questions'   => $total_questions,
+                'score'             => $score,
+                'incorrect_details' => $incorrect_details,
+            )
         );
-
-        $legacy_payload_json = wp_json_encode( $legacy_payload );
 
         if ( $legacy_payload_json ) {
             $existing_answer_id = (int) $wpdb->get_var(
@@ -1038,10 +1216,10 @@ class TEQCIDB_Ajax {
         $wpdb->update(
             $attempts_table,
             array(
-                'status'       => $passed ? 0 : 1,
-                'score'        => $score,
-                'submitted_at' => current_time( 'mysql' ),
-                'current_index'=> max( 0, absint( $current_index ) ),
+                'status'        => $passed ? 0 : 1,
+                'score'         => $score,
+                'submitted_at'  => $saved_at,
+                'current_index' => max( 0, absint( $current_index ) ),
             ),
             array( 'id' => $attempt_id ),
             array( '%d', '%d', '%s', '%d' ),
@@ -1054,6 +1232,8 @@ class TEQCIDB_Ajax {
             'pass_threshold'    => $pass_threshold,
             'passed'            => $passed,
             'incorrect_details' => $incorrect_details,
+            'saved_at'          => $saved_at,
+            'message'           => __( 'Quiz submitted.', 'teqcidb' ),
         );
     }
 
