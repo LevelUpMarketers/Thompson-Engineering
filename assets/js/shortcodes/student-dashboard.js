@@ -1989,6 +1989,71 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
+    const initRepresentativeRegistrationSelection = () => {
+        const wrappers = document.querySelectorAll('[data-teqcidb-representative-registration="true"]');
+
+        wrappers.forEach((wrapper) => {
+            const studentCheckboxes = Array.from(
+                wrapper.querySelectorAll('[data-teqcidb-rep-student-checkbox]')
+            );
+            const classRadios = Array.from(
+                wrapper.querySelectorAll('[data-teqcidb-rep-class-radio]')
+            );
+            const payButton = wrapper.querySelector('[data-teqcidb-rep-register-pay-button]');
+            const selectedStudentsInput = wrapper.querySelector('[data-teqcidb-rep-selected-students]');
+            const selectedClassHeading = wrapper.querySelector('[data-teqcidb-rep-selected-class-name]');
+            const initialHeading = selectedClassHeading
+                ? selectedClassHeading.textContent.trim()
+                : '';
+
+            if (!payButton) {
+                return;
+            }
+
+            const syncState = () => {
+                const checkedStudents = studentCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => ({
+                        wpid: checkbox.value ? String(checkbox.value) : '',
+                        name: checkbox.dataset.teqcidbRepStudentName || '',
+                        email: checkbox.dataset.teqcidbRepStudentEmail || '',
+                    }));
+
+                const checkedClass = classRadios.find((radio) => radio.checked);
+                const hasStudents = checkedStudents.length > 0;
+                const hasClass = Boolean(checkedClass && checkedClass.value);
+
+                payButton.disabled = !(hasStudents && hasClass);
+                payButton.dataset.classId = hasClass ? String(checkedClass.value) : '';
+
+                if (selectedStudentsInput) {
+                    selectedStudentsInput.value = hasStudents ? JSON.stringify(checkedStudents) : '';
+                }
+
+                if (selectedClassHeading) {
+                    selectedClassHeading.textContent = hasClass
+                        ? checkedClass.dataset.teqcidbRepClassName || initialHeading
+                        : initialHeading;
+                }
+            };
+
+            payButton.disabled = true;
+            payButton.dataset.classId = '';
+
+            studentCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', syncState);
+            });
+
+            classRadios.forEach((radio) => {
+                radio.addEventListener('change', syncState);
+            });
+
+            syncState();
+        });
+    };
+
+    initRepresentativeRegistrationSelection();
+
     const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
             return;
@@ -2073,6 +2138,7 @@
         formData.append('trans_id', response && response.transId ? String(response.transId) : '');
         formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
         formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
+        formData.append('multiple_students', checkout && checkout.selectedStudents ? String(checkout.selectedStudents) : '');
 
         return fetch(settings.ajaxUrl, {
             method: 'POST',
@@ -2485,6 +2551,12 @@
                     ? classItem.querySelector('.teqcidb-registration-class-name')
                     : null;
                 const className = classNameElement ? classNameElement.textContent.trim() : '';
+                const selectedStudentsInput = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-rep-selected-students]')
+                    : null;
+                const selectedStudents = selectedStudentsInput
+                    ? String(selectedStudentsInput.value || '')
+                    : '';
 
                 if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
                     setPaymentFeedback(
@@ -2526,6 +2598,7 @@
                         activeRegistrationCheckout = {
                             classId,
                             className,
+                            selectedStudents,
                             paymentWrapper,
                             paymentIframe,
                         };

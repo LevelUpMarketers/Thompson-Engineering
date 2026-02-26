@@ -101,6 +101,21 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
             $payment_history_entries = $this->get_payment_history_entries( $current_user->ID );
+            $assigned_students_for_registration = $is_representative ? $this->get_assigned_students_for_dashboard() : array();
+            $available_classes_for_registration = $is_representative ? $this->get_visible_classes_for_registration() : array();
+            $authorize_settings = $is_representative && class_exists( 'TEQCIDB_AuthorizeNet_Service' )
+                ? ( new TEQCIDB_AuthorizeNet_Service() )->get_payment_gateway_settings()
+                : array();
+            $authorize_service = $is_representative && class_exists( 'TEQCIDB_AuthorizeNet_Service' )
+                ? new TEQCIDB_AuthorizeNet_Service()
+                : null;
+            $authorize_environment = isset( $authorize_settings['payment_gateway_environment'] )
+                ? $authorize_settings['payment_gateway_environment']
+                : 'sandbox';
+            $authorize_has_credentials = ( $authorize_service instanceof TEQCIDB_AuthorizeNet_Service && $authorize_service->has_credentials() ) ? 'yes' : 'no';
+            $authorize_hosted_post_url = $authorize_service instanceof TEQCIDB_AuthorizeNet_Service
+                ? $authorize_service->get_accept_hosted_iframe_url()
+                : '';
             $expiration_date_raw = isset( $student_row['expiration_date'] )
                 ? sanitize_text_field( (string) $student_row['expiration_date'] )
                 : '';
@@ -1027,6 +1042,131 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </p>
                                             </div>
                                         </div>
+                                    <?php elseif ( 'register-students' === $tab_key ) : ?>
+                                        <section
+                                            class="teqcidb-dashboard-section teqcidb-registration-section teqcidb-registration-classes teqcidb-representative-registration"
+                                            data-teqcidb-registration="true"
+                                            data-teqcidb-representative-registration="true"
+                                            data-authorizenet-environment="<?php echo esc_attr( $authorize_environment ); ?>"
+                                            data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
+                                            data-authorizenet-hosted-post-url="<?php echo esc_url( $authorize_hosted_post_url ); ?>"
+                                        >
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php echo esc_html_x( 'Register Students & Pay Online', 'Student dashboard representative registration heading', 'teqcidb' ); ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php echo esc_html_x( 'Select one or more assigned students and one class to prepare a single registration payment.', 'Student dashboard representative registration description', 'teqcidb' ); ?>
+                                                </p>
+                                            </div>
+
+                                            <div class="teqcidb-class-history-card">
+                                                <p class="teqcidb-class-history-eyebrow"><?php echo esc_html_x( 'Step 1', 'Student dashboard representative registration step label', 'teqcidb' ); ?></p>
+                                                <h3 class="teqcidb-class-history-title"><?php echo esc_html_x( 'Select Assigned Students', 'Student dashboard representative registration student selection heading', 'teqcidb' ); ?></h3>
+                                                <?php if ( empty( $assigned_students_for_registration ) ) : ?>
+                                                    <p class="teqcidb-dashboard-empty"><?php echo esc_html_x( 'No students are currently assigned to you.', 'Student dashboard representative registration assigned students empty state', 'teqcidb' ); ?></p>
+                                                <?php else : ?>
+                                                    <div class="teqcidb-form-grid">
+                                                        <?php foreach ( $assigned_students_for_registration as $assigned_student ) : ?>
+                                                            <?php
+                                                            $student_id = isset( $assigned_student['wpuserid'] ) ? absint( $assigned_student['wpuserid'] ) : 0;
+                                                            $first_name = isset( $assigned_student['first_name'] ) ? sanitize_text_field( (string) $assigned_student['first_name'] ) : '';
+                                                            $last_name  = isset( $assigned_student['last_name'] ) ? sanitize_text_field( (string) $assigned_student['last_name'] ) : '';
+                                                            $email      = isset( $assigned_student['email'] ) ? sanitize_email( (string) $assigned_student['email'] ) : '';
+                                                            $full_name  = trim( $first_name . ' ' . $last_name );
+                                                            $label      = '' !== $full_name && '' !== $email ? sprintf( '%1$s (%2$s)', $full_name, $email ) : ( '' !== $full_name ? $full_name : $email );
+                                                            ?>
+                                                            <?php if ( $student_id > 0 && '' !== $label ) : ?>
+                                                                <label class="teqcidb-form-checkbox">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        value="<?php echo esc_attr( $student_id ); ?>"
+                                                                        data-teqcidb-rep-student-checkbox
+                                                                        data-teqcidb-rep-student-name="<?php echo esc_attr( $full_name ); ?>"
+                                                                        data-teqcidb-rep-student-email="<?php echo esc_attr( $email ); ?>"
+                                                                    />
+                                                                    <span><?php echo esc_html( $label ); ?></span>
+                                                                </label>
+                                                            <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="teqcidb-class-history-card">
+                                                <p class="teqcidb-class-history-eyebrow"><?php echo esc_html_x( 'Step 2', 'Student dashboard representative registration step label', 'teqcidb' ); ?></p>
+                                                <h3 class="teqcidb-class-history-title"><?php echo esc_html_x( 'Select One Class', 'Student dashboard representative registration class selection heading', 'teqcidb' ); ?></h3>
+                                                <?php if ( empty( $available_classes_for_registration ) ) : ?>
+                                                    <p class="teqcidb-dashboard-empty"><?php echo esc_html_x( 'No classes are currently available for registration.', 'Student dashboard representative registration classes empty state', 'teqcidb' ); ?></p>
+                                                <?php else : ?>
+                                                    <div class="teqcidb-form-grid">
+                                                        <?php foreach ( $available_classes_for_registration as $class_option ) : ?>
+                                                            <label class="teqcidb-form-checkbox">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="teqcidb_rep_registration_class"
+                                                                    value="<?php echo esc_attr( $class_option['class_id'] ); ?>"
+                                                                    data-teqcidb-rep-class-radio
+                                                                    data-teqcidb-rep-class-name="<?php echo esc_attr( $class_option['classname'] ); ?>"
+                                                                />
+                                                                <span>
+                                                                    <?php
+                                                                    echo esc_html(
+                                                                        sprintf(
+                                                                            /* translators: 1: class name, 2: class date. */
+                                                                            _x( '%1$s (%2$s)', 'Student dashboard representative registration class option label', 'teqcidb' ),
+                                                                            $class_option['classname'],
+                                                                            $class_option['classstartdate']
+                                                                        )
+                                                                    );
+                                                                    ?>
+                                                                </span>
+                                                            </label>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="teqcidb-registration-payment teqcidb-class-history-card" data-teqcidb-registration-payment="representative">
+                                                <p class="teqcidb-class-history-eyebrow"><?php echo esc_html_x( 'Step 3', 'Student dashboard representative registration step label', 'teqcidb' ); ?></p>
+                                                <h3 class="teqcidb-class-history-title teqcidb-registration-class-name" data-teqcidb-rep-selected-class-name>
+                                                    <?php echo esc_html_x( 'Choose students and a class to continue', 'Student dashboard representative registration selected class placeholder', 'teqcidb' ); ?>
+                                                </h3>
+                                                <div class="teqcidb-registration-payment-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="teqcidb-dashboard-button teqcidb-registration-pay-button"
+                                                        data-teqcidb-registration-pay
+                                                        data-class-id=""
+                                                        data-teqcidb-rep-register-pay-button
+                                                        disabled
+                                                    >
+                                                        <?php echo esc_html_x( 'Register & Pay Online', 'Student dashboard representative checkout button label', 'teqcidb' ); ?>
+                                                    </button>
+                                                </div>
+                                                <input type="hidden" data-teqcidb-rep-selected-students value="" />
+                                                <div class="teqcidb-form-feedback teqcidb-registration-payment-feedback" aria-live="polite" aria-atomic="true">
+                                                    <span class="spinner is-active" aria-hidden="true"></span>
+                                                    <span class="teqcidb-form-message"></span>
+                                                </div>
+                                                <form
+                                                    method="post"
+                                                    target="teqcidb-authorizenet-iframe-representative"
+                                                    class="teqcidb-registration-payment-form"
+                                                    data-teqcidb-registration-payment-form
+                                                    action="<?php echo esc_url( $authorize_hosted_post_url ); ?>"
+                                                >
+                                                    <input type="hidden" name="token" value="" data-teqcidb-registration-token>
+                                                </form>
+                                                <iframe
+                                                    class="teqcidb-registration-payment-iframe"
+                                                    name="teqcidb-authorizenet-iframe-representative"
+                                                    title="<?php echo esc_attr_x( 'Secure representative payment form', 'Student dashboard representative payment iframe title', 'teqcidb' ); ?>"
+                                                    data-teqcidb-registration-iframe
+                                                    loading="lazy"
+                                                ></iframe>
+                                            </div>
+                                        </section>
                                     <?php else : ?>
                                         <p class="teqcidb-dashboard-placeholder">
                                             <?php
@@ -2491,6 +2631,52 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return esc_url_raw( home_url( '/' . ltrim( $class_url, '/' ) ) );
+    }
+
+    private function get_visible_classes_for_registration() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $results = $wpdb->get_results(
+            "SELECT id, classname, classstartdate
+            FROM $table_name
+            ORDER BY classstartdate ASC, id DESC",
+            ARRAY_A
+        );
+
+        if ( ! is_array( $results ) || empty( $results ) ) {
+            return array();
+        }
+
+        $prepared = array();
+
+        foreach ( $results as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $prepared[] = array(
+                'class_id'       => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'classname'      => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+                'classstartdate' => isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '',
+            );
+        }
+
+        return array_values(
+            array_filter(
+                $prepared,
+                static function ( $row ) {
+                    return ! empty( $row['class_id'] ) && ! empty( $row['classname'] );
+                }
+            )
+        );
     }
 
     private function format_registered_by( array $entry, $current_user_id ) {

@@ -12,7 +12,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 ## Usage
 
  - Use the shortcode `[teqcidb-student]` to display student information on the front-end.
- - Use the shortcode `[teqcidb_student_dashboard_shortcode]` to render the student dashboard login/create-account section. Logged-in students now also see a populated **Payment History** tab with class name, payment date/time, amount, transaction ID, invoice number, who each payment was applied to, and per-entry **Print Invoice**/**Download Invoice** actions. The **Class History** tab now also links each class name and an "Open Class Page" footer link to the corresponding class page (opening in a new tab).
+ - Use the shortcode `[teqcidb_student_dashboard_shortcode]` to render the student dashboard login/create-account section. Logged-in students now also see a populated **Payment History** tab with class name, payment date/time, amount, transaction ID, invoice number, who each payment was applied to, and per-entry **Print Invoice**/**Download Invoice** actions. The **Class History** tab now links each class name and a class-page footer link in a new tab, and representative users now have a guided **Register Students & Pay Online** flow that requires selecting at least one assigned student plus one class before enabling checkout.
  - Use the shortcode `[teqcidb_student_registration_shortcode]` to show student class registration content and reuse the login/create-account experience for logged-out visitors.
  - Add the **Student** block in the block editor.
 - Manage entities under **Students**, switching between **Create a Student** and **Edit Students** tabs.
