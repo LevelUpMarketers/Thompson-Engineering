@@ -100,6 +100,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $qci_number = isset( $student_row['qcinumber'] ) ? sanitize_text_field( (string) $student_row['qcinumber'] ) : '';
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
+            $payment_history_entries = $this->get_payment_history_entries( $current_user->ID );
             $expiration_date_raw = isset( $student_row['expiration_date'] )
                 ? sanitize_text_field( (string) $student_row['expiration_date'] )
                 : '';
@@ -678,7 +679,13 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         ?>
                                                                     </p>
                                                                     <h3 class="teqcidb-class-history-title">
-                                                                        <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                        <?php if ( ! empty( $history_entry['classurl'] ) ) : ?>
+                                                                            <a href="<?php echo esc_url( $history_entry['classurl'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                                <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                            </a>
+                                                                        <?php else : ?>
+                                                                            <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                        <?php endif; ?>
                                                                     </h3>
                                                                 </div>
                                                                 <div class="teqcidb-class-history-date">
@@ -795,6 +802,153 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <dd><?php echo $this->format_history_display_value( $history_entry['quizinprogress'] ); ?></dd>
                                                                 </div>
                                                             </dl>
+                                                            <?php if ( ! empty( $history_entry['classurl'] ) ) : ?>
+                                                                <p class="teqcidb-class-history-link-wrap">
+                                                                    <a class="teqcidb-class-history-link" href="<?php echo esc_url( $history_entry['classurl'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Click here to visit the Class Page',
+                                                                            'Student dashboard class history class page link label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </a>
+                                                                </p>
+                                                            <?php endif; ?>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php elseif ( 'payment-history' === $tab_key ) : ?>
+                                        <div class="teqcidb-dashboard-section">
+                                            <div class="teqcidb-dashboard-section-header">
+                                                <h2 class="teqcidb-dashboard-section-title">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Your Payment History',
+                                                        'Student dashboard payment history heading',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </h2>
+                                                <p class="teqcidb-dashboard-section-description">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'Review your completed class payments, including transaction and invoice details.',
+                                                        'Student dashboard payment history description',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            </div>
+                                            <?php if ( empty( $payment_history_entries ) ) : ?>
+                                                <p class="teqcidb-dashboard-empty">
+                                                    <?php
+                                                    echo esc_html_x(
+                                                        'No payment history entries are available yet.',
+                                                        'Student dashboard payment history empty state',
+                                                        'teqcidb'
+                                                    );
+                                                    ?>
+                                                </p>
+                                            <?php else : ?>
+                                                <div class="teqcidb-class-history-list teqcidb-payment-history-list">
+                                                    <?php foreach ( $payment_history_entries as $payment_entry ) : ?>
+                                                        <article class="teqcidb-class-history-card teqcidb-payment-history-card">
+                                                            <header class="teqcidb-class-history-card-header">
+                                                                <div>
+                                                                    <p class="teqcidb-class-history-eyebrow">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Class Name',
+                                                                            'Student dashboard payment history class name label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </p>
+                                                                    <h3 class="teqcidb-class-history-title">
+                                                                        <?php echo $this->format_history_display_value( $payment_entry['classname'] ); ?>
+                                                                    </h3>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-date">
+                                                                    <span class="teqcidb-class-history-eyebrow">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Payment Date',
+                                                                            'Student dashboard payment history date label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </span>
+                                                                    <span class="teqcidb-class-history-value">
+                                                                        <?php echo $this->format_history_display_value( $payment_entry['transtime'] ); ?>
+                                                                    </span>
+                                                                </div>
+                                                            </header>
+                                                            <dl class="teqcidb-class-history-meta">
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Total Amount Paid',
+                                                                            'Student dashboard payment history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $payment_entry['totalpaid'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Transaction ID',
+                                                                            'Student dashboard payment history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $payment_entry['transid'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Invoice Number',
+                                                                            'Student dashboard payment history field label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd><?php echo $this->format_history_display_value( $payment_entry['invoicenumber'] ); ?></dd>
+                                                                </div>
+                                                                <div class="teqcidb-class-history-meta-item">
+                                                                    <dt>
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Applied To',
+                                                                            'Student dashboard payment history field label for students the payment applies to',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </dt>
+                                                                    <dd class="teqcidb-payment-history-applies-to"><?php echo wp_kses_post( $payment_entry['applies_to'] ); ?></dd>
+                                                                </div>
+                                                            </dl>
+                                                            <div
+                                                                class="teqcidb-wallet-card-actions"
+                                                                role="group"
+                                                                aria-label="<?php echo esc_attr_x( 'Payment invoice actions', 'Student dashboard payment history invoice action buttons label', 'teqcidb' ); ?>"
+                                                                data-teqcidb-payment-history-receipt="<?php echo esc_attr( wp_json_encode( $payment_entry['receipt_data'] ) ); ?>"
+                                                            >
+                                                                <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-payment-history-receipt-action="print">
+                                                                    <?php echo esc_html_x( 'Print Invoice', 'Student dashboard payment history print invoice button label', 'teqcidb' ); ?>
+                                                                </button>
+                                                                <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-payment-history-receipt-action="download">
+                                                                    <?php echo esc_html_x( 'Download Invoice', 'Student dashboard payment history download invoice button label', 'teqcidb' ); ?>
+                                                                </button>
+                                                            </div>
                                                         </article>
                                                     <?php endforeach; ?>
                                                 </div>
@@ -1939,11 +2093,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             return array();
         }
 
+        $class_table = $wpdb->prefix . 'teqcidb_classes';
+
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT classname, registered, attended, outcome, paymentstatus, amountpaid, enrollmentdate, registeredby, courseinprogress, quizinprogress, id
-                FROM $table_name
-                WHERE wpuserid = %d
+                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl
+                FROM $table_name AS history
+                LEFT JOIN $class_table AS class ON class.uniqueclassid = history.uniqueclassid
+                WHERE history.wpuserid = %d
                 ORDER BY enrollmentdate DESC, id DESC",
                 $user_id
             ),
@@ -1986,10 +2143,354 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'registeredby' => sanitize_text_field( (string) $registered_by ),
                 'courseinprogress' => isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '',
                 'quizinprogress' => isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '',
+                'classurl' => $this->normalize_class_history_url( isset( $entry['classurl'] ) ? $entry['classurl'] : '' ),
             );
         }
 
         return $prepared;
+    }
+
+    private function get_payment_history_entries( $user_id ) {
+        $user_id = (int) $user_id;
+        if ( $user_id <= 0 ) {
+            return array();
+        }
+
+        global $wpdb;
+        $payment_table = $wpdb->prefix . 'teqcidb_paymenthistory';
+        $class_table   = $wpdb->prefix . 'teqcidb_classes';
+        $like          = $wpdb->esc_like( $payment_table );
+        $found         = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $payment_table ) {
+            return array();
+        }
+
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT payment.uniqueclassid, payment.totalpaid, payment.transid, payment.transtime, payment.multiplestudents, payment.invoicenumber, payment.id, class.classname
+                FROM $payment_table AS payment
+                LEFT JOIN $class_table AS class ON class.uniqueclassid = payment.uniqueclassid
+                WHERE payment.wpuserid = %d
+                ORDER BY payment.id DESC",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $results ) || empty( $results ) ) {
+            return array();
+        }
+
+        $prepared = array();
+
+        foreach ( $results as $entry ) {
+            $prepared[] = array(
+                'classname'     => isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '',
+                'totalpaid'     => $this->format_payment_amount_for_display( isset( $entry['totalpaid'] ) ? $entry['totalpaid'] : '' ),
+                'transid'       => isset( $entry['transid'] ) ? sanitize_text_field( (string) $entry['transid'] ) : '',
+                'transtime'     => $this->format_payment_date_for_display( isset( $entry['transtime'] ) ? $entry['transtime'] : '' ),
+                'invoicenumber' => isset( $entry['invoicenumber'] ) ? sanitize_text_field( (string) $entry['invoicenumber'] ) : '',
+                'applies_to'    => $this->format_payment_applies_to( $entry, $user_id ),
+                'receipt_data'  => $this->build_payment_receipt_data( $entry ),
+            );
+        }
+
+        return $prepared;
+    }
+
+    private function format_payment_amount_for_display( $amount ) {
+        if ( '' === $amount || null === $amount ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $amount );
+        if ( '' === $normalized || '-' === $normalized || '.' === $normalized || '-.' === $normalized ) {
+            return '';
+        }
+
+        return sprintf(
+            /* translators: %s is a formatted payment amount. */
+            _x( '$%s', 'Student dashboard payment amount format', 'teqcidb' ),
+            number_format_i18n( (float) $normalized, 2 )
+        );
+    }
+
+    private function format_payment_date_for_display( $raw_value ) {
+        $raw_value = is_scalar( $raw_value ) ? trim( (string) $raw_value ) : '';
+
+        if ( '' === $raw_value ) {
+            return '';
+        }
+
+        $timestamp = strtotime( $raw_value );
+
+        if ( false === $timestamp ) {
+            return sanitize_text_field( $raw_value );
+        }
+
+        return wp_date(
+            sprintf(
+                '%1$s %2$s',
+                get_option( 'date_format' ),
+                get_option( 'time_format' )
+            ),
+            $timestamp
+        );
+    }
+
+    private function format_payment_applies_to( array $entry, $current_user_id ) {
+        $multiple_students = isset( $entry['multiplestudents'] ) ? (string) $entry['multiplestudents'] : '';
+
+        $single_student_name = $this->resolve_current_student_name( (int) $current_user_id );
+
+        if ( '' === trim( $multiple_students ) ) {
+            return esc_html( $single_student_name );
+        }
+
+        $student_labels = $this->resolve_payment_multi_students_labels( $multiple_students, (int) $current_user_id, isset( $entry['totalpaid'] ) ? $entry['totalpaid'] : '' );
+
+        if ( empty( $student_labels ) ) {
+            return esc_html( $single_student_name );
+        }
+
+        return implode( '<br>', array_map( 'esc_html', $student_labels ) );
+    }
+
+    private function resolve_payment_multi_students_labels( $raw_value, $current_user_id, $total_paid_raw = '' ) {
+        $decoded = json_decode( (string) $raw_value, true );
+
+        if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $like           = $wpdb->esc_like( $students_table );
+        $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $students_table ) {
+            return array();
+        }
+
+        $labels = array();
+
+        foreach ( $decoded as $student ) {
+            if ( ! is_array( $student ) ) {
+                continue;
+            }
+
+            $wpid            = isset( $student['wpid'] ) ? absint( $student['wpid'] ) : 0;
+            $unique_student  = isset( $student['uniquestudentid'] ) ? sanitize_text_field( (string) $student['uniquestudentid'] ) : '';
+            $resolved_label  = '';
+
+            if ( $wpid > 0 ) {
+                $resolved_label = $this->get_payment_student_label_by_wpid( $wpid, $students_table, $current_user_id );
+            }
+
+            if ( '' === $resolved_label && '' !== $unique_student ) {
+                $resolved_label = $this->get_payment_student_label_by_unique_id( $unique_student, $students_table, $current_user_id );
+            }
+
+            if ( '' === $resolved_label && $wpid > 0 && $wpid === (int) $current_user_id ) {
+                $resolved_label = $this->resolve_current_student_name( (int) $current_user_id );
+            }
+
+            $line_amount = $this->extract_payment_line_amount_from_multi_student_entry( $student );
+            if ( '' === $line_amount && 1 === count( $decoded ) ) {
+                $line_amount = $this->format_payment_amount_for_display( $total_paid_raw );
+            }
+
+            if ( '' !== $resolved_label && '' !== $line_amount ) {
+                $resolved_label = sprintf(
+                    /* translators: 1: student full name, 2: payment amount. */
+                    _x( '%1$s (%2$s)', 'Student dashboard payment history student and amount line format', 'teqcidb' ),
+                    $resolved_label,
+                    $line_amount
+                );
+            }
+
+            if ( '' !== $resolved_label ) {
+                $labels[] = $resolved_label;
+            }
+        }
+
+        return array_values( array_unique( $labels ) );
+    }
+
+    private function get_payment_student_label_by_wpid( $wpid, $students_table, $current_user_id ) {
+        $wpid = (int) $wpid;
+        if ( $wpid <= 0 ) {
+            return '';
+        }
+
+        if ( $wpid === (int) $current_user_id ) {
+            return $this->resolve_current_student_name( (int) $current_user_id );
+        }
+
+        global $wpdb;
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT first_name, last_name, email FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                $wpid
+            ),
+            ARRAY_A
+        );
+
+        return $this->build_payment_student_label( $student_row );
+    }
+
+    private function get_payment_student_label_by_unique_id( $unique_student_id, $students_table, $current_user_id ) {
+        if ( '' === $unique_student_id ) {
+            return '';
+        }
+
+        global $wpdb;
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT first_name, last_name, email, wpuserid FROM $students_table WHERE uniquestudentid = %s LIMIT 1",
+                $unique_student_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_row ) ) {
+            return '';
+        }
+
+        $wpid = isset( $student_row['wpuserid'] ) ? (int) $student_row['wpuserid'] : 0;
+        if ( $wpid > 0 && $wpid === (int) $current_user_id ) {
+            return $this->resolve_current_student_name( (int) $current_user_id );
+        }
+
+        return $this->build_payment_student_label( $student_row );
+    }
+
+    private function build_payment_student_label( $student_row ) {
+        if ( ! is_array( $student_row ) ) {
+            return '';
+        }
+
+        $first_name = isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '';
+        $last_name  = isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '';
+        $email      = isset( $student_row['email'] ) ? sanitize_email( (string) $student_row['email'] ) : '';
+
+        $name = trim( $first_name . ' ' . $last_name );
+
+        if ( '' === $name ) {
+            return $email;
+        }
+
+        if ( '' === $email ) {
+            return $name;
+        }
+
+        return sprintf(
+            /* translators: %s: student full name. */
+            _x( '%s', 'Student dashboard payment history student label format', 'teqcidb' ),
+            $name
+        );
+    }
+
+    private function resolve_current_student_name( $current_user_id ) {
+        $current_user_id = (int) $current_user_id;
+
+        if ( $current_user_id <= 0 ) {
+            return '';
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $like           = $wpdb->esc_like( $students_table );
+        $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found === $students_table ) {
+            $student_row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT first_name, last_name FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                    $current_user_id
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $student_row ) ) {
+                $first_name = isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '';
+                $last_name  = isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '';
+                $name       = trim( $first_name . ' ' . $last_name );
+
+                if ( '' !== $name ) {
+                    return $name;
+                }
+            }
+        }
+
+        $user = get_user_by( 'id', $current_user_id );
+
+        if ( $user instanceof WP_User ) {
+            $name = trim(
+                sanitize_text_field( (string) $user->first_name ) .
+                ' ' .
+                sanitize_text_field( (string) $user->last_name )
+            );
+
+            if ( '' !== $name ) {
+                return $name;
+            }
+
+            return sanitize_text_field( (string) $user->display_name );
+        }
+
+        return '';
+    }
+
+    private function extract_payment_line_amount_from_multi_student_entry( array $student_entry ) {
+        $candidate_keys = array( 'amount', 'amountpaid', 'totalpaid', 'lineamount', 'portion' );
+
+        foreach ( $candidate_keys as $key ) {
+            if ( ! isset( $student_entry[ $key ] ) || ! is_scalar( $student_entry[ $key ] ) ) {
+                continue;
+            }
+
+            $candidate = trim( (string) $student_entry[ $key ] );
+
+            if ( '' === $candidate ) {
+                continue;
+            }
+
+            return $this->format_payment_amount_for_display( $candidate );
+        }
+
+        return '';
+    }
+
+    private function build_payment_receipt_data( array $entry ) {
+        return array(
+            'className'         => isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '',
+            'registrationDate'  => $this->format_payment_date_for_display( isset( $entry['transtime'] ) ? $entry['transtime'] : '' ),
+            'paymentAmount'     => $this->format_payment_amount_for_display( isset( $entry['totalpaid'] ) ? $entry['totalpaid'] : '' ),
+            'transactionId'     => isset( $entry['transid'] ) ? sanitize_text_field( (string) $entry['transid'] ) : '',
+            'invoiceNumber'     => isset( $entry['invoicenumber'] ) ? sanitize_text_field( (string) $entry['invoicenumber'] ) : '',
+        );
+    }
+
+    private function normalize_class_history_url( $class_url ) {
+        $class_url = is_scalar( $class_url ) ? trim( (string) $class_url ) : '';
+
+        if ( '' === $class_url ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $class_url ) ) {
+            return esc_url_raw( $class_url );
+        }
+
+        if ( 0 === strpos( $class_url, '/' ) ) {
+            return esc_url_raw( home_url( $class_url ) );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $class_url, '/' ) ) );
     }
 
     private function format_registered_by( array $entry, $current_user_id ) {
