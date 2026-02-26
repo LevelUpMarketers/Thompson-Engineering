@@ -40,7 +40,6 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
-        add_action( 'wp_ajax_teqcidb_assign_student_representative', array( $this, 'assign_student_representative' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
@@ -2141,6 +2140,9 @@ class TEQCIDB_Ajax {
                 }
             }
         }
+
+        $saved_student_id = $id > 0 ? $id : (int) $wpdb->insert_id;
+        $this->sync_admin_representative_assignments( $saved_student_id );
 
         $this->maybe_delay( $start );
         wp_send_json_success(
@@ -4287,111 +4289,6 @@ class TEQCIDB_Ajax {
         );
     }
 
-    public function assign_student_representative() {
-        $start = microtime( true );
-        check_ajax_referer( 'teqcidb_ajax_nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'You must be logged in to add a student.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $student_id = isset( $_POST['student_id'] ) ? absint( $_POST['student_id'] ) : 0;
-
-        if ( $student_id <= 0 ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Missing student selection.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $current_user = wp_get_current_user();
-
-        if ( ! $current_user instanceof WP_User || ! $current_user->exists() ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to load your account details.', 'teqcidb' ),
-                )
-            );
-        }
-
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'teqcidb_students';
-        $like       = $wpdb->esc_like( $table_name );
-        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
-
-        if ( $found !== $table_name ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Student records are not available.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $student_exists = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id FROM $table_name WHERE id = %d LIMIT 1",
-                $student_id
-            )
-        );
-
-        if ( ! $student_exists ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to locate the selected student.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $representative = $this->build_representative_contact_from_user( $current_user, $table_name );
-
-        if ( empty( $representative['email'] ) ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Representative details are incomplete.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $updated = $wpdb->update(
-            $table_name,
-            array(
-                'their_representative' => wp_json_encode( $representative ),
-            ),
-            array(
-                'id' => $student_id,
-            ),
-            array( '%s' ),
-            array( '%d' )
-        );
-
-        if ( false === $updated ) {
-            $this->maybe_delay( $start );
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Unable to update the student representative.', 'teqcidb' ),
-                )
-            );
-        }
-
-        $this->maybe_delay( $start, 0 );
-        wp_send_json_success(
-            array(
-                'message' => __( 'Student representative updated.', 'teqcidb' ),
-            )
-        );
-    }
-
     public function save_email_template() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
@@ -6018,6 +5915,280 @@ class TEQCIDB_Ajax {
         return $has_value ? wp_json_encode( $address ) : '';
     }
 
+
+    private function sync_admin_representative_assignments( $representative_student_id ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $representative_student_id = absint( $representative_student_id );
+
+        if ( $representative_student_id <= 0 ) {
+            return;
+        }
+
+        if (
+            ! isset( $_POST['assigned_students'] ) &&
+            ! isset( $_POST['assigned_students_meta_wpuserid'] ) &&
+            ! isset( $_POST['assigned_students_meta_uniquestudentid'] ) &&
+            ! isset( $_POST['is_a_representative'] )
+        ) {
+            return;
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $representative = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, first_name, last_name, email, phone_cell, phone_office, wpuserid, uniquestudentid, is_a_representative FROM $students_table WHERE id = %d LIMIT 1",
+                $representative_student_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $representative ) ) {
+            return;
+        }
+
+        $representative_contact = $this->build_representative_contact_from_student_row( $representative );
+        $current_assigned_ids   = $this->find_assigned_student_ids_for_representative( $representative_contact, $students_table, $representative_student_id );
+
+        $is_representative = ! empty( $representative['is_a_representative'] );
+        $selected_ids      = $is_representative ? $this->resolve_assigned_student_ids_from_post( $students_table, $representative_student_id ) : array();
+
+        $remove_ids = array_values( array_diff( $current_assigned_ids, $selected_ids ) );
+
+        if ( ! empty( $remove_ids ) ) {
+            $this->update_student_representative_value_for_ids( $students_table, $remove_ids, '' );
+        }
+
+        if ( ! empty( $selected_ids ) ) {
+            $this->update_student_representative_value_for_ids( $students_table, $selected_ids, wp_json_encode( $representative_contact ) );
+        }
+    }
+
+    private function resolve_assigned_student_ids_from_post( $students_table, $representative_student_id ) {
+        $labels     = $this->sanitize_text_array( isset( $_POST['assigned_students'] ) ? wp_unslash( $_POST['assigned_students'] ) : array() );
+        $wp_user_ids = $this->sanitize_id_array( isset( $_POST['assigned_students_meta_wpuserid'] ) ? wp_unslash( $_POST['assigned_students_meta_wpuserid'] ) : array() );
+        $unique_ids = $this->sanitize_text_array( isset( $_POST['assigned_students_meta_uniquestudentid'] ) ? wp_unslash( $_POST['assigned_students_meta_uniquestudentid'] ) : array() );
+
+        $max_count = max( count( $labels ), count( $wp_user_ids ), count( $unique_ids ) );
+
+        if ( $max_count <= 0 ) {
+            return array();
+        }
+
+        $student_ids = array();
+
+        for ( $i = 0; $i < $max_count; $i++ ) {
+            $resolved_id = 0;
+            $wp_user_id  = isset( $wp_user_ids[ $i ] ) ? absint( $wp_user_ids[ $i ] ) : 0;
+            $unique_id   = isset( $unique_ids[ $i ] ) ? sanitize_text_field( (string) $unique_ids[ $i ] ) : '';
+            $label       = isset( $labels[ $i ] ) ? sanitize_text_field( (string) $labels[ $i ] ) : '';
+
+            if ( $wp_user_id > 0 ) {
+                $resolved_id = (int) $this->find_student_id_by_wp_user_id( $students_table, $wp_user_id );
+            }
+
+            if ( $resolved_id <= 0 && '' !== $unique_id ) {
+                $resolved_id = (int) $this->find_student_id_by_unique_student_id( $students_table, $unique_id );
+            }
+
+            if ( $resolved_id <= 0 && '' !== $label ) {
+                $email_from_label = $this->extract_email_from_assignment_label( $label );
+
+                if ( '' !== $email_from_label ) {
+                    $resolved_id = (int) $this->find_student_id_by_email( $students_table, $email_from_label );
+                }
+            }
+
+            if ( $resolved_id > 0 && $resolved_id !== $representative_student_id ) {
+                $student_ids[] = $resolved_id;
+            }
+        }
+
+        return array_values( array_unique( array_map( 'absint', $student_ids ) ) );
+    }
+
+    private function find_assigned_student_ids_for_representative( array $representative_contact, $students_table, $representative_student_id ) {
+        global $wpdb;
+
+        $search_tokens = array_filter(
+            array(
+                isset( $representative_contact['email'] ) ? $representative_contact['email'] : '',
+                isset( $representative_contact['wpuserid'] ) ? $representative_contact['wpuserid'] : '',
+                isset( $representative_contact['wpid'] ) ? $representative_contact['wpid'] : '',
+                isset( $representative_contact['uniquestudentid'] ) ? $representative_contact['uniquestudentid'] : '',
+            ),
+            static function( $value ) {
+                return '' !== (string) $value;
+            }
+        );
+
+        if ( empty( $search_tokens ) ) {
+            return array();
+        }
+
+        $where_parts  = array();
+        $where_params = array();
+
+        foreach ( $search_tokens as $token ) {
+            $where_parts[]  = 'their_representative LIKE %s';
+            $where_params[] = '%' . $wpdb->esc_like( (string) $token ) . '%';
+        }
+
+        $where_sql = implode( ' OR ', $where_parts );
+        $query     = "SELECT id FROM $students_table WHERE id <> %d AND ($where_sql)";
+        $params    = array_merge( array( absint( $representative_student_id ) ), $where_params );
+        $results   = $wpdb->get_col( $wpdb->prepare( $query, $params ) );
+
+        if ( ! is_array( $results ) ) {
+            return array();
+        }
+
+        return array_values( array_filter( array_map( 'absint', $results ) ) );
+    }
+
+    private function update_student_representative_value_for_ids( $students_table, array $student_ids, $representative_json ) {
+        global $wpdb;
+
+        $student_ids = array_values( array_filter( array_map( 'absint', $student_ids ) ) );
+
+        if ( empty( $student_ids ) ) {
+            return;
+        }
+
+        foreach ( $student_ids as $student_id ) {
+            $wpdb->update(
+                $students_table,
+                array( 'their_representative' => $representative_json ),
+                array( 'id' => $student_id ),
+                array( '%s' ),
+                array( '%d' )
+            );
+        }
+    }
+
+    private function find_student_id_by_wp_user_id( $students_table, $wp_user_id ) {
+        global $wpdb;
+
+        if ( absint( $wp_user_id ) <= 0 ) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $students_table WHERE wpuserid = %s LIMIT 1",
+                (string) absint( $wp_user_id )
+            )
+        );
+    }
+
+    private function find_student_id_by_unique_student_id( $students_table, $unique_student_id ) {
+        global $wpdb;
+
+        $unique_student_id = sanitize_text_field( (string) $unique_student_id );
+
+        if ( '' === $unique_student_id ) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $students_table WHERE uniquestudentid = %s LIMIT 1",
+                $unique_student_id
+            )
+        );
+    }
+
+    private function find_student_id_by_email( $students_table, $email ) {
+        global $wpdb;
+
+        $email = sanitize_email( $email );
+
+        if ( '' === $email ) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $students_table WHERE email = %s LIMIT 1",
+                $email
+            )
+        );
+    }
+
+    private function extract_email_from_assignment_label( $label ) {
+        $label = trim( (string) $label );
+
+        if ( '' === $label ) {
+            return '';
+        }
+
+        if ( preg_match( '/\(([\w.%+\-]+@[\w.\-]+\.[A-Za-z]{2,})\)\s*$/', $label, $matches ) ) {
+            return sanitize_email( $matches[1] );
+        }
+
+        if ( is_email( $label ) ) {
+            return sanitize_email( $label );
+        }
+
+        return '';
+    }
+
+    private function sanitize_text_array( $value ) {
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+
+        return array_values(
+            array_map(
+                static function( $item ) {
+                    return sanitize_text_field( (string) $item );
+                },
+                $value
+            )
+        );
+    }
+
+    private function sanitize_id_array( $value ) {
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+
+        return array_values(
+            array_map(
+                static function( $item ) {
+                    return absint( $item );
+                },
+                $value
+            )
+        );
+    }
+
+    private function build_representative_contact_from_student_row( array $student_row ) {
+        $contact = array(
+            'first_name'      => isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '',
+            'last_name'       => isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '',
+            'email'           => isset( $student_row['email'] ) ? sanitize_email( (string) $student_row['email'] ) : '',
+            'phone'           => '',
+            'wpid'            => isset( $student_row['wpuserid'] ) ? (string) absint( $student_row['wpuserid'] ) : '',
+            'wpuserid'        => isset( $student_row['wpuserid'] ) ? (string) absint( $student_row['wpuserid'] ) : '',
+            'uniquestudentid' => isset( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '',
+        );
+
+        $phone_cell   = isset( $student_row['phone_cell'] ) ? $this->format_phone_for_response( $student_row['phone_cell'] ) : '';
+        $phone_office = isset( $student_row['phone_office'] ) ? $this->format_phone_for_response( $student_row['phone_office'] ) : '';
+
+        if ( '' !== $phone_cell ) {
+            $contact['phone'] = $phone_cell;
+        } elseif ( '' !== $phone_office ) {
+            $contact['phone'] = $phone_office;
+        }
+
+        return $contact;
+    }
+
     private function sanitize_representative_contact() {
         global $wpdb;
 
@@ -6187,63 +6358,6 @@ class TEQCIDB_Ajax {
         }
 
         return wp_kses_post( $value );
-    }
-
-    private function build_representative_contact_from_user( WP_User $user, $students_table ) {
-        global $wpdb;
-
-        $contact = array(
-            'first_name'      => sanitize_text_field( (string) $user->first_name ),
-            'last_name'       => sanitize_text_field( (string) $user->last_name ),
-            'email'           => sanitize_email( (string) $user->user_email ),
-            'phone'           => '',
-            'wpid'            => (string) $user->ID,
-            'uniquestudentid' => '',
-        );
-
-        $student_row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT first_name, last_name, email, phone_cell, phone_office, uniquestudentid FROM $students_table WHERE wpuserid = %d LIMIT 1",
-                $user->ID
-            ),
-            ARRAY_A
-        );
-
-        if ( is_array( $student_row ) ) {
-            if ( ! empty( $student_row['first_name'] ) ) {
-                $contact['first_name'] = sanitize_text_field( (string) $student_row['first_name'] );
-            }
-
-            if ( ! empty( $student_row['last_name'] ) ) {
-                $contact['last_name'] = sanitize_text_field( (string) $student_row['last_name'] );
-            }
-
-            if ( ! empty( $student_row['email'] ) ) {
-                $contact['email'] = sanitize_email( (string) $student_row['email'] );
-            }
-
-            if ( ! empty( $student_row['phone_cell'] ) ) {
-                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_cell'] );
-            } elseif ( ! empty( $student_row['phone_office'] ) ) {
-                $contact['phone'] = $this->format_phone_for_response( (string) $student_row['phone_office'] );
-            }
-
-            if ( ! empty( $student_row['uniquestudentid'] ) ) {
-                $contact['uniquestudentid'] = sanitize_text_field( (string) $student_row['uniquestudentid'] );
-            }
-        }
-
-        if ( '' === $contact['first_name'] && '' === $contact['last_name'] ) {
-            $display_name = sanitize_text_field( (string) $user->display_name );
-            $name_parts   = preg_split( '/\s+/', $display_name );
-
-            if ( $name_parts ) {
-                $contact['first_name'] = $name_parts[0];
-                $contact['last_name']  = count( $name_parts ) > 1 ? implode( ' ', array_slice( $name_parts, 1 ) ) : '';
-            }
-        }
-
-        return $contact;
     }
 
     private function format_class_student_list_for_response( $value ) {
@@ -6440,6 +6554,7 @@ class TEQCIDB_Ajax {
         $entity['representative_phone']      = $representative['phone'];
 
         $entity['is_a_representative'] = isset( $entity['is_a_representative'] ) ? (string) ( (int) $entity['is_a_representative'] ) : '0';
+        $entity['assigned_students'] = $this->get_assigned_students_for_admin_representative( $entity );
 
         $entity['placeholder_1'] = $this->build_student_display_name( $entity );
         $entity['placeholder_2'] = isset( $entity['email'] ) ? $entity['email'] : '';
@@ -6708,6 +6823,61 @@ class TEQCIDB_Ajax {
         }
 
         return isset( $entity['email'] ) ? $entity['email'] : '';
+    }
+
+
+    private function get_assigned_students_for_admin_representative( array $representative_student ) {
+        if ( empty( $representative_student['is_a_representative'] ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $representative = $this->build_representative_contact_from_student_row( $representative_student );
+        $assigned_ids   = $this->find_assigned_student_ids_for_representative(
+            $representative,
+            $students_table,
+            isset( $representative_student['id'] ) ? absint( $representative_student['id'] ) : 0
+        );
+
+        if ( empty( $assigned_ids ) ) {
+            return array();
+        }
+
+        $assigned_students = array();
+
+        foreach ( $assigned_ids as $assigned_id ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT first_name, last_name, email, wpuserid, uniquestudentid FROM $students_table WHERE id = %d LIMIT 1",
+                    absint( $assigned_id )
+                ),
+                ARRAY_A
+            );
+
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $label = $this->build_student_display_name( $row );
+            $email = isset( $row['email'] ) ? sanitize_email( (string) $row['email'] ) : '';
+
+            if ( '' !== $email ) {
+                $label = '' !== $label ? sprintf( '%1$s (%2$s)', $label, $email ) : $email;
+            }
+
+            if ( '' === $label ) {
+                continue;
+            }
+
+            $assigned_students[] = array(
+                'label'           => $label,
+                'wpuserid'        => isset( $row['wpuserid'] ) ? (string) absint( $row['wpuserid'] ) : '',
+                'uniquestudentid' => isset( $row['uniquestudentid'] ) ? sanitize_text_field( (string) $row['uniquestudentid'] ) : '',
+            );
+        }
+
+        return $assigned_students;
     }
 
     private function get_attachment_url( $attachment_id ) {

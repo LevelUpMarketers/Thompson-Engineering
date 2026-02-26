@@ -1070,6 +1070,146 @@ jQuery(document).ready(function($){
             return $section;
         }
 
+        function buildRepresentativeAssignmentsSection(entity){
+            var entityId = entity && entity.id ? entity.id : 0;
+            var sectionId = 'teqcidb-representative-assignments-' + (entityId || 'new');
+            var assignedStudents = parseItemsValue(getFieldValue(entity, 'assigned_students'));
+            var headingText = teqcidbAdmin.representativeAssignmentsHeading || 'Assigned Students';
+            var addLabel = teqcidbAdmin.representativeAssignmentsAdd || 'Add Assigned Student';
+
+            if (!assignedStudents.length){
+                assignedStudents = [''];
+            }
+
+            var $section = $('<div/>', {
+                'class': 'teqcidb-student-history teqcidb-representative-assignments',
+                'data-teqcidb-representative-assignments': 'true',
+                'data-visible': '0'
+            }).hide();
+
+            $section.append($('<h4/>', { 'class': 'teqcidb-student-history__title' }).text(headingText));
+            $section.append($('<p/>', { 'class': 'description teqcidb-representative-assignments__description' }).text(
+                teqcidbAdmin.representativeAssignmentsDescription || 'Assign students to this representative. Changes are only available when this student is marked as a representative.'
+            ));
+
+            var $entry = $('<div/>', { 'class': 'teqcidb-student-history__entry teqcidb-representative-assignments__entry' });
+            var $itemsContainer = $('<div/>', {
+                id: sectionId,
+                'class': 'teqcidb-items-container',
+                'data-placeholder': 'assigned_students',
+                'data-autocomplete': 'student'
+            });
+
+            assignedStudents.forEach(function(studentValue, index){
+                var assignedStudentLabel = studentValue;
+                var assignedStudentWpUserId = '';
+                var assignedStudentUniqueId = '';
+
+                if (studentValue && typeof studentValue === 'object'){
+                    assignedStudentLabel = studentValue.label || studentValue.value || '';
+                    assignedStudentWpUserId = studentValue.wpuserid || '';
+                    assignedStudentUniqueId = studentValue.uniquestudentid || '';
+                }
+
+                var $row = $('<div/>', {
+                    'class': 'teqcidb-item-row',
+                    style: 'margin-bottom:8px; display:flex; align-items:center;'
+                });
+                var placeholderText = teqcidbAdmin.itemPlaceholder ? formatString(teqcidbAdmin.itemPlaceholder, index + 1) : '';
+                var $input = $('<input/>', {
+                    type: 'text',
+                    name: 'assigned_students[]',
+                    'class': 'regular-text teqcidb-item-field teqcidb-autocomplete-field',
+                    placeholder: placeholderText,
+                    value: assignedStudentLabel
+                });
+                var $removeButton = $('<button/>', {
+                    type: 'button',
+                    'class': 'teqcidb-delete-item',
+                    'aria-label': teqcidbAdmin.representativeAssignmentsRemove || 'Remove assigned student',
+                    style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
+                }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
+
+                $row.append($input);
+
+                if (assignedStudentWpUserId){
+                    $row.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'assigned_students_meta_wpuserid[]',
+                        'class': 'teqcidb-student-meta',
+                        value: assignedStudentWpUserId
+                    }));
+                }
+
+                if (assignedStudentUniqueId){
+                    $row.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'assigned_students_meta_uniquestudentid[]',
+                        'class': 'teqcidb-student-meta',
+                        value: assignedStudentUniqueId
+                    }));
+                }
+
+                $row.append($removeButton);
+                $itemsContainer.append($row);
+            });
+
+            $entry.append($itemsContainer);
+
+            var $actions = $('<div/>', { 'class': 'teqcidb-student-history__actions' });
+            var $addButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-secondary teqcidb-add-item',
+                'data-target': '#' + sectionId,
+                'data-field-name': 'assigned_students',
+                'data-autocomplete': 'student'
+            }).text(addLabel);
+            $actions.append($addButton);
+
+            $entry.append($actions);
+            $section.append($entry);
+
+
+            return $section;
+        }
+
+        function isRepresentativeValue(value){
+            return String(value) === '1';
+        }
+
+        function toggleRepresentativeAssignments($form, shouldShow, animate){
+            if (!$form || !$form.length){
+                return;
+            }
+
+            var $section = $form.find('[data-teqcidb-representative-assignments="true"]');
+
+            if (!$section.length){
+                return;
+            }
+
+            var isVisible = $section.attr('data-visible') === '1';
+
+            if (shouldShow){
+                if (!isVisible){
+                    $section.attr('data-visible', '1');
+                    if (animate){
+                        $section.stop(true, true).slideDown(200);
+                    } else {
+                        $section.show();
+                    }
+                    initAutocompleteForScope($section);
+                }
+            } else if (isVisible){
+                $section.attr('data-visible', '0');
+                if (animate){
+                    $section.stop(true, true).slideUp(200);
+                } else {
+                    $section.hide();
+                }
+            }
+        }
+
         function buildEntityForm(entity){
             var entityId = entity && entity.id ? entity.id : 0;
             var $form = $('<form/>', {
@@ -1112,6 +1252,13 @@ jQuery(document).ready(function($){
 
             if ($historySection && $historySection.children().length){
                 $form.append($historySection);
+            }
+
+            var $assignmentsSection = buildRepresentativeAssignmentsSection(entity);
+
+            if ($assignmentsSection && $assignmentsSection.length){
+                $form.append($assignmentsSection);
+                toggleRepresentativeAssignments($form, isRepresentativeValue(getFieldValue(entity, 'is_a_representative')), false);
             }
 
             var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
@@ -1651,6 +1798,11 @@ jQuery(document).ready(function($){
             var $entry = $(this).closest('.teqcidb-student-history__entry');
             var className = $(this).val();
             updateHistoryClassMeta($entry, className);
+        });
+
+        $entityTableBody.on('change', 'select[name="is_a_representative"]', function(){
+            var $form = $(this).closest('.teqcidb-entity-edit-form');
+            toggleRepresentativeAssignments($form, isRepresentativeValue($(this).val()), true);
         });
 
         $entityTableBody.on('click', '.teqcidb-history-duplicate-toggle', function(e){

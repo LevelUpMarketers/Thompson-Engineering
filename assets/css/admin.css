@@ -184,6 +184,15 @@
     border-left: 4px solid #ffb900;
 }
 
+.teqcidb-representative-assignments__description {
+    margin-bottom: 12px;
+}
+
+.teqcidb-representative-assignments__entry {
+    margin-bottom: 8px;
+}
+
+
 .teqcidb-quiz-question {
     background-color: #fff;
     padding: 10px 15px 20px 15px;
