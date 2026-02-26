@@ -34,6 +34,7 @@
     };
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
+    var hasShownResumeNotice = false;
     var autosaveIntervalMs = 8000;
     var isDirty = false;
     var lastSavedHash = '';
@@ -177,7 +178,8 @@
         var question = getQuestionByIndex(currentIndex);
         var completed = completedCount();
         var percent = progressPercent();
-        var notice = (runtime.attempt && runtime.attempt.status === 2 && completed > 0) ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
+        var shouldShowResumeNotice = !hasShownResumeNotice && runtime.attempt && runtime.attempt.status === 2 && completed > 0;
+        var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
             root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
@@ -211,6 +213,7 @@
 
         var noticeEl = root.querySelector('.teqcidb-class-quiz__notice');
         if (noticeEl) {
+            hasShownResumeNotice = true;
             window.setTimeout(function(){
                 noticeEl.classList.add('is-fading-out');
             }, 10000);

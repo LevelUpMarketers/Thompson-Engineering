@@ -233,6 +233,7 @@
     color: #585858;
     font-size: 0.7rem;
     margin-left: 5px;
+    min-height: 20px;
     opacity: 1;
     transition: opacity 0.35s ease;
 }
