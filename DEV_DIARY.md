@@ -309,3 +309,5 @@
 304. 2026-02-25: Tuned quiz-attempt indexing with composite keys for class/user and updated-at lookup patterns, and aligned class-page attempt status lookup to filter by class_id with latest-row semantics via ORDER BY id DESC.
 305. 2026-02-25: Updated class-page quiz save-status UX to only show "Progress saved." after Next Question boundary saves complete, auto-hide/fade the message after a short delay, and adjusted `.teqcidb-class-quiz__actions` + `.teqcidb-class-quiz__save-state` styling per the new stacked layout/typography requirements.
 306. 2026-02-25: Added `min-height: 20px` to class-page quiz save-state styling and updated resume-notice rendering so "We restored your previous progress from your latest save." appears only once per page session (still fades out), then stays hidden until a future return session.
+307. 2026-02-26: Added an Edit Students representative-only Assigned Students UI section (history-style card with student autocomplete add/remove rows) that is visible by default for existing representatives and gracefully slides open/closed when the 'Is this Student also a Representative?' dropdown is toggled.
+
