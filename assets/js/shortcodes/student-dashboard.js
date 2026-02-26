@@ -2083,7 +2083,7 @@
             .catch(() => null);
     };
 
-    const renderRegistrationReceiptPdf = async (receiptData) => {
+    const buildRegistrationReceiptPdfDocument = async (receiptData) => {
         const jspdf = window.jspdf || {};
         const { jsPDF } = jspdf;
 
@@ -2191,8 +2191,19 @@
             y += lines.length * 12 + 8;
         });
 
+        return doc;
+    };
+
+    const renderRegistrationReceiptPdf = async (receiptData) => {
+        const doc = await buildRegistrationReceiptPdfDocument(receiptData);
         const fileName = registrationReceiptSettings.downloadFileName || 'qci-registration-receipt.pdf';
         doc.save(fileName);
+    };
+
+    const printRegistrationReceiptPdf = async (receiptData) => {
+        const doc = await buildRegistrationReceiptPdfDocument(receiptData);
+        doc.autoPrint();
+        doc.output('dataurlnewwindow');
     };
 
     const buildRegistrationSuccessMessage = (receiptData = {}) => {
@@ -2576,5 +2587,53 @@
         }
     };
 
+    const handlePaymentHistoryReceiptAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-payment-history-receipt-action]');
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbPaymentHistoryReceiptAction;
+        const wrapper = button.closest('[data-teqcidb-payment-history-receipt]');
+        const rawData = wrapper ? wrapper.dataset.teqcidbPaymentHistoryReceipt || '' : '';
+
+        if (!rawData) {
+            return;
+        }
+
+        let receiptData = null;
+
+        try {
+            receiptData = JSON.parse(rawData);
+        } catch (error) {
+            receiptData = null;
+        }
+
+        if (!receiptData) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            if (action === 'print') {
+                await printRegistrationReceiptPdf(receiptData);
+            } else {
+                await renderRegistrationReceiptPdf(receiptData);
+            }
+        } catch (error) {
+            window.alert(
+                registrationReceiptSettings.missingPdfMessage ||
+                    'Unable to generate the transaction receipt right now. Please try again.'
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
     document.addEventListener('click', handleWalletCardAction);
+    document.addEventListener('click', handlePaymentHistoryReceiptAction);
 })();

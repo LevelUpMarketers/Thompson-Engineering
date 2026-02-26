@@ -842,8 +842,8 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <p class="teqcidb-class-history-eyebrow">
                                                                         <?php
                                                                         echo esc_html_x(
-                                                                            'Payment Entry',
-                                                                            'Student dashboard payment history entry eyebrow label',
+                                                                            'Class Name',
+                                                                            'Student dashboard payment history class name label',
                                                                             'teqcidb'
                                                                         );
                                                                         ?>
@@ -914,9 +914,22 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         );
                                                                         ?>
                                                                     </dt>
-                                                                    <dd><?php echo $this->format_history_display_value( $payment_entry['applies_to'] ); ?></dd>
+                                                                    <dd class="teqcidb-payment-history-applies-to"><?php echo wp_kses_post( $payment_entry['applies_to'] ); ?></dd>
                                                                 </div>
                                                             </dl>
+                                                            <div
+                                                                class="teqcidb-wallet-card-actions"
+                                                                role="group"
+                                                                aria-label="<?php echo esc_attr_x( 'Payment invoice actions', 'Student dashboard payment history invoice action buttons label', 'teqcidb' ); ?>"
+                                                                data-teqcidb-payment-history-receipt="<?php echo esc_attr( wp_json_encode( $payment_entry['receipt_data'] ) ); ?>"
+                                                            >
+                                                                <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-payment-history-receipt-action="print">
+                                                                    <?php echo esc_html_x( 'Print Invoice', 'Student dashboard payment history print invoice button label', 'teqcidb' ); ?>
+                                                                </button>
+                                                                <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-payment-history-receipt-action="download">
+                                                                    <?php echo esc_html_x( 'Download Invoice', 'Student dashboard payment history download invoice button label', 'teqcidb' ); ?>
+                                                                </button>
+                                                            </div>
                                                         </article>
                                                     <?php endforeach; ?>
                                                 </div>
@@ -2156,6 +2169,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'transtime'     => $this->format_payment_date_for_display( isset( $entry['transtime'] ) ? $entry['transtime'] : '' ),
                 'invoicenumber' => isset( $entry['invoicenumber'] ) ? sanitize_text_field( (string) $entry['invoicenumber'] ) : '',
                 'applies_to'    => $this->format_payment_applies_to( $entry, $user_id ),
+                'receipt_data'  => $this->build_payment_receipt_data( $entry ),
             );
         }
 
@@ -2167,10 +2181,15 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             return '';
         }
 
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $amount );
+        if ( '' === $normalized || '-' === $normalized || '.' === $normalized || '-.' === $normalized ) {
+            return '';
+        }
+
         return sprintf(
             /* translators: %s is a formatted payment amount. */
             _x( '$%s', 'Student dashboard payment amount format', 'teqcidb' ),
-            number_format_i18n( (float) $amount, 2 )
+            number_format_i18n( (float) $normalized, 2 )
         );
     }
 
@@ -2200,20 +2219,22 @@ class TEQCIDB_Shortcode_Student_Dashboard {
     private function format_payment_applies_to( array $entry, $current_user_id ) {
         $multiple_students = isset( $entry['multiplestudents'] ) ? (string) $entry['multiplestudents'] : '';
 
+        $single_student_name = $this->resolve_current_student_name( (int) $current_user_id );
+
         if ( '' === trim( $multiple_students ) ) {
-            return _x( 'You', 'Student dashboard payment history applies-to label for current user', 'teqcidb' );
+            return esc_html( $single_student_name );
         }
 
-        $student_labels = $this->resolve_payment_multi_students_labels( $multiple_students, (int) $current_user_id );
+        $student_labels = $this->resolve_payment_multi_students_labels( $multiple_students, (int) $current_user_id, isset( $entry['totalpaid'] ) ? $entry['totalpaid'] : '' );
 
         if ( empty( $student_labels ) ) {
-            return _x( 'You (additional students pending)', 'Student dashboard payment history fallback applies-to label', 'teqcidb' );
+            return esc_html( $single_student_name );
         }
 
-        return implode( ', ', $student_labels );
+        return implode( '<br>', array_map( 'esc_html', $student_labels ) );
     }
 
-    private function resolve_payment_multi_students_labels( $raw_value, $current_user_id ) {
+    private function resolve_payment_multi_students_labels( $raw_value, $current_user_id, $total_paid_raw = '' ) {
         $decoded = json_decode( (string) $raw_value, true );
 
         if ( ! is_array( $decoded ) || empty( $decoded ) ) {
@@ -2249,7 +2270,21 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             }
 
             if ( '' === $resolved_label && $wpid > 0 && $wpid === (int) $current_user_id ) {
-                $resolved_label = _x( 'You', 'Student dashboard payment history applies-to current user label', 'teqcidb' );
+                $resolved_label = $this->resolve_current_student_name( (int) $current_user_id );
+            }
+
+            $line_amount = $this->extract_payment_line_amount_from_multi_student_entry( $student );
+            if ( '' === $line_amount && 1 === count( $decoded ) ) {
+                $line_amount = $this->format_payment_amount_for_display( $total_paid_raw );
+            }
+
+            if ( '' !== $resolved_label && '' !== $line_amount ) {
+                $resolved_label = sprintf(
+                    /* translators: 1: student full name, 2: payment amount. */
+                    _x( '%1$s (%2$s)', 'Student dashboard payment history student and amount line format', 'teqcidb' ),
+                    $resolved_label,
+                    $line_amount
+                );
             }
 
             if ( '' !== $resolved_label ) {
@@ -2267,7 +2302,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         if ( $wpid === (int) $current_user_id ) {
-            return _x( 'You', 'Student dashboard payment history applies-to current user label', 'teqcidb' );
+            return $this->resolve_current_student_name( (int) $current_user_id );
         }
 
         global $wpdb;
@@ -2304,7 +2339,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
         $wpid = isset( $student_row['wpuserid'] ) ? (int) $student_row['wpuserid'] : 0;
         if ( $wpid > 0 && $wpid === (int) $current_user_id ) {
-            return _x( 'You', 'Student dashboard payment history applies-to current user label', 'teqcidb' );
+            return $this->resolve_current_student_name( (int) $current_user_id );
         }
 
         return $this->build_payment_student_label( $student_row );
@@ -2330,10 +2365,90 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         }
 
         return sprintf(
-            /* translators: 1: student full name, 2: student email. */
-            _x( '%1$s (%2$s)', 'Student dashboard payment history student label format', 'teqcidb' ),
-            $name,
-            $email
+            /* translators: %s: student full name. */
+            _x( '%s', 'Student dashboard payment history student label format', 'teqcidb' ),
+            $name
+        );
+    }
+
+    private function resolve_current_student_name( $current_user_id ) {
+        $current_user_id = (int) $current_user_id;
+
+        if ( $current_user_id <= 0 ) {
+            return '';
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $like           = $wpdb->esc_like( $students_table );
+        $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found === $students_table ) {
+            $student_row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT first_name, last_name FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                    $current_user_id
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $student_row ) ) {
+                $first_name = isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '';
+                $last_name  = isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '';
+                $name       = trim( $first_name . ' ' . $last_name );
+
+                if ( '' !== $name ) {
+                    return $name;
+                }
+            }
+        }
+
+        $user = get_user_by( 'id', $current_user_id );
+
+        if ( $user instanceof WP_User ) {
+            $name = trim(
+                sanitize_text_field( (string) $user->first_name ) .
+                ' ' .
+                sanitize_text_field( (string) $user->last_name )
+            );
+
+            if ( '' !== $name ) {
+                return $name;
+            }
+
+            return sanitize_text_field( (string) $user->display_name );
+        }
+
+        return '';
+    }
+
+    private function extract_payment_line_amount_from_multi_student_entry( array $student_entry ) {
+        $candidate_keys = array( 'amount', 'amountpaid', 'totalpaid', 'lineamount', 'portion' );
+
+        foreach ( $candidate_keys as $key ) {
+            if ( ! isset( $student_entry[ $key ] ) || ! is_scalar( $student_entry[ $key ] ) ) {
+                continue;
+            }
+
+            $candidate = trim( (string) $student_entry[ $key ] );
+
+            if ( '' === $candidate ) {
+                continue;
+            }
+
+            return $this->format_payment_amount_for_display( $candidate );
+        }
+
+        return '';
+    }
+
+    private function build_payment_receipt_data( array $entry ) {
+        return array(
+            'className'         => isset( $entry['classname'] ) ? sanitize_text_field( (string) $entry['classname'] ) : '',
+            'registrationDate'  => $this->format_payment_date_for_display( isset( $entry['transtime'] ) ? $entry['transtime'] : '' ),
+            'paymentAmount'     => $this->format_payment_amount_for_display( isset( $entry['totalpaid'] ) ? $entry['totalpaid'] : '' ),
+            'transactionId'     => isset( $entry['transid'] ) ? sanitize_text_field( (string) $entry['transid'] ) : '',
+            'invoiceNumber'     => isset( $entry['invoicenumber'] ) ? sanitize_text_field( (string) $entry['invoicenumber'] ) : '',
         );
     }
 
