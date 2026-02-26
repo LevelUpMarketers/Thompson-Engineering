@@ -807,7 +807,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <a class="teqcidb-class-history-link" href="<?php echo esc_url( $history_entry['classurl'] ); ?>" target="_blank" rel="noopener noreferrer">
                                                                         <?php
                                                                         echo esc_html_x(
-                                                                            'Open Class Page',
+                                                                            'Click here to visit the Class Page',
                                                                             'Student dashboard class history class page link label',
                                                                             'teqcidb'
                                                                         );
