@@ -679,7 +679,13 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         ?>
                                                                     </p>
                                                                     <h3 class="teqcidb-class-history-title">
-                                                                        <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                        <?php if ( ! empty( $history_entry['classurl'] ) ) : ?>
+                                                                            <a href="<?php echo esc_url( $history_entry['classurl'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                                <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                            </a>
+                                                                        <?php else : ?>
+                                                                            <?php echo $this->format_history_display_value( $history_entry['classname'] ); ?>
+                                                                        <?php endif; ?>
                                                                     </h3>
                                                                 </div>
                                                                 <div class="teqcidb-class-history-date">
@@ -796,6 +802,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     <dd><?php echo $this->format_history_display_value( $history_entry['quizinprogress'] ); ?></dd>
                                                                 </div>
                                                             </dl>
+                                                            <?php if ( ! empty( $history_entry['classurl'] ) ) : ?>
+                                                                <p class="teqcidb-class-history-link-wrap">
+                                                                    <a class="teqcidb-class-history-link" href="<?php echo esc_url( $history_entry['classurl'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Open Class Page',
+                                                                            'Student dashboard class history class page link label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </a>
+                                                                </p>
+                                                            <?php endif; ?>
                                                         </article>
                                                     <?php endforeach; ?>
                                                 </div>
@@ -2074,11 +2093,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             return array();
         }
 
+        $class_table = $wpdb->prefix . 'teqcidb_classes';
+
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT classname, registered, attended, outcome, paymentstatus, amountpaid, enrollmentdate, registeredby, courseinprogress, quizinprogress, id
-                FROM $table_name
-                WHERE wpuserid = %d
+                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl
+                FROM $table_name AS history
+                LEFT JOIN $class_table AS class ON class.uniqueclassid = history.uniqueclassid
+                WHERE history.wpuserid = %d
                 ORDER BY enrollmentdate DESC, id DESC",
                 $user_id
             ),
@@ -2121,6 +2143,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'registeredby' => sanitize_text_field( (string) $registered_by ),
                 'courseinprogress' => isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '',
                 'quizinprogress' => isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '',
+                'classurl' => $this->normalize_class_history_url( isset( $entry['classurl'] ) ? $entry['classurl'] : '' ),
             );
         }
 
@@ -2450,6 +2473,24 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             'transactionId'     => isset( $entry['transid'] ) ? sanitize_text_field( (string) $entry['transid'] ) : '',
             'invoiceNumber'     => isset( $entry['invoicenumber'] ) ? sanitize_text_field( (string) $entry['invoicenumber'] ) : '',
         );
+    }
+
+    private function normalize_class_history_url( $class_url ) {
+        $class_url = is_scalar( $class_url ) ? trim( (string) $class_url ) : '';
+
+        if ( '' === $class_url ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $class_url ) ) {
+            return esc_url_raw( $class_url );
+        }
+
+        if ( 0 === strpos( $class_url, '/' ) ) {
+            return esc_url_raw( home_url( $class_url ) );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $class_url, '/' ) ) );
     }
 
     private function format_registered_by( array $entry, $current_user_id ) {

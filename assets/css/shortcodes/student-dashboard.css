@@ -188,6 +188,19 @@
     margin: 6px 0 0;
 }
 
+.teqcidb-class-history-title a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.teqcidb-class-history-link-wrap {
+    margin: 16px 0 0;
+}
+
+.teqcidb-class-history-link {
+    font-weight: 600;
+}
+
 .teqcidb-class-history-eyebrow {
     color: #6a6a6a;
     font-size: 0.85rem;
