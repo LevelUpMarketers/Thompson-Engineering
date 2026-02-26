@@ -1101,6 +1101,16 @@ jQuery(document).ready(function($){
             });
 
             assignedStudents.forEach(function(studentValue, index){
+                var assignedStudentLabel = studentValue;
+                var assignedStudentWpUserId = '';
+                var assignedStudentUniqueId = '';
+
+                if (studentValue && typeof studentValue === 'object'){
+                    assignedStudentLabel = studentValue.label || studentValue.value || '';
+                    assignedStudentWpUserId = studentValue.wpuserid || '';
+                    assignedStudentUniqueId = studentValue.uniquestudentid || '';
+                }
+
                 var $row = $('<div/>', {
                     'class': 'teqcidb-item-row',
                     style: 'margin-bottom:8px; display:flex; align-items:center;'
@@ -1111,7 +1121,7 @@ jQuery(document).ready(function($){
                     name: 'assigned_students[]',
                     'class': 'regular-text teqcidb-item-field teqcidb-autocomplete-field',
                     placeholder: placeholderText,
-                    value: studentValue
+                    value: assignedStudentLabel
                 });
                 var $removeButton = $('<button/>', {
                     type: 'button',
@@ -1120,7 +1130,27 @@ jQuery(document).ready(function($){
                     style: 'background:none;border:none;cursor:pointer;margin-left:8px;'
                 }).append($('<span/>', { 'class': 'dashicons dashicons-no-alt' }));
 
-                $row.append($input).append($removeButton);
+                $row.append($input);
+
+                if (assignedStudentWpUserId){
+                    $row.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'assigned_students_meta_wpuserid[]',
+                        'class': 'teqcidb-student-meta',
+                        value: assignedStudentWpUserId
+                    }));
+                }
+
+                if (assignedStudentUniqueId){
+                    $row.append($('<input/>', {
+                        type: 'hidden',
+                        name: 'assigned_students_meta_uniquestudentid[]',
+                        'class': 'teqcidb-student-meta',
+                        value: assignedStudentUniqueId
+                    }));
+                }
+
+                $row.append($removeButton);
                 $itemsContainer.append($row);
             });
 
