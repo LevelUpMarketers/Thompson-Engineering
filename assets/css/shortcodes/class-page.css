@@ -225,12 +225,21 @@
     display: flex;
     gap: 12px;
     margin-top: 18px;
-    align-items: center;
+    align-items: flex-start;
+    flex-direction: column;
 }
 
 .teqcidb-class-quiz__save-state {
     color: #585858;
-    font-size: 0.9rem;
+    font-size: 0.7rem;
+    margin-left: 5px;
+    min-height: 20px;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+
+.teqcidb-class-quiz__save-state.is-fading-out {
+    opacity: 0;
 }
 
 .teqcidb-class-quiz__error {

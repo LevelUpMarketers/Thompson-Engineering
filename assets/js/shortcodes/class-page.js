@@ -27,9 +27,22 @@
     var currentIndex = Math.max(0, parseInt((runtime.attempt && runtime.attempt.currentIndex) || 0, 10) || 0);
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var saveTimer = null;
+    var saveMessageTimer = null;
     var saveState = {
         isSaving: false,
         hasPending: false
+    };
+    var useRestQuizApi = runtime.useRestQuizApi !== false;
+    var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
+    var hasShownResumeNotice = false;
+    var autosaveIntervalMs = 8000;
+    var isDirty = false;
+    var lastSavedHash = '';
+    var metrics = {
+        saveAttempts: 0,
+        saveSuccess: 0,
+        saveFailures: 0,
+        skippedNoop: 0
     };
 
     function esc(text){
@@ -76,6 +89,30 @@
 
     function setCurrentSelection(questionId, selected){
         answers[String(questionId)] = selected;
+    }
+
+    function buildProgressPayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            attempt_id: attemptId,
+            current_question_index: currentIndex,
+            answers: answers
+        };
+    }
+
+    function getProgressPayloadHash(){
+        return JSON.stringify(buildProgressPayload());
+    }
+
+    function markDirty(){
+        isDirty = true;
+    }
+
+    function recordMetric(eventName, extra){
+        if (window && typeof window.teqcidbQuizMetricHook === 'function') {
+            window.teqcidbQuizMetricHook(eventName, extra || {});
+        }
     }
 
     function progressPercent(){
@@ -141,7 +178,8 @@
         var question = getQuestionByIndex(currentIndex);
         var completed = completedCount();
         var percent = progressPercent();
-        var notice = (runtime.attempt && runtime.attempt.status === 2 && completed > 0) ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
+        var shouldShowResumeNotice = !hasShownResumeNotice && runtime.attempt && runtime.attempt.status === 2 && completed > 0;
+        var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
             root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
@@ -175,10 +213,89 @@
 
         var noticeEl = root.querySelector('.teqcidb-class-quiz__notice');
         if (noticeEl) {
+            hasShownResumeNotice = true;
             window.setTimeout(function(){
                 noticeEl.classList.add('is-fading-out');
             }, 10000);
         }
+    }
+
+
+    function toQueryPayload(){
+        return buildProgressPayload();
+    }
+
+    function parseAjaxResponse(payload){
+        if (!payload || !payload.success) {
+            throw new Error((payload && payload.data && payload.data.message) || (i18n.saveError || 'Request failed.'));
+        }
+        return payload.data || {};
+    }
+
+    function parseRestResponse(payload){
+        if (!payload || payload.ok !== true) {
+            throw new Error((payload && payload.message) || (i18n.saveError || 'Request failed.'));
+        }
+        return payload;
+    }
+
+    function requestQuizEndpoint(restPath, ajaxAction, failureMessage){
+        if (useRestQuizApi && runtime.restUrl) {
+            return fetch(String(runtime.restUrl).replace(/\/$/, '') + restPath, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': runtime.restNonce || ''
+                },
+                body: JSON.stringify(toQueryPayload())
+            }).then(function(resp){
+                return resp.json().then(function(payload){
+                    if (!resp.ok) {
+                        throw new Error((payload && payload.message) || failureMessage);
+                    }
+                    return parseRestResponse(payload);
+                });
+            }).catch(function(err){
+                if (!useRestQuizApi || !runtime.ajaxUrl) {
+                    throw err;
+                }
+                return requestQuizEndpointFallback(ajaxAction, failureMessage);
+            });
+        }
+
+        return requestQuizEndpointFallback(ajaxAction, failureMessage);
+    }
+
+    function requestQuizEndpointFallback(ajaxAction, failureMessage){
+        var formData = new FormData();
+        formData.append('action', ajaxAction);
+        formData.append('_ajax_nonce', runtime.nonce || '');
+        formData.append('quiz_id', runtime.quiz.id);
+        formData.append('class_id', runtime.quiz.classId);
+        formData.append('attempt_id', String(attemptId || 0));
+        formData.append('current_index', String(currentIndex));
+        formData.append('answers_json', JSON.stringify(answers));
+
+        return fetch(runtime.ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData
+        }).then(function(resp){
+            return resp.json();
+        }).then(function(payload){
+            var data = parseAjaxResponse(payload);
+            return {
+                ok: true,
+                attempt_id: data.attemptId || attemptId || 0,
+                saved_at: data.savedAt || '',
+                message: data.message || failureMessage,
+                score: data.score,
+                passThreshold: data.passThreshold,
+                passed: data.passed,
+                incorrectDetails: data.incorrectDetails
+            };
+        });
     }
 
     function buildIncorrectHtml(incorrect){
@@ -214,8 +331,8 @@
                     }
                 });
                 setCurrentSelection(question.id, normalizeSelected(question, selected));
+                markDirty();
                 queueAutosave();
-                updateSaveStatus(i18n.saving || 'Saving…');
             });
         });
     }
@@ -244,6 +361,7 @@
             }
 
             currentIndex += 1;
+            markDirty();
             queueAutosave(true);
             render();
         });
@@ -251,27 +369,83 @@
 
     function updateSaveStatus(message){
         var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-        if (stateEl) {
-            stateEl.textContent = message || '';
-        }
-    }
 
-    function queueAutosave(immediate){
-        if (saveTimer) {
-            clearTimeout(saveTimer);
-            saveTimer = null;
-        }
-
-        if (immediate) {
-            saveProgress();
+        if (!stateEl) {
             return;
         }
 
-        saveTimer = setTimeout(saveProgress, 1000);
+        stateEl.textContent = message || '';
+        stateEl.classList.remove('is-fading-out');
     }
 
-    function saveProgress(){
+    function clearSaveStatus(){
+        var stateEl = root.querySelector('#teqcidb-quiz-save-state');
+
+        if (!stateEl) {
+            return;
+        }
+
+        stateEl.classList.add('is-fading-out');
+
+        window.setTimeout(function(){
+            var refreshedEl = root.querySelector('#teqcidb-quiz-save-state');
+
+            if (refreshedEl) {
+                refreshedEl.textContent = '';
+                refreshedEl.classList.remove('is-fading-out');
+            }
+        }, 350);
+    }
+
+    function showProgressSavedStatus(){
+        if (saveMessageTimer) {
+            clearTimeout(saveMessageTimer);
+            saveMessageTimer = null;
+        }
+
+        updateSaveStatus(i18n.saved || 'Progress saved.');
+
+        saveMessageTimer = setTimeout(function(){
+            clearSaveStatus();
+            saveMessageTimer = null;
+        }, 3000);
+    }
+
+    function queueAutosave(immediate){
         if (isSubmitted) {
+            return;
+        }
+
+        if (immediate) {
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
+            }
+            saveProgress({ reason: 'boundary' });
+            return;
+        }
+
+        if (saveTimer) {
+            return;
+        }
+
+        saveTimer = setTimeout(function(){
+            saveTimer = null;
+            saveProgress({ reason: 'interval' });
+        }, autosaveIntervalMs);
+    }
+
+    function saveProgress(options){
+        var saveOptions = options || {};
+        var payloadHash = getProgressPayloadHash();
+
+        if (isSubmitted) {
+            return;
+        }
+
+        if (!isDirty || payloadHash === lastSavedHash) {
+            metrics.skippedNoop += 1;
+            recordMetric('quiz_save_noop', { reason: saveOptions.reason || 'unspecified' });
             return;
         }
 
@@ -281,60 +455,49 @@
         }
 
         saveState.isSaving = true;
-        updateSaveStatus(i18n.saving || 'Saving…');
+        metrics.saveAttempts += 1;
+        recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
 
-        var formData = new FormData();
-        formData.append('action', 'teqcidb_save_quiz_progress');
-        formData.append('_ajax_nonce', runtime.nonce || '');
-        formData.append('quiz_id', runtime.quiz.id);
-        formData.append('class_id', runtime.quiz.classId);
-        formData.append('current_index', String(currentIndex));
-        formData.append('answers_json', JSON.stringify(answers));
-
-        fetch(runtime.ajaxUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData
-        }).then(function(resp){
-            return resp.json();
-        }).then(function(payload){
-            if (!payload || !payload.success) {
-                throw new Error((payload && payload.data && payload.data.message) || (i18n.saveError || 'Save failed.'));
+        requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.').then(function(payload){
+            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
+            lastSavedHash = payloadHash;
+            isDirty = false;
+            metrics.saveSuccess += 1;
+            recordMetric('quiz_save_success', { reason: saveOptions.reason || 'unspecified' });
+            if (saveOptions.reason === 'boundary') {
+                showProgressSavedStatus();
             }
-            updateSaveStatus(i18n.saved || 'Progress saved.');
         }).catch(function(err){
-            updateSaveStatus(err.message || (i18n.saveError || 'Save failed.'));
+            metrics.saveFailures += 1;
+            recordMetric('quiz_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
         }).finally(function(){
             saveState.isSaving = false;
             if (saveState.hasPending) {
                 saveState.hasPending = false;
-                saveProgress();
+                saveProgress({ reason: 'pending' });
             }
         });
     }
 
     function submitQuiz(){
-        updateSaveStatus(i18n.submitting || 'Submitting quiz…');
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
 
-        var formData = new FormData();
-        formData.append('action', 'teqcidb_submit_quiz_attempt');
-        formData.append('_ajax_nonce', runtime.nonce || '');
-        formData.append('quiz_id', runtime.quiz.id);
-        formData.append('class_id', runtime.quiz.classId);
-        formData.append('answers_json', JSON.stringify(answers));
+        markDirty();
 
-        fetch(runtime.ajaxUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData
-        }).then(function(resp){
-            return resp.json();
-        }).then(function(payload){
-            if (!payload || !payload.success) {
-                throw new Error((payload && payload.data && payload.data.message) || (i18n.submitError || 'Submit failed.'));
-            }
+        requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.').then(function(payload){
+            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             isSubmitted = true;
-            render(payload.data || {});
+            isDirty = false;
+            lastSavedHash = getProgressPayloadHash();
+            render({
+                score: payload.score,
+                passThreshold: payload.passThreshold,
+                passed: payload.passed,
+                incorrectDetails: payload.incorrectDetails || []
+            });
         }).catch(function(err){
             var errorEl = root.querySelector('#teqcidb-quiz-error');
             if (errorEl) {
@@ -343,16 +506,25 @@
         });
     }
 
+    document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'hidden' && !isSubmitted) {
+            saveProgress({ reason: 'visibility_hidden' });
+        }
+    });
+
     window.addEventListener('beforeunload', function(){
-        if (!runtime.ajaxUrl || isSubmitted) {
+        if (!runtime.ajaxUrl || isSubmitted || !isDirty || getProgressPayloadHash() === lastSavedHash) {
             return;
         }
+
+        recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
 
         var body = new URLSearchParams();
         body.append('action', 'teqcidb_save_quiz_progress');
         body.append('_ajax_nonce', runtime.nonce || '');
         body.append('quiz_id', runtime.quiz.id);
         body.append('class_id', runtime.quiz.classId);
+        body.append('attempt_id', String(attemptId || 0));
         body.append('current_index', String(currentIndex));
         body.append('answers_json', JSON.stringify(answers));
 
@@ -364,6 +536,8 @@
     if (completedCount() >= totalQuestions) {
         currentIndex = totalQuestions - 1;
     }
+
+    lastSavedHash = getProgressPayloadHash();
 
     render();
 })();

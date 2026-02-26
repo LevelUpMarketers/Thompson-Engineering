@@ -19,10 +19,12 @@ class TEQCIDB_Activator {
         $classes_table   = $wpdb->prefix . 'teqcidb_classes';
         $student_history = $wpdb->prefix . 'teqcidb_studenthistory';
         $payment_history = $wpdb->prefix . 'teqcidb_paymenthistory';
-        $quizzes_table   = $wpdb->prefix . 'teqcidb_quizzes';
-        $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+        $questions_table    = $wpdb->prefix . 'teqcidb_quiz_questions';
         $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
-        $answers_table   = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -156,6 +158,18 @@ class TEQCIDB_Activator {
             KEY status (status)
         ) $charset_collate;";
 
+
+
+        $sql_quiz_classes = "CREATE TABLE $quiz_classes_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            quiz_id bigint(20) unsigned NOT NULL,
+            class_id bigint(20) unsigned NOT NULL,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY quiz_class (quiz_id, class_id),
+            KEY class_quiz (class_id, quiz_id)
+        ) $charset_collate;";
+
         $sql_quiz_questions = "CREATE TABLE $questions_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             quiz_id bigint(20) unsigned NOT NULL,
@@ -179,11 +193,13 @@ class TEQCIDB_Activator {
             user_id bigint(20) unsigned NOT NULL,
             status tinyint NOT NULL DEFAULT 2,
             score int DEFAULT NULL,
+            current_index int NOT NULL DEFAULT 0,
             started_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
             submitted_at datetime DEFAULT NULL,
             updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
-            KEY quiz_user (quiz_id, user_id),
+            KEY quiz_class_user_id (quiz_id, class_id, user_id, id),
+            KEY quiz_user_updated_id (quiz_id, user_id, updated_at, id),
             KEY class_user (class_id, user_id),
             KEY status (status)
         ) $charset_collate;";
@@ -197,6 +213,18 @@ class TEQCIDB_Activator {
             UNIQUE KEY attempt_id (attempt_id)
         ) $charset_collate;";
 
+        $sql_quiz_answer_items = "CREATE TABLE $answer_items_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            attempt_id bigint(20) unsigned NOT NULL,
+            question_id bigint(20) unsigned NOT NULL,
+            selected_json longtext NOT NULL,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY attempt_question (attempt_id, question_id),
+            KEY attempt_id (attempt_id),
+            KEY question_id (question_id)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
@@ -204,9 +232,43 @@ class TEQCIDB_Activator {
         dbDelta( $sql_student_history );
         dbDelta( $sql_payment_history );
         dbDelta( $sql_quizzes );
+        dbDelta( $sql_quiz_classes );
         dbDelta( $sql_quiz_questions );
         dbDelta( $sql_quiz_attempts );
         dbDelta( $sql_quiz_answers );
+        dbDelta( $sql_quiz_answer_items );
+
+        $legacy_quiz_rows = $wpdb->get_results( "SELECT id, class_id FROM $quizzes_table", ARRAY_A );
+
+        if ( is_array( $legacy_quiz_rows ) ) {
+            foreach ( $legacy_quiz_rows as $legacy_quiz_row ) {
+                $legacy_quiz_id = isset( $legacy_quiz_row['id'] ) ? absint( $legacy_quiz_row['id'] ) : 0;
+                $legacy_class_csv = isset( $legacy_quiz_row['class_id'] ) ? (string) $legacy_quiz_row['class_id'] : '';
+
+                if ( $legacy_quiz_id <= 0 || '' === $legacy_class_csv ) {
+                    continue;
+                }
+
+                $legacy_parts = explode( ',', $legacy_class_csv );
+
+                foreach ( $legacy_parts as $legacy_part ) {
+                    $legacy_class_id = absint( trim( (string) $legacy_part ) );
+
+                    if ( $legacy_class_id <= 0 ) {
+                        continue;
+                    }
+
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "INSERT IGNORE INTO $quiz_classes_table (quiz_id, class_id) VALUES (%d, %d)",
+                            $legacy_quiz_id,
+                            $legacy_class_id
+                        )
+                    );
+                }
+            }
+        }
+
         if ( class_exists( 'TEQCIDB_Ajax' ) ) {
             TEQCIDB_Ajax::register_authorizenet_communicator_rewrite();
             TEQCIDB_Ajax::register_class_page_rewrite();
