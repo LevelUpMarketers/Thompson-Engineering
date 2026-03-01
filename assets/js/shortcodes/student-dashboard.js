@@ -2002,6 +2002,13 @@
             const payButton = wrapper.querySelector('[data-teqcidb-rep-register-pay-button]');
             const selectedStudentsInput = wrapper.querySelector('[data-teqcidb-rep-selected-students]');
             const selectedClassHeading = wrapper.querySelector('[data-teqcidb-rep-selected-class-name]');
+            const paymentWrapper = wrapper.querySelector('[data-teqcidb-registration-payment="representative"]');
+            const paymentIframe = paymentWrapper
+                ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
+                : null;
+            const tokenInput = paymentWrapper
+                ? paymentWrapper.querySelector('[data-teqcidb-registration-token]')
+                : null;
             const initialHeading = selectedClassHeading
                 ? selectedClassHeading.textContent.trim()
                 : '';
@@ -2010,7 +2017,38 @@
                 return;
             }
 
-            const syncState = () => {
+            const clearHostedFormState = () => {
+                if (!paymentWrapper) {
+                    return;
+                }
+
+                if (tokenInput) {
+                    tokenInput.value = '';
+                }
+
+                if (paymentIframe) {
+                    paymentIframe.classList.remove('is-visible', 'is-fading-out');
+                    paymentIframe.style.height = '';
+                }
+
+                paymentWrapper.dataset.teqcidbHostedReady = 'no';
+
+                if (
+                    activeRegistrationCheckout &&
+                    activeRegistrationCheckout.paymentWrapper === paymentWrapper
+                ) {
+                    activeRegistrationCheckout = null;
+                }
+
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messageRepresentativeSelectionUpdated ||
+                        'Your selections changed. Please click Register & Pay Online again to load an updated secure payment form.',
+                    false
+                );
+            };
+
+            const syncState = (selectionChanged = false) => {
                 const checkedStudents = studentCheckboxes
                     .filter((checkbox) => checkbox.checked)
                     .map((checkbox) => ({
@@ -2035,20 +2073,27 @@
                         ? checkedClass.dataset.teqcidbRepClassName || initialHeading
                         : initialHeading;
                 }
+
+                const hadHostedForm =
+                    paymentWrapper && paymentWrapper.dataset.teqcidbHostedReady === 'yes';
+
+                if (selectionChanged && hadHostedForm) {
+                    clearHostedFormState();
+                }
             };
 
             payButton.disabled = true;
             payButton.dataset.classId = '';
 
             studentCheckboxes.forEach((checkbox) => {
-                checkbox.addEventListener('change', syncState);
+                checkbox.addEventListener('change', () => syncState(true));
             });
 
             classRadios.forEach((radio) => {
-                radio.addEventListener('change', syncState);
+                radio.addEventListener('change', () => syncState(true));
             });
 
-            syncState();
+            syncState(false);
         });
     };
 
@@ -2603,6 +2648,9 @@
                         tokenInput.value = payload.data.token;
                         paymentIframe.classList.remove('is-fading-out');
                         paymentIframe.classList.add('is-visible');
+                        if (paymentWrapper) {
+                            paymentWrapper.dataset.teqcidbHostedReady = 'yes';
+                        }
                         activeRegistrationCheckout = {
                             classId,
                             className,

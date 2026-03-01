@@ -2037,6 +2037,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'messageUnknown'  => esc_html_x( 'Something went wrong while creating the account. Please try again.', 'Create account form validation message', 'teqcidb' ),
                     'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
                     'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
+                    'messageRepresentativeSelectionUpdated' => esc_html_x( 'Your selections changed. Please click Register & Pay Online again to load an updated secure payment form.', 'Representative register and pay selection-changed message', 'teqcidb' ),
                     'profileEditLabel' => esc_html_x( 'Edit Profile Info', 'Profile form edit button label', 'teqcidb' ),
                     'profileCancelLabel' => esc_html_x( 'Cancel Editing', 'Profile form edit button label', 'teqcidb' ),
                     'profileSaveLabel' => esc_html_x( 'Save Profile Info', 'Profile form save button label', 'teqcidb' ),
