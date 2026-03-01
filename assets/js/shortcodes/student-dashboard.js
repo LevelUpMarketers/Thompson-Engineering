@@ -1989,6 +1989,116 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
+    const initRepresentativeRegistrationSelection = () => {
+        const wrappers = document.querySelectorAll('[data-teqcidb-representative-registration="true"]');
+
+        wrappers.forEach((wrapper) => {
+            const studentCheckboxes = Array.from(
+                wrapper.querySelectorAll('[data-teqcidb-rep-student-checkbox]')
+            );
+            const classRadios = Array.from(
+                wrapper.querySelectorAll('[data-teqcidb-rep-class-radio]')
+            );
+            const payButton = wrapper.querySelector('[data-teqcidb-rep-register-pay-button]');
+            const selectedStudentsInput = wrapper.querySelector('[data-teqcidb-rep-selected-students]');
+            const selectedClassHeading = wrapper.querySelector('[data-teqcidb-rep-selected-class-name]');
+            const paymentWrapper = wrapper.querySelector('[data-teqcidb-registration-payment="representative"]');
+            const paymentIframe = paymentWrapper
+                ? paymentWrapper.querySelector('[data-teqcidb-registration-iframe]')
+                : null;
+            const tokenInput = paymentWrapper
+                ? paymentWrapper.querySelector('[data-teqcidb-registration-token]')
+                : null;
+            const initialHeading = selectedClassHeading
+                ? selectedClassHeading.textContent.trim()
+                : '';
+
+            if (!payButton) {
+                return;
+            }
+
+            const clearHostedFormState = () => {
+                if (!paymentWrapper) {
+                    return;
+                }
+
+                if (tokenInput) {
+                    tokenInput.value = '';
+                }
+
+                if (paymentIframe) {
+                    paymentIframe.classList.remove('is-visible', 'is-fading-out');
+                    paymentIframe.style.height = '';
+                }
+
+                paymentWrapper.dataset.teqcidbHostedReady = 'no';
+
+                if (
+                    activeRegistrationCheckout &&
+                    activeRegistrationCheckout.paymentWrapper === paymentWrapper
+                ) {
+                    activeRegistrationCheckout = null;
+                }
+
+                setPaymentFeedback(
+                    paymentWrapper,
+                    settings.messageRepresentativeSelectionUpdated ||
+                        'Your selections changed. Please click Register & Pay Online again to load an updated secure payment form.',
+                    false
+                );
+            };
+
+            const syncState = (selectionChanged = false) => {
+                const checkedStudents = studentCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => ({
+                        wpid: checkbox.value ? String(checkbox.value) : '',
+                        name: checkbox.dataset.teqcidbRepStudentName || '',
+                        email: checkbox.dataset.teqcidbRepStudentEmail || '',
+                    }));
+
+                const checkedClass = classRadios.find((radio) => radio.checked);
+                const hasStudents = checkedStudents.length > 0;
+                const hasClass = Boolean(checkedClass && checkedClass.value);
+
+                payButton.disabled = !(hasStudents && hasClass);
+                payButton.dataset.classId = hasClass ? String(checkedClass.value) : '';
+
+                if (selectedStudentsInput) {
+                    selectedStudentsInput.value = hasStudents ? JSON.stringify(checkedStudents) : '';
+                }
+
+                if (selectedClassHeading) {
+                    selectedClassHeading.textContent = hasClass
+                        ? checkedClass.dataset.teqcidbRepClassName || initialHeading
+                        : initialHeading;
+                }
+
+                const hadHostedForm =
+                    paymentWrapper && paymentWrapper.dataset.teqcidbHostedReady === 'yes';
+
+                if (selectionChanged && hadHostedForm) {
+                    clearHostedFormState();
+                }
+            };
+
+            payButton.disabled = true;
+            payButton.dataset.classId = '';
+
+            studentCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => syncState(true));
+            });
+
+            classRadios.forEach((radio) => {
+                radio.addEventListener('change', () => syncState(true));
+            });
+
+            syncState(false);
+        });
+    };
+
+    initRepresentativeRegistrationSelection();
+
     const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
             return;
@@ -2073,6 +2183,7 @@
         formData.append('trans_id', response && response.transId ? String(response.transId) : '');
         formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
         formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
+        formData.append('multiple_students', checkout && checkout.selectedStudents ? String(checkout.selectedStudents) : '');
 
         return fetch(settings.ajaxUrl, {
             method: 'POST',
@@ -2083,7 +2194,7 @@
             .catch(() => null);
     };
 
-    const renderRegistrationReceiptPdf = async (receiptData) => {
+    const buildRegistrationReceiptPdfDocument = async (receiptData) => {
         const jspdf = window.jspdf || {};
         const { jsPDF } = jspdf;
 
@@ -2191,8 +2302,19 @@
             y += lines.length * 12 + 8;
         });
 
+        return doc;
+    };
+
+    const renderRegistrationReceiptPdf = async (receiptData) => {
+        const doc = await buildRegistrationReceiptPdfDocument(receiptData);
         const fileName = registrationReceiptSettings.downloadFileName || 'qci-registration-receipt.pdf';
         doc.save(fileName);
+    };
+
+    const printRegistrationReceiptPdf = async (receiptData) => {
+        const doc = await buildRegistrationReceiptPdfDocument(receiptData);
+        doc.autoPrint();
+        doc.output('dataurlnewwindow');
     };
 
     const buildRegistrationSuccessMessage = (receiptData = {}) => {
@@ -2370,11 +2492,12 @@
             panel.hidden = !expanded;
         };
 
-        const requestHostedToken = (classId) => {
+        const requestHostedToken = (classId, selectedStudents = '') => {
             const formData = new FormData();
             formData.append('action', settings.ajaxTokenAction || 'teqcidb_get_accept_hosted_token');
             formData.append('_ajax_nonce', settings.ajaxNonce || '');
             formData.append('class_id', classId);
+            formData.append('multiple_students', selectedStudents || '');
 
             return fetch(settings.ajaxUrl, {
                 method: 'POST',
@@ -2473,7 +2596,20 @@
                 const classNameElement = classItem
                     ? classItem.querySelector('.teqcidb-registration-class-name')
                     : null;
-                const className = classNameElement ? classNameElement.textContent.trim() : '';
+                const representativeClassNameElement = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-rep-selected-class-name]')
+                    : null;
+                const className = classNameElement
+                    ? classNameElement.textContent.trim()
+                    : representativeClassNameElement
+                      ? representativeClassNameElement.textContent.trim()
+                      : '';
+                const selectedStudentsInput = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-rep-selected-students]')
+                    : null;
+                const selectedStudents = selectedStudentsInput
+                    ? String(selectedStudentsInput.value || '')
+                    : '';
 
                 if (!settings.ajaxUrl || !hasCredentials || !classId || !paymentForm || !tokenInput || !paymentIframe) {
                     setPaymentFeedback(
@@ -2494,7 +2630,7 @@
                 button.disabled = true;
                 button.setAttribute('aria-busy', 'true');
 
-                requestHostedToken(classId)
+                requestHostedToken(classId, selectedStudents)
                     .then((payload) => {
                         if (!payload || !payload.success || !payload.data || !payload.data.token) {
                             const message =
@@ -2512,9 +2648,13 @@
                         tokenInput.value = payload.data.token;
                         paymentIframe.classList.remove('is-fading-out');
                         paymentIframe.classList.add('is-visible');
+                        if (paymentWrapper) {
+                            paymentWrapper.dataset.teqcidbHostedReady = 'yes';
+                        }
                         activeRegistrationCheckout = {
                             classId,
                             className,
+                            selectedStudents,
                             paymentWrapper,
                             paymentIframe,
                         };
@@ -2576,5 +2716,53 @@
         }
     };
 
+    const handlePaymentHistoryReceiptAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-payment-history-receipt-action]');
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbPaymentHistoryReceiptAction;
+        const wrapper = button.closest('[data-teqcidb-payment-history-receipt]');
+        const rawData = wrapper ? wrapper.dataset.teqcidbPaymentHistoryReceipt || '' : '';
+
+        if (!rawData) {
+            return;
+        }
+
+        let receiptData = null;
+
+        try {
+            receiptData = JSON.parse(rawData);
+        } catch (error) {
+            receiptData = null;
+        }
+
+        if (!receiptData) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            if (action === 'print') {
+                await printRegistrationReceiptPdf(receiptData);
+            } else {
+                await renderRegistrationReceiptPdf(receiptData);
+            }
+        } catch (error) {
+            window.alert(
+                registrationReceiptSettings.missingPdfMessage ||
+                    'Unable to generate the transaction receipt right now. Please try again.'
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
     document.addEventListener('click', handleWalletCardAction);
+    document.addEventListener('click', handlePaymentHistoryReceiptAction);
 })();
