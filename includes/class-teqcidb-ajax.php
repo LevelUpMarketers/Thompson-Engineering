@@ -1771,28 +1771,25 @@ class TEQCIDB_Ajax {
         $amount_numeric = (float) preg_replace( '/[^0-9.\-]/', '', $total_paid_raw );
         $total_paid     = number_format( $amount_numeric, 2, '.', '' );
 
-        $multiple_students    = '';
+        $multiple_students     = '';
         $selected_student_rows = array();
-
-        if ( $is_representative && '' !== $multiple_raw ) {
-            $selected_students = $this->parse_selected_students_for_checkout( $multiple_raw );
-            $selected_wpids    = array_values(
-                array_unique(
-                    array_filter(
-                        array_map(
-                            static function ( $entry ) {
-                                return isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0;
-                            },
-                            $selected_students
-                        )
+        $selected_students     = $this->parse_selected_students_for_checkout( $multiple_raw );
+        $selected_wpids        = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static function ( $entry ) {
+                            return isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0;
+                        },
+                        $selected_students
                     )
                 )
-            );
+            )
+        );
 
-            if ( ! empty( $selected_wpids ) ) {
-                $multiple_students     = wp_json_encode( $selected_wpids );
-                $selected_student_rows = $this->get_students_by_wpids( $selected_wpids );
-            }
+        if ( ! empty( $selected_wpids ) ) {
+            $multiple_students     = wp_json_encode( $selected_wpids );
+            $selected_student_rows = $this->get_students_by_wpids( $selected_wpids );
         }
 
         $inserted = $wpdb->insert(
@@ -1849,7 +1846,7 @@ class TEQCIDB_Ajax {
 
         $student_history_table = $wpdb->prefix . 'teqcidb_studenthistory';
 
-        if ( $is_representative && ! empty( $selected_student_rows ) ) {
+        if ( ! empty( $selected_student_rows ) ) {
             foreach ( $selected_student_rows as $student_payment_row ) {
                 if ( ! is_array( $student_payment_row ) ) {
                     continue;
