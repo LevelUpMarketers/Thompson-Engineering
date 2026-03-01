@@ -1109,16 +1109,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     data-teqcidb-rep-class-name="<?php echo esc_attr( $class_option['classname'] ); ?>"
                                                                 />
                                                                 <span>
-                                                                    <?php
-                                                                    echo esc_html(
-                                                                        sprintf(
-                                                                            /* translators: 1: class name, 2: class date. */
-                                                                            _x( '%1$s (%2$s)', 'Student dashboard representative registration class option label', 'teqcidb' ),
-                                                                            $class_option['classname'],
-                                                                            $class_option['classstartdate']
-                                                                        )
-                                                                    );
-                                                                    ?>
+                                                                    <?php echo esc_html( $class_option['classname'] ); ?>
                                                                 </span>
                                                             </label>
                                                         <?php endforeach; ?>
