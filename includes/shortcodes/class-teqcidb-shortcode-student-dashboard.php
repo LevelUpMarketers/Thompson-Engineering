@@ -2644,10 +2644,16 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             return array();
         }
 
+        $today = wp_date( 'Y-m-d' );
+
         $results = $wpdb->get_results(
-            "SELECT id, classname, classstartdate
-            FROM $table_name
-            ORDER BY classstartdate ASC, id DESC",
+            $wpdb->prepare(
+                "SELECT id, classname, classstartdate
+                FROM $table_name
+                WHERE COALESCE(classhide, 0) <> 1
+                ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
+                $today
+            ),
             ARRAY_A
         );
 

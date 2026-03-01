@@ -201,6 +201,14 @@
     font-weight: 600;
 }
 
+.teqcidb-representative-registration .teqcidb-class-history-card {
+    margin-top: 20px;
+}
+
+.teqcidb-representative-registration .teqcidb-registration-payment-actions {
+    margin-top: 20px;
+}
+
 .teqcidb-class-history-eyebrow {
     color: #6a6a6a;
     font-size: 0.85rem;
