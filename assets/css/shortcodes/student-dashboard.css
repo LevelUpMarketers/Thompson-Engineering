@@ -209,6 +209,10 @@
     margin-top: 20px;
 }
 
+.teqcidb-representative-registration .teqcidb-registration-payment-policy {
+    background: none;
+}
+
 .teqcidb-class-history-eyebrow {
     color: #6a6a6a;
     font-size: 0.85rem;
