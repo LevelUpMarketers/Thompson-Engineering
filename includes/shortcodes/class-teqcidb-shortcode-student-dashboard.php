@@ -146,10 +146,9 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         <?php
                         echo esc_html(
                             sprintf(
-                                /* translators: 1: student first name, 2: QCI number. */
-                                __( 'Welcome to your QCI Dashboard, %1$s! Your QCI Number is %2$s', 'teqcidb' ),
-                                $profile['first_name'],
-                                $qci_number
+                                /* translators: %s: student first name. */
+                                __( 'Welcome to your QCI Dashboard, %s!', 'teqcidb' ),
+                                $profile['first_name']
                             )
                         );
                         ?>
