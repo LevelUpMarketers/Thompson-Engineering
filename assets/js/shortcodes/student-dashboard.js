@@ -2551,7 +2551,14 @@
                 const classNameElement = classItem
                     ? classItem.querySelector('.teqcidb-registration-class-name')
                     : null;
-                const className = classNameElement ? classNameElement.textContent.trim() : '';
+                const representativeClassNameElement = paymentWrapper
+                    ? paymentWrapper.querySelector('[data-teqcidb-rep-selected-class-name]')
+                    : null;
+                const className = classNameElement
+                    ? classNameElement.textContent.trim()
+                    : representativeClassNameElement
+                      ? representativeClassNameElement.textContent.trim()
+                      : '';
                 const selectedStudentsInput = paymentWrapper
                     ? paymentWrapper.querySelector('[data-teqcidb-rep-selected-students]')
                     : null;
