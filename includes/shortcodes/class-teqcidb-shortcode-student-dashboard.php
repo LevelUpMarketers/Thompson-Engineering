@@ -2415,12 +2415,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
         $labels = array();
 
         foreach ( $decoded as $student ) {
-            if ( ! is_array( $student ) ) {
+            if ( is_array( $student ) ) {
+                $wpid           = isset( $student['wpid'] ) ? absint( $student['wpid'] ) : 0;
+                $unique_student = isset( $student['uniquestudentid'] ) ? sanitize_text_field( (string) $student['uniquestudentid'] ) : '';
+            } else {
+                $wpid           = absint( $student );
+                $unique_student = '';
+                $student        = array();
+            }
+
+            if ( $wpid <= 0 && '' === $unique_student ) {
                 continue;
             }
 
-            $wpid            = isset( $student['wpid'] ) ? absint( $student['wpid'] ) : 0;
-            $unique_student  = isset( $student['uniquestudentid'] ) ? sanitize_text_field( (string) $student['uniquestudentid'] ) : '';
             $resolved_label  = '';
 
             if ( $wpid > 0 ) {

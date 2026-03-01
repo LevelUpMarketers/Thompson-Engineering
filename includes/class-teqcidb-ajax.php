@@ -1579,6 +1579,36 @@ class TEQCIDB_Ajax {
         return ! empty( $parts );
     }
 
+    private function get_students_by_wpids( array $wpids ) {
+        $wpids = array_values(
+            array_unique(
+                array_filter(
+                    array_map( 'absint', $wpids )
+                )
+            )
+        );
+
+        if ( empty( $wpids ) ) {
+            return array();
+        }
+
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $like           = $wpdb->esc_like( $students_table );
+        $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $students_table ) {
+            return array();
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $wpids ), '%d' ) );
+        $query        = "SELECT wpuserid, uniquestudentid, email, associations FROM $students_table WHERE wpuserid IN ($placeholders)";
+        $results      = $wpdb->get_results( $wpdb->prepare( $query, $wpids ), ARRAY_A );
+
+        return is_array( $results ) ? $results : array();
+    }
+
 
     /**
      * Ensure the payment history table exists and contains expected columns.
@@ -1716,11 +1746,12 @@ class TEQCIDB_Ajax {
 
         $unique_class_id = '';
         $class_row       = null;
+        $class_cost      = 0.0;
 
         if ( $class_id > 0 ) {
             $class_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                    "SELECT uniqueclassid, classname, classcost FROM $classes_table WHERE id = %d LIMIT 1",
                     $class_id
                 ),
                 ARRAY_A
@@ -1729,6 +1760,10 @@ class TEQCIDB_Ajax {
             if ( is_array( $class_row ) && ! empty( $class_row['uniqueclassid'] ) ) {
                 $unique_class_id = sanitize_text_field( (string) $class_row['uniqueclassid'] );
             }
+
+            if ( is_array( $class_row ) && isset( $class_row['classcost'] ) ) {
+                $class_cost = (float) preg_replace( '/[^0-9.]/', '', (string) $class_row['classcost'] );
+            }
         }
 
         $class_name = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
@@ -1736,28 +1771,27 @@ class TEQCIDB_Ajax {
         $amount_numeric = (float) preg_replace( '/[^0-9.\-]/', '', $total_paid_raw );
         $total_paid     = number_format( $amount_numeric, 2, '.', '' );
 
-        $multiple_students = '';
+        $multiple_students    = '';
+        $selected_student_rows = array();
 
         if ( $is_representative && '' !== $multiple_raw ) {
-            $decoded = json_decode( $multiple_raw, true );
+            $selected_students = $this->parse_selected_students_for_checkout( $multiple_raw );
+            $selected_wpids    = array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            static function ( $entry ) {
+                                return isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0;
+                            },
+                            $selected_students
+                        )
+                    )
+                )
+            );
 
-            if ( is_array( $decoded ) ) {
-                $normalized = array();
-
-                foreach ( $decoded as $entry ) {
-                    if ( ! is_array( $entry ) ) {
-                        continue;
-                    }
-
-                    $normalized[] = array(
-                        'wpid'            => isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0,
-                        'uniquestudentid' => isset( $entry['uniquestudentid'] ) ? sanitize_text_field( (string) $entry['uniquestudentid'] ) : '',
-                    );
-                }
-
-                if ( ! empty( $normalized ) ) {
-                    $multiple_students = wp_json_encode( $normalized );
-                }
+            if ( ! empty( $selected_wpids ) ) {
+                $multiple_students     = wp_json_encode( $selected_wpids );
+                $selected_student_rows = $this->get_students_by_wpids( $selected_wpids );
             }
         }
 
@@ -1815,45 +1849,141 @@ class TEQCIDB_Ajax {
 
         $student_history_table = $wpdb->prefix . 'teqcidb_studenthistory';
 
-        $student_history_inserted = $wpdb->insert(
-            $student_history_table,
-            array(
-                'uniquestudentid'  => $uniquestudentid,
-                'wpuserid'         => $user_id,
-                'classname'        => $class_name,
-                'uniqueclassid'    => $unique_class_id,
-                'registered'       => 'Yes',
-                'attended'         => 'Upcoming',
-                'outcome'          => 'Upcoming',
-                'paymentstatus'    => 'Paid in Full',
-                'amountpaid'       => $total_paid,
-                'enrollmentdate'   => $enrollment_date,
-                'registeredby'     => $user_id,
-                'courseinprogress' => 'no',
-                'quizinprogress'   => 'no',
-            ),
-            array(
-                '%s',
-                '%d',
-                '%s',
-                '%s',
-                '%s',
-                '%s',
-                '%s',
-                '%s',
-                '%s',
-                '%d',
-                '%s',
-                '%s',
-            )
-        );
+        if ( $is_representative && ! empty( $selected_student_rows ) ) {
+            foreach ( $selected_student_rows as $student_payment_row ) {
+                if ( ! is_array( $student_payment_row ) ) {
+                    continue;
+                }
 
-        if ( false === $student_history_inserted ) {
-            wp_send_json_error(
+                $student_wpid         = isset( $student_payment_row['wpuserid'] ) ? absint( $student_payment_row['wpuserid'] ) : 0;
+                $student_unique_id    = isset( $student_payment_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_payment_row['uniquestudentid'] ) : '';
+                $student_email        = isset( $student_payment_row['email'] ) ? sanitize_email( (string) $student_payment_row['email'] ) : '';
+                $student_associations = isset( $student_payment_row['associations'] ) ? $student_payment_row['associations'] : '';
+
+                if ( $student_wpid <= 0 ) {
+                    continue;
+                }
+
+                $student_has_discount = $this->student_has_any_association( $student_associations );
+                $student_amount_value = max( 0, $class_cost - ( $student_has_discount ? 50 : 0 ) );
+                $student_amount_paid  = number_format( $student_amount_value, 2, '.', '' );
+
+                $student_payment_inserted = $wpdb->insert(
+                    $history_table,
+                    array(
+                        'wpuserid'         => $student_wpid,
+                        'uniquestudentid'  => $student_unique_id,
+                        'email'            => $student_email,
+                        'uniqueclassid'    => $unique_class_id,
+                        'totalpaid'        => $student_amount_paid,
+                        'transid'          => $trans_id,
+                        'transtime'        => $this->format_payment_history_time( $gateway_time ),
+                        'multiplestudents' => '',
+                        'invoicenumber'    => $invoice_number,
+                    ),
+                    array(
+                        '%d',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                    )
+                );
+
+                if ( false === $student_payment_inserted ) {
+                    wp_send_json_error(
+                        array(
+                            'message' => __( 'Payment was captured, but a selected student payment history record could not be saved.', 'teqcidb' ),
+                        )
+                    );
+                }
+
+                $student_history_inserted = $wpdb->insert(
+                    $student_history_table,
+                    array(
+                        'uniquestudentid'  => $student_unique_id,
+                        'wpuserid'         => $student_wpid,
+                        'classname'        => $class_name,
+                        'uniqueclassid'    => $unique_class_id,
+                        'registered'       => 'Yes',
+                        'attended'         => 'Upcoming',
+                        'outcome'          => 'Upcoming',
+                        'paymentstatus'    => 'Paid in Full',
+                        'amountpaid'       => $student_amount_paid,
+                        'enrollmentdate'   => $enrollment_date,
+                        'registeredby'     => $user_id,
+                        'courseinprogress' => 'no',
+                        'quizinprogress'   => 'no',
+                    ),
+                    array(
+                        '%s',
+                        '%d',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%s',
+                        '%d',
+                        '%s',
+                        '%s',
+                    )
+                );
+
+                if ( false === $student_history_inserted ) {
+                    wp_send_json_error(
+                        array(
+                            'message' => __( 'Payment was captured, but selected student history could not be saved.', 'teqcidb' ),
+                        )
+                    );
+                }
+            }
+        } else {
+            $student_history_inserted = $wpdb->insert(
+                $student_history_table,
                 array(
-                    'message' => __( 'Payment was captured, but student history could not be saved.', 'teqcidb' ),
+                    'uniquestudentid'  => $uniquestudentid,
+                    'wpuserid'         => $user_id,
+                    'classname'        => $class_name,
+                    'uniqueclassid'    => $unique_class_id,
+                    'registered'       => 'Yes',
+                    'attended'         => 'Upcoming',
+                    'outcome'          => 'Upcoming',
+                    'paymentstatus'    => 'Paid in Full',
+                    'amountpaid'       => $total_paid,
+                    'enrollmentdate'   => $enrollment_date,
+                    'registeredby'     => $user_id,
+                    'courseinprogress' => 'no',
+                    'quizinprogress'   => 'no',
+                ),
+                array(
+                    '%s',
+                    '%d',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%d',
+                    '%s',
+                    '%s',
                 )
             );
+
+            if ( false === $student_history_inserted ) {
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Payment was captured, but student history could not be saved.', 'teqcidb' ),
+                    )
+                );
+            }
         }
 
         wp_send_json_success(
