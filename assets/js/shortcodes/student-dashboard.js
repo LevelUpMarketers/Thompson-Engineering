@@ -2447,11 +2447,12 @@
             panel.hidden = !expanded;
         };
 
-        const requestHostedToken = (classId) => {
+        const requestHostedToken = (classId, selectedStudents = '') => {
             const formData = new FormData();
             formData.append('action', settings.ajaxTokenAction || 'teqcidb_get_accept_hosted_token');
             formData.append('_ajax_nonce', settings.ajaxNonce || '');
             formData.append('class_id', classId);
+            formData.append('multiple_students', selectedStudents || '');
 
             return fetch(settings.ajaxUrl, {
                 method: 'POST',
@@ -2577,7 +2578,7 @@
                 button.disabled = true;
                 button.setAttribute('aria-busy', 'true');
 
-                requestHostedToken(classId)
+                requestHostedToken(classId, selectedStudents)
                     .then((payload) => {
                         if (!payload || !payload.success || !payload.data || !payload.data.token) {
                             const message =

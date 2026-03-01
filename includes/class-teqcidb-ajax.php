@@ -1358,6 +1358,7 @@ class TEQCIDB_Ajax {
         }
 
         $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+        $multiple_raw = isset( $_POST['multiple_students'] ) ? wp_unslash( (string) $_POST['multiple_students'] ) : '';
 
         if ( $class_id <= 0 ) {
             wp_send_json_error(
@@ -1386,8 +1387,18 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $raw_cost = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
-        $amount   = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+        $raw_cost    = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
+        $base_amount = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+
+        $selected_students = $this->parse_selected_students_for_checkout( $multiple_raw );
+        $selected_count    = count( $selected_students );
+
+        if ( $selected_count <= 0 ) {
+            $selected_count = 1;
+        }
+
+        $discount_count = $this->count_association_discounts_for_selected_students( $selected_students );
+        $amount         = ( $base_amount * $selected_count ) - ( 50 * $discount_count );
 
         if ( $amount <= 0 ) {
             wp_send_json_error(
@@ -1431,8 +1442,141 @@ class TEQCIDB_Ajax {
                 'token'      => isset( $token['token'] ) ? (string) $token['token'] : '',
                 'postUrl'    => isset( $token['post_url'] ) ? esc_url_raw( $token['post_url'] ) : '',
                 'classId'    => $class_id,
+                'totalAmount' => number_format( $amount, 2, '.', '' ),
+                'studentCount' => $selected_count,
+                'discountCount' => $discount_count,
             )
         );
+    }
+
+    private function parse_selected_students_for_checkout( $raw_value ) {
+        if ( ! is_string( $raw_value ) || '' === trim( $raw_value ) ) {
+            return array();
+        }
+
+        $decoded = json_decode( $raw_value, true );
+
+        if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+            return array();
+        }
+
+        $normalized = array();
+
+        foreach ( $decoded as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+
+            $normalized[] = array(
+                'wpid' => isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0,
+            );
+        }
+
+        return array_values(
+            array_filter(
+                $normalized,
+                static function ( $entry ) {
+                    return is_array( $entry ) && ! empty( $entry['wpid'] );
+                }
+            )
+        );
+    }
+
+    private function count_association_discounts_for_selected_students( array $selected_students ) {
+        if ( empty( $selected_students ) ) {
+            return 0;
+        }
+
+        $wpids = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static function ( $entry ) {
+                            return isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0;
+                        },
+                        $selected_students
+                    )
+                )
+            )
+        );
+
+        if ( empty( $wpids ) ) {
+            return 0;
+        }
+
+        global $wpdb;
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $like           = $wpdb->esc_like( $students_table );
+        $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $students_table ) {
+            return 0;
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $wpids ), '%d' ) );
+        $query        = "SELECT wpuserid, associations FROM $students_table WHERE wpuserid IN ($placeholders)";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $query, $wpids ), ARRAY_A );
+
+        if ( ! is_array( $rows ) || empty( $rows ) ) {
+            return 0;
+        }
+
+        $discount_count = 0;
+
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $associations = isset( $row['associations'] ) ? $row['associations'] : '';
+
+            if ( $this->student_has_any_association( $associations ) ) {
+                $discount_count++;
+            }
+        }
+
+        return $discount_count;
+    }
+
+    private function student_has_any_association( $value ) {
+        if ( is_array( $value ) ) {
+            return ! empty(
+                array_filter(
+                    $value,
+                    static function ( $item ) {
+                        return '' !== trim( (string) $item );
+                    }
+                )
+            );
+        }
+
+        $raw = is_scalar( $value ) ? trim( (string) $value ) : '';
+
+        if ( '' === $raw ) {
+            return false;
+        }
+
+        $decoded = json_decode( $raw, true );
+
+        if ( is_array( $decoded ) ) {
+            return ! empty(
+                array_filter(
+                    $decoded,
+                    static function ( $item ) {
+                        return '' !== trim( (string) $item );
+                    }
+                )
+            );
+        }
+
+        $parts = array_filter(
+            array_map( 'trim', explode( ',', $raw ) ),
+            static function ( $item ) {
+                return '' !== $item;
+            }
+        );
+
+        return ! empty( $parts );
     }
 
 
