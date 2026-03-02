@@ -847,6 +847,9 @@ class TEQCIDB_Admin {
             'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
             'failedQuizResetting' => __( 'Resetting quiz attempt…', 'teqcidb' ),
             'failedQuizResetSuccessReloading' => __( 'Quiz attempt reset. Reloading…', 'teqcidb' ),
+            'studentFormsViewAction' => __( 'View', 'teqcidb' ),
+            'studentFormsToggleDetails' => __( 'Toggle student form details', 'teqcidb' ),
+            'studentFormsNoRecords' => __( 'No student records found.', 'teqcidb' ),
         ) );
     }
 
@@ -1188,15 +1191,18 @@ class TEQCIDB_Admin {
         echo '<h2 class="nav-tab-wrapper">';
         echo '<a href="?page=teqcidb-student&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Student', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Students', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-student&tab=student_forms" class="nav-tab ' . ( 'student_forms' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Student Forms', 'teqcidb' ) . '</a>';
         echo '</h2>';
         $tab_titles = array(
-            'create' => __( 'Create a Student', 'teqcidb' ),
-            'edit'   => __( 'Edit Students', 'teqcidb' ),
+            'create'        => __( 'Create a Student', 'teqcidb' ),
+            'edit'          => __( 'Edit Students', 'teqcidb' ),
+            'student_forms' => __( 'Student Forms', 'teqcidb' ),
         );
 
         $tab_descriptions = array(
-            'create' => __( 'Capture the student\'s profile, contact, and certification details before saving.', 'teqcidb' ),
-            'edit'   => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
+            'create'        => __( 'Capture the student\'s profile, contact, and certification details before saving.', 'teqcidb' ),
+            'edit'          => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
+            'student_forms' => __( 'Find students and review their saved data before generating wallet cards and certificates.', 'teqcidb' ),
         );
 
         if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
@@ -1210,6 +1216,8 @@ class TEQCIDB_Admin {
 
         if ( 'edit' === $active_tab ) {
             $this->render_edit_tab();
+        } elseif ( 'student_forms' === $active_tab ) {
+            $this->render_student_forms_tab();
         } else {
             $this->render_create_tab();
         }
@@ -3519,6 +3527,71 @@ class TEQCIDB_Admin {
         echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
         echo '</div>';
         echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function render_student_forms_tab() {
+        $per_page     = 20;
+        $column_count = 6;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--students">';
+        echo '<div class="teqcidb-entity-search" role="search">';
+        echo '<form id="teqcidb-student-forms-search" class="teqcidb-entity-search__form" method="post">';
+        echo '<h3 class="teqcidb-entity-search__title">' . esc_html__( 'Search Students', 'teqcidb' ) . '</h3>';
+        echo '<p class="teqcidb-entity-search__description">' . esc_html__( 'Filter student records and expand each row to review saved details for forms generation.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-entity-search__fields">';
+
+        for ( $i = 1; $i <= 3; $i++ ) {
+            $field_key = 'placeholder_' . $i;
+            $label     = $this->get_placeholder_label( $i );
+            $field_id  = 'teqcidb-student-forms-search-' . $field_key;
+
+            echo '<div class="teqcidb-entity-search__field">';
+            echo '<label class="teqcidb-entity-search__label" for="' . esc_attr( $field_id ) . '">';
+            echo esc_html( $label );
+            echo '</label>';
+            echo '<input type="text" id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $field_key ) . '" class="regular-text" />';
+            echo '</div>';
+        }
+
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__actions">';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-student-forms-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+        echo '<span id="teqcidb-student-forms-search-spinner" class="spinner" aria-hidden="true"></span>';
+        echo '<span id="teqcidb-student-forms-search-feedback" role="status" aria-live="polite"></span>';
+        echo '</span>';
+        echo '</div>';
+        echo '</form>';
+        echo '</div>';
+
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="student-forms">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+
+        for ( $i = 1; $i <= 5; $i++ ) {
+            printf(
+                '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-%1$d">%2$s</th>',
+                absint( $i ),
+                esc_html( $this->get_placeholder_label( $i ) )
+            );
+        }
+
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+
+        printf(
+            '<tbody id="teqcidb-student-forms-list" data-per-page="%1$d" data-column-count="%2$d">',
+            absint( $per_page ),
+            absint( $column_count )
+        );
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '<div class="tablenav"><div id="teqcidb-student-forms-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-student-forms-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }
 
     public function render_settings_page() {
