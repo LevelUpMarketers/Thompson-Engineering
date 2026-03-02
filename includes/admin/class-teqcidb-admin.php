@@ -1054,6 +1054,7 @@ class TEQCIDB_Admin {
             'classhide'                 => __( 'Hide this class from public listings when set to Yes.', 'teqcidb' ),
             'allallowedcourse'          => __( 'Whether all enrolled students can access the course content by default.', 'teqcidb' ),
             'allallowedquiz'            => __( 'Whether all enrolled students can access the quiz content by default.', 'teqcidb' ),
+            'quiz_id'                   => __( 'Select which quiz/exam this class should use on the class page.', 'teqcidb' ),
             'coursestudentsallowed'     => __( 'Specific students who should be allowed to access the course even if access is blocked globally.', 'teqcidb' ),
             'quizstudentsallowed'       => __( 'Specific students who should be allowed to access the quiz even if access is blocked globally.', 'teqcidb' ),
             'coursestudentsrestricted'  => __( 'Students who should be blocked from this course even when course access is generally allowed.', 'teqcidb' ),
@@ -1066,8 +1067,7 @@ class TEQCIDB_Admin {
 
     private function get_quiz_tooltips() {
         return array(
-            'name'     => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
-            'class_id' => __( 'Select every class that should use this quiz. Class assignments are stored in the quiz/class mapping table.', 'teqcidb' ),
+            'name' => __( 'Internal quiz name shown to admins while managing quizzes and questions.', 'teqcidb' ),
         );
     }
 
@@ -1268,10 +1268,6 @@ class TEQCIDB_Admin {
             'missing_name' => array(
                 'class' => 'notice notice-error is-dismissible teqcidb-top-message',
                 'text'  => __( 'Please enter a quiz name before saving.', 'teqcidb' ),
-            ),
-            'missing_classes' => array(
-                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
-                'text'  => __( 'Please select at least one related class.', 'teqcidb' ),
             ),
             'save_failed' => array(
                 'class' => 'notice notice-error is-dismissible teqcidb-top-message',
@@ -1478,15 +1474,34 @@ class TEQCIDB_Admin {
                 'type'    => 'text',
                 'tooltip' => $tooltips['name'],
             ),
-            array(
-                'name'       => 'class_id',
-                'label'      => __( 'Related Classes', 'teqcidb' ),
-                'type'       => 'checkboxes',
-                'full_width' => true,
-                'options'    => $this->get_quiz_class_options(),
-                'tooltip'    => $tooltips['class_id'],
-            ),
         );
+    }
+
+    private function get_quiz_select_options() {
+        global $wpdb;
+
+        $table   = $wpdb->prefix . 'teqcidb_quizzes';
+        $results = $wpdb->get_results( "SELECT id, name FROM $table ORDER BY updated_at DESC, id DESC", ARRAY_A );
+        $options = array(
+            '' => __( 'Choose an Exam/Quiz...', 'teqcidb' ),
+        );
+
+        if ( ! is_array( $results ) ) {
+            return $options;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id   = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+            $quiz_name = isset( $row['name'] ) ? sanitize_text_field( (string) $row['name'] ) : '';
+
+            if ( $quiz_id <= 0 || '' === $quiz_name ) {
+                continue;
+            }
+
+            $options[ (string) $quiz_id ] = $quiz_name;
+        }
+
+        return $options;
     }
 
     private function get_class_fields( $context = 'all' ) {
@@ -1635,6 +1650,13 @@ class TEQCIDB_Admin {
                 'type'    => 'select',
                 'options' => $access_options,
                 'tooltip' => $tooltips['allallowedquiz'],
+            ),
+            array(
+                'name'    => 'quiz_id',
+                'label'   => __( 'Choose an Exam/Quiz', 'teqcidb' ),
+                'type'    => 'select',
+                'options' => $this->get_quiz_select_options(),
+                'tooltip' => $tooltips['quiz_id'],
             ),
             array(
                 'name'       => 'classdescription',
@@ -2556,25 +2578,6 @@ class TEQCIDB_Admin {
             exit;
         }
 
-        $class_ids_raw = isset( $_POST['class_id'] ) ? (array) wp_unslash( $_POST['class_id'] ) : array();
-        $class_ids     = array();
-
-        foreach ( $class_ids_raw as $class_id_raw ) {
-            $class_id = absint( $class_id_raw );
-
-            if ( $class_id > 0 ) {
-                $class_ids[] = $class_id;
-            }
-        }
-
-        $class_ids = array_values( array_unique( $class_ids ) );
-
-        if ( empty( $class_ids ) ) {
-            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_classes', $redirect ) );
-            exit;
-        }
-
-        $class_ids_csv = implode( ',', $class_ids );
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_quizzes';
 
@@ -2587,7 +2590,7 @@ class TEQCIDB_Admin {
         $inserted = $wpdb->insert(
             $table,
             array(
-                'class_id'     => $class_ids_csv,
+                'class_id'     => '',
                 'public_token' => $public_token,
                 'name'         => $name,
                 'status'       => 2,
@@ -2601,7 +2604,6 @@ class TEQCIDB_Admin {
             exit;
         }
 
-        $this->sync_quiz_class_mappings( (int) $wpdb->insert_id, $class_ids );
 
         wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'created', $redirect ) );
         exit;
@@ -2680,21 +2682,6 @@ class TEQCIDB_Admin {
                 echo '<div class="teqcidb-field">';
                 echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Update the quiz name shown in admin quiz management lists.', 'teqcidb' ) . '"></span>' . esc_html__( 'Quiz Name', 'teqcidb' ) . '</label>';
                 echo '<input type="text" name="name" value="' . esc_attr( $quiz_name ) . '" />';
-                echo '</div>';
-
-                echo '<div class="teqcidb-field teqcidb-field-full">';
-                echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr__( 'Select every class that should use this quiz. Class assignments are stored in the quiz/class mapping table.', 'teqcidb' ) . '"></span>' . esc_html__( 'Related Classes', 'teqcidb' ) . '</label>';
-                echo '<fieldset class="teqcidb-checkbox-group">';
-
-                foreach ( $class_map as $class_id => $class_label ) {
-                    $input_id = 'teqcidb-quiz-' . $quiz_id . '-class-' . sanitize_html_class( (string) $class_id );
-                    echo '<label class="teqcidb-checkbox-option" for="' . esc_attr( $input_id ) . '">';
-                    echo '<input type="checkbox" id="' . esc_attr( $input_id ) . '" name="class_id[]" value="' . esc_attr( $class_id ) . '" ' . checked( in_array( (string) $class_id, $selected_class_ids, true ), true, false ) . ' /> ';
-                    echo esc_html( $class_label );
-                    echo '</label>';
-                }
-
-                echo '</fieldset>';
                 echo '</div>';
 
                 echo '</div>';
@@ -2894,26 +2881,6 @@ class TEQCIDB_Admin {
             exit;
         }
 
-        $class_ids_raw = isset( $_POST['class_id'] ) ? (array) wp_unslash( $_POST['class_id'] ) : array();
-        $class_ids     = array();
-
-        foreach ( $class_ids_raw as $class_id_raw ) {
-            $class_id = absint( $class_id_raw );
-
-            if ( $class_id > 0 ) {
-                $class_ids[] = $class_id;
-            }
-        }
-
-        $class_ids = array_values( array_unique( $class_ids ) );
-
-        if ( empty( $class_ids ) ) {
-            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'missing_classes', $redirect ) );
-            exit;
-        }
-
-        $class_ids_csv = implode( ',', $class_ids );
-
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_quizzes';
 
@@ -2921,10 +2888,9 @@ class TEQCIDB_Admin {
             $table,
             array(
                 'name'     => $name,
-                'class_id' => $class_ids_csv,
             ),
             array( 'id' => $quiz_id ),
-            array( '%s', '%s' ),
+            array( '%s' ),
             array( '%d' )
         );
 
@@ -2933,7 +2899,6 @@ class TEQCIDB_Admin {
             exit;
         }
 
-        $this->sync_quiz_class_mappings( $quiz_id, $class_ids );
 
         $question_prompts       = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
         $question_types_input   = isset( $_POST['question_type'] ) ? (array) wp_unslash( $_POST['question_type'] ) : array();
