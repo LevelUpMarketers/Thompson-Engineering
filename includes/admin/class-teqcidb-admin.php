@@ -3535,7 +3535,7 @@ class TEQCIDB_Admin {
 
         echo '<div class="teqcidb-communications teqcidb-communications--students">';
         echo '<div class="teqcidb-entity-search" role="search">';
-        echo '<form id="teqcidb-student-forms-search" class="teqcidb-entity-search__form" method="post">';
+        echo '<form id="teqcidb-student-search" class="teqcidb-entity-search__form" method="post">';
         echo '<h3 class="teqcidb-entity-search__title">' . esc_html__( 'Search Students', 'teqcidb' ) . '</h3>';
         echo '<p class="teqcidb-entity-search__description">' . esc_html__( 'Filter student records and expand each row to review saved details for forms generation.', 'teqcidb' ) . '</p>';
         echo '<div class="teqcidb-entity-search__fields">';
@@ -3556,10 +3556,10 @@ class TEQCIDB_Admin {
         echo '</div>';
         echo '<div class="teqcidb-entity-search__actions">';
         echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
-        echo '<button type="button" id="teqcidb-student-forms-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-entity-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
         echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
-        echo '<span id="teqcidb-student-forms-search-spinner" class="spinner" aria-hidden="true"></span>';
-        echo '<span id="teqcidb-student-forms-search-feedback" role="status" aria-live="polite"></span>';
+        echo '<span id="teqcidb-entity-search-spinner" class="spinner" aria-hidden="true"></span>';
+        echo '<span id="teqcidb-entity-search-feedback" role="status" aria-live="polite"></span>';
         echo '</span>';
         echo '</div>';
         echo '</form>';
@@ -3581,7 +3581,7 @@ class TEQCIDB_Admin {
         echo '</tr></thead>';
 
         printf(
-            '<tbody id="teqcidb-student-forms-list" data-per-page="%1$d" data-column-count="%2$d">',
+            '<tbody id="teqcidb-entity-list" data-per-page="%1$d" data-column-count="%2$d" data-read-only="1">',
             absint( $per_page ),
             absint( $column_count )
         );
@@ -3589,9 +3589,9 @@ class TEQCIDB_Admin {
         echo '</tbody>';
         echo '</table>';
         echo '</div>';
-        echo '<div class="tablenav"><div id="teqcidb-student-forms-pagination" class="tablenav-pages"></div></div>';
+        echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
         echo '</div>';
-        echo '<div id="teqcidb-student-forms-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+        echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }
 
     public function render_settings_page() {
