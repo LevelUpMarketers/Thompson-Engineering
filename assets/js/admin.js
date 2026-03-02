@@ -3254,6 +3254,80 @@ jQuery(document).ready(function($){
         handleQuizQuestionDelete($question);
     });
 
+    function handleResetFailedQuizAttempt($button){
+        if (!$button || !$button.length){
+            return;
+        }
+
+        if (!window.confirm(teqcidbAdmin.failedQuizResetConfirm || '')){
+            return;
+        }
+
+        var quizId = parseInt($button.data('quiz-id'), 10) || 0;
+        var classId = parseInt($button.data('class-id'), 10) || 0;
+        var userId = parseInt($button.data('user-id'), 10) || 0;
+        var $submit = $button.closest('.submit');
+        var $spinner = $submit.find('.teqcidb-reset-failed-quiz-attempt-spinner').first();
+        var $feedback = $submit.find('.teqcidb-reset-failed-quiz-attempt-feedback').first();
+
+        if (quizId <= 0 || classId <= 0 || userId <= 0){
+            if ($feedback.length){
+                $feedback.text(teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        $button.prop('disabled', true).attr('aria-disabled', 'true');
+
+        if ($spinner.length){
+            $spinner.addClass('is-active');
+        }
+
+        if ($feedback.length){
+            $feedback.text(teqcidbAdmin.failedQuizResetting || '').addClass('is-visible');
+        }
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_reset_failed_quiz_attempt',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            class_id: classId,
+            user_id: userId
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    if ($feedback.length){
+                        $feedback.text((resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.failedQuizResetSuccessReloading || '')).addClass('is-visible');
+                    }
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    if ($feedback.length){
+                        $feedback.text((resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '')).addClass('is-visible');
+                    }
+                    $button.prop('disabled', false).removeAttr('aria-disabled');
+                }
+            })
+            .fail(function(){
+                if ($feedback.length && teqcidbAdmin.error){
+                    $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+                $button.prop('disabled', false).removeAttr('aria-disabled');
+            })
+            .always(function(){
+                if ($spinner.length){
+                    $spinner.removeClass('is-active');
+                }
+            });
+    }
+
+    $(document).on('click', '.teqcidb-reset-failed-quiz-attempt', function(e){
+        e.preventDefault();
+        handleResetFailedQuizAttempt($(this));
+    });
+
     function buildStudentDisplay(student){
         var first = student.first_name || '';
         var last = student.last_name || '';

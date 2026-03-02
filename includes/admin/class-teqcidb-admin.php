@@ -844,6 +844,9 @@ class TEQCIDB_Admin {
             'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
             'falseLabel' => __( 'False', 'teqcidb' ),
+            'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
+            'failedQuizResetting' => __( 'Resetting quiz attempt…', 'teqcidb' ),
+            'failedQuizResetSuccessReloading' => __( 'Quiz attempt reset. Reloading…', 'teqcidb' ),
         ) );
     }
 
@@ -3002,13 +3005,14 @@ class TEQCIDB_Admin {
 
         $answer_items_map = $this->get_failed_attempt_answer_items( $attempt_ids );
         $question_map     = $this->get_quiz_questions_map( $quiz_ids );
-        $column_count     = 4;
+        $column_count     = 5;
 
         echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
         echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="failed-quizzes">';
         echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
         echo '<thead><tr>';
         echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--quiz-name">' . esc_html__( 'Student', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Email Address', 'teqcidb' ) . '</th>';
         echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Quiz / Exam', 'teqcidb' ) . '</th>';
         echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--updated">' . esc_html__( 'Last Attempt', 'teqcidb' ) . '</th>';
         echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
@@ -3053,6 +3057,7 @@ class TEQCIDB_Admin {
 
                 echo '<tr class="teqcidb-accordion__summary-row" tabindex="0" role="button" aria-expanded="false" aria-controls="' . esc_attr( $panel_id ) . '">';
                 echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--title"><span class="teqcidb-accordion__title-text">' . esc_html( $student_name ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( '' !== $email ? $email : __( 'Not provided', 'teqcidb' ) ) . '</span></td>';
                 echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $quiz_summary ) . '</span></td>';
                 echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $updated_at ) . '</span></td>';
                 echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--actions"><span class="teqcidb-accordion__action-link" aria-hidden="true">' . esc_html__( 'View Attempt', 'teqcidb' ) . '</span><span class="dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Toggle failed quiz details', 'teqcidb' ) . '</span></td>';
@@ -3104,8 +3109,8 @@ class TEQCIDB_Admin {
 
                 if ( 'refresher' === $class_type ) {
                     echo '<p class="submit">';
-                    echo '<button type="button" class="button button-secondary" disabled="disabled" aria-disabled="true">' . esc_html__( 'Reset Quiz Attempt', 'teqcidb' ) . '</button>';
-                    echo '<span class="description teqcidb-submit-note">' . esc_html__( 'Reset functionality will be wired in next.', 'teqcidb' ) . '</span>';
+                    echo '<button type="button" class="button button-secondary teqcidb-reset-failed-quiz-attempt" data-quiz-id="' . esc_attr( $quiz_id ) . '" data-class-id="' . esc_attr( isset( $failed_attempt['class_id'] ) ? absint( $failed_attempt['class_id'] ) : 0 ) . '" data-user-id="' . esc_attr( isset( $failed_attempt['user_id'] ) ? absint( $failed_attempt['user_id'] ) : 0 ) . '">' . esc_html__( 'Reset Quiz Attempt', 'teqcidb' ) . '</button>';
+                    echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span class="spinner teqcidb-reset-failed-quiz-attempt-spinner" aria-hidden="true"></span><span class="teqcidb-reset-failed-quiz-attempt-feedback" role="status" aria-live="polite"></span></span>';
                     echo '</p>';
                 }
 

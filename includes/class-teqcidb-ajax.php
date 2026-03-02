@@ -22,6 +22,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_create_quiz_question', array( $this, 'create_quiz_question' ) );
+        add_action( 'wp_ajax_teqcidb_reset_failed_quiz_attempt', array( $this, 'reset_failed_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_progress', array( $this, 'save_quiz_progress' ) );
         add_action( 'wp_ajax_teqcidb_submit_quiz_attempt', array( $this, 'submit_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
@@ -3312,6 +3313,106 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => __( 'Question saved.', 'teqcidb' ),
+            )
+        );
+    }
+
+    public function reset_failed_quiz_attempt() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to reset this quiz attempt.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id  = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $class_id = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
+        $user_id  = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid quiz attempt selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $classes_table      = $wpdb->prefix . 'teqcidb_classes';
+        $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
+
+        $class_type = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            )
+        );
+
+        if ( 'refresher' !== sanitize_key( (string) $class_type ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Only refresher quiz attempts can be reset.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $attempt_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d",
+                $quiz_id,
+                $class_id,
+                $user_id
+            )
+        );
+
+        $attempt_ids = array_values( array_filter( array_map( 'absint', is_array( $attempt_ids ) ? $attempt_ids : array() ) ) );
+
+        if ( empty( $attempt_ids ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'No matching quiz attempts were found to reset.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $attempt_ids ), '%d' ) );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $answer_items_table WHERE attempt_id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $answers_table WHERE attempt_id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $attempts_table WHERE id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Quiz attempt reset. The student can now retake this quiz.', 'teqcidb' ),
             )
         );
     }
