@@ -1567,30 +1567,30 @@ jQuery(document).ready(function($){
             doc.text(certSettings.completionLabel || 'for satisfactory completion of 8 instructional hours', width / 2, 4.58, { align: 'center' });
 
             if (ademLogo) {
-                doc.addImage(ademLogo, 'JPEG', 2.35, 4.75, 1.7, 0.75);
+                doc.addImage(ademLogo, 'JPEG', 2.35, 5.05, 1.7, 0.75);
             }
 
             if (thompsonLogo) {
                 var thompsonLogoWidth = 1.42;
                 var thompsonLogoHeight = thompsonLogoWidth / (331 / 257);
-                doc.addImage(thompsonLogo, 'JPEG', 2.45, 5.55, thompsonLogoWidth, thompsonLogoHeight);
+                doc.addImage(thompsonLogo, 'JPEG', 2.45, 5.85, thompsonLogoWidth, thompsonLogoHeight);
             }
 
             var detailX = 7.55;
             doc.setFont('times', 'bold');
             doc.setTextColor(20, 20, 20);
             doc.setFontSize(20);
-            doc.text(certSettings.classTypeLabel || 'Initial Training Class', detailX, 5.05, { align: 'center' });
+            doc.text(certSettings.classTypeLabel || 'Initial Training Class', detailX, 5.35, { align: 'center' });
 
             doc.setFontSize(17);
-            doc.text(formatCertificateDate(data.initial_training_date), detailX, 5.42, { align: 'center' });
+            doc.text(formatCertificateDate(data.initial_training_date), detailX, 5.72, { align: 'center' });
 
             doc.setFontSize(16);
-            doc.text(certSettings.instructorLabel || 'Instructor Name(s)', detailX, 5.75, { align: 'center' });
+            doc.text(certSettings.instructorLabel || 'Instructor Name(s)', detailX, 6.05, { align: 'center' });
 
             doc.setFont('times', 'normal');
             doc.setFontSize(15);
-            doc.text(instructorName, detailX, 6.06, { align: 'center' });
+            doc.text(instructorName, detailX, 6.36, { align: 'center' });
 
             doc.setFont('times', 'bold');
             doc.setFontSize(18);
