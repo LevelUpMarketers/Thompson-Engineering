@@ -2189,6 +2189,11 @@ jQuery(document).ready(function($){
                     showFeedback(teqcidbAdmin.error);
                 });
         });
+
+        $entityTableBody.on('click', '.teqcidb-student-forms-wallet-card-button', function(e){
+            e.preventDefault();
+            handleStudentFormsWalletCardAction(e);
+        });
     }
 
     if($('#teqcidb-class-list').length){
@@ -3627,10 +3632,6 @@ jQuery(document).ready(function($){
         handleResetFailedQuizAttempt($(this));
     });
 
-    $(document).on('click', '.teqcidb-student-forms-wallet-card-button', function(e){
-        e.preventDefault();
-        handleStudentFormsWalletCardAction(e);
-    });
 
     function buildStudentDisplay(student){
         var first = student.first_name || '';
