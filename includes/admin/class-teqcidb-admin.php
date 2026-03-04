@@ -850,6 +850,13 @@ class TEQCIDB_Admin {
             'studentFormsViewAction' => __( 'View', 'teqcidb' ),
             'studentFormsToggleDetails' => __( 'Toggle student form details', 'teqcidb' ),
             'studentFormsNoRecords' => __( 'No student records found.', 'teqcidb' ),
+            'studentFormsCertificatesTitle' => __( 'Certificates & Wallet Cards', 'teqcidb' ),
+            'studentFormsInitialInPersonButton' => __( 'Generate Completion Certificate (initial in-person)', 'teqcidb' ),
+            'studentFormsRefresherInPersonButton' => __( 'Generate Completion Certificate (refresher in-person)', 'teqcidb' ),
+            'studentFormsInitialOnlineButton' => __( 'Generate Completion Certificate (initial online)', 'teqcidb' ),
+            'studentFormsRefresherOnlineButton' => __( 'Generate Completion Certificate (refresher online)', 'teqcidb' ),
+            'studentFormsWalletCardButton' => __( 'Generate Wallet Card', 'teqcidb' ),
+            'studentFormsInstructorPlaceholder' => __( 'Enter Instructor Name', 'teqcidb' ),
         ) );
     }
 

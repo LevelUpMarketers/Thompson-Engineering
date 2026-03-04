@@ -1286,6 +1286,77 @@ jQuery(document).ready(function($){
             return $form;
         }
 
+        function buildStudentFormsCertificateSection(entity){
+            if (!readOnlyMode){
+                return null;
+            }
+
+            var entityId = entity && entity.id ? parseInt(entity.id, 10) : 0;
+            var inputSuffix = entityId > 0 ? String(entityId) : 'new';
+            var $section = $('<section/>', {
+                'class': 'teqcidb-student-forms-certificates',
+                'data-student-id': inputSuffix
+            });
+
+            $section.append($('<h4/>', {
+                'class': 'teqcidb-student-forms-certificates__title',
+                text: teqcidbAdmin.studentFormsCertificatesTitle || 'Certificates & Wallet Cards'
+            }));
+
+            function buildActionItem(buttonText, inputName){
+                var $item = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__item' });
+                var $button = $('<button/>', {
+                    type: 'button',
+                    'class': 'button button-secondary teqcidb-student-forms-certificates__button'
+                });
+
+                $button.append($('<span/>', {
+                    'class': 'dashicons dashicons-plus-alt2 teqcidb-student-forms-certificates__icon',
+                    'aria-hidden': 'true'
+                }));
+                $button.append($('<span/>', {
+                    'class': 'teqcidb-student-forms-certificates__button-label',
+                    text: buttonText || ''
+                }));
+
+                $item.append($button);
+
+                if (inputName){
+                    $item.append($('<input/>', {
+                        type: 'text',
+                        'class': 'regular-text teqcidb-student-forms-certificates__input',
+                        name: inputName + '[' + inputSuffix + ']',
+                        placeholder: teqcidbAdmin.studentFormsInstructorPlaceholder || 'Enter Instructor Name'
+                    }));
+                }
+
+                return $item;
+            }
+
+            var $rowOne = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__row teqcidb-student-forms-certificates__row--two' });
+            $rowOne.append(
+                buildActionItem(teqcidbAdmin.studentFormsInitialInPersonButton, 'student_forms_initial_in_person_instructor')
+            );
+            $rowOne.append(
+                buildActionItem(teqcidbAdmin.studentFormsRefresherInPersonButton, 'student_forms_refresher_in_person_instructor')
+            );
+
+            var $rowTwo = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__row teqcidb-student-forms-certificates__row--three' });
+            $rowTwo.append(
+                buildActionItem(teqcidbAdmin.studentFormsInitialOnlineButton)
+            );
+            $rowTwo.append(
+                buildActionItem(teqcidbAdmin.studentFormsRefresherOnlineButton)
+            );
+            $rowTwo.append(
+                buildActionItem(teqcidbAdmin.studentFormsWalletCardButton)
+            );
+
+            $section.append($rowOne).append($rowTwo);
+
+            return $section;
+        }
+
         function updatePagination(total, totalPages, page){
             if (!$pagination.length){
                 return;
@@ -1492,6 +1563,14 @@ jQuery(document).ready(function($){
                 var $panelCell = $('<td/>').attr('colspan', columnCount);
                 var $panel = $('<div/>', {'class': 'teqcidb-accordion__panel'}).hide();
                 var $form = buildEntityForm(entity);
+
+                if (readOnlyMode){
+                    var $certificateSection = buildStudentFormsCertificateSection(entity);
+
+                    if ($certificateSection && $certificateSection.length){
+                        $panel.append($certificateSection);
+                    }
+                }
 
                 $panel.append($form);
                 $panelCell.append($panel);
