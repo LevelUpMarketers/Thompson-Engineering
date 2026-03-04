@@ -1528,7 +1528,7 @@ jQuery(document).ready(function($){
             var width = 11;
             var height = 8.5;
 
-            doc.setFillColor(245, 245, 245);
+            doc.setFillColor(255, 255, 255);
             doc.rect(0, 0, width, height, 'F');
 
             doc.setDrawColor(192, 180, 106);
@@ -1571,7 +1571,9 @@ jQuery(document).ready(function($){
             }
 
             if (thompsonLogo) {
-                doc.addImage(thompsonLogo, 'JPEG', 2.55, 5.55, 1.15, 1.15);
+                var thompsonLogoWidth = 1.42;
+                var thompsonLogoHeight = thompsonLogoWidth / (331 / 257);
+                doc.addImage(thompsonLogo, 'JPEG', 2.45, 5.55, thompsonLogoWidth, thompsonLogoHeight);
             }
 
             var detailX = 7.55;
