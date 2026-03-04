@@ -1486,6 +1486,167 @@ jQuery(document).ready(function($){
             }
         }
 
+
+        function formatCertificateDate(value){
+            if (!value || typeof value !== 'string') {
+                return '';
+            }
+
+            var trimmed = value.trim();
+            var isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+            if (isoMatch) {
+                return isoMatch[2] + '-' + isoMatch[3] + '-' + isoMatch[1];
+            }
+
+            var slashMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+            if (slashMatch) {
+                return slashMatch[1] + '-' + slashMatch[2] + '-' + slashMatch[3];
+            }
+
+            return trimmed;
+        }
+
+        async function renderInitialInPersonCertificatePdf(data, instructorName){
+            var jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+
+            if (!jsPDF) {
+                throw new Error('missing-js-pdf');
+            }
+
+            var walletSettings = teqcidbAdmin.walletCard || {};
+            var certSettings = teqcidbAdmin.initialInPersonCertificate || {};
+            var logos = await Promise.all([
+                loadWalletCardImage(walletSettings.ademLogoUrl),
+                loadWalletCardImage(walletSettings.thompsonLogoUrl)
+            ]);
+            var ademLogo = logos[0];
+            var thompsonLogo = logos[1];
+
+            var doc = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+            var width = 11;
+            var height = 8.5;
+
+            doc.setFillColor(245, 245, 245);
+            doc.rect(0, 0, width, height, 'F');
+
+            doc.setDrawColor(192, 180, 106);
+            doc.setLineWidth(0.04);
+            doc.rect(0.06, 0.06, width - 0.12, height - 0.12);
+            doc.setDrawColor(124, 153, 90);
+            doc.setLineWidth(0.02);
+            doc.rect(0.14, 0.14, width - 0.28, height - 0.28);
+            doc.setDrawColor(111, 108, 115);
+            doc.setLineWidth(0.03);
+            doc.rect(0.21, 0.21, width - 0.42, height - 0.42);
+
+            doc.setFont('times', 'normal');
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(27);
+            doc.text(certSettings.programTitle || 'QCI Training Program', width / 2, 1.45, { align: 'center' });
+
+            doc.setTextColor(56, 60, 170);
+            doc.setFontSize(53);
+            doc.text(certSettings.certificateTitle || 'Certificate of Completion', width / 2, 2.35, { align: 'center' });
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('times', 'italic');
+            doc.setFontSize(22);
+            doc.text(certSettings.grantedLabel || 'is hereby granted to:', width / 2, 3.0, { align: 'center' });
+
+            doc.setFontSize(30);
+            doc.text(getWalletCardValue(data.name), width / 2, 3.65, { align: 'center' });
+
+            doc.setFont('times', 'bolditalic');
+            doc.setFontSize(23);
+            doc.text(getWalletCardValue(data.company), width / 2, 4.2, { align: 'center' });
+
+            doc.setFont('times', 'italic');
+            doc.setFontSize(19);
+            doc.text(certSettings.completionLabel || 'for satisfactory completion of 8 instructional hours', width / 2, 4.58, { align: 'center' });
+
+            if (ademLogo) {
+                doc.addImage(ademLogo, 'JPEG', 2.35, 4.75, 1.7, 0.75);
+            }
+
+            if (thompsonLogo) {
+                doc.addImage(thompsonLogo, 'JPEG', 2.55, 5.55, 1.15, 1.15);
+            }
+
+            var detailX = 7.55;
+            doc.setFont('times', 'bold');
+            doc.setTextColor(20, 20, 20);
+            doc.setFontSize(20);
+            doc.text(certSettings.classTypeLabel || 'Initial Training Class', detailX, 5.05, { align: 'center' });
+
+            doc.setFontSize(17);
+            doc.text(formatCertificateDate(data.initial_training_date), detailX, 5.42, { align: 'center' });
+
+            doc.setFontSize(16);
+            doc.text(certSettings.instructorLabel || 'Instructor Name(s)', detailX, 5.75, { align: 'center' });
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(15);
+            doc.text(instructorName, detailX, 6.06, { align: 'center' });
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(18);
+            doc.text((certSettings.qciNumberLabel || 'QCI NO:') + ' ' + getWalletCardValue(data.qci_number), detailX, 7.08, { align: 'center' });
+            doc.text((certSettings.expiresLabel || 'Expires:') + ' ' + formatCertificateDate(data.expiration_date), detailX, 7.35, { align: 'center' });
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(10);
+            var footer = certSettings.footerText || 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+            var wrappedFooter = doc.splitTextToSize(footer, 3.9);
+            doc.text(wrappedFooter, 3.15, 7.35, { align: 'center' });
+
+            return doc;
+        }
+
+        async function handleStudentFormsInitialInPersonCertificateAction(event){
+            var button = event.target.closest('.teqcidb-student-forms-initial-in-person-certificate-button[data-teqcidb-certificate-action]');
+
+            if (!button) {
+                return;
+            }
+
+            var rawData = button.getAttribute('data-teqcidb-certificate-data') || '';
+            var data = null;
+
+            try {
+                data = JSON.parse(rawData);
+            } catch (error) {
+                data = null;
+            }
+
+            if (!data) {
+                return;
+            }
+
+            var $item = $(button).closest('.teqcidb-student-forms-certificates__item');
+            var instructorName = $.trim($item.find('.teqcidb-student-forms-certificates__input').first().val() || '');
+
+            if (!instructorName) {
+                window.alert(teqcidbAdmin.studentFormsInstructorRequired || 'Enter Instructor Name before generating this certificate.');
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+
+            try {
+                var doc = await renderInitialInPersonCertificatePdf(data, instructorName);
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } catch (error) {
+                window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        }
+
         function buildStudentFormsCertificateSection(entity){
             if (!readOnlyMode){
                 return null;
@@ -1540,9 +1701,16 @@ jQuery(document).ready(function($){
                 return $item;
             }
 
+            var certificateData = buildStudentFormsWalletCardData(entity);
             var $rowOne = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__row teqcidb-student-forms-certificates__row--two' });
             $rowOne.append(
-                buildActionItem(teqcidbAdmin.studentFormsInitialInPersonButton, 'student_forms_initial_in_person_instructor')
+                buildActionItem(teqcidbAdmin.studentFormsInitialInPersonButton, 'student_forms_initial_in_person_instructor', {
+                    buttonClass: 'teqcidb-student-forms-initial-in-person-certificate-button',
+                    buttonData: {
+                        'teqcidb-certificate-action': 'initial-in-person',
+                        'teqcidb-certificate-data': JSON.stringify(certificateData || {})
+                    }
+                })
             );
             $rowOne.append(
                 buildActionItem(teqcidbAdmin.studentFormsRefresherInPersonButton, 'student_forms_refresher_in_person_instructor')
@@ -2193,6 +2361,11 @@ jQuery(document).ready(function($){
         $entityTableBody.on('click', '.teqcidb-student-forms-wallet-card-button', function(e){
             e.preventDefault();
             handleStudentFormsWalletCardAction(e);
+        });
+
+        $entityTableBody.on('click', '.teqcidb-student-forms-initial-in-person-certificate-button', function(e){
+            e.preventDefault();
+            handleStudentFormsInitialInPersonCertificateAction(e);
         });
     }
 
