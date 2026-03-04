@@ -1296,8 +1296,12 @@
     justify-content: center;
     gap: 6px;
     text-align: center;
+    color: initial;
+    border-color: initial;
+    background: initial;
     white-space: normal;
-    line-height: 1.35;
+    line-height: initial;
+    padding-top: 15px;
 }
 
 .teqcidb-student-forms-certificates__icon {
@@ -1308,6 +1312,11 @@
 
 .teqcidb-student-forms-certificates__button-label {
     display: block;
+    margin-bottom: 10px;
+    width: 180px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 45px;
 }
 
 .teqcidb-student-forms-certificates__input {
