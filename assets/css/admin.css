@@ -1287,22 +1287,12 @@
     max-width: 100%;
 }
 
-.wp-core-ui #teqcidb-student-forms-list .teqcidb-student-forms-certificates__button.button,
-.wp-core-ui #teqcidb-student-forms-list .teqcidb-student-forms-certificates__button.button-secondary {
-    width: 100%;
-    min-height: 94px !important;
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    text-align: center;
+.teqcidb-student-forms-certificates__button {
     color: initial !important;
-    border-color: initial !important;
     background: initial !important;
-    white-space: normal !important;
-    line-height: initial !important;
+    border-color: initial !important;
     padding-top: 15px !important;
+    white-space: normal !important;
 }
 
 .teqcidb-student-forms-certificates__icon {
@@ -1314,10 +1304,10 @@
 .teqcidb-student-forms-certificates__button-label {
     display: block;
     margin-bottom: 10px;
-    width: 180px;
+    max-width: 180px;
     margin-left: auto;
     margin-right: auto;
-    height: 45px;
+    line-height: initial;
 }
 
 .teqcidb-student-forms-certificates__input {
