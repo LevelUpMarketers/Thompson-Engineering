@@ -872,6 +872,17 @@ class TEQCIDB_Admin {
                 'expiresLabel' => __( 'Expires:', 'teqcidb' ),
                 'footerText' => __( 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
             ),
+            'refresherInPersonCertificate' => array(
+                'programTitle' => __( 'QCI Training Program', 'teqcidb' ),
+                'certificateTitle' => __( 'Certificate of Completion', 'teqcidb' ),
+                'grantedLabel' => __( 'is hereby granted to:', 'teqcidb' ),
+                'completionLabel' => __( 'for satisfactory completion of 4 instructional hours', 'teqcidb' ),
+                'classTypeLabel' => __( 'Refresher Training Class', 'teqcidb' ),
+                'instructorLabel' => __( 'Instructor Names', 'teqcidb' ),
+                'qciNumberLabel' => __( 'QCI NO:', 'teqcidb' ),
+                'expiresLabel' => __( 'Expires:', 'teqcidb' ),
+                'footerText' => __( 'This certificate confers four (4.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
+            ),
             'walletCard' => array(
                 'ademLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-adem.jpg' ),
                 'thompsonLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-square-logo.jpg' ),
