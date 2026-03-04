@@ -1874,7 +1874,7 @@ jQuery(document).ready(function($){
             doc.setFontSize(10.5);
             var footer = certSettings.footerText || 'This certificate confers six (6.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
             var wrappedFooter = doc.splitTextToSize(footer, 8.0);
-            doc.text(wrappedFooter, width / 2, 8.03, { align: 'center' });
+            doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
 
             return doc;
         }
@@ -1904,6 +1904,130 @@ jQuery(document).ready(function($){
 
             try {
                 var doc = await renderInitialOnlineCertificatePdf(data);
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } catch (error) {
+                window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        }
+
+        async function renderRefresherOnlineCertificatePdf(data){
+            var jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+
+            if (!jsPDF) {
+                throw new Error('missing-js-pdf');
+            }
+
+            var walletSettings = teqcidbAdmin.walletCard || {};
+            var certSettings = teqcidbAdmin.refresherOnlineCertificate || {};
+            var logos = await Promise.all([
+                loadWalletCardImage(walletSettings.ademLogoUrl),
+                loadWalletCardImage(walletSettings.thompsonLogoUrl)
+            ]);
+            var ademLogo = logos[0];
+            var thompsonLogo = logos[1];
+
+            var doc = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+            var width = 11;
+            var height = 8.5;
+
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, width, height, 'F');
+
+            doc.setDrawColor(192, 180, 106);
+            doc.setLineWidth(0.04);
+            doc.rect(0.06, 0.06, width - 0.12, height - 0.12);
+            doc.setDrawColor(124, 153, 90);
+            doc.setLineWidth(0.02);
+            doc.rect(0.14, 0.14, width - 0.28, height - 0.28);
+            doc.setDrawColor(111, 108, 115);
+            doc.setLineWidth(0.03);
+            doc.rect(0.21, 0.21, width - 0.42, height - 0.42);
+
+            if (ademLogo) {
+                doc.addImage(ademLogo, 'JPEG', 0.78, 1.46, 1.9, 0.7);
+            }
+
+            if (thompsonLogo) {
+                var thompsonLogoWidth = 1.38;
+                var thompsonLogoHeight = thompsonLogoWidth / (331 / 257);
+                doc.addImage(thompsonLogo, 'JPEG', 8.98, 1.32, thompsonLogoWidth, thompsonLogoHeight);
+            }
+
+            doc.setFont('times', 'normal');
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(27);
+            doc.text(certSettings.programTitle || 'QCI Training Program', width / 2, 1.78, { align: 'center' });
+
+            doc.setTextColor(56, 60, 170);
+            doc.setFontSize(53);
+            doc.text(certSettings.certificateTitle || 'Certificate of Completion', width / 2, 2.95, { align: 'center' });
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('times', 'italic');
+            doc.setFontSize(22);
+            doc.text(certSettings.grantedLabel || 'is hereby granted to:', width / 2, 3.72, { align: 'center' });
+
+            doc.setFontSize(30);
+            doc.text(getWalletCardValue(data.name), width / 2, 4.45, { align: 'center' });
+
+            doc.setFont('times', 'bolditalic');
+            doc.setFontSize(23);
+            doc.text(getWalletCardValue(data.company), width / 2, 4.95, { align: 'center' });
+
+            doc.setFont('times', 'italic');
+            doc.setFontSize(19);
+            doc.text(certSettings.completionLabel || 'for satisfactory completion of', width / 2, 5.34, { align: 'center' });
+
+            doc.setFont('times', 'bolditalic');
+            doc.setTextColor(56, 60, 170);
+            doc.setFontSize(23);
+            doc.text(certSettings.trainingTitleLineOne || 'Online Refresher', width / 2, 5.76, { align: 'center' });
+            doc.text(certSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('times', 'bold');
+            doc.setFontSize(20);
+            doc.text((certSettings.qciNumberLabel || 'QCI No.') + ' ' + getWalletCardValue(data.qci_number), width / 2, 6.73, { align: 'center' });
+            doc.text((certSettings.expiresLabel || 'Expires') + ' ' + formatCertificateDate(data.expiration_date), width / 2, 7.12, { align: 'center' });
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(10.5);
+            var footer = certSettings.footerText || 'This certificate confers four (4.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+            var wrappedFooter = doc.splitTextToSize(footer, 8.0);
+            doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
+
+            return doc;
+        }
+
+        async function handleStudentFormsRefresherOnlineCertificateAction(event){
+            var button = event.target.closest('.teqcidb-student-forms-refresher-online-certificate-button[data-teqcidb-certificate-action]');
+
+            if (!button) {
+                return;
+            }
+
+            var rawData = button.getAttribute('data-teqcidb-certificate-data') || '';
+            var data = null;
+
+            try {
+                data = JSON.parse(rawData);
+            } catch (error) {
+                data = null;
+            }
+
+            if (!data) {
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+
+            try {
+                var doc = await renderRefresherOnlineCertificatePdf(data);
                 doc.autoPrint();
                 doc.output('dataurlnewwindow');
             } catch (error) {
@@ -2002,7 +2126,13 @@ jQuery(document).ready(function($){
                 })
             );
             $rowTwo.append(
-                buildActionItem(teqcidbAdmin.studentFormsRefresherOnlineButton)
+                buildActionItem(teqcidbAdmin.studentFormsRefresherOnlineButton, null, {
+                    buttonClass: 'teqcidb-student-forms-refresher-online-certificate-button',
+                    buttonData: {
+                        'teqcidb-certificate-action': 'refresher-online',
+                        'teqcidb-certificate-data': JSON.stringify(certificateData || {})
+                    }
+                })
             );
             $rowTwo.append(
                 buildActionItem(teqcidbAdmin.studentFormsWalletCardButton, null, {
@@ -2655,6 +2785,11 @@ jQuery(document).ready(function($){
         $entityTableBody.on('click', '.teqcidb-student-forms-initial-online-certificate-button', function(e){
             e.preventDefault();
             handleStudentFormsInitialOnlineCertificateAction(e);
+        });
+
+        $entityTableBody.on('click', '.teqcidb-student-forms-refresher-online-certificate-button', function(e){
+            e.preventDefault();
+            handleStudentFormsRefresherOnlineCertificateAction(e);
         });
     }
 
