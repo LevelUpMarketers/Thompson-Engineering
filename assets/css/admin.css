@@ -1285,6 +1285,7 @@
 .teqcidb-student-forms-certificates__item {
     width: 260px;
     max-width: 100%;
+    text-align: center;
 }
 
 .teqcidb-student-forms-certificates__button {
