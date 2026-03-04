@@ -734,7 +734,8 @@ class TEQCIDB_Admin {
             return;
         }
         wp_enqueue_style( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/css/admin.css', array(), TEQCIDB_VERSION );
-        wp_enqueue_script( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-autocomplete' ), TEQCIDB_VERSION, true );
+        wp_enqueue_script( 'teqcidb-admin-jspdf', TEQCIDB_PLUGIN_URL . 'assets/js/vendor/jspdf.umd.min.js', array(), TEQCIDB_VERSION, true );
+        wp_enqueue_script( 'teqcidb-admin', TEQCIDB_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-autocomplete', 'teqcidb-admin-jspdf' ), TEQCIDB_VERSION, true );
         wp_enqueue_media();
         wp_enqueue_editor();
 
@@ -857,6 +858,24 @@ class TEQCIDB_Admin {
             'studentFormsRefresherOnlineButton' => __( 'Generate Completion Certificate (refresher online)', 'teqcidb' ),
             'studentFormsWalletCardButton' => __( 'Generate Wallet Card', 'teqcidb' ),
             'studentFormsInstructorPlaceholder' => __( 'Enter Instructor Name', 'teqcidb' ),
+            'studentFormsWalletCardMissingPdfMessage' => __( 'Unable to generate the wallet card right now. Please try again.', 'teqcidb' ),
+            'walletCard' => array(
+                'ademLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-adem.jpg' ),
+                'thompsonLogoUrl' => esc_url( TEQCIDB_PLUGIN_URL . 'assets/images/te-square-logo.jpg' ),
+                'qualifiedLabel' => __( 'Qualified Credentialed Inspector', 'teqcidb' ),
+                'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
+                'expirationLabel' => __( 'Expiration Date', 'teqcidb' ),
+                'initialTrainingLabel' => __( 'Initial Training', 'teqcidb' ),
+                'mostRecentLabel' => __( 'Most Recent Annual Update', 'teqcidb' ),
+                'backTitle' => __( 'QCI Important Information', 'teqcidb' ),
+                'backBullets' => array(
+                    __( 'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
+                    __( 'QCIs must recertify if they change employers or if their training provider is no longer certified.', 'teqcidb' ),
+                    __( 'For more information about QCI training, including class dates and locations, call 251.666.2443 or visit training.thompsonengineering.com.', 'teqcidb' ),
+                ),
+                'emptyValue' => __( '—', 'teqcidb' ),
+                'downloadFileName' => __( 'qci-wallet-card.pdf', 'teqcidb' ),
+            ),
         ) );
     }
 

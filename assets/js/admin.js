@@ -1286,6 +1286,206 @@ jQuery(document).ready(function($){
             return $form;
         }
 
+
+        function formatWalletCardDate(value){
+            if (!value || typeof value !== 'string') {
+                return value || '';
+            }
+
+            var trimmed = value.trim();
+            var match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+            if (!match) {
+                return trimmed;
+            }
+
+            return match[2] + '/' + match[3] + '/' + match[1];
+        }
+
+        function buildStudentFormsWalletCardData(entity){
+            var firstName = getFieldValue(entity, 'first_name') || '';
+            var lastName = getFieldValue(entity, 'last_name') || '';
+            var city = getFieldValue(entity, 'student_address_city') || '';
+            var state = getFieldValue(entity, 'student_address_state') || '';
+            var postalCode = getFieldValue(entity, 'student_address_postal_code') || getFieldValue(entity, 'student_address_zip_code') || '';
+            var cityStatePostal = city;
+
+            if (state) {
+                cityStatePostal += (cityStatePostal ? ', ' : '') + state;
+            }
+
+            if (postalCode) {
+                cityStatePostal += (cityStatePostal ? ' ' : '') + postalCode;
+            }
+
+            return {
+                name: (firstName + ' ' + lastName).trim(),
+                company: getFieldValue(entity, 'company') || '',
+                qci_number: getFieldValue(entity, 'qcinumber') || '',
+                address_line_1: getFieldValue(entity, 'student_address_street_1') || '',
+                address_line_2: cityStatePostal,
+                phone: getFieldValue(entity, 'phone_cell') || getFieldValue(entity, 'phone_office') || '',
+                email: getFieldValue(entity, 'email') || '',
+                expiration_date: formatWalletCardDate(getFieldValue(entity, 'expiration_date') || ''),
+                initial_training_date: formatWalletCardDate(getFieldValue(entity, 'initial_training_date') || ''),
+                last_refresher_date: formatWalletCardDate(getFieldValue(entity, 'last_refresher_date') || ''),
+            };
+        }
+
+        function loadWalletCardImage(url){
+            if (!url) {
+                return Promise.resolve(null);
+            }
+
+            return fetch(url)
+                .then(function(response){ return response.blob(); })
+                .then(function(blob){
+                    return new Promise(function(resolve){
+                        var reader = new FileReader();
+                        reader.onload = function(){ resolve(reader.result); };
+                        reader.onerror = function(){ resolve(null); };
+                        reader.readAsDataURL(blob);
+                    });
+                })
+                .catch(function(){ return null; });
+        }
+
+        function getWalletCardValue(value){
+            var settings = teqcidbAdmin.walletCard || {};
+            var emptyValue = settings.emptyValue || '—';
+
+            if (!value || (typeof value === 'string' && !value.trim())) {
+                return emptyValue;
+            }
+
+            return value;
+        }
+
+        async function renderWalletCardPdf(data){
+            var jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+
+            if (!jsPDF) {
+                throw new Error('missing-js-pdf');
+            }
+
+            var settings = teqcidbAdmin.walletCard || {};
+            var logos = await Promise.all([
+                loadWalletCardImage(settings.ademLogoUrl),
+                loadWalletCardImage(settings.thompsonLogoUrl)
+            ]);
+            var ademLogo = logos[0];
+            var thompsonLogo = logos[1];
+
+            var doc = new jsPDF({ unit: 'in', format: 'letter' });
+            var pageWidth = 8.5;
+            var cardWidth = 3.375;
+            var cardHeight = 2.125;
+            var gap = 0.5;
+            var startX = (pageWidth - cardWidth) / 2;
+            var frontY = 1.0;
+            var backY = frontY + cardHeight + gap;
+
+            function drawCardBorder(y){
+                doc.setLineWidth(0.01);
+                doc.rect(startX, y, cardWidth, cardHeight);
+            }
+
+            function drawCenteredText(text, y, size, style){
+                doc.setFont('times', style || 'normal');
+                doc.setFontSize(size);
+                doc.text(text, startX + cardWidth / 2, y, { align: 'center' });
+            }
+
+            drawCardBorder(frontY);
+
+            if (ademLogo) {
+                doc.addImage(ademLogo, 'JPEG', startX + (cardWidth - 1.0) / 2, frontY + 0.18, 1.0, 0.33);
+            }
+
+            drawCenteredText(settings.qualifiedLabel || '', frontY + 0.8, 9);
+            drawCenteredText(getWalletCardValue(data.name), frontY + 0.98, 11, 'bold');
+            drawCenteredText(getWalletCardValue(data.company), frontY + 1.17, 9, 'bold');
+            drawCenteredText((settings.qciNumberLabel || 'QCI No.') + ' ' + getWalletCardValue(data.qci_number), frontY + 1.34, 9);
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(8);
+
+            var leftCenterX = startX + cardWidth * 0.25;
+            var rightCenterX = startX + cardWidth * 0.75;
+            var baseY = frontY + 1.53;
+            var lineHeight = 0.14;
+
+            [data.address_line_1, data.address_line_2, data.phone, data.email]
+                .map(function(line){ return line ? String(line).trim() : ''; })
+                .filter(function(line){ return line.length > 0; })
+                .forEach(function(line, index){
+                    doc.text(line, leftCenterX, baseY + index * lineHeight, { align: 'center' });
+                });
+
+            [
+                (settings.expirationLabel || 'Expiration Date') + ': ' + getWalletCardValue(data.expiration_date),
+                (settings.initialTrainingLabel || 'Initial Training') + ': ' + getWalletCardValue(data.initial_training_date),
+                (settings.mostRecentLabel || 'Most Recent Annual Update') + ':',
+                getWalletCardValue(data.last_refresher_date)
+            ].forEach(function(line, index){
+                doc.text(line, rightCenterX, baseY + index * lineHeight, { align: 'center' });
+            });
+
+            drawCardBorder(backY);
+            drawCenteredText(settings.backTitle || '', backY + 0.38, 9, 'bold');
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(7.5);
+
+            var bulletX = startX + cardWidth / 2;
+            var bulletY = backY + 0.6;
+            (Array.isArray(settings.backBullets) ? settings.backBullets : []).forEach(function(line){
+                var wrapped = doc.splitTextToSize('• ' + line, cardWidth - 0.45);
+                doc.text(wrapped, bulletX, bulletY, { align: 'center', maxWidth: cardWidth - 0.45 });
+                bulletY += 0.16 * wrapped.length + 0.06;
+            });
+
+            if (thompsonLogo) {
+                doc.addImage(thompsonLogo, 'JPEG', startX + cardWidth - 0.85, backY + cardHeight - 0.55, 0.45, 0.45);
+            }
+
+            return doc;
+        }
+
+        async function handleStudentFormsWalletCardAction(event){
+            var button = event.target.closest('.teqcidb-student-forms-wallet-card-button[data-teqcidb-wallet-card-action]');
+            if (!button) {
+                return;
+            }
+
+            var rawData = button.getAttribute('data-teqcidb-wallet-card') || '';
+            var data = null;
+
+            try {
+                data = JSON.parse(rawData);
+            } catch (error) {
+                data = null;
+            }
+
+            if (!data) {
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+
+            try {
+                var doc = await renderWalletCardPdf(data);
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } catch (error) {
+                window.alert(teqcidbAdmin.studentFormsWalletCardMissingPdfMessage || 'Unable to generate the wallet card right now. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+            }
+        }
+
         function buildStudentFormsCertificateSection(entity){
             if (!readOnlyMode){
                 return null;
@@ -1303,12 +1503,19 @@ jQuery(document).ready(function($){
                 text: teqcidbAdmin.studentFormsCertificatesTitle || 'Certificates & Wallet Cards'
             }));
 
-            function buildActionItem(buttonText, inputName){
+            function buildActionItem(buttonText, inputName, options){
+                options = options || {};
                 var $item = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__item' });
                 var $button = $('<button/>', {
                     type: 'button',
-                    'class': 'button button-secondary teqcidb-student-forms-certificates__button'
+                    'class': 'button button-secondary teqcidb-student-forms-certificates__button' + (options.buttonClass ? ' ' + options.buttonClass : '')
                 });
+
+                if (options.buttonData){
+                    Object.keys(options.buttonData).forEach(function(key){
+                        $button.attr('data-' + key, options.buttonData[key]);
+                    });
+                }
 
                 $button.append($('<span/>', {
                     'class': 'dashicons dashicons-plus-alt2 teqcidb-student-forms-certificates__icon',
@@ -1341,6 +1548,8 @@ jQuery(document).ready(function($){
                 buildActionItem(teqcidbAdmin.studentFormsRefresherInPersonButton, 'student_forms_refresher_in_person_instructor')
             );
 
+            var walletCardData = buildStudentFormsWalletCardData(entity);
+
             var $rowTwo = $('<div/>', { 'class': 'teqcidb-student-forms-certificates__row teqcidb-student-forms-certificates__row--three' });
             $rowTwo.append(
                 buildActionItem(teqcidbAdmin.studentFormsInitialOnlineButton)
@@ -1349,7 +1558,13 @@ jQuery(document).ready(function($){
                 buildActionItem(teqcidbAdmin.studentFormsRefresherOnlineButton)
             );
             $rowTwo.append(
-                buildActionItem(teqcidbAdmin.studentFormsWalletCardButton)
+                buildActionItem(teqcidbAdmin.studentFormsWalletCardButton, null, {
+                    buttonClass: 'teqcidb-student-forms-wallet-card-button',
+                    buttonData: {
+                        'teqcidb-wallet-card-action': 'print',
+                        'teqcidb-wallet-card': JSON.stringify(walletCardData || {})
+                    }
+                })
             );
 
             $section.append($rowOne).append($rowTwo);
@@ -3410,6 +3625,11 @@ jQuery(document).ready(function($){
     $(document).on('click', '.teqcidb-reset-failed-quiz-attempt', function(e){
         e.preventDefault();
         handleResetFailedQuizAttempt($(this));
+    });
+
+    $(document).on('click', '.teqcidb-student-forms-wallet-card-button', function(e){
+        e.preventDefault();
+        handleStudentFormsWalletCardAction(e);
     });
 
     function buildStudentDisplay(student){
