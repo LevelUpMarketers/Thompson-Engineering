@@ -1294,6 +1294,8 @@
     border-color: initial !important;
     padding-top: 15px !important;
     white-space: normal !important;
+    min-width: 220px;
+    height: 95px;
 }
 
 .teqcidb-student-forms-certificates__icon {
