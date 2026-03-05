@@ -274,3 +274,32 @@
 .teqcidb-class-quiz__notice.is-fading-out {
     opacity: 0;
 }
+
+.teqcidb-class-slides__image-wrap {
+    border: 1px solid #e1e1e1;
+    border-radius: 10px;
+    background: #fafafa;
+    padding: 12px;
+}
+
+.teqcidb-class-slides__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+.teqcidb-class-slides__actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 12px;
+}
+
+.teqcidb-class-slides__actions .teqcidb-button {
+    min-width: 140px;
+}
+
+.teqcidb-class-slides__actions .teqcidb-button[disabled] {
+    cursor: not-allowed;
+    opacity: 0.45;
+}

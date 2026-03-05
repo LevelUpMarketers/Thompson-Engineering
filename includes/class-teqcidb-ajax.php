@@ -343,8 +343,12 @@ class TEQCIDB_Ajax {
         echo '<h2 class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
         if ( ! empty( $quiz_runtime ) ) {
+            $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
+
             if ( 'initial' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is considered passing. Anything below a 75% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Exam attempt. Good luck!', 'teqcidb' );
+            } elseif ( $has_refresher_slides ) {
+                $quiz_intro = __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Quiz attempt. Good luck!', 'teqcidb' );
             } else {
@@ -476,6 +480,7 @@ class TEQCIDB_Ajax {
         $quizzes_table   = $wpdb->prefix . 'teqcidb_quizzes';
         $classes_table   = $wpdb->prefix . 'teqcidb_classes';
         $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
+        $slides_table    = $wpdb->prefix . 'teqcidb_quiz_slides';
         $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
         $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
         $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
@@ -508,6 +513,40 @@ class TEQCIDB_Ajax {
             ),
             ARRAY_A
         );
+
+        $slide_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, attachment_id, slide_order FROM $slides_table WHERE quiz_id = %d AND is_active = 1 ORDER BY slide_order ASC, id ASC",
+                $quiz_id
+            ),
+            ARRAY_A
+        );
+
+        $slides = array();
+
+        if ( is_array( $slide_rows ) && ! empty( $slide_rows ) ) {
+            foreach ( $slide_rows as $slide_row ) {
+                $attachment_id = isset( $slide_row['attachment_id'] ) ? absint( $slide_row['attachment_id'] ) : 0;
+
+                if ( $attachment_id <= 0 ) {
+                    continue;
+                }
+
+                $slide_url = wp_get_attachment_image_url( $attachment_id, 'full' );
+
+                if ( ! is_string( $slide_url ) || '' === $slide_url ) {
+                    continue;
+                }
+
+                $slides[] = array(
+                    'id'         => isset( $slide_row['id'] ) ? absint( $slide_row['id'] ) : 0,
+                    'order'      => isset( $slide_row['slide_order'] ) ? absint( $slide_row['slide_order'] ) : 0,
+                    'url'        => esc_url_raw( $slide_url ),
+                    'alt'        => trim( wp_strip_all_tags( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) ),
+                    'attachmentId' => $attachment_id,
+                );
+            }
+        }
 
         if ( ! is_array( $question_rows ) || empty( $question_rows ) ) {
             return array();
@@ -626,6 +665,11 @@ class TEQCIDB_Ajax {
                 'correctAnswer'            => __( 'Correct answer:', 'teqcidb' ),
                 'noAnswer'                 => __( 'No answer', 'teqcidb' ),
                 'optionLabel'              => __( 'Option %s', 'teqcidb' ),
+                'slideOf'                  => __( 'Slide %1$s of %2$s', 'teqcidb' ),
+                'slidesCompletedRemaining' => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
+                'nextSlide'                => __( 'Next Slide', 'teqcidb' ),
+                'previousSlide'            => __( 'Previous Slide', 'teqcidb' ),
+                'startQuiz'                => __( 'Start Quiz', 'teqcidb' ),
             ),
             'quiz'    => array(
                 'id'             => $quiz_id,
@@ -644,6 +688,7 @@ class TEQCIDB_Ajax {
                 'answers'      => $saved_answers,
             ),
             'questions' => $questions,
+            'slides'    => $slides,
         );
     }
 

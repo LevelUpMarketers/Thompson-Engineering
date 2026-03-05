@@ -22,6 +22,7 @@
 
     var i18n = runtime.i18n || {};
     var questions = runtime.questions;
+    var slides = Array.isArray(runtime.slides) ? runtime.slides : [];
     var totalQuestions = questions.length;
     var answers = Object.assign({}, (runtime.attempt && runtime.attempt.answers) || {});
     var currentIndex = Math.max(0, parseInt((runtime.attempt && runtime.attempt.currentIndex) || 0, 10) || 0);
@@ -38,6 +39,10 @@
     var autosaveIntervalMs = 8000;
     var isDirty = false;
     var lastSavedHash = '';
+    var slideIndex = 0;
+    var slideViewedMap = {};
+    var hasUnlockedQuiz = false;
+    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0;
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -76,6 +81,27 @@
             }
         });
         return count;
+    }
+
+    function viewedSlidesCount(){
+        return Object.keys(slideViewedMap).length;
+    }
+
+    function slidesProgressPercent(){
+        if (!slides.length) {
+            return 0;
+        }
+
+        return Math.round((viewedSlidesCount() / slides.length) * 100);
+    }
+
+    function slidesStatusLine(){
+        var viewed = viewedSlidesCount();
+        return format(t('slidesCompletedRemaining', '%1$s completed / %2$s remaining'), String(viewed), String(Math.max(0, slides.length - viewed)));
+    }
+
+    function slidePositionLabel(){
+        return format(t('slideOf', 'Slide %1$s of %2$s'), String(slideIndex + 1), String(slides.length));
     }
 
     function getQuestionByIndex(index){
@@ -163,6 +189,72 @@
                 '<span>' + esc(choice.label || (t('optionLabel', 'Option %s').replace('%s', String(idx + 1)))) + '</span>' +
             '</label>';
         }).join('');
+    }
+
+    function markCurrentSlideAsViewed(){
+        if (!slides[slideIndex]) {
+            return;
+        }
+
+        slideViewedMap[String(slides[slideIndex].id || slideIndex)] = true;
+        if (!hasUnlockedQuiz && viewedSlidesCount() >= slides.length) {
+            hasUnlockedQuiz = true;
+        }
+    }
+
+    function renderSlides(){
+        var currentSlide = slides[slideIndex] || {};
+        var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
+        var isFirst = slideIndex <= 0;
+        var isLast = slideIndex >= (slides.length - 1);
+        var percent = slidesProgressPercent();
+
+        root.innerHTML = '<div class="teqcidb-class-slides">' +
+            '<div class="teqcidb-class-quiz__meta">' +
+                '<strong>' + esc(slidePositionLabel()) + '</strong>' +
+                '<span>' + esc(slidesStatusLine()) + '</span>' +
+            '</div>' +
+            '<div class="teqcidb-class-quiz__progress"><span style="width:' + percent + '%"></span></div>' +
+            '<div class="teqcidb-class-slides__image-wrap">' +
+                '<img class="teqcidb-class-slides__image" src="' + esc(currentSlide.url || '') + '" alt="' + esc(currentSlideAlt) + '" loading="lazy" decoding="async" />' +
+            '</div>' +
+            '<div class="teqcidb-class-slides__actions">' +
+                '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
+                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next">' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+            '</div>' +
+        '</div>';
+
+        bindSlideEvents();
+    }
+
+    function bindSlideEvents(){
+        var prevBtn = root.querySelector('#teqcidb-slide-prev');
+        var nextBtn = root.querySelector('#teqcidb-slide-next');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(){
+                if (slideIndex <= 0) {
+                    return;
+                }
+                slideIndex -= 1;
+                markCurrentSlideAsViewed();
+                renderSlides();
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(){
+                if (slideIndex >= (slides.length - 1)) {
+                    if (hasUnlockedQuiz) {
+                        render();
+                    }
+                    return;
+                }
+                slideIndex += 1;
+                markCurrentSlideAsViewed();
+                renderSlides();
+            });
+        }
     }
 
     function render(resultData){
@@ -538,6 +630,12 @@
     }
 
     lastSavedHash = getProgressPayloadHash();
+
+    if (requiresSlidesFirst) {
+        markCurrentSlideAsViewed();
+        renderSlides();
+        return;
+    }
 
     render();
 })();
