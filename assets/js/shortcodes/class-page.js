@@ -43,6 +43,9 @@
     var slideViewedMap = {};
     var hasUnlockedQuiz = false;
     var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0;
+    var slideAdvanceCooldownMs = 15000;
+    var nextSlideUnlockedAt = 0;
+    var slideCooldownTimer = null;
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -202,11 +205,35 @@
         }
     }
 
+    function clearSlideCooldownTimer(){
+        if (slideCooldownTimer) {
+            clearTimeout(slideCooldownTimer);
+            slideCooldownTimer = null;
+        }
+    }
+
+    function clearNextSlideCooldown(){
+        nextSlideUnlockedAt = 0;
+        clearSlideCooldownTimer();
+    }
+
+    function setNextSlideCooldown(){
+        clearSlideCooldownTimer();
+        nextSlideUnlockedAt = Date.now() + slideAdvanceCooldownMs;
+        slideCooldownTimer = setTimeout(function(){
+            slideCooldownTimer = null;
+            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
+                renderSlides();
+            }
+        }, slideAdvanceCooldownMs);
+    }
+
     function renderSlides(){
         var currentSlide = slides[slideIndex] || {};
         var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
         var isFirst = slideIndex <= 0;
         var isLast = slideIndex >= (slides.length - 1);
+        var isNextDisabled = Date.now() < nextSlideUnlockedAt;
         var percent = slidesProgressPercent();
 
         root.innerHTML = '<div class="teqcidb-class-slides">' +
@@ -220,7 +247,7 @@
             '</div>' +
             '<div class="teqcidb-class-slides__actions">' +
                 '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
-                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next">' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
             '</div>' +
         '</div>';
 
@@ -236,6 +263,8 @@
                 if (slideIndex <= 0) {
                     return;
                 }
+
+                clearNextSlideCooldown();
                 slideIndex -= 1;
                 markCurrentSlideAsViewed();
                 renderSlides();
@@ -244,12 +273,18 @@
 
         if (nextBtn) {
             nextBtn.addEventListener('click', function(){
+                if (nextBtn.disabled) {
+                    return;
+                }
+
                 if (slideIndex >= (slides.length - 1)) {
                     if (hasUnlockedQuiz) {
                         render();
                     }
                     return;
                 }
+
+                setNextSlideCooldown();
                 slideIndex += 1;
                 markCurrentSlideAsViewed();
                 renderSlides();
