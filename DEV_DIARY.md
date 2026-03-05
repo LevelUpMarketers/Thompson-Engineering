@@ -329,3 +329,4 @@
 323. 2026-03-01: Simplified representative Step 2 class-option labels in Register Students & Pay Online to show class name only (removed appended class date from the radio option display text).
 324. 2026-03-01: Added the full registration payment-policy note block to representative Register Students & Pay Online Step 3 so the same cancellation/payment/contact/mailing guidance shown in single-student registration appears directly above the Register & Pay Online button.
 325. 2026-03-01: Removed the payment-policy background fill for the representative Register Students & Pay Online Step 3 note via a scoped student-dashboard selector, while keeping the original policy background styling for the standalone student registration shortcode flow.
+326. 2026-03-05: Added activation-time dbDelta creation for the new teqcidb_quiz_slides table (quiz/attachment mapping with ordering and active-state indexes).
