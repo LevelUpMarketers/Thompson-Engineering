@@ -234,6 +234,7 @@
         var isFirst = slideIndex <= 0;
         var isLast = slideIndex >= (slides.length - 1);
         var isNextDisabled = Date.now() < nextSlideUnlockedAt;
+        var nextTooltip = isNextDisabled ? t('slideWaitTooltip', 'Please study the slide and wait to proceed.') : '';
         var percent = slidesProgressPercent();
 
         root.innerHTML = '<div class="teqcidb-class-slides">' +
@@ -247,7 +248,9 @@
             '</div>' +
             '<div class="teqcidb-class-slides__actions">' +
                 '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
-                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+                '<span class="teqcidb-class-slides__next-wrap ' + (isNextDisabled ? 'is-disabled' : '') + '" data-tooltip="' + esc(nextTooltip) + '">' +
+                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+                '</span>' +
             '</div>' +
         '</div>';
 

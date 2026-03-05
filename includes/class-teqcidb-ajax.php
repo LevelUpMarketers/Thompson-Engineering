@@ -670,6 +670,7 @@ class TEQCIDB_Ajax {
                 'nextSlide'                => __( 'Next Slide', 'teqcidb' ),
                 'previousSlide'            => __( 'Previous Slide', 'teqcidb' ),
                 'startQuiz'                => __( 'Start Quiz', 'teqcidb' ),
+                'slideWaitTooltip'        => __( 'Please study the slide and wait to proceed.', 'teqcidb' ),
             ),
             'quiz'    => array(
                 'id'             => $quiz_id,
