@@ -536,7 +536,7 @@ class TEQCIDB_Ajax {
             return array();
         }
 
-        $attempt_row = $wpdb->get_row(
+        $slides                    = $this->get_active_quiz_slides( $quiz_id );
             $wpdb->prepare(
                 "SELECT id, status, score, current_index, submitted_at, updated_at FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
                 $quiz_id,
@@ -631,7 +631,7 @@ class TEQCIDB_Ajax {
                 'id'             => $quiz_id,
                 'name'           => isset( $quiz_row['name'] ) ? sanitize_text_field( (string) $quiz_row['name'] ) : '',
                 'classId'        => $class_id,
-                'classType'      => sanitize_key( $class_type ),
+    private function get_active_quiz_slides( $quiz_id ) {
                 'passThreshold'  => $pass_threshold,
                 'totalQuestions' => count( $questions ),
             ),

@@ -1348,10 +1348,19 @@ class TEQCIDB_Admin {
             return;
         }
 
+        $slides_imported = isset( $_GET['teqcidb_slides_imported'] ) ? absint( wp_unslash( $_GET['teqcidb_slides_imported'] ) ) : 0;
+
+        $created_message = __( 'Quiz saved successfully.', 'teqcidb' );
+
+        if ( $slides_imported > 0 ) {
+            /* translators: %d: Number of quiz slides imported from ZIP upload. */
+            $created_message = sprintf( __( 'Quiz saved. %d slides imported.', 'teqcidb' ), $slides_imported );
+        }
+
         $messages = array(
             'created' => array(
                 'class' => 'notice notice-success is-dismissible teqcidb-top-message',
-                'text'  => __( 'Quiz saved successfully.', 'teqcidb' ),
+                'text'  => $created_message,
             ),
             'missing_name' => array(
                 'class' => 'notice notice-error is-dismissible teqcidb-top-message',
@@ -1360,6 +1369,10 @@ class TEQCIDB_Admin {
             'save_failed' => array(
                 'class' => 'notice notice-error is-dismissible teqcidb-top-message',
                 'text'  => __( 'Unable to save this quiz right now. Please try again.', 'teqcidb' ),
+            ),
+            'zip_failed' => array(
+                'class' => 'notice notice-error is-dismissible teqcidb-top-message',
+                'text'  => __( 'Quiz was saved, but the slides ZIP could not be imported. Please verify the ZIP file and try again.', 'teqcidb' ),
             ),
             'updated' => array(
                 'class' => 'notice notice-success is-dismissible teqcidb-top-message',
@@ -2752,7 +2765,7 @@ class TEQCIDB_Admin {
 
     private function render_quiz_create_tab() {
         $fields = $this->get_quiz_fields();
-        echo '<form id="teqcidb-quiz-create-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<form id="teqcidb-quiz-create-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" enctype="multipart/form-data">';
         echo '<input type="hidden" name="action" value="teqcidb_save_quiz" />';
         wp_nonce_field( 'teqcidb_save_quiz', 'teqcidb_save_quiz_nonce' );
         echo '<div class="teqcidb-flex-form">';
@@ -2789,6 +2802,13 @@ class TEQCIDB_Admin {
 
             echo '</div>';
         }
+
+
+        echo '<div class="teqcidb-field">';
+        echo '<label>' . esc_html__( 'Quiz Slides ZIP (optional)', 'teqcidb' ) . '</label>';
+        echo '<input type="file" name="quiz_slides_zip" accept=".zip,application/zip" />';
+        echo '<p class="description">' . esc_html__( 'Upload a ZIP of slide images. Images are imported and ordered by filename for refresher slides.', 'teqcidb' ) . '</p>';
+        echo '</div>';
 
         echo '</div>';
         echo '<p class="submit">';
@@ -2832,11 +2852,11 @@ class TEQCIDB_Admin {
         $inserted = $wpdb->insert(
             $table,
             array(
-                'class_id'     => '',
-                'public_token' => $public_token,
-                'name'         => $name,
-                'status'       => 2,
-                'settings_json'=> '',
+                'class_id'      => '',
+                'public_token'  => $public_token,
+                'name'          => $name,
+                'status'        => 2,
+                'settings_json' => '',
             ),
             array( '%s', '%s', '%s', '%d', '%s' )
         );
@@ -2846,9 +2866,234 @@ class TEQCIDB_Admin {
             exit;
         }
 
+        $quiz_id = absint( $wpdb->insert_id );
 
-        wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'created', $redirect ) );
+        if ( $quiz_id <= 0 ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'save_failed', $redirect ) );
+            exit;
+        }
+
+        $slides_import_result = $this->maybe_import_quiz_slides_zip( $quiz_id );
+
+        if ( ! empty( $slides_import_result['error'] ) ) {
+            wp_safe_redirect( add_query_arg( 'teqcidb_quiz_message', 'zip_failed', $redirect ) );
+            exit;
+        }
+
+        $created_redirect_args = array(
+            'teqcidb_quiz_message' => 'created',
+        );
+
+        if ( ! empty( $slides_import_result['imported'] ) ) {
+            $created_redirect_args['teqcidb_slides_imported'] = absint( $slides_import_result['imported'] );
+        }
+
+        wp_safe_redirect( add_query_arg( $created_redirect_args, $redirect ) );
         exit;
+    }
+
+    private function maybe_import_quiz_slides_zip( $quiz_id ) {
+        $result = array(
+            'imported' => 0,
+            'error'    => '',
+        );
+
+        if ( empty( $_FILES['quiz_slides_zip'] ) || ! is_array( $_FILES['quiz_slides_zip'] ) ) {
+            return $result;
+        }
+
+        $zip_file = $_FILES['quiz_slides_zip'];
+
+        if ( ! isset( $zip_file['error'] ) || UPLOAD_ERR_NO_FILE === (int) $zip_file['error'] ) {
+            return $result;
+        }
+
+        if ( UPLOAD_ERR_OK !== (int) $zip_file['error'] ) {
+            $result['error'] = 'upload_error';
+            return $result;
+        }
+
+        if ( ! class_exists( 'ZipArchive' ) ) {
+            $result['error'] = 'zip_extension_missing';
+            return $result;
+        }
+
+        $tmp_name = isset( $zip_file['tmp_name'] ) ? (string) $zip_file['tmp_name'] : '';
+
+        if ( '' === $tmp_name || ! file_exists( $tmp_name ) ) {
+            $result['error'] = 'missing_upload';
+            return $result;
+        }
+
+        $zip = new ZipArchive();
+        $open_result = $zip->open( $tmp_name );
+
+        if ( true !== $open_result ) {
+            $result['error'] = 'open_failed';
+            return $result;
+        }
+
+        $allowed_extensions = array( 'jpg', 'jpeg', 'png', 'webp', 'gif' );
+        $image_entries      = array();
+
+        for ( $index = 0; $index < $zip->numFiles; $index++ ) {
+            $stat = $zip->statIndex( $index );
+
+            if ( ! is_array( $stat ) || empty( $stat['name'] ) ) {
+                continue;
+            }
+
+            $entry_name = (string) $stat['name'];
+
+            if ( '/' === substr( $entry_name, -1 ) ) {
+                continue;
+            }
+
+            $entry_extension = strtolower( pathinfo( $entry_name, PATHINFO_EXTENSION ) );
+
+            if ( ! in_array( $entry_extension, $allowed_extensions, true ) ) {
+                continue;
+            }
+
+            $image_entries[] = array(
+                'index'     => $index,
+                'name'      => $entry_name,
+                'basename'  => wp_basename( $entry_name ),
+                'extension' => $entry_extension,
+            );
+        }
+
+        if ( empty( $image_entries ) ) {
+            $zip->close();
+            return $result;
+        }
+
+        usort(
+            $image_entries,
+            static function ( $left, $right ) {
+                return strnatcasecmp( (string) $left['basename'], (string) $right['basename'] );
+            }
+        );
+
+        $uploads = wp_upload_dir();
+
+        if ( empty( $uploads['basedir'] ) || ! empty( $uploads['error'] ) ) {
+            $zip->close();
+            $result['error'] = 'uploads_unavailable';
+            return $result;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+
+        global $wpdb;
+        $slides_table = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $temp_files   = array();
+
+        foreach ( $image_entries as $position => $entry ) {
+            $slide_order = $position + 1;
+            $stream      = $zip->getStream( $entry['name'] );
+
+            if ( ! is_resource( $stream ) ) {
+                continue;
+            }
+
+            $temp_file = wp_tempnam( $entry['basename'] );
+
+            if ( ! $temp_file ) {
+                fclose( $stream );
+                continue;
+            }
+
+            $temp_files[] = $temp_file;
+            $temp_handle  = fopen( $temp_file, 'wb' );
+
+            if ( false === $temp_handle ) {
+                fclose( $stream );
+                continue;
+            }
+
+            while ( ! feof( $stream ) ) {
+                $buffer = fread( $stream, 8192 );
+
+                if ( false === $buffer ) {
+                    break;
+                }
+
+                fwrite( $temp_handle, $buffer );
+            }
+
+            fclose( $temp_handle );
+            fclose( $stream );
+
+            if ( ! file_exists( $temp_file ) || 0 >= filesize( $temp_file ) ) {
+                continue;
+            }
+
+            $target_filename = sprintf( 'quiz-%d-slide-%03d.%s', absint( $quiz_id ), $slide_order, $entry['extension'] );
+            $target_filename = wp_unique_filename( $uploads['basedir'], $target_filename );
+            $target_path     = trailingslashit( $uploads['basedir'] ) . $target_filename;
+
+            if ( ! @rename( $temp_file, $target_path ) ) {
+                if ( ! @copy( $temp_file, $target_path ) ) {
+                    continue;
+                }
+            }
+
+            @unlink( $temp_file );
+
+            $filetype = wp_check_filetype( $target_filename, null );
+
+            $attachment_id = wp_insert_attachment(
+                array(
+                    'post_mime_type' => isset( $filetype['type'] ) ? $filetype['type'] : '',
+                    'post_title'     => sanitize_file_name( pathinfo( $target_filename, PATHINFO_FILENAME ) ),
+                    'post_content'   => '',
+                    'post_status'    => 'inherit',
+                ),
+                $target_path
+            );
+
+            if ( is_wp_error( $attachment_id ) || $attachment_id <= 0 ) {
+                @unlink( $target_path );
+                continue;
+            }
+
+            $attachment_metadata = wp_generate_attachment_metadata( $attachment_id, $target_path );
+
+            if ( ! is_wp_error( $attachment_metadata ) ) {
+                wp_update_attachment_metadata( $attachment_id, $attachment_metadata );
+            }
+
+            $slide_inserted = $wpdb->insert(
+                $slides_table,
+                array(
+                    'quiz_id'       => absint( $quiz_id ),
+                    'attachment_id' => absint( $attachment_id ),
+                    'slide_order'   => absint( $slide_order ),
+                    'is_active'     => 1,
+                ),
+                array( '%d', '%d', '%d', '%d' )
+            );
+
+            if ( false === $slide_inserted ) {
+                wp_delete_attachment( $attachment_id, true );
+                continue;
+            }
+
+            $result['imported']++;
+        }
+
+        $zip->close();
+
+        foreach ( $temp_files as $temp_file ) {
+            if ( is_string( $temp_file ) && '' !== $temp_file && file_exists( $temp_file ) ) {
+                @unlink( $temp_file );
+            }
+        }
+
+        return $result;
     }
 
     private function render_quiz_edit_tab() {

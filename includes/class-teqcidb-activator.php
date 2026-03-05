@@ -25,6 +25,7 @@ class TEQCIDB_Activator {
         $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
         $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
         $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
+        $quiz_slides_table  = $wpdb->prefix . 'teqcidb_quiz_slides';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -225,6 +226,19 @@ class TEQCIDB_Activator {
             KEY question_id (question_id)
         ) $charset_collate;";
 
+        $sql_quiz_slides = "CREATE TABLE $quiz_slides_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            quiz_id bigint(20) unsigned NOT NULL,
+            attachment_id bigint(20) unsigned NOT NULL,
+            slide_order int(11) unsigned NOT NULL DEFAULT 0,
+            is_active tinyint(1) NOT NULL DEFAULT 1,
+            created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY quiz_id (quiz_id),
+            KEY quiz_order (quiz_id, slide_order)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
@@ -237,6 +251,7 @@ class TEQCIDB_Activator {
         dbDelta( $sql_quiz_attempts );
         dbDelta( $sql_quiz_answers );
         dbDelta( $sql_quiz_answer_items );
+        dbDelta( $sql_quiz_slides );
 
         $legacy_quiz_rows = $wpdb->get_results( "SELECT id, class_id FROM $quizzes_table", ARRAY_A );
 
