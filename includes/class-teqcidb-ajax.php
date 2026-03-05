@@ -22,6 +22,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_create_quiz_question', array( $this, 'create_quiz_question' ) );
+        add_action( 'wp_ajax_teqcidb_reset_failed_quiz_attempt', array( $this, 'reset_failed_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_progress', array( $this, 'save_quiz_progress' ) );
         add_action( 'wp_ajax_teqcidb_submit_quiz_attempt', array( $this, 'submit_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
@@ -2942,6 +2943,12 @@ class TEQCIDB_Ajax {
             $class_url = $this->generate_class_page_relative_url( $this->get_class_page_route_segment( $unique_class_id ) );
         }
 
+        $quiz_id = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+
+        if ( $quiz_id > 0 && ! $this->quiz_exists( $quiz_id ) ) {
+            $quiz_id = 0;
+        }
+
         $data = array(
             'uniqueclassid'           => $unique_class_id,
             'classname'               => $class_name,
@@ -3000,12 +3007,128 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $saved_class_id = $id > 0 ? $id : (int) $wpdb->insert_id;
+
+        if ( $saved_class_id > 0 ) {
+            $this->sync_class_quiz_mapping( $saved_class_id, $quiz_id );
+        }
+
         $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => $message,
             )
         );
+    }
+
+    private function quiz_exists( $quiz_id ) {
+        global $wpdb;
+
+        $quiz_id = absint( $quiz_id );
+
+        if ( $quiz_id <= 0 ) {
+            return false;
+        }
+
+        $table = $wpdb->prefix . 'teqcidb_quizzes';
+
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $table WHERE id = %d LIMIT 1",
+                $quiz_id
+            )
+        );
+    }
+
+    private function sync_class_quiz_mapping( $class_id, $quiz_id ) {
+        global $wpdb;
+
+        $class_id           = absint( $class_id );
+        $quiz_id            = absint( $quiz_id );
+        $quiz_table         = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+
+        if ( $class_id <= 0 ) {
+            return;
+        }
+
+        $existing_quiz_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT quiz_id FROM $quiz_classes_table WHERE class_id = %d",
+                $class_id
+            )
+        );
+
+        $wpdb->delete( $quiz_classes_table, array( 'class_id' => $class_id ), array( '%d' ) );
+
+        if ( $quiz_id > 0 ) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT IGNORE INTO $quiz_classes_table (quiz_id, class_id) VALUES (%d, %d)",
+                    $quiz_id,
+                    $class_id
+                )
+            );
+
+            $existing_quiz_ids[] = $quiz_id;
+        }
+
+        $existing_quiz_ids = array_values( array_unique( array_map( 'absint', $existing_quiz_ids ) ) );
+
+        foreach ( $existing_quiz_ids as $existing_quiz_id ) {
+            if ( $existing_quiz_id <= 0 ) {
+                continue;
+            }
+
+            $class_ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT class_id FROM $quiz_classes_table WHERE quiz_id = %d ORDER BY class_id ASC",
+                    $existing_quiz_id
+                )
+            );
+
+            $class_ids = array_values( array_filter( array_map( 'absint', $class_ids ) ) );
+            $class_csv = implode( ',', $class_ids );
+
+            $wpdb->update(
+                $quiz_table,
+                array( 'class_id' => $class_csv ),
+                array( 'id' => $existing_quiz_id ),
+                array( '%s' ),
+                array( '%d' )
+            );
+        }
+    }
+
+    private function get_class_quiz_map( array $class_ids ) {
+        global $wpdb;
+
+        $class_ids = array_values( array_filter( array_map( 'absint', $class_ids ) ) );
+
+        if ( empty( $class_ids ) ) {
+            return array();
+        }
+
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+        $placeholders       = implode( ',', array_fill( 0, count( $class_ids ), '%d' ) );
+        $query              = "SELECT class_id, quiz_id FROM $quiz_classes_table WHERE class_id IN ($placeholders) ORDER BY quiz_id DESC";
+        $rows               = $wpdb->get_results( $wpdb->prepare( $query, $class_ids ), ARRAY_A );
+        $map                = array();
+
+        if ( is_array( $rows ) ) {
+            foreach ( $rows as $row ) {
+                $class_id = isset( $row['class_id'] ) ? absint( $row['class_id'] ) : 0;
+                $quiz_id  = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+
+                if ( $class_id <= 0 || $quiz_id <= 0 || isset( $map[ $class_id ] ) ) {
+                    continue;
+                }
+
+                $map[ $class_id ] = $quiz_id;
+            }
+        }
+
+        return $map;
     }
 
     public function save_quiz_question() {
@@ -3190,6 +3313,106 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => __( 'Question saved.', 'teqcidb' ),
+            )
+        );
+    }
+
+    public function reset_failed_quiz_attempt() {
+        $start = microtime( true );
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to reset this quiz attempt.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id  = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $class_id = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
+        $user_id  = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid quiz attempt selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $classes_table      = $wpdb->prefix . 'teqcidb_classes';
+        $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
+        $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
+
+        $class_type = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            )
+        );
+
+        if ( 'refresher' !== sanitize_key( (string) $class_type ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Only refresher quiz attempts can be reset.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $attempt_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d",
+                $quiz_id,
+                $class_id,
+                $user_id
+            )
+        );
+
+        $attempt_ids = array_values( array_filter( array_map( 'absint', is_array( $attempt_ids ) ? $attempt_ids : array() ) ) );
+
+        if ( empty( $attempt_ids ) ) {
+            $this->maybe_delay( $start );
+            wp_send_json_error(
+                array(
+                    'message' => __( 'No matching quiz attempts were found to reset.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $attempt_ids ), '%d' ) );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $answer_items_table WHERE attempt_id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $answers_table WHERE attempt_id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM $attempts_table WHERE id IN ($placeholders)",
+                $attempt_ids
+            )
+        );
+
+        $this->maybe_delay( $start );
+        wp_send_json_success(
+            array(
+                'message' => __( 'Quiz attempt reset. The student can now retake this quiz.', 'teqcidb' ),
             )
         );
     }
@@ -4353,7 +4576,8 @@ class TEQCIDB_Ajax {
             $offset = 0;
         }
 
-        $entities = array();
+        $entities        = array();
+        $class_quiz_map = array();
 
         if ( $total > 0 ) {
             $select_query = "SELECT * FROM $table";
@@ -4377,7 +4601,11 @@ class TEQCIDB_Ajax {
             );
 
             if ( is_array( $entities ) ) {
+                $class_quiz_map = $this->get_class_quiz_map( wp_list_pluck( $entities, 'id' ) );
+
                 foreach ( $entities as &$entity ) {
+                    $class_id = isset( $entity['id'] ) ? absint( $entity['id'] ) : 0;
+                    $entity['quiz_id'] = isset( $class_quiz_map[ $class_id ] ) ? (string) $class_quiz_map[ $class_id ] : '';
                     if ( ! is_array( $entity ) ) {
                         $entity = array();
                         continue;
