@@ -46,6 +46,9 @@
     var slideAdvanceCooldownMs = 15000;
     var nextSlideUnlockedAt = 0;
     var slideCooldownTimer = null;
+    var slideProgressState = { isSaving: false, hasPending: false };
+    var slideProgressDirty = false;
+    var slideLastSavedHash = '';
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -137,6 +140,49 @@
     function markDirty(){
         isDirty = true;
     }
+
+    function buildSlideProgressPayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            current_slide_index: Math.max(0, slideIndex),
+            max_slide_index_viewed: Math.max(0, getMaxViewedSlideIndex()),
+            slides_total: slides.length,
+            completed: hasUnlockedQuiz
+        };
+    }
+
+    function getSlideProgressPayloadHash(){
+        return JSON.stringify(buildSlideProgressPayload());
+    }
+
+    function getMaxViewedSlideIndex(){
+        var maxIndex = 0;
+
+        Object.keys(slideViewedMap).forEach(function(key){
+            if (!slideViewedMap[key]) {
+                return;
+            }
+
+            var numericId = parseInt(key, 10);
+            if (!isNaN(numericId)) {
+                for (var i = 0; i < slides.length; i += 1) {
+                    var rowId = parseInt(slides[i].id || i, 10);
+                    if (rowId === numericId) {
+                        maxIndex = Math.max(maxIndex, i);
+                        return;
+                    }
+                }
+            }
+        });
+
+        return Math.min(maxIndex, Math.max(0, slides.length - 1));
+    }
+
+    function markSlideProgressDirty(){
+        slideProgressDirty = true;
+    }
+
 
     function recordMetric(eventName, extra){
         if (window && typeof window.teqcidbQuizMetricHook === 'function') {
@@ -270,6 +316,8 @@
                 clearNextSlideCooldown();
                 slideIndex -= 1;
                 markCurrentSlideAsViewed();
+                markSlideProgressDirty();
+                saveSlideProgress({ reason: 'slide_previous' });
                 renderSlides();
             });
         }
@@ -290,9 +338,71 @@
                 setNextSlideCooldown();
                 slideIndex += 1;
                 markCurrentSlideAsViewed();
+                markSlideProgressDirty();
+                saveSlideProgress({ reason: 'slide_next' });
                 renderSlides();
             });
         }
+    }
+
+
+    function requestSlideProgressEndpoint(progressPayload){
+        if (!runtime.restUrl) {
+            return Promise.reject(new Error(i18n.slideProgressSaveError || 'Slide save failed.'));
+        }
+
+        return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': runtime.restNonce || ''
+            },
+            body: JSON.stringify(progressPayload)
+        }).then(function(resp){
+            return resp.json().then(function(payload){
+                if (!resp.ok || !payload || payload.ok !== true) {
+                    throw new Error((payload && payload.message) || (i18n.slideProgressSaveError || 'Slide save failed.'));
+                }
+                return payload;
+            });
+        });
+    }
+
+    function saveSlideProgress(options){
+        var saveOptions = options || {};
+        var payload = buildSlideProgressPayload();
+        var payloadHash = JSON.stringify(payload);
+
+        if (!requiresSlidesFirst) {
+            return;
+        }
+
+        if (!slideProgressDirty || payloadHash === slideLastSavedHash) {
+            return;
+        }
+
+        if (slideProgressState.isSaving) {
+            slideProgressState.hasPending = true;
+            return;
+        }
+
+        slideProgressState.isSaving = true;
+
+        requestSlideProgressEndpoint(payload).then(function(resp){
+            slideProgressDirty = false;
+            slideLastSavedHash = payloadHash;
+            recordMetric('slide_progress_save_success', { reason: saveOptions.reason || 'unspecified' });
+        }).catch(function(err){
+            recordMetric('slide_progress_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
+        }).finally(function(){
+            slideProgressState.isSaving = false;
+
+            if (slideProgressState.hasPending) {
+                slideProgressState.hasPending = false;
+                saveSlideProgress({ reason: 'pending' });
+            }
+        });
     }
 
     function render(resultData){
@@ -637,29 +747,46 @@
     }
 
     document.addEventListener('visibilitychange', function(){
-        if (document.visibilityState === 'hidden' && !isSubmitted) {
-            saveProgress({ reason: 'visibility_hidden' });
+        if (document.visibilityState === 'hidden') {
+            if (!isSubmitted) {
+                saveProgress({ reason: 'visibility_hidden' });
+            }
+            if (requiresSlidesFirst) {
+                saveSlideProgress({ reason: 'visibility_hidden' });
+            }
         }
     });
 
     window.addEventListener('beforeunload', function(){
-        if (!runtime.ajaxUrl || isSubmitted || !isDirty || getProgressPayloadHash() === lastSavedHash) {
-            return;
+        if (runtime.ajaxUrl && !isSubmitted && isDirty && getProgressPayloadHash() !== lastSavedHash) {
+            recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
+
+            var body = new URLSearchParams();
+            body.append('action', 'teqcidb_save_quiz_progress');
+            body.append('_ajax_nonce', runtime.nonce || '');
+            body.append('quiz_id', runtime.quiz.id);
+            body.append('class_id', runtime.quiz.classId);
+            body.append('attempt_id', String(attemptId || 0));
+            body.append('current_index', String(currentIndex));
+            body.append('answers_json', JSON.stringify(answers));
+
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(runtime.ajaxUrl, body);
+            }
         }
 
-        recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
-
-        var body = new URLSearchParams();
-        body.append('action', 'teqcidb_save_quiz_progress');
-        body.append('_ajax_nonce', runtime.nonce || '');
-        body.append('quiz_id', runtime.quiz.id);
-        body.append('class_id', runtime.quiz.classId);
-        body.append('attempt_id', String(attemptId || 0));
-        body.append('current_index', String(currentIndex));
-        body.append('answers_json', JSON.stringify(answers));
-
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(runtime.ajaxUrl, body);
+        if (requiresSlidesFirst && slideProgressDirty && runtime.restUrl) {
+            var slidePayload = buildSlideProgressPayload();
+            fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': runtime.restNonce || ''
+                },
+                body: JSON.stringify(slidePayload)
+            });
         }
     });
 
@@ -670,6 +797,24 @@
     lastSavedHash = getProgressPayloadHash();
 
     if (requiresSlidesFirst) {
+        var restoredSlideProgress = runtime.slideProgress || {};
+        var restoredCurrentIndex = Math.max(0, parseInt(restoredSlideProgress.currentIndex || 0, 10) || 0);
+        var restoredMaxViewed = Math.max(restoredCurrentIndex, parseInt(restoredSlideProgress.maxViewed || 0, 10) || 0);
+
+        slideIndex = Math.min(restoredCurrentIndex, Math.max(0, slides.length - 1));
+
+        for (var restoredIndex = 0; restoredIndex <= Math.min(restoredMaxViewed, Math.max(0, slides.length - 1)); restoredIndex += 1) {
+            var slideKey = String(slides[restoredIndex].id || restoredIndex);
+            slideViewedMap[slideKey] = true;
+        }
+
+        hasUnlockedQuiz = !!restoredSlideProgress.completed || restoredMaxViewed >= (slides.length - 1);
+        slideLastSavedHash = getSlideProgressPayloadHash();
+
+        if (restoredMaxViewed > 0) {
+            recordMetric('slide_progress_restored', { maxViewed: restoredMaxViewed, currentIndex: slideIndex });
+        }
+
         markCurrentSlideAsViewed();
         renderSlides();
         return;
