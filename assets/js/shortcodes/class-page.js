@@ -41,8 +41,10 @@
     var lastSavedHash = '';
     var slideIndex = 0;
     var slideViewedMap = {};
-    var hasUnlockedQuiz = false;
-    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0;
+    var initialSlideProgress = runtime.slideProgress || {};
+    var hasCompletedSlidesFromServer = !!initialSlideProgress.completed || (slides.length > 0 && (parseInt(initialSlideProgress.maxViewed || 0, 10) || 0) >= (slides.length - 1));
+    var hasUnlockedQuiz = hasCompletedSlidesFromServer;
+    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0 && !hasCompletedSlidesFromServer;
     var slideAdvanceCooldownMs = 15000;
     var nextSlideUnlockedAt = 0;
     var slideCooldownTimer = null;
@@ -797,7 +799,7 @@
     lastSavedHash = getProgressPayloadHash();
 
     if (requiresSlidesFirst) {
-        var restoredSlideProgress = runtime.slideProgress || {};
+        var restoredSlideProgress = initialSlideProgress;
         var restoredCurrentIndex = Math.max(0, parseInt(restoredSlideProgress.currentIndex || 0, 10) || 0);
         var restoredMaxViewed = Math.max(restoredCurrentIndex, parseInt(restoredSlideProgress.maxViewed || 0, 10) || 0);
 
