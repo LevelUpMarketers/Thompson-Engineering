@@ -36,6 +36,17 @@
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
     var hasShownResumeNotice = false;
+    var hadRestoredQuizProgress = !!(
+        runtime.attempt &&
+        runtime.attempt.status === 2 &&
+        (
+            (runtime.attempt.currentIndex && parseInt(runtime.attempt.currentIndex, 10) > 0) ||
+            (runtime.attempt.answers && Object.keys(runtime.attempt.answers).some(function(questionId){
+                var savedSelection = runtime.attempt.answers[questionId];
+                return Array.isArray(savedSelection) && savedSelection.length > 0;
+            }))
+        )
+    );
     var autosaveIntervalMs = 8000;
     var isDirty = false;
     var lastSavedHash = '';
@@ -443,7 +454,7 @@
         var question = getQuestionByIndex(currentIndex);
         var completed = completedCount();
         var percent = progressPercent();
-        var shouldShowResumeNotice = !hasShownResumeNotice && runtime.attempt && runtime.attempt.status === 2 && completed > 0;
+        var shouldShowResumeNotice = !hasShownResumeNotice && hadRestoredQuizProgress;
         var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
