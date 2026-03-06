@@ -98,7 +98,7 @@
             return 0;
         }
 
-        return Math.round((viewedSlidesCount() / slides.length) * 100);
+        return Math.round(((Math.max(0, slideIndex) + 1) / slides.length) * 100);
     }
 
     function slidesStatusLine(){
