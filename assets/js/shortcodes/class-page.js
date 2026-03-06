@@ -112,6 +112,27 @@
         return format(t('slideOf', 'Slide %1$s of %2$s'), String(slideIndex + 1), String(slides.length));
     }
 
+    function updateRefresherSectionCopy(showSlidesCopy){
+        if (runtime.quiz.classType !== 'refresher' || !slides.length) {
+            return;
+        }
+
+        var titleEl = document.getElementById('teqcidb-class-quiz-section-title');
+        var descriptionEl = document.getElementById('teqcidb-class-quiz-section-description');
+
+        if (titleEl) {
+            titleEl.textContent = showSlidesCopy
+                ? t('refresherSlidesSectionTitle', 'Refresher Class Slides')
+                : t('refresherQuizSectionTitle', 'Refresher Quiz');
+        }
+
+        if (descriptionEl) {
+            descriptionEl.textContent = showSlidesCopy
+                ? t('refresherSlidesIntro', 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.')
+                : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at (251) 666-2443 or qci@thompsonengineering.com to request another Refresher Quiz attempt. Good luck!');
+        }
+    }
+
     function getQuestionByIndex(index){
         return questions[Math.max(0, Math.min(index, totalQuestions - 1))];
     }
@@ -277,6 +298,7 @@
     }
 
     function renderSlides(){
+        updateRefresherSectionCopy(true);
         var currentSlide = slides[slideIndex] || {};
         var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
         var isFirst = slideIndex <= 0;
@@ -408,6 +430,7 @@
     }
 
     function render(resultData){
+        updateRefresherSectionCopy(false);
         if (isSubmitted && !resultData) {
             resultData = {
                 passed: runtime.attempt && runtime.attempt.status === 0,

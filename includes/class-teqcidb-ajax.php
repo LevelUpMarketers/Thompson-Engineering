@@ -340,25 +340,33 @@ class TEQCIDB_Ajax {
         }
 
         echo '<section class="teqcidb-class-route__quiz">';
-        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
         if ( ! empty( $quiz_runtime ) ) {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
+            $has_completed_refresher_slides = ( $has_refresher_slides && ! empty( $quiz_runtime['slideProgress']['completed'] ) );
+
+            if ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
+                $quiz_section_title = __( 'Refresher Class Slides', 'teqcidb' );
+            }
+
+            echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
             if ( 'initial' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is considered passing. Anything below a 75% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Exam attempt. Good luck!', 'teqcidb' );
-            } elseif ( $has_refresher_slides ) {
+            } elseif ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
                 $quiz_intro = __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
-                $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Quiz attempt. Good luck!', 'teqcidb' );
+                $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at (251) 666-2443 or qci@thompsonengineering.com to request another Refresher Quiz attempt. Good luck!', 'teqcidb' );
             } else {
                 $quiz_intro = __( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' );
             }
 
-            echo '<p class="teqcidb-class-route__section-description">' . wp_kses( $quiz_intro, $allowed_feedback_html ) . '</p>';
+            echo '<p id="teqcidb-class-quiz-section-description" class="teqcidb-class-route__section-description">' . wp_kses( $quiz_intro, $allowed_feedback_html ) . '</p>';
             echo '<div id="teqcidb-class-quiz-app" class="teqcidb-class-quiz-app" data-quiz-runtime="' . esc_attr( wp_json_encode( $quiz_runtime ) ) . '"></div>';
             echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
         } else {
+            echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
+
             if ( ! $quiz_access_allowed ) {
                 if ( 'initial' === $class_type ) {
                     echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled this Exam yet!', 'teqcidb' ) . '</p>';
@@ -685,6 +693,10 @@ class TEQCIDB_Ajax {
                 'slideProgressSaved'       => __( 'Slide progress saved.', 'teqcidb' ),
                 'slideProgressSaveError'   => __( 'We could not save your slide progress. Please check your connection and try again.', 'teqcidb' ),
                 'slideProgressRestored'    => __( 'We restored your slide progress from your last save.', 'teqcidb' ),
+                'refresherSlidesSectionTitle'=> __( 'Refresher Class Slides', 'teqcidb' ),
+                'refresherQuizSectionTitle'  => __( 'Refresher Quiz', 'teqcidb' ),
+                'refresherSlidesIntro'       => __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' ),
+                'refresherQuizIntro'         => __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at (251) 666-2443 or qci@thompsonengineering.com to request another Refresher Quiz attempt. Good luck!', 'teqcidb' ),
             ),
             'quiz'    => array(
                 'id'             => $quiz_id,
