@@ -621,6 +621,7 @@ class TEQCIDB_Ajax {
         $attempt_status  = isset( $attempt_row['status'] ) ? (int) $attempt_row['status'] : 2;
         $saved_answers   = array();
         $saved_index     = 0;
+        $incorrect_details = array();
 
         if ( $attempt_id > 0 && 2 === $attempt_status ) {
             $saved_index = isset( $attempt_row['current_index'] ) ? max( 0, absint( $attempt_row['current_index'] ) ) : 0;
@@ -667,6 +668,31 @@ class TEQCIDB_Ajax {
                             $saved_index = max( 0, absint( $decoded['current_index'] ) );
                         }
                     }
+                }
+            }
+        }
+
+
+        if ( $attempt_id > 0 ) {
+            $answers_json = (string) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT answers_json FROM $answers_table WHERE attempt_id = %d LIMIT 1",
+                    $attempt_id
+                )
+            );
+
+            if ( '' !== $answers_json ) {
+                $decoded_answers_payload = json_decode( $answers_json, true );
+
+                if ( is_array( $decoded_answers_payload ) && isset( $decoded_answers_payload['incorrect_details'] ) && is_array( $decoded_answers_payload['incorrect_details'] ) ) {
+                    $incorrect_details = array_values(
+                        array_filter(
+                            $decoded_answers_payload['incorrect_details'],
+                            static function( $detail ) {
+                                return is_array( $detail );
+                            }
+                        )
+                    );
                 }
             }
         }
@@ -740,6 +766,7 @@ class TEQCIDB_Ajax {
                 'submittedAt'  => isset( $attempt_row['submitted_at'] ) ? (string) $attempt_row['submitted_at'] : '',
                 'currentIndex' => $saved_index,
                 'answers'      => $saved_answers,
+                'incorrectDetails' => $incorrect_details,
             ),
             'questions'     => $questions,
             'slides'        => $slides,

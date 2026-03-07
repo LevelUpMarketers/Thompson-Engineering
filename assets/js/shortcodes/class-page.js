@@ -520,7 +520,7 @@
                 passed: runtime.attempt && runtime.attempt.status === 0,
                 score: runtime.attempt && typeof runtime.attempt.score === 'number' ? runtime.attempt.score : 0,
                 passThreshold: runtime.quiz.passThreshold || 75,
-                incorrectDetails: []
+                incorrectDetails: (runtime.attempt && Array.isArray(runtime.attempt.incorrectDetails)) ? runtime.attempt.incorrectDetails : []
             };
         }
 
