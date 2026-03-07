@@ -531,10 +531,24 @@
         var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
+            var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
+            var hideIncorrectDetails = runtime.quiz.classType === 'initial' && !resultData.passed;
+            var dashboardUrl = String(runtime.dashboardCertificatesUrl || '/my-qci-dashboard/?tab=certificates-dates');
+            var passedMessage = '';
+
+            if (showInitialPassedMessage) {
+                passedMessage = '<p>' +
+                    esc(t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you've passed this class! Please ')) +
+                    '<a href="' + esc(dashboardUrl) + '">' + esc(t('initialPassedMessageLinkText', 'visit your QCI Dashboard')) + '</a>' +
+                    esc(t('initialPassedMessageAfterLink', ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.')) +
+                '</p>';
+            }
+
             root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
                 '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
-                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s%% (Required: %2$s%%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
-                buildIncorrectHtml(resultData.incorrectDetails || []) +
+                passedMessage +
+                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
+                (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
             '</div>';
             return;
         }
@@ -647,6 +661,27 @@
         });
     }
 
+    function mapChoiceValuesToLabels(values, choices){
+        if (!Array.isArray(values) || !values.length) {
+            return [];
+        }
+
+        var labelMap = {};
+        (choices || []).forEach(function(choice){
+            if (!choice || typeof choice.value === 'undefined') {
+                return;
+            }
+            labelMap[String(choice.value)] = String(choice.label || choice.value || '');
+        });
+
+        return values.map(function(value){
+            var key = String(value || '');
+            return labelMap[key] || key;
+        }).filter(function(label){
+            return !!label;
+        });
+    }
+
     function buildIncorrectHtml(incorrect){
         if (!incorrect.length) {
             return '';
@@ -656,10 +691,13 @@
             var choices = (item.choices || []).map(function(choice){
                 return '<li>' + esc(choice.label) + '</li>';
             }).join('');
+            var selectedLabels = mapChoiceValuesToLabels(item.selected || [], item.choices || []);
+            var correctLabels = mapChoiceValuesToLabels(item.correctSelections || [], item.choices || []);
+
             return '<article class="teqcidb-class-quiz__incorrect-item">' +
                 '<h4>' + esc(item.prompt || '') + '</h4>' +
-                '<p><strong>' + esc(t('yourAnswer', 'Your answer:')) + '</strong> ' + esc((item.selected || []).join(', ') || t('noAnswer', 'No answer')) + '</p>' +
-                '<p><strong>' + esc(t('correctAnswer', 'Correct answer:')) + '</strong> ' + esc((item.correctSelections || []).join(', ')) + '</p>' +
+                '<p><strong>' + esc(t('yourAnswer', 'Your answer:')) + '</strong> ' + esc(selectedLabels.join(', ') || t('noAnswer', 'No answer')) + '</p>' +
+                '<p><strong>' + esc(t('correctAnswer', 'Correct answer:')) + '</strong> ' + esc(correctLabels.join(', ')) + '</p>' +
                 '<ul>' + choices + '</ul>' +
             '</article>';
         }).join('');

@@ -294,23 +294,47 @@ class TEQCIDB_Ajax {
                     $attempt_status = (int) $attempt['status'];
 
                     if ( 1 === $attempt_status ) {
-                        $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                        if ( 'initial' === $class_type ) {
+                            $register_url = home_url( '/register-for-a-class-qci/' );
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to class registration page, 2: closing anchor tag, 3: opening tel link, 4: closing tel link, 5: opening email link, 6: closing email link. */
+                                __( 'Whoops - it looks like you\'ve failed this class! Unfortunately, you\'ll need to register for another upcoming Initial Class. Visit the %1$sRegister For A Class%2$s page to register & pay for an upcoming class. For questions, please contact %3$sIlka Porter at (251) 666-2443%4$s or %5$sQCI@thompsonengineering.com%6$s for further instructions.', 'teqcidb' ),
+                                '<a href="' . esc_url( $register_url ) . '">',
+                                '</a>',
+                                '<a href="tel:2516662443">',
+                                '</a>',
+                                '<a href="mailto:QCI@thompsonengineering.com">',
+                                '</a>'
+                            );
+                        } else {
+                            $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                        }
                     } elseif ( 0 === $attempt_status ) {
-                        $qci_number = (string) $wpdb->get_var(
-                            $wpdb->prepare(
-                                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
-                                $current_user_id
-                            )
-                        );
-
                         $dashboard_url = $this->get_student_dashboard_certificates_url();
-                        $feedback_message = sprintf(
-                            /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
-                            __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
-                            '<a href="' . esc_url( $dashboard_url ) . '">',
-                            '</a>',
-                            esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
-                        );
+
+                        if ( 'initial' === $class_type ) {
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag. */
+                                __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.', 'teqcidb' ),
+                                '<a href="' . esc_url( $dashboard_url ) . '">',
+                                '</a>'
+                            );
+                        } else {
+                            $qci_number = (string) $wpdb->get_var(
+                                $wpdb->prepare(
+                                    "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                                    $current_user_id
+                                )
+                            );
+
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
+                                __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
+                                '<a href="' . esc_url( $dashboard_url ) . '">',
+                                '</a>',
+                                esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
+                            );
+                        }
                     } elseif ( 2 === $attempt_status ) {
                         $feedback_message = __( 'Welcome back! Looks like you\'ve already started this quiz.', 'teqcidb' );
                     }
@@ -678,7 +702,7 @@ class TEQCIDB_Ajax {
                 'completedRemaining'       => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
                 'nextQuestion'             => __( 'Next Question', 'teqcidb' ),
                 'submitQuiz'               => __( 'Submit Quiz', 'teqcidb' ),
-                'scoreSummary'             => __( 'Score: %1$s%% (Required: %2$s%%)', 'teqcidb' ),
+                'scoreSummary'             => __( 'Score: %1$s% (Required: %2$s%)', 'teqcidb' ),
                 'questionsToReview'        => __( 'Questions to Review', 'teqcidb' ),
                 'yourAnswer'               => __( 'Your answer:', 'teqcidb' ),
                 'correctAnswer'            => __( 'Correct answer:', 'teqcidb' ),
@@ -697,6 +721,9 @@ class TEQCIDB_Ajax {
                 'refresherQuizSectionTitle'  => __( 'Refresher Quiz', 'teqcidb' ),
                 'refresherSlidesIntro'       => __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' ),
                 'refresherQuizIntro'         => __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Good luck!', 'teqcidb' ),
+                'initialPassedMessageBeforeLink' => __( 'Congratulations! Looks like you\'ve passed this class! Please ', 'teqcidb' ),
+                'initialPassedMessageLinkText'   => __( 'visit your QCI Dashboard', 'teqcidb' ),
+                'initialPassedMessageAfterLink'  => __( ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.', 'teqcidb' ),
             ),
             'quiz'    => array(
                 'id'             => $quiz_id,
@@ -717,6 +744,7 @@ class TEQCIDB_Ajax {
             'questions'     => $questions,
             'slides'        => $slides,
             'slideProgress' => $slide_progress,
+            'dashboardCertificatesUrl' => $this->get_student_dashboard_certificates_url(),
         );
     }
 
