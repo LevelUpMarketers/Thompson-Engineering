@@ -276,6 +276,15 @@
         }).join('');
     }
 
+    function isSlideViewedAtIndex(index){
+        if (index < 0 || index >= slides.length || !slides[index]) {
+            return false;
+        }
+
+        var viewedKey = String(slides[index].id || index);
+        return !!slideViewedMap[viewedKey];
+    }
+
     function markCurrentSlideAsViewed(){
         if (!slides[slideIndex]) {
             return;
@@ -400,7 +409,11 @@
                     return;
                 }
 
-                setNextSlideCooldown();
+                if (isSlideViewedAtIndex(slideIndex + 1)) {
+                    clearNextSlideCooldown();
+                } else {
+                    setNextSlideCooldown();
+                }
                 slideIndex += 1;
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();

@@ -363,3 +363,4 @@
 
 357. 2026-03-07: Added lightweight refresher slide image preloading that opportunistically warms upcoming slide URLs on restore and after Next click, while explicitly leaving slide cooldown timing and slide progress-save behavior unchanged.
 358. 2026-03-07: Updated refresher slide image presentation styling by constraining `.teqcidb-class-slides__image` to a centered max-width and adding a 560px minimum height to `.teqcidb-class-slides__image-wrap` for more consistent slide framing.
+359. 2026-03-07: Updated refresher slide Next-button cooldown logic to skip the 15-second lock when advancing to a slide already marked as viewed, so learners can move back forward through previously seen slides without repeated waits while preserving existing progress saves and new-slide pacing.
