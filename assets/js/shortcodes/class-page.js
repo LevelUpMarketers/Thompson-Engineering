@@ -22,6 +22,7 @@
 
     var i18n = runtime.i18n || {};
     var questions = runtime.questions;
+    var slides = Array.isArray(runtime.slides) ? runtime.slides : [];
     var totalQuestions = questions.length;
     var answers = Object.assign({}, (runtime.attempt && runtime.attempt.answers) || {});
     var currentIndex = Math.max(0, parseInt((runtime.attempt && runtime.attempt.currentIndex) || 0, 10) || 0);
@@ -35,9 +36,32 @@
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
     var hasShownResumeNotice = false;
+    var hadRestoredQuizProgress = !!(
+        runtime.attempt &&
+        runtime.attempt.status === 2 &&
+        (
+            (runtime.attempt.currentIndex && parseInt(runtime.attempt.currentIndex, 10) > 0) ||
+            (runtime.attempt.answers && Object.keys(runtime.attempt.answers).some(function(questionId){
+                var savedSelection = runtime.attempt.answers[questionId];
+                return Array.isArray(savedSelection) && savedSelection.length > 0;
+            }))
+        )
+    );
     var autosaveIntervalMs = 8000;
     var isDirty = false;
     var lastSavedHash = '';
+    var slideIndex = 0;
+    var slideViewedMap = {};
+    var initialSlideProgress = runtime.slideProgress || {};
+    var hasCompletedSlidesFromServer = !!initialSlideProgress.completed || (slides.length > 0 && (parseInt(initialSlideProgress.maxViewed || 0, 10) || 0) >= (slides.length - 1));
+    var hasUnlockedQuiz = hasCompletedSlidesFromServer;
+    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0 && !hasCompletedSlidesFromServer;
+    var slideAdvanceCooldownMs = 15000;
+    var nextSlideUnlockedAt = 0;
+    var slideCooldownTimer = null;
+    var slideProgressState = { isSaving: false, hasPending: false };
+    var slideProgressDirty = false;
+    var slideLastSavedHash = '';
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -78,6 +102,48 @@
         return count;
     }
 
+    function viewedSlidesCount(){
+        return Object.keys(slideViewedMap).length;
+    }
+
+    function slidesProgressPercent(){
+        if (!slides.length) {
+            return 0;
+        }
+
+        return Math.round(((Math.max(0, slideIndex) + 1) / slides.length) * 100);
+    }
+
+    function slidesStatusLine(){
+        var viewed = viewedSlidesCount();
+        return format(t('slidesCompletedRemaining', '%1$s completed / %2$s remaining'), String(viewed), String(Math.max(0, slides.length - viewed)));
+    }
+
+    function slidePositionLabel(){
+        return format(t('slideOf', 'Slide %1$s of %2$s'), String(slideIndex + 1), String(slides.length));
+    }
+
+    function updateRefresherSectionCopy(showSlidesCopy){
+        if (runtime.quiz.classType !== 'refresher' || !slides.length) {
+            return;
+        }
+
+        var titleEl = document.getElementById('teqcidb-class-quiz-section-title');
+        var descriptionEl = document.getElementById('teqcidb-class-quiz-section-description');
+
+        if (titleEl) {
+            titleEl.textContent = showSlidesCopy
+                ? t('refresherSlidesSectionTitle', 'Refresher Class Slides')
+                : t('refresherQuizSectionTitle', 'Refresher Quiz');
+        }
+
+        if (descriptionEl) {
+            descriptionEl.innerHTML = showSlidesCopy
+                ? t('refresherSlidesIntro', 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.')
+                : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Good luck!');
+        }
+    }
+
     function getQuestionByIndex(index){
         return questions[Math.max(0, Math.min(index, totalQuestions - 1))];
     }
@@ -108,6 +174,49 @@
     function markDirty(){
         isDirty = true;
     }
+
+    function buildSlideProgressPayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            current_slide_index: Math.max(0, slideIndex),
+            max_slide_index_viewed: Math.max(0, getMaxViewedSlideIndex()),
+            slides_total: slides.length,
+            completed: hasUnlockedQuiz
+        };
+    }
+
+    function getSlideProgressPayloadHash(){
+        return JSON.stringify(buildSlideProgressPayload());
+    }
+
+    function getMaxViewedSlideIndex(){
+        var maxIndex = 0;
+
+        Object.keys(slideViewedMap).forEach(function(key){
+            if (!slideViewedMap[key]) {
+                return;
+            }
+
+            var numericId = parseInt(key, 10);
+            if (!isNaN(numericId)) {
+                for (var i = 0; i < slides.length; i += 1) {
+                    var rowId = parseInt(slides[i].id || i, 10);
+                    if (rowId === numericId) {
+                        maxIndex = Math.max(maxIndex, i);
+                        return;
+                    }
+                }
+            }
+        });
+
+        return Math.min(maxIndex, Math.max(0, slides.length - 1));
+    }
+
+    function markSlideProgressDirty(){
+        slideProgressDirty = true;
+    }
+
 
     function recordMetric(eventName, extra){
         if (window && typeof window.teqcidbQuizMetricHook === 'function') {
@@ -165,7 +274,174 @@
         }).join('');
     }
 
+    function markCurrentSlideAsViewed(){
+        if (!slides[slideIndex]) {
+            return;
+        }
+
+        slideViewedMap[String(slides[slideIndex].id || slideIndex)] = true;
+        if (!hasUnlockedQuiz && viewedSlidesCount() >= slides.length) {
+            hasUnlockedQuiz = true;
+        }
+    }
+
+    function clearSlideCooldownTimer(){
+        if (slideCooldownTimer) {
+            clearTimeout(slideCooldownTimer);
+            slideCooldownTimer = null;
+        }
+    }
+
+    function clearNextSlideCooldown(){
+        nextSlideUnlockedAt = 0;
+        clearSlideCooldownTimer();
+    }
+
+    function setNextSlideCooldown(){
+        clearSlideCooldownTimer();
+        nextSlideUnlockedAt = Date.now() + slideAdvanceCooldownMs;
+        slideCooldownTimer = setTimeout(function(){
+            slideCooldownTimer = null;
+            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
+                renderSlides();
+            }
+        }, slideAdvanceCooldownMs);
+    }
+
+    function renderSlides(){
+        updateRefresherSectionCopy(true);
+        var currentSlide = slides[slideIndex] || {};
+        var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
+        var isFirst = slideIndex <= 0;
+        var isLast = slideIndex >= (slides.length - 1);
+        var isNextDisabled = Date.now() < nextSlideUnlockedAt;
+        var nextTooltip = isNextDisabled ? t('slideWaitTooltip', 'Please study the slide and wait to proceed.') : '';
+        var percent = slidesProgressPercent();
+
+        root.innerHTML = '<div class="teqcidb-class-slides">' +
+            '<div class="teqcidb-class-quiz__meta">' +
+                '<strong>' + esc(slidePositionLabel()) + '</strong>' +
+                '<span>' + esc(slidesStatusLine()) + '</span>' +
+            '</div>' +
+            '<div class="teqcidb-class-quiz__progress"><span style="width:' + percent + '%"></span></div>' +
+            '<div class="teqcidb-class-slides__image-wrap">' +
+                '<img class="teqcidb-class-slides__image" src="' + esc(currentSlide.url || '') + '" alt="' + esc(currentSlideAlt) + '" loading="lazy" decoding="async" />' +
+            '</div>' +
+            '<div class="teqcidb-class-slides__actions">' +
+                '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
+                '<span class="teqcidb-class-slides__next-wrap ' + (isNextDisabled ? 'is-disabled' : '') + '" data-tooltip="' + esc(nextTooltip) + '">' +
+                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+                '</span>' +
+            '</div>' +
+        '</div>';
+
+        bindSlideEvents();
+    }
+
+    function bindSlideEvents(){
+        var prevBtn = root.querySelector('#teqcidb-slide-prev');
+        var nextBtn = root.querySelector('#teqcidb-slide-next');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(){
+                if (slideIndex <= 0) {
+                    return;
+                }
+
+                clearNextSlideCooldown();
+                slideIndex -= 1;
+                markCurrentSlideAsViewed();
+                markSlideProgressDirty();
+                saveSlideProgress({ reason: 'slide_previous' });
+                renderSlides();
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(){
+                if (nextBtn.disabled) {
+                    return;
+                }
+
+                if (slideIndex >= (slides.length - 1)) {
+                    if (hasUnlockedQuiz) {
+                        render();
+                    }
+                    return;
+                }
+
+                setNextSlideCooldown();
+                slideIndex += 1;
+                markCurrentSlideAsViewed();
+                markSlideProgressDirty();
+                saveSlideProgress({ reason: 'slide_next' });
+                renderSlides();
+            });
+        }
+    }
+
+
+    function requestSlideProgressEndpoint(progressPayload){
+        if (!runtime.restUrl) {
+            return Promise.reject(new Error(i18n.slideProgressSaveError || 'Slide save failed.'));
+        }
+
+        return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': runtime.restNonce || ''
+            },
+            body: JSON.stringify(progressPayload)
+        }).then(function(resp){
+            return resp.json().then(function(payload){
+                if (!resp.ok || !payload || payload.ok !== true) {
+                    throw new Error((payload && payload.message) || (i18n.slideProgressSaveError || 'Slide save failed.'));
+                }
+                return payload;
+            });
+        });
+    }
+
+    function saveSlideProgress(options){
+        var saveOptions = options || {};
+        var payload = buildSlideProgressPayload();
+        var payloadHash = JSON.stringify(payload);
+
+        if (!requiresSlidesFirst) {
+            return;
+        }
+
+        if (!slideProgressDirty || payloadHash === slideLastSavedHash) {
+            return;
+        }
+
+        if (slideProgressState.isSaving) {
+            slideProgressState.hasPending = true;
+            return;
+        }
+
+        slideProgressState.isSaving = true;
+
+        requestSlideProgressEndpoint(payload).then(function(resp){
+            slideProgressDirty = false;
+            slideLastSavedHash = payloadHash;
+            recordMetric('slide_progress_save_success', { reason: saveOptions.reason || 'unspecified' });
+        }).catch(function(err){
+            recordMetric('slide_progress_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
+        }).finally(function(){
+            slideProgressState.isSaving = false;
+
+            if (slideProgressState.hasPending) {
+                slideProgressState.hasPending = false;
+                saveSlideProgress({ reason: 'pending' });
+            }
+        });
+    }
+
     function render(resultData){
+        updateRefresherSectionCopy(false);
         if (isSubmitted && !resultData) {
             resultData = {
                 passed: runtime.attempt && runtime.attempt.status === 0,
@@ -178,7 +454,7 @@
         var question = getQuestionByIndex(currentIndex);
         var completed = completedCount();
         var percent = progressPercent();
-        var shouldShowResumeNotice = !hasShownResumeNotice && runtime.attempt && runtime.attempt.status === 2 && completed > 0;
+        var shouldShowResumeNotice = !hasShownResumeNotice && hadRestoredQuizProgress;
         var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
@@ -507,29 +783,46 @@
     }
 
     document.addEventListener('visibilitychange', function(){
-        if (document.visibilityState === 'hidden' && !isSubmitted) {
-            saveProgress({ reason: 'visibility_hidden' });
+        if (document.visibilityState === 'hidden') {
+            if (!isSubmitted) {
+                saveProgress({ reason: 'visibility_hidden' });
+            }
+            if (requiresSlidesFirst) {
+                saveSlideProgress({ reason: 'visibility_hidden' });
+            }
         }
     });
 
     window.addEventListener('beforeunload', function(){
-        if (!runtime.ajaxUrl || isSubmitted || !isDirty || getProgressPayloadHash() === lastSavedHash) {
-            return;
+        if (runtime.ajaxUrl && !isSubmitted && isDirty && getProgressPayloadHash() !== lastSavedHash) {
+            recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
+
+            var body = new URLSearchParams();
+            body.append('action', 'teqcidb_save_quiz_progress');
+            body.append('_ajax_nonce', runtime.nonce || '');
+            body.append('quiz_id', runtime.quiz.id);
+            body.append('class_id', runtime.quiz.classId);
+            body.append('attempt_id', String(attemptId || 0));
+            body.append('current_index', String(currentIndex));
+            body.append('answers_json', JSON.stringify(answers));
+
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(runtime.ajaxUrl, body);
+            }
         }
 
-        recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
-
-        var body = new URLSearchParams();
-        body.append('action', 'teqcidb_save_quiz_progress');
-        body.append('_ajax_nonce', runtime.nonce || '');
-        body.append('quiz_id', runtime.quiz.id);
-        body.append('class_id', runtime.quiz.classId);
-        body.append('attempt_id', String(attemptId || 0));
-        body.append('current_index', String(currentIndex));
-        body.append('answers_json', JSON.stringify(answers));
-
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(runtime.ajaxUrl, body);
+        if (requiresSlidesFirst && slideProgressDirty && runtime.restUrl) {
+            var slidePayload = buildSlideProgressPayload();
+            fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': runtime.restNonce || ''
+                },
+                body: JSON.stringify(slidePayload)
+            });
         }
     });
 
@@ -538,6 +831,30 @@
     }
 
     lastSavedHash = getProgressPayloadHash();
+
+    if (requiresSlidesFirst) {
+        var restoredSlideProgress = initialSlideProgress;
+        var restoredCurrentIndex = Math.max(0, parseInt(restoredSlideProgress.currentIndex || 0, 10) || 0);
+        var restoredMaxViewed = Math.max(restoredCurrentIndex, parseInt(restoredSlideProgress.maxViewed || 0, 10) || 0);
+
+        slideIndex = Math.min(restoredCurrentIndex, Math.max(0, slides.length - 1));
+
+        for (var restoredIndex = 0; restoredIndex <= Math.min(restoredMaxViewed, Math.max(0, slides.length - 1)); restoredIndex += 1) {
+            var slideKey = String(slides[restoredIndex].id || restoredIndex);
+            slideViewedMap[slideKey] = true;
+        }
+
+        hasUnlockedQuiz = !!restoredSlideProgress.completed || restoredMaxViewed >= (slides.length - 1);
+        slideLastSavedHash = getSlideProgressPayloadHash();
+
+        if (restoredMaxViewed > 0) {
+            recordMetric('slide_progress_restored', { maxViewed: restoredMaxViewed, currentIndex: slideIndex });
+        }
+
+        markCurrentSlideAsViewed();
+        renderSlides();
+        return;
+    }
 
     render();
 })();
