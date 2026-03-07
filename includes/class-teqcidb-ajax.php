@@ -294,23 +294,47 @@ class TEQCIDB_Ajax {
                     $attempt_status = (int) $attempt['status'];
 
                     if ( 1 === $attempt_status ) {
-                        $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                        if ( 'initial' === $class_type ) {
+                            $register_url = home_url( '/register-for-a-class-qci/' );
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to class registration page, 2: closing anchor tag, 3: opening tel link, 4: closing tel link, 5: opening email link, 6: closing email link. */
+                                __( 'Whoops - it looks like you\'ve failed this class! Unfortunately, you\'ll need to register for another upcoming Initial Class. Visit the %1$sRegister For A Class%2$s page to register & pay for an upcoming class. For questions, please contact %3$sIlka Porter at (251) 666-2443%4$s or %5$sQCI@thompsonengineering.com%6$s for further instructions.', 'teqcidb' ),
+                                '<a href="' . esc_url( $register_url ) . '">',
+                                '</a>',
+                                '<a href="tel:2516662443">',
+                                '</a>',
+                                '<a href="mailto:QCI@thompsonengineering.com">',
+                                '</a>'
+                            );
+                        } else {
+                            $feedback_message = __( 'Whoops - it looks like you\'ve failed this class! Please contact <a href="tel:2516662443">Ilka Porter at (251) 666-2443</a> or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for further instructions.', 'teqcidb' );
+                        }
                     } elseif ( 0 === $attempt_status ) {
-                        $qci_number = (string) $wpdb->get_var(
-                            $wpdb->prepare(
-                                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
-                                $current_user_id
-                            )
-                        );
-
                         $dashboard_url = $this->get_student_dashboard_certificates_url();
-                        $feedback_message = sprintf(
-                            /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
-                            __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
-                            '<a href="' . esc_url( $dashboard_url ) . '">',
-                            '</a>',
-                            esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
-                        );
+
+                        if ( 'initial' === $class_type ) {
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag. */
+                                __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.', 'teqcidb' ),
+                                '<a href="' . esc_url( $dashboard_url ) . '">',
+                                '</a>'
+                            );
+                        } else {
+                            $qci_number = (string) $wpdb->get_var(
+                                $wpdb->prepare(
+                                    "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                                    $current_user_id
+                                )
+                            );
+
+                            $feedback_message = sprintf(
+                                /* translators: 1: opening anchor tag to student dashboard certificates tab, 2: closing anchor tag, 3: student QCI number. */
+                                __( 'Congratulations! Looks like you\'ve passed this class! Please %1$svisit your QCI Dashboard%2$s for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates. Your QCI Number is: <strong>%3$s</strong>.', 'teqcidb' ),
+                                '<a href="' . esc_url( $dashboard_url ) . '">',
+                                '</a>',
+                                esc_html( '' !== $qci_number ? $qci_number : __( 'Not available', 'teqcidb' ) )
+                            );
+                        }
                     } elseif ( 2 === $attempt_status ) {
                         $feedback_message = __( 'Welcome back! Looks like you\'ve already started this quiz.', 'teqcidb' );
                     }
@@ -352,11 +376,11 @@ class TEQCIDB_Ajax {
             echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
             if ( 'initial' === $class_type ) {
-                $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is considered passing. Anything below a 75% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Exam attempt. Good luck!', 'teqcidb' );
+                $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is passing. Anything below 75% will be considered failing. If you fail, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register For A Class</a> page to register & pay for another upcoming Initial Class. For questions, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a>. Good luck!', 'teqcidb' );
             } elseif ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
                 $quiz_intro = __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
-                $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Good luck!', 'teqcidb' );
+                $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' );
             } else {
                 $quiz_intro = __( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' );
             }
@@ -597,6 +621,7 @@ class TEQCIDB_Ajax {
         $attempt_status  = isset( $attempt_row['status'] ) ? (int) $attempt_row['status'] : 2;
         $saved_answers   = array();
         $saved_index     = 0;
+        $incorrect_details = array();
 
         if ( $attempt_id > 0 && 2 === $attempt_status ) {
             $saved_index = isset( $attempt_row['current_index'] ) ? max( 0, absint( $attempt_row['current_index'] ) ) : 0;
@@ -647,6 +672,31 @@ class TEQCIDB_Ajax {
             }
         }
 
+
+        if ( $attempt_id > 0 ) {
+            $answers_json = (string) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT answers_json FROM $answers_table WHERE attempt_id = %d LIMIT 1",
+                    $attempt_id
+                )
+            );
+
+            if ( '' !== $answers_json ) {
+                $decoded_answers_payload = json_decode( $answers_json, true );
+
+                if ( is_array( $decoded_answers_payload ) && isset( $decoded_answers_payload['incorrect_details'] ) && is_array( $decoded_answers_payload['incorrect_details'] ) ) {
+                    $incorrect_details = array_values(
+                        array_filter(
+                            $decoded_answers_payload['incorrect_details'],
+                            static function( $detail ) {
+                                return is_array( $detail );
+                            }
+                        )
+                    );
+                }
+            }
+        }
+
         $slide_progress = array(
             'currentIndex' => 0,
             'maxViewed'    => 0,
@@ -678,7 +728,7 @@ class TEQCIDB_Ajax {
                 'completedRemaining'       => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
                 'nextQuestion'             => __( 'Next Question', 'teqcidb' ),
                 'submitQuiz'               => __( 'Submit Quiz', 'teqcidb' ),
-                'scoreSummary'             => __( 'Score: %1$s%% (Required: %2$s%%)', 'teqcidb' ),
+                'scoreSummary'             => __( 'Score: %1$s% (Required: %2$s%)', 'teqcidb' ),
                 'questionsToReview'        => __( 'Questions to Review', 'teqcidb' ),
                 'yourAnswer'               => __( 'Your answer:', 'teqcidb' ),
                 'correctAnswer'            => __( 'Correct answer:', 'teqcidb' ),
@@ -696,7 +746,10 @@ class TEQCIDB_Ajax {
                 'refresherSlidesSectionTitle'=> __( 'Refresher Class Slides', 'teqcidb' ),
                 'refresherQuizSectionTitle'  => __( 'Refresher Quiz', 'teqcidb' ),
                 'refresherSlidesIntro'       => __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' ),
-                'refresherQuizIntro'         => __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Good luck!', 'teqcidb' ),
+                'refresherQuizIntro'         => __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' ),
+                'initialPassedMessageBeforeLink' => __( 'Congratulations! Looks like you\'ve passed this class! Please ', 'teqcidb' ),
+                'initialPassedMessageLinkText'   => __( 'visit your QCI Dashboard', 'teqcidb' ),
+                'initialPassedMessageAfterLink'  => __( ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.', 'teqcidb' ),
             ),
             'quiz'    => array(
                 'id'             => $quiz_id,
@@ -713,10 +766,12 @@ class TEQCIDB_Ajax {
                 'submittedAt'  => isset( $attempt_row['submitted_at'] ) ? (string) $attempt_row['submitted_at'] : '',
                 'currentIndex' => $saved_index,
                 'answers'      => $saved_answers,
+                'incorrectDetails' => $incorrect_details,
             ),
             'questions'     => $questions,
             'slides'        => $slides,
             'slideProgress' => $slide_progress,
+            'dashboardCertificatesUrl' => $this->get_student_dashboard_certificates_url(),
         );
     }
 
@@ -1473,6 +1528,14 @@ class TEQCIDB_Ajax {
             array( '%d' )
         );
 
+        if ( $passed ) {
+            $normalized_class_type = strtolower( sanitize_key( $class_type ) );
+
+            if ( in_array( $normalized_class_type, array( 'initial', 'refresher' ), true ) ) {
+                $this->apply_quiz_pass_updates( $user_id, $class_id, $normalized_class_type );
+            }
+        }
+
         return array(
             'attempt_id'        => $attempt_id,
             'score'             => $score,
@@ -1483,6 +1546,182 @@ class TEQCIDB_Ajax {
             'message'           => __( 'Quiz submitted.', 'teqcidb' ),
         );
     }
+
+    private function apply_quiz_pass_updates( $user_id, $class_id, $class_type ) {
+        global $wpdb;
+
+        $user_id           = absint( $user_id );
+        $class_id          = absint( $class_id );
+        $class_type        = sanitize_key( (string) $class_type );
+        $students_table    = $wpdb->prefix . 'teqcidb_students';
+        $classes_table     = $wpdb->prefix . 'teqcidb_classes';
+        $studenthistory_table = $wpdb->prefix . 'teqcidb_studenthistory';
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, uniquestudentid, qcinumber, expiration_date, initial_training_date, last_refresher_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_row ) || empty( $student_row['id'] ) ) {
+            return;
+        }
+
+        $student_id = absint( $student_row['id'] );
+        $today      = current_time( 'Y-m-d' );
+        $student_update = array();
+        $student_formats = array();
+
+        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+
+        if ( '' === $existing_qci_number ) {
+            $student_update['qcinumber'] = $this->generate_next_qci_number();
+            $student_formats[]           = '%s';
+        }
+
+        $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
+        $expiration_source   = $this->parse_student_date_value( $existing_expiration );
+
+        if ( ! $expiration_source ) {
+            $expiration_source = $this->parse_student_date_value( $today );
+        }
+
+        if ( $expiration_source ) {
+            $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
+            $student_formats[]                 = '%s';
+        }
+
+        if ( 'initial' === $class_type ) {
+            $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
+
+            if ( '' === $existing_initial_training_date ) {
+                $student_update['initial_training_date'] = $today;
+                $student_formats[]                       = '%s';
+            }
+        }
+
+        if ( 'refresher' === $class_type ) {
+            $student_update['last_refresher_date'] = $today;
+            $student_formats[]                     = '%s';
+        }
+
+        if ( ! empty( $student_update ) ) {
+            $wpdb->update(
+                $students_table,
+                $student_update,
+                array( 'id' => $student_id ),
+                $student_formats,
+                array( '%d' )
+            );
+        }
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return;
+        }
+
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $unique_student_id = isset( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '';
+
+        $history_id = 0;
+
+        if ( '' !== $unique_class_id ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $unique_class_id
+                )
+            );
+
+            if ( $history_id <= 0 && '' !== $unique_student_id ) {
+                $history_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        $unique_student_id,
+                        $unique_class_id
+                    )
+                );
+            }
+        }
+
+        if ( $history_id <= 0 && '' !== $class_name ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $class_name
+                )
+            );
+        }
+
+        if ( $history_id > 0 ) {
+            $wpdb->update(
+                $studenthistory_table,
+                array(
+                    'outcome'       => 'Passed',
+                    'attended'      => 'Yes',
+                    'adminapproved' => 'Yes',
+                ),
+                array( 'id' => $history_id ),
+                array( '%s', '%s', '%s' ),
+                array( '%d' )
+            );
+        }
+    }
+
+    private function generate_next_qci_number() {
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $qci_values     = $wpdb->get_col( "SELECT qcinumber FROM $students_table WHERE qcinumber IS NOT NULL AND qcinumber <> ''" );
+        $max_numeric    = 0;
+
+        if ( is_array( $qci_values ) ) {
+            foreach ( $qci_values as $qci_value ) {
+                if ( ! is_scalar( $qci_value ) ) {
+                    continue;
+                }
+
+                if ( preg_match( '/^T(\d{1,})/i', trim( (string) $qci_value ), $matches ) ) {
+                    $max_numeric = max( $max_numeric, absint( $matches[1] ) );
+                }
+            }
+        }
+
+        return 'T' . str_pad( (string) ( $max_numeric + 1 ), 4, '0', STR_PAD_LEFT );
+    }
+
+    private function parse_student_date_value( $value ) {
+        $normalized = trim( (string) $value );
+
+        if ( '' === $normalized ) {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat( 'Y-m-d', $normalized );
+
+        if ( $date instanceof DateTimeImmutable && $date->format( 'Y-m-d' ) === $normalized ) {
+            return $date;
+        }
+
+        return null;
+    }
+
 
     private function evaluate_runtime_answer( $question_type, $choices_json, $selected_values ) {
         $question_type  = sanitize_key( (string) $question_type );
@@ -7201,6 +7440,7 @@ class TEQCIDB_Ajax {
         $entity['coursestudentsrestricted'] = $this->format_class_student_list_for_response( isset( $entity['coursestudentsrestricted'] ) ? $entity['coursestudentsrestricted'] : '' );
         $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
         $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
+        $entity['registered_students']      = $this->get_registered_students_for_class( $entity );
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),
@@ -7226,6 +7466,152 @@ class TEQCIDB_Ajax {
         $entity['name']          = $entity['placeholder_1'];
 
         return $entity;
+    }
+
+
+    private function get_registered_students_for_class( array $entity ) {
+        global $wpdb;
+
+        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $unique_class_id = isset( $entity['uniqueclassid'] ) ? sanitize_text_field( (string) $entity['uniqueclassid'] ) : '';
+        $class_name      = isset( $entity['classname'] ) ? sanitize_text_field( (string) $entity['classname'] ) : '';
+
+        $history_rows = array();
+
+        if ( '' !== $unique_class_id ) {
+            $history_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE uniqueclassid = %s ORDER BY id ASC",
+                    $unique_class_id
+                ),
+                ARRAY_A
+            );
+        }
+
+        if ( empty( $history_rows ) && '' !== $class_name ) {
+            $history_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE classname = %s ORDER BY id ASC",
+                    $class_name
+                ),
+                ARRAY_A
+            );
+        }
+
+        if ( ! is_array( $history_rows ) || empty( $history_rows ) ) {
+            return array();
+        }
+
+        $wp_user_ids = array();
+        $unique_ids  = array();
+
+        foreach ( $history_rows as $history_row ) {
+            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+
+            if ( $wp_user_id > 0 ) {
+                $wp_user_ids[] = $wp_user_id;
+            }
+
+            if ( '' !== $unique_id ) {
+                $unique_ids[] = $unique_id;
+            }
+        }
+
+        $wp_user_ids = array_values( array_unique( $wp_user_ids ) );
+        $unique_ids  = array_values( array_unique( $unique_ids ) );
+
+        if ( empty( $wp_user_ids ) && empty( $unique_ids ) ) {
+            return array();
+        }
+
+        $where_clauses = array();
+        $query_params  = array();
+
+        if ( ! empty( $wp_user_ids ) ) {
+            $where_clauses[] = 'wpuserid IN (' . implode( ', ', array_fill( 0, count( $wp_user_ids ), '%d' ) ) . ')';
+            $query_params    = array_merge( $query_params, $wp_user_ids );
+        }
+
+        if ( ! empty( $unique_ids ) ) {
+            $where_clauses[] = 'uniquestudentid IN (' . implode( ', ', array_fill( 0, count( $unique_ids ), '%s' ) ) . ')';
+            $query_params    = array_merge( $query_params, $unique_ids );
+        }
+
+        $student_query = "SELECT * FROM $students_table";
+
+        if ( ! empty( $where_clauses ) ) {
+            $student_query .= ' WHERE ' . implode( ' OR ', $where_clauses );
+        }
+
+        $student_rows = $wpdb->get_results(
+            $wpdb->prepare( $student_query, $query_params ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_rows ) || empty( $student_rows ) ) {
+            return array();
+        }
+
+        $students_by_wpid   = array();
+        $students_by_unique = array();
+
+        foreach ( $student_rows as $student_row ) {
+            if ( ! is_array( $student_row ) ) {
+                continue;
+            }
+
+            $prepared = $this->prepare_student_entity( $student_row );
+            $prepared_student = array(
+                'wpuserid'      => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
+                'uniquestudentid' => isset( $prepared['uniquestudentid'] ) ? sanitize_text_field( (string) $prepared['uniquestudentid'] ) : '',
+                'first_name'    => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
+                'last_name'     => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
+                'company'       => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
+                'email'         => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
+                'phone_cell'    => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
+                'phone_office'  => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+            );
+
+            if ( $prepared_student['wpuserid'] > 0 ) {
+                $students_by_wpid[ $prepared_student['wpuserid'] ] = $prepared_student;
+            }
+
+            if ( '' !== $prepared_student['uniquestudentid'] ) {
+                $students_by_unique[ $prepared_student['uniquestudentid'] ] = $prepared_student;
+            }
+        }
+
+        $registered_students = array();
+        $seen                = array();
+
+        foreach ( $history_rows as $history_row ) {
+            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
+
+            if ( isset( $seen[ $student_key ] ) ) {
+                continue;
+            }
+
+            $student = array();
+
+            if ( $wp_user_id > 0 && isset( $students_by_wpid[ $wp_user_id ] ) ) {
+                $student = $students_by_wpid[ $wp_user_id ];
+            } elseif ( '' !== $unique_id && isset( $students_by_unique[ $unique_id ] ) ) {
+                $student = $students_by_unique[ $unique_id ];
+            }
+
+            if ( empty( $student ) ) {
+                continue;
+            }
+
+            $seen[ $student_key ] = true;
+            $registered_students[] = $student;
+        }
+
+        return $registered_students;
     }
 
     private function decode_class_address_field( $value ) {

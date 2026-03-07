@@ -1317,3 +1317,23 @@
     width: 100%;
     margin-top: 10px;
 }
+
+
+.teqcidb-class-registered-students {
+    margin-top: 16px;
+    border-top: 1px solid #dcdcde;
+    padding-top: 14px;
+}
+
+.teqcidb-class-registered-students__title {
+    margin: 0 0 10px;
+}
+
+.teqcidb-class-registered-students__table-wrap {
+    overflow-x: auto;
+}
+
+.teqcidb-class-registered-students__table th,
+.teqcidb-class-registered-students__table td {
+    white-space: nowrap;
+}

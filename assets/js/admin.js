@@ -3239,6 +3239,52 @@ jQuery(document).ready(function($){
             $container.append($wrapper);
         }
 
+
+        function buildClassRegisteredStudentsSection(entity){
+            var students = entity && Array.isArray(entity.registered_students) ? entity.registered_students : [];
+            var $section = $('<section/>', { 'class': 'teqcidb-class-registered-students' });
+            $section.append($('<h4/>', { 'class': 'teqcidb-class-registered-students__title' }).text(teqcidbAdmin.classRegisteredStudentsHeading || 'Registered Students'));
+
+            if (!students.length){
+                $section.append($('<p/>', { 'class': 'description teqcidb-class-registered-students__empty' }).text(teqcidbAdmin.classRegisteredStudentsEmpty || 'No students are currently associated with this class.'));
+                return $section;
+            }
+
+            var columns = [
+                { key: 'first_name', label: teqcidbAdmin.studentFirstNameLabel || 'First Name' },
+                { key: 'last_name', label: teqcidbAdmin.studentLastNameLabel || 'Last Name' },
+                { key: 'company', label: teqcidbAdmin.studentCompanyLabel || 'Company' },
+                { key: 'email', label: teqcidbAdmin.studentEmailLabel || 'Email' },
+                { key: 'phone_cell', label: teqcidbAdmin.studentPhoneCellLabel || 'Phone (cell)' },
+                { key: 'phone_office', label: teqcidbAdmin.studentPhoneOfficeLabel || 'Phone (office)' }
+            ];
+
+            var $tableWrap = $('<div/>', { 'class': 'teqcidb-class-registered-students__table-wrap' });
+            var $table = $('<table/>', { 'class': 'wp-list-table widefat striped teqcidb-class-registered-students__table' });
+            var $theadRow = $('<tr/>');
+            columns.forEach(function(column){
+                $theadRow.append($('<th/>', { scope: 'col' }).text(column.label));
+            });
+
+            var $thead = $('<thead/>').append($theadRow);
+            var $tbody = $('<tbody/>');
+
+            students.forEach(function(student){
+                var $row = $('<tr/>');
+                columns.forEach(function(column){
+                    var value = student && Object.prototype.hasOwnProperty.call(student, column.key) ? student[column.key] : '';
+                    $row.append($('<td/>').text(classFormatValue(value)));
+                });
+                $tbody.append($row);
+            });
+
+            $table.append($thead).append($tbody);
+            $tableWrap.append($table);
+            $section.append($tableWrap);
+
+            return $section;
+        }
+
         function buildClassForm(entity){
             var entityId = entity && entity.id ? entity.id : 0;
             var $form = $('<form/>', { 'class': 'teqcidb-class-edit-form', 'data-entity-id': entityId });
@@ -3262,6 +3308,7 @@ jQuery(document).ready(function($){
             $feedbackArea.append($spinner).append($feedback);
             $actions.append($button).append($feedbackArea);
             $form.append($actions);
+            $form.append(buildClassRegisteredStudentsSection(entity));
 
             return $form;
         }

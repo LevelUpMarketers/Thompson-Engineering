@@ -62,6 +62,9 @@
     var slideProgressState = { isSaving: false, hasPending: false };
     var slideProgressDirty = false;
     var slideLastSavedHash = '';
+    var slideCooldownUnlockByIndex = {};
+    var preloadedSlideUrls = {};
+    var preloadInFlight = {};
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -140,7 +143,7 @@
         if (descriptionEl) {
             descriptionEl.innerHTML = showSlidesCopy
                 ? t('refresherSlidesIntro', 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.')
-                : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Good luck!');
+                : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!');
         }
     }
 
@@ -274,6 +277,15 @@
         }).join('');
     }
 
+    function isSlideViewedAtIndex(index){
+        if (index < 0 || index >= slides.length || !slides[index]) {
+            return false;
+        }
+
+        var viewedKey = String(slides[index].id || index);
+        return !!slideViewedMap[viewedKey];
+    }
+
     function markCurrentSlideAsViewed(){
         if (!slides[slideIndex]) {
             return;
@@ -292,24 +304,80 @@
         }
     }
 
-    function clearNextSlideCooldown(){
+    function clearNextSlideCooldown(index){
+        var targetIndex = typeof index === 'number' ? index : slideIndex;
+        delete slideCooldownUnlockByIndex[String(targetIndex)];
         nextSlideUnlockedAt = 0;
         clearSlideCooldownTimer();
     }
 
-    function setNextSlideCooldown(){
+    function setNextSlideCooldown(index){
+        var cooldownIndex = typeof index === 'number' ? index : slideIndex;
+        var cooldownKey = String(cooldownIndex);
+
         clearSlideCooldownTimer();
-        nextSlideUnlockedAt = Date.now() + slideAdvanceCooldownMs;
+        slideCooldownUnlockByIndex[cooldownKey] = Date.now() + slideAdvanceCooldownMs;
+        nextSlideUnlockedAt = slideCooldownUnlockByIndex[cooldownKey];
         slideCooldownTimer = setTimeout(function(){
             slideCooldownTimer = null;
             if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
                 renderSlides();
             }
-        }, slideAdvanceCooldownMs);
+        }, Math.max(0, nextSlideUnlockedAt - Date.now()));
+    }
+
+    function syncCurrentSlideCooldown(){
+        var cooldownKey = String(slideIndex);
+        var unlockAt = parseInt(slideCooldownUnlockByIndex[cooldownKey] || 0, 10) || 0;
+
+        clearSlideCooldownTimer();
+
+        if (!unlockAt || unlockAt <= Date.now()) {
+            delete slideCooldownUnlockByIndex[cooldownKey];
+            nextSlideUnlockedAt = 0;
+            return;
+        }
+
+        nextSlideUnlockedAt = unlockAt;
+        slideCooldownTimer = setTimeout(function(){
+            slideCooldownTimer = null;
+            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
+                renderSlides();
+            }
+        }, Math.max(0, unlockAt - Date.now()));
+    }
+
+    // Preloading is cache-warm only and must not affect slide progression, cooldown timing, or persistence.
+    function preloadSlideAtIndex(index){
+        if (index < 0 || index >= slides.length || !slides[index]) {
+            return;
+        }
+
+        var slideUrl = String(slides[index].url || '');
+        if (!slideUrl || preloadedSlideUrls[slideUrl] || preloadInFlight[slideUrl]) {
+            return;
+        }
+
+        var img = new Image();
+        preloadInFlight[slideUrl] = true;
+        img.onload = function(){
+            delete preloadInFlight[slideUrl];
+            preloadedSlideUrls[slideUrl] = true;
+        };
+        img.onerror = function(){
+            delete preloadInFlight[slideUrl];
+        };
+        img.src = slideUrl;
+    }
+
+    function preloadUpcomingSlides(baseIndex){
+        preloadSlideAtIndex(baseIndex + 1);
+        preloadSlideAtIndex(baseIndex + 2);
     }
 
     function renderSlides(){
         updateRefresherSectionCopy(true);
+        syncCurrentSlideCooldown();
         var currentSlide = slides[slideIndex] || {};
         var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
         var isFirst = slideIndex <= 0;
@@ -348,7 +416,6 @@
                     return;
                 }
 
-                clearNextSlideCooldown();
                 slideIndex -= 1;
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();
@@ -370,11 +437,17 @@
                     return;
                 }
 
-                setNextSlideCooldown();
-                slideIndex += 1;
+                var targetSlideIndex = slideIndex + 1;
+
+                if (!isSlideViewedAtIndex(targetSlideIndex)) {
+                    setNextSlideCooldown(targetSlideIndex);
+                }
+
+                slideIndex = targetSlideIndex;
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();
                 saveSlideProgress({ reason: 'slide_next' });
+                preloadUpcomingSlides(slideIndex);
                 renderSlides();
             });
         }
@@ -447,7 +520,7 @@
                 passed: runtime.attempt && runtime.attempt.status === 0,
                 score: runtime.attempt && typeof runtime.attempt.score === 'number' ? runtime.attempt.score : 0,
                 passThreshold: runtime.quiz.passThreshold || 75,
-                incorrectDetails: []
+                incorrectDetails: (runtime.attempt && Array.isArray(runtime.attempt.incorrectDetails)) ? runtime.attempt.incorrectDetails : []
             };
         }
 
@@ -458,10 +531,24 @@
         var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
 
         if (isSubmitted && resultData) {
+            var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
+            var hideIncorrectDetails = !resultData.passed;
+            var dashboardUrl = String(runtime.dashboardCertificatesUrl || '/my-qci-dashboard/?tab=certificates-dates');
+            var passedMessage = '';
+
+            if (showInitialPassedMessage) {
+                passedMessage = '<p>' +
+                    esc(t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you\'ve passed this class! Please ')) +
+                    '<a href="' + esc(dashboardUrl) + '">' + esc(t('initialPassedMessageLinkText', 'visit your QCI Dashboard')) + '</a>' +
+                    esc(t('initialPassedMessageAfterLink', ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.')) +
+                '</p>';
+            }
+
             root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
                 '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
-                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s%% (Required: %2$s%%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
-                buildIncorrectHtml(resultData.incorrectDetails || []) +
+                passedMessage +
+                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
+                (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
             '</div>';
             return;
         }
@@ -574,6 +661,27 @@
         });
     }
 
+    function mapChoiceValuesToLabels(values, choices){
+        if (!Array.isArray(values) || !values.length) {
+            return [];
+        }
+
+        var labelMap = {};
+        (choices || []).forEach(function(choice){
+            if (!choice || typeof choice.value === 'undefined') {
+                return;
+            }
+            labelMap[String(choice.value)] = String(choice.label || choice.value || '');
+        });
+
+        return values.map(function(value){
+            var key = String(value || '');
+            return labelMap[key] || key;
+        }).filter(function(label){
+            return !!label;
+        });
+    }
+
     function buildIncorrectHtml(incorrect){
         if (!incorrect.length) {
             return '';
@@ -583,10 +691,13 @@
             var choices = (item.choices || []).map(function(choice){
                 return '<li>' + esc(choice.label) + '</li>';
             }).join('');
+            var selectedLabels = mapChoiceValuesToLabels(item.selected || [], item.choices || []);
+            var correctLabels = mapChoiceValuesToLabels(item.correctSelections || [], item.choices || []);
+
             return '<article class="teqcidb-class-quiz__incorrect-item">' +
                 '<h4>' + esc(item.prompt || '') + '</h4>' +
-                '<p><strong>' + esc(t('yourAnswer', 'Your answer:')) + '</strong> ' + esc((item.selected || []).join(', ') || t('noAnswer', 'No answer')) + '</p>' +
-                '<p><strong>' + esc(t('correctAnswer', 'Correct answer:')) + '</strong> ' + esc((item.correctSelections || []).join(', ')) + '</p>' +
+                '<p><strong>' + esc(t('yourAnswer', 'Your answer:')) + '</strong> ' + esc(selectedLabels.join(', ') || t('noAnswer', 'No answer')) + '</p>' +
+                '<p><strong>' + esc(t('correctAnswer', 'Correct answer:')) + '</strong> ' + esc(correctLabels.join(', ')) + '</p>' +
                 '<ul>' + choices + '</ul>' +
             '</article>';
         }).join('');
@@ -852,6 +963,7 @@
         }
 
         markCurrentSlideAsViewed();
+        preloadUpcomingSlides(slideIndex);
         renderSlides();
         return;
     }
