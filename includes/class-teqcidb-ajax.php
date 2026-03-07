@@ -376,7 +376,7 @@ class TEQCIDB_Ajax {
             echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html( $quiz_section_title ) . '</h2>';
 
             if ( 'initial' === $class_type ) {
-                $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is considered passing. Anything below a 75% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Exam attempt. Good luck!', 'teqcidb' );
+                $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is passing. Anything below 75% will be considered failing. If you fail, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register For A Class</a> page to register & pay for another upcoming Initial Class. For questions, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a>. Good luck!', 'teqcidb' );
             } elseif ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
                 $quiz_intro = __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
