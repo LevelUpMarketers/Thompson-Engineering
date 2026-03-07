@@ -538,7 +538,7 @@
 
             if (showInitialPassedMessage) {
                 passedMessage = '<p>' +
-                    esc(t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you've passed this class! Please ')) +
+                    esc(t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you\'ve passed this class! Please ')) +
                     '<a href="' + esc(dashboardUrl) + '">' + esc(t('initialPassedMessageLinkText', 'visit your QCI Dashboard')) + '</a>' +
                     esc(t('initialPassedMessageAfterLink', ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.')) +
                 '</p>';
