@@ -532,7 +532,7 @@
 
         if (isSubmitted && resultData) {
             var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
-            var hideIncorrectDetails = runtime.quiz.classType === 'initial' && !resultData.passed;
+            var hideIncorrectDetails = !resultData.passed;
             var dashboardUrl = String(runtime.dashboardCertificatesUrl || '/my-qci-dashboard/?tab=certificates-dates');
             var passedMessage = '';
 
