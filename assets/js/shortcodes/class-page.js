@@ -62,6 +62,8 @@
     var slideProgressState = { isSaving: false, hasPending: false };
     var slideProgressDirty = false;
     var slideLastSavedHash = '';
+    var preloadedSlideUrls = {};
+    var preloadInFlight = {};
     var metrics = {
         saveAttempts: 0,
         saveSuccess: 0,
@@ -308,6 +310,34 @@
         }, slideAdvanceCooldownMs);
     }
 
+    // Preloading is cache-warm only and must not affect slide progression, cooldown timing, or persistence.
+    function preloadSlideAtIndex(index){
+        if (index < 0 || index >= slides.length || !slides[index]) {
+            return;
+        }
+
+        var slideUrl = String(slides[index].url || '');
+        if (!slideUrl || preloadedSlideUrls[slideUrl] || preloadInFlight[slideUrl]) {
+            return;
+        }
+
+        var img = new Image();
+        preloadInFlight[slideUrl] = true;
+        img.onload = function(){
+            delete preloadInFlight[slideUrl];
+            preloadedSlideUrls[slideUrl] = true;
+        };
+        img.onerror = function(){
+            delete preloadInFlight[slideUrl];
+        };
+        img.src = slideUrl;
+    }
+
+    function preloadUpcomingSlides(baseIndex){
+        preloadSlideAtIndex(baseIndex + 1);
+        preloadSlideAtIndex(baseIndex + 2);
+    }
+
     function renderSlides(){
         updateRefresherSectionCopy(true);
         var currentSlide = slides[slideIndex] || {};
@@ -375,6 +405,7 @@
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();
                 saveSlideProgress({ reason: 'slide_next' });
+                preloadUpcomingSlides(slideIndex);
                 renderSlides();
             });
         }
@@ -852,6 +883,7 @@
         }
 
         markCurrentSlideAsViewed();
+        preloadUpcomingSlides(slideIndex);
         renderSlides();
         return;
     }

@@ -360,3 +360,5 @@
 354. 2026-03-05: Added dynamic refresher quiz-panel copy switching so students in slide-gate mode see 'Refresher Class Slides' + slides instructions, and the section automatically switches back to 'Refresher Quiz' + quiz pass/fail instructions once slides are complete or on immediate quiz resume.
 355. 2026-03-05: Updated refresher quiz-state section description copy to keep telephone/email as clickable links (tel and mailto) in both server-rendered and slide-to-quiz dynamic client transitions.
 356. 2026-03-05: Fixed quiz resume-notice logic so 'We restored your previous progress' only appears when runtime load actually includes pre-existing in-progress quiz answers/index, preventing false-positive notices on brand-new attempts after the first Next Question click.
+
+357. 2026-03-07: Added lightweight refresher slide image preloading that opportunistically warms upcoming slide URLs on restore and after Next click, while explicitly leaving slide cooldown timing and slide progress-save behavior unchanged.
