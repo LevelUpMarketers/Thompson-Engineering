@@ -369,3 +369,4 @@
 362. 2026-03-07: Fixed a class-page JS syntax regression in the Initial passed-result fallback copy by escaping an apostrophe in the inline string, resolving the browser console parse error near class-page.js line 541.
 363. 2026-03-07: Restored persisted Initial passed-result review details on return visits by hydrating attempt `incorrectDetails` from stored quiz answers_json incorrect_details payload in runtime and reusing that data in the submitted-result render path when loading an already-submitted attempt.
 364. 2026-03-07: Updated Initial class-page QCI Exam intro copy to direct failed students to the Register For A Class page for re-registration/payment and retained contact links with revised pass/fail threshold wording.
+365. 2026-03-07: Updated Refresher class-page quiz intro copy to note the one-additional-attempt limit and added Register for a Class re-registration/pay guidance when both refresher attempts are failed.
