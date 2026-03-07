@@ -25,7 +25,8 @@ class TEQCIDB_Activator {
         $attempts_table  = $wpdb->prefix . 'teqcidb_quiz_attempts';
         $answers_table      = $wpdb->prefix . 'teqcidb_quiz_answers';
         $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
-        $quiz_slides_table  = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $quiz_slides_table   = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $slide_progress_table = $wpdb->prefix . 'teqcidb_slide_progress';
 
         $sql_main = "CREATE TABLE $main_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -239,6 +240,23 @@ class TEQCIDB_Activator {
             KEY quiz_order (quiz_id, slide_order)
         ) $charset_collate;";
 
+        $sql_slide_progress = "CREATE TABLE $slide_progress_table (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            quiz_id bigint(20) unsigned NOT NULL,
+            class_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            attempt_token varchar(100) DEFAULT '',
+            current_slide_index int(11) unsigned NOT NULL DEFAULT 0,
+            max_slide_index_viewed int(11) unsigned NOT NULL DEFAULT 0,
+            slides_total int(11) unsigned NOT NULL DEFAULT 0,
+            completed tinyint(1) NOT NULL DEFAULT 0,
+            updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY quiz_class_user (quiz_id, class_id, user_id),
+            KEY class_user (class_id, user_id),
+            KEY quiz_id (quiz_id)
+        ) $charset_collate;";
+
         dbDelta( $sql_main );
         dbDelta( $sql_settings );
         dbDelta( $sql_content_log );
@@ -252,6 +270,7 @@ class TEQCIDB_Activator {
         dbDelta( $sql_quiz_answers );
         dbDelta( $sql_quiz_answer_items );
         dbDelta( $sql_quiz_slides );
+        dbDelta( $sql_slide_progress );
 
         $legacy_quiz_rows = $wpdb->get_results( "SELECT id, class_id FROM $quizzes_table", ARRAY_A );
 
