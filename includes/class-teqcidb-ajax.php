@@ -1528,6 +1528,10 @@ class TEQCIDB_Ajax {
             array( '%d' )
         );
 
+        if ( $passed && 'initial' === strtolower( sanitize_key( $class_type ) ) ) {
+            $this->apply_initial_exam_pass_updates( $user_id, $class_id );
+        }
+
         return array(
             'attempt_id'        => $attempt_id,
             'score'             => $score,
@@ -1538,6 +1542,174 @@ class TEQCIDB_Ajax {
             'message'           => __( 'Quiz submitted.', 'teqcidb' ),
         );
     }
+
+    private function apply_initial_exam_pass_updates( $user_id, $class_id ) {
+        global $wpdb;
+
+        $user_id           = absint( $user_id );
+        $class_id          = absint( $class_id );
+        $students_table    = $wpdb->prefix . 'teqcidb_students';
+        $classes_table     = $wpdb->prefix . 'teqcidb_classes';
+        $studenthistory_table = $wpdb->prefix . 'teqcidb_studenthistory';
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, uniquestudentid, qcinumber, expiration_date, initial_training_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_row ) || empty( $student_row['id'] ) ) {
+            return;
+        }
+
+        $student_id = absint( $student_row['id'] );
+        $today      = current_time( 'Y-m-d' );
+        $student_update = array();
+        $student_formats = array();
+
+        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+
+        if ( '' === $existing_qci_number ) {
+            $student_update['qcinumber'] = $this->generate_next_qci_number();
+            $student_formats[]           = '%s';
+        }
+
+        $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
+        $expiration_source   = $this->parse_student_date_value( $existing_expiration );
+
+        if ( ! $expiration_source ) {
+            $expiration_source = $this->parse_student_date_value( $today );
+        }
+
+        if ( $expiration_source ) {
+            $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
+            $student_formats[]                 = '%s';
+        }
+
+        $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
+
+        if ( '' === $existing_initial_training_date ) {
+            $student_update['initial_training_date'] = $today;
+            $student_formats[]                       = '%s';
+        }
+
+        if ( ! empty( $student_update ) ) {
+            $wpdb->update(
+                $students_table,
+                $student_update,
+                array( 'id' => $student_id ),
+                $student_formats,
+                array( '%d' )
+            );
+        }
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return;
+        }
+
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $unique_student_id = isset( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '';
+
+        $history_id = 0;
+
+        if ( '' !== $unique_class_id ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $unique_class_id
+                )
+            );
+
+            if ( $history_id <= 0 && '' !== $unique_student_id ) {
+                $history_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        $unique_student_id,
+                        $unique_class_id
+                    )
+                );
+            }
+        }
+
+        if ( $history_id <= 0 && '' !== $class_name ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $class_name
+                )
+            );
+        }
+
+        if ( $history_id > 0 ) {
+            $wpdb->update(
+                $studenthistory_table,
+                array(
+                    'outcome'       => 'Passed',
+                    'attended'      => 'Yes',
+                    'adminapproved' => 'Yes',
+                ),
+                array( 'id' => $history_id ),
+                array( '%s', '%s', '%s' ),
+                array( '%d' )
+            );
+        }
+    }
+
+    private function generate_next_qci_number() {
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $qci_values     = $wpdb->get_col( "SELECT qcinumber FROM $students_table WHERE qcinumber IS NOT NULL AND qcinumber <> ''" );
+        $max_numeric    = 0;
+
+        if ( is_array( $qci_values ) ) {
+            foreach ( $qci_values as $qci_value ) {
+                if ( ! is_scalar( $qci_value ) ) {
+                    continue;
+                }
+
+                if ( preg_match( '/^T(\d{1,})/i', trim( (string) $qci_value ), $matches ) ) {
+                    $max_numeric = max( $max_numeric, absint( $matches[1] ) );
+                }
+            }
+        }
+
+        return 'T' . str_pad( (string) ( $max_numeric + 1 ), 4, '0', STR_PAD_LEFT );
+    }
+
+    private function parse_student_date_value( $value ) {
+        $normalized = trim( (string) $value );
+
+        if ( '' === $normalized ) {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat( 'Y-m-d', $normalized );
+
+        if ( $date instanceof DateTimeImmutable && $date->format( 'Y-m-d' ) === $normalized ) {
+            return $date;
+        }
+
+        return null;
+    }
+
 
     private function evaluate_runtime_answer( $question_type, $choices_json, $selected_values ) {
         $question_type  = sanitize_key( (string) $question_type );
