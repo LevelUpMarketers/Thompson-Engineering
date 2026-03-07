@@ -1528,8 +1528,12 @@ class TEQCIDB_Ajax {
             array( '%d' )
         );
 
-        if ( $passed && 'initial' === strtolower( sanitize_key( $class_type ) ) ) {
-            $this->apply_initial_exam_pass_updates( $user_id, $class_id );
+        if ( $passed ) {
+            $normalized_class_type = strtolower( sanitize_key( $class_type ) );
+
+            if ( in_array( $normalized_class_type, array( 'initial', 'refresher' ), true ) ) {
+                $this->apply_quiz_pass_updates( $user_id, $class_id, $normalized_class_type );
+            }
         }
 
         return array(
@@ -1543,11 +1547,12 @@ class TEQCIDB_Ajax {
         );
     }
 
-    private function apply_initial_exam_pass_updates( $user_id, $class_id ) {
+    private function apply_quiz_pass_updates( $user_id, $class_id, $class_type ) {
         global $wpdb;
 
         $user_id           = absint( $user_id );
         $class_id          = absint( $class_id );
+        $class_type        = sanitize_key( (string) $class_type );
         $students_table    = $wpdb->prefix . 'teqcidb_students';
         $classes_table     = $wpdb->prefix . 'teqcidb_classes';
         $studenthistory_table = $wpdb->prefix . 'teqcidb_studenthistory';
@@ -1558,7 +1563,7 @@ class TEQCIDB_Ajax {
 
         $student_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, uniquestudentid, qcinumber, expiration_date, initial_training_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                "SELECT id, uniquestudentid, qcinumber, expiration_date, initial_training_date, last_refresher_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
                 $user_id
             ),
             ARRAY_A
@@ -1592,11 +1597,18 @@ class TEQCIDB_Ajax {
             $student_formats[]                 = '%s';
         }
 
-        $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
+        if ( 'initial' === $class_type ) {
+            $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
 
-        if ( '' === $existing_initial_training_date ) {
-            $student_update['initial_training_date'] = $today;
-            $student_formats[]                       = '%s';
+            if ( '' === $existing_initial_training_date ) {
+                $student_update['initial_training_date'] = $today;
+                $student_formats[]                       = '%s';
+            }
+        }
+
+        if ( 'refresher' === $class_type ) {
+            $student_update['last_refresher_date'] = $today;
+            $student_formats[]                     = '%s';
         }
 
         if ( ! empty( $student_update ) ) {
@@ -7428,6 +7440,7 @@ class TEQCIDB_Ajax {
         $entity['coursestudentsrestricted'] = $this->format_class_student_list_for_response( isset( $entity['coursestudentsrestricted'] ) ? $entity['coursestudentsrestricted'] : '' );
         $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
         $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
+        $entity['registered_students']      = $this->get_registered_students_for_class( $entity );
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),
@@ -7453,6 +7466,152 @@ class TEQCIDB_Ajax {
         $entity['name']          = $entity['placeholder_1'];
 
         return $entity;
+    }
+
+
+    private function get_registered_students_for_class( array $entity ) {
+        global $wpdb;
+
+        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $unique_class_id = isset( $entity['uniqueclassid'] ) ? sanitize_text_field( (string) $entity['uniqueclassid'] ) : '';
+        $class_name      = isset( $entity['classname'] ) ? sanitize_text_field( (string) $entity['classname'] ) : '';
+
+        $history_rows = array();
+
+        if ( '' !== $unique_class_id ) {
+            $history_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE uniqueclassid = %s ORDER BY id ASC",
+                    $unique_class_id
+                ),
+                ARRAY_A
+            );
+        }
+
+        if ( empty( $history_rows ) && '' !== $class_name ) {
+            $history_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE classname = %s ORDER BY id ASC",
+                    $class_name
+                ),
+                ARRAY_A
+            );
+        }
+
+        if ( ! is_array( $history_rows ) || empty( $history_rows ) ) {
+            return array();
+        }
+
+        $wp_user_ids = array();
+        $unique_ids  = array();
+
+        foreach ( $history_rows as $history_row ) {
+            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+
+            if ( $wp_user_id > 0 ) {
+                $wp_user_ids[] = $wp_user_id;
+            }
+
+            if ( '' !== $unique_id ) {
+                $unique_ids[] = $unique_id;
+            }
+        }
+
+        $wp_user_ids = array_values( array_unique( $wp_user_ids ) );
+        $unique_ids  = array_values( array_unique( $unique_ids ) );
+
+        if ( empty( $wp_user_ids ) && empty( $unique_ids ) ) {
+            return array();
+        }
+
+        $where_clauses = array();
+        $query_params  = array();
+
+        if ( ! empty( $wp_user_ids ) ) {
+            $where_clauses[] = 'wpuserid IN (' . implode( ', ', array_fill( 0, count( $wp_user_ids ), '%d' ) ) . ')';
+            $query_params    = array_merge( $query_params, $wp_user_ids );
+        }
+
+        if ( ! empty( $unique_ids ) ) {
+            $where_clauses[] = 'uniquestudentid IN (' . implode( ', ', array_fill( 0, count( $unique_ids ), '%s' ) ) . ')';
+            $query_params    = array_merge( $query_params, $unique_ids );
+        }
+
+        $student_query = "SELECT * FROM $students_table";
+
+        if ( ! empty( $where_clauses ) ) {
+            $student_query .= ' WHERE ' . implode( ' OR ', $where_clauses );
+        }
+
+        $student_rows = $wpdb->get_results(
+            $wpdb->prepare( $student_query, $query_params ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_rows ) || empty( $student_rows ) ) {
+            return array();
+        }
+
+        $students_by_wpid   = array();
+        $students_by_unique = array();
+
+        foreach ( $student_rows as $student_row ) {
+            if ( ! is_array( $student_row ) ) {
+                continue;
+            }
+
+            $prepared = $this->prepare_student_entity( $student_row );
+            $prepared_student = array(
+                'wpuserid'      => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
+                'uniquestudentid' => isset( $prepared['uniquestudentid'] ) ? sanitize_text_field( (string) $prepared['uniquestudentid'] ) : '',
+                'first_name'    => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
+                'last_name'     => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
+                'company'       => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
+                'email'         => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
+                'phone_cell'    => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
+                'phone_office'  => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+            );
+
+            if ( $prepared_student['wpuserid'] > 0 ) {
+                $students_by_wpid[ $prepared_student['wpuserid'] ] = $prepared_student;
+            }
+
+            if ( '' !== $prepared_student['uniquestudentid'] ) {
+                $students_by_unique[ $prepared_student['uniquestudentid'] ] = $prepared_student;
+            }
+        }
+
+        $registered_students = array();
+        $seen                = array();
+
+        foreach ( $history_rows as $history_row ) {
+            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
+
+            if ( isset( $seen[ $student_key ] ) ) {
+                continue;
+            }
+
+            $student = array();
+
+            if ( $wp_user_id > 0 && isset( $students_by_wpid[ $wp_user_id ] ) ) {
+                $student = $students_by_wpid[ $wp_user_id ];
+            } elseif ( '' !== $unique_id && isset( $students_by_unique[ $unique_id ] ) ) {
+                $student = $students_by_unique[ $unique_id ];
+            }
+
+            if ( empty( $student ) ) {
+                continue;
+            }
+
+            $seen[ $student_key ] = true;
+            $registered_students[] = $student;
+        }
+
+        return $registered_students;
     }
 
     private function decode_class_address_field( $value ) {
