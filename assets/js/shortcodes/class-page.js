@@ -62,6 +62,7 @@
     var slideProgressState = { isSaving: false, hasPending: false };
     var slideProgressDirty = false;
     var slideLastSavedHash = '';
+    var slideCooldownUnlockByIndex = {};
     var preloadedSlideUrls = {};
     var preloadInFlight = {};
     var metrics = {
@@ -303,20 +304,47 @@
         }
     }
 
-    function clearNextSlideCooldown(){
+    function clearNextSlideCooldown(index){
+        var targetIndex = typeof index === 'number' ? index : slideIndex;
+        delete slideCooldownUnlockByIndex[String(targetIndex)];
         nextSlideUnlockedAt = 0;
         clearSlideCooldownTimer();
     }
 
-    function setNextSlideCooldown(){
+    function setNextSlideCooldown(index){
+        var cooldownIndex = typeof index === 'number' ? index : slideIndex;
+        var cooldownKey = String(cooldownIndex);
+
         clearSlideCooldownTimer();
-        nextSlideUnlockedAt = Date.now() + slideAdvanceCooldownMs;
+        slideCooldownUnlockByIndex[cooldownKey] = Date.now() + slideAdvanceCooldownMs;
+        nextSlideUnlockedAt = slideCooldownUnlockByIndex[cooldownKey];
         slideCooldownTimer = setTimeout(function(){
             slideCooldownTimer = null;
             if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
                 renderSlides();
             }
-        }, slideAdvanceCooldownMs);
+        }, Math.max(0, nextSlideUnlockedAt - Date.now()));
+    }
+
+    function syncCurrentSlideCooldown(){
+        var cooldownKey = String(slideIndex);
+        var unlockAt = parseInt(slideCooldownUnlockByIndex[cooldownKey] || 0, 10) || 0;
+
+        clearSlideCooldownTimer();
+
+        if (!unlockAt || unlockAt <= Date.now()) {
+            delete slideCooldownUnlockByIndex[cooldownKey];
+            nextSlideUnlockedAt = 0;
+            return;
+        }
+
+        nextSlideUnlockedAt = unlockAt;
+        slideCooldownTimer = setTimeout(function(){
+            slideCooldownTimer = null;
+            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
+                renderSlides();
+            }
+        }, Math.max(0, unlockAt - Date.now()));
     }
 
     // Preloading is cache-warm only and must not affect slide progression, cooldown timing, or persistence.
@@ -349,6 +377,7 @@
 
     function renderSlides(){
         updateRefresherSectionCopy(true);
+        syncCurrentSlideCooldown();
         var currentSlide = slides[slideIndex] || {};
         var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
         var isFirst = slideIndex <= 0;
@@ -387,7 +416,6 @@
                     return;
                 }
 
-                clearNextSlideCooldown();
                 slideIndex -= 1;
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();
@@ -409,12 +437,13 @@
                     return;
                 }
 
-                if (isSlideViewedAtIndex(slideIndex + 1)) {
-                    clearNextSlideCooldown();
-                } else {
-                    setNextSlideCooldown();
+                var targetSlideIndex = slideIndex + 1;
+
+                if (!isSlideViewedAtIndex(targetSlideIndex)) {
+                    setNextSlideCooldown(targetSlideIndex);
                 }
-                slideIndex += 1;
+
+                slideIndex = targetSlideIndex;
                 markCurrentSlideAsViewed();
                 markSlideProgressDirty();
                 saveSlideProgress({ reason: 'slide_next' });
