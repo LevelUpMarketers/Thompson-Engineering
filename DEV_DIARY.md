@@ -362,3 +362,4 @@
 356. 2026-03-05: Fixed quiz resume-notice logic so 'We restored your previous progress' only appears when runtime load actually includes pre-existing in-progress quiz answers/index, preventing false-positive notices on brand-new attempts after the first Next Question click.
 
 357. 2026-03-07: Added lightweight refresher slide image preloading that opportunistically warms upcoming slide URLs on restore and after Next click, while explicitly leaving slide cooldown timing and slide progress-save behavior unchanged.
+358. 2026-03-07: Updated refresher slide image presentation styling by constraining `.teqcidb-class-slides__image` to a centered max-width and adding a 560px minimum height to `.teqcidb-class-slides__image-wrap` for more consistent slide framing.
