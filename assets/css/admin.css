@@ -625,7 +625,6 @@
 }
 
 .teqcidb-communications--email-templates .teqcidb-accordion__cell--title {
-    display: block;
     gap: 0;
 }
 
@@ -637,8 +636,8 @@
 }
 
 .teqcidb-communications--email-templates .teqcidb-accordion__summary-row > .teqcidb-accordion__cell {
-    min-height: 50px !important;
-    height: 50px;
+    min-height: 80px !important;
+    height: 80px;
 }
 
 .teqcidb-communications--email-logs .teqcidb-email-log {
@@ -1336,4 +1335,24 @@
 .teqcidb-class-registered-students__table th,
 .teqcidb-class-registered-students__table td {
     white-space: nowrap;
+}
+
+
+.tablenav-paging-text {
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.tablenav .tablenav-pages .button,
+.tablenav .tablenav-pages .tablenav-pages-navspan {
+    display: inline-block;
+    vertical-align: baseline;
+    min-width: 30px;
+    min-height: 30px;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 16px;
+    line-height: 1.625;
+    text-align: center;
+    margin-left: 5px;
 }
