@@ -636,8 +636,8 @@
 }
 
 .teqcidb-communications--email-templates .teqcidb-accordion__summary-row > .teqcidb-accordion__cell {
-    min-height: 80px !important;
-    height: 80px;
+    min-height: 110px !important;
+    height: 110px;
 }
 
 .teqcidb-communications--email-logs .teqcidb-email-log {
