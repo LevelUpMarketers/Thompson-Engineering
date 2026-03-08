@@ -417,7 +417,7 @@ class TEQCIDB_Admin {
                 echo '<div class="teqcidb-token-group__buttons">';
 
                 foreach ( $group['tokens'] as $token ) {
-                    if ( empty( $token['value'] ) && ( empty( $token['open'] ) || empty( $token['close'] ) ) ) {
+                    if ( empty( $token['value'] ) && ( empty( $token['open'] ) || empty( $token['close'] ) ) && empty( $token['action'] ) ) {
                         continue;
                     }
 
@@ -432,6 +432,10 @@ class TEQCIDB_Admin {
 
                     if ( isset( $token['context'] ) ) {
                         $button_attrs .= ' data-token-context="' . esc_attr( $token['context'] ) . '"';
+                    }
+
+                    if ( isset( $token['action'] ) ) {
+                        $button_attrs .= ' data-token-action="' . esc_attr( $token['action'] ) . '"';
                     }
 
                     printf(
@@ -544,6 +548,12 @@ class TEQCIDB_Admin {
                     'context' => 'body',
                     'label'   => __( 'Bold', 'teqcidb' ),
                 ),
+                array(
+                    'value'   => '',
+                    'action'  => 'link',
+                    'context' => 'body',
+                    'label'   => __( 'Link', 'teqcidb' ),
+                ),
             ),
         );
 
@@ -595,10 +605,11 @@ class TEQCIDB_Admin {
                 continue;
             }
 
-            $has_value = isset( $token['value'] ) && '' !== (string) $token['value'];
-            $has_wrap  = isset( $token['open'] ) && isset( $token['close'] ) && '' !== (string) $token['open'] && '' !== (string) $token['close'];
+            $has_value  = isset( $token['value'] ) && '' !== (string) $token['value'];
+            $has_wrap   = isset( $token['open'] ) && isset( $token['close'] ) && '' !== (string) $token['open'] && '' !== (string) $token['close'];
+            $has_action = isset( $token['action'] ) && '' !== (string) $token['action'];
 
-            if ( ! $has_value && ! $has_wrap ) {
+            if ( ! $has_value && ! $has_wrap && ! $has_action ) {
                 continue;
             }
 
@@ -617,6 +628,10 @@ class TEQCIDB_Admin {
 
             if ( isset( $token['context'] ) ) {
                 $normalized_token['context'] = (string) $token['context'];
+            }
+
+            if ( isset( $token['action'] ) ) {
+                $normalized_token['action'] = (string) $token['action'];
             }
 
             $normalized_tokens[] = $normalized_token;
@@ -882,6 +897,9 @@ class TEQCIDB_Admin {
             'previewUnavailableMessage' => __( 'Add a student entry to generate a preview.', 'teqcidb' ),
             'testEmailRequired' => __( 'Enter an email address before sending a test.', 'teqcidb' ),
             'testEmailSuccess'  => __( 'Test email sent.', 'teqcidb' ),
+            'linkPromptLabel'   => __( 'Enter the full URL for this link.', 'teqcidb' ),
+            'linkSelectionRequired' => __( 'Highlight text in Email Body first, then click Link.', 'teqcidb' ),
+            'linkInvalidUrl'    => __( 'Please enter a valid URL.', 'teqcidb' ),
             'emailLogCleared'   => __( 'Email log cleared.', 'teqcidb' ),
             'emailLogError'     => __( 'Unable to clear the email log. Please try again.', 'teqcidb' ),
             'emailLogEmpty'     => __( 'No email activity has been recorded yet.', 'teqcidb' ),

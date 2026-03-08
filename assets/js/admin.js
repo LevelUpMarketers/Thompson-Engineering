@@ -4648,6 +4648,66 @@ jQuery(document).ready(function($){
         }
     }
 
+
+    function insertLinkIntoField($field){
+        if (!$field || !$field.length){
+            return;
+        }
+
+        var field = $field.get(0);
+
+        if (!field || typeof field.value !== 'string'){
+            return;
+        }
+
+        var start = field.selectionStart;
+        var end = field.selectionEnd;
+        var value = field.value;
+
+        if (typeof start !== 'number' || typeof end !== 'number' || start === end){
+            window.alert(linkSelectionRequired);
+
+            if (typeof field.focus === 'function'){
+                field.focus();
+            }
+
+            return;
+        }
+
+        var selectedText = value.slice(start, end);
+        var rawUrl = window.prompt(linkPromptLabel, 'https://');
+
+        if (rawUrl === null){
+            return;
+        }
+
+        var url = String(rawUrl).trim();
+
+        if (!url){
+            window.alert(linkInvalidUrl);
+            return;
+        }
+
+        if (!/^(https?:|mailto:|tel:)/i.test(url)){
+            url = 'https://' + url.replace(/^\/+/, '');
+        }
+
+        var sanitizedUrl = url.replace(/"/g, '&quot;');
+        var linkMarkup = '<a href="' + sanitizedUrl + '">' + selectedText + '</a>';
+
+        field.value = value.slice(0, start) + linkMarkup + value.slice(end);
+        var newPosition = start + linkMarkup.length;
+        field.selectionStart = newPosition;
+        field.selectionEnd = newPosition;
+
+        $field.trigger('input');
+        $field.trigger('change');
+
+        if (typeof field.focus === 'function'){
+            field.focus();
+        }
+    }
+
     $(document).on('focus click keyup', '.teqcidb-template-editor input[type="text"], .teqcidb-template-editor input[type="email"], .teqcidb-template-editor textarea', function(){
         $activeTokenTarget = $(this);
     });
@@ -4659,6 +4719,7 @@ jQuery(document).ready(function($){
         var token = $button.data('token');
         var tokenOpen = $button.data('tokenOpen');
         var tokenClose = $button.data('tokenClose');
+        var tokenAction = $button.data('tokenAction');
         var requiredContext = $button.data('tokenContext');
         var $target = resolveTokenTarget($button);
 
@@ -4669,6 +4730,11 @@ jQuery(document).ready(function($){
             if ($contextField.length){
                 $target = $contextField;
             }
+        }
+
+        if (tokenAction === 'link'){
+            insertLinkIntoField($target);
+            return;
         }
 
         if (tokenOpen && tokenClose){
@@ -4684,6 +4750,9 @@ jQuery(document).ready(function($){
     var previewUnavailableMessage = teqcidbAdmin.previewUnavailableMessage || '';
     var testEmailRequired = teqcidbAdmin.testEmailRequired || '';
     var testEmailSuccess = teqcidbAdmin.testEmailSuccess || '';
+    var linkPromptLabel = teqcidbAdmin.linkPromptLabel || 'Enter the full URL for this link.';
+    var linkSelectionRequired = teqcidbAdmin.linkSelectionRequired || 'Highlight text in Email Body first, then click Link.';
+    var linkInvalidUrl = teqcidbAdmin.linkInvalidUrl || 'Please enter a valid URL.';
     var previewEntityKeys = Object.keys(previewEntity);
     var previewHasEntity = previewEntityKeys.length > 0;
 
