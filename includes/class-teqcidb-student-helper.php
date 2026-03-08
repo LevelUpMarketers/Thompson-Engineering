@@ -114,10 +114,10 @@ class TEQCIDB_Student_Helper {
 
         $class_preview_data = array(
             'class_name'      => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
-            'class_type'      => isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '',
+            'class_type'      => self::format_class_type_for_token( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
             'class_date'      => self::format_date_for_token( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
             'class_time'      => self::format_time_for_token( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
-            'class_page'      => isset( $row['classurl'] ) ? esc_url_raw( (string) $row['classurl'] ) : '',
+            'class_page'      => self::format_class_page_url_for_token( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
             'class_team_link' => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
         );
 
@@ -236,6 +236,50 @@ class TEQCIDB_Student_Helper {
         }
 
         return '';
+    }
+
+    /**
+     * Format class type values for communications tokens.
+     *
+     * @param mixed $value Class type value.
+     *
+     * @return string
+     */
+    private static function format_class_type_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = sanitize_text_field( (string) $value );
+
+        return '' === $value ? '' : ucwords( strtolower( $value ) );
+    }
+
+    /**
+     * Format class page URLs for communications tokens.
+     *
+     * @param mixed $value Class page URL value.
+     *
+     * @return string
+     */
+    private static function format_class_page_url_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        $normalized_path = '/' . ltrim( $value, '/' );
+
+        return esc_url_raw( home_url( $normalized_path ) );
     }
 
     /**
