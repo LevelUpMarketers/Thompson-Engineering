@@ -30,14 +30,14 @@ class TEQCIDB_Student_Helper {
         $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
 
         if ( $found !== $table_name ) {
-            $preview_data = array();
+            $preview_data = self::get_latest_class_preview_data();
             return $preview_data;
         }
 
         $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id DESC LIMIT 1", ARRAY_A );
 
         if ( ! $row ) {
-            $preview_data = array();
+            $preview_data = self::get_latest_class_preview_data();
             return $preview_data;
         }
 
@@ -70,12 +70,58 @@ class TEQCIDB_Student_Helper {
         $prepared['student_email']         = isset( $prepared['email'] ) ? $prepared['email'] : ( isset( $prepared['placeholder_2'] ) ? $prepared['placeholder_2'] : '' );
         $prepared['student_company']       = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
         $prepared['student_phone_cell']    = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
-        $prepared['student_phone_office']  = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
-        $prepared['student_representative'] = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
+        $prepared['student_phone_office']         = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
+        $prepared['student_representative']        = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
+        $prepared['student_certification_expiration'] = self::format_date_for_token( isset( $prepared['expiration_date'] ) ? $prepared['expiration_date'] : '' );
+
+        $prepared = array_merge( $prepared, self::get_latest_class_preview_data() );
 
         $preview_data = $prepared;
 
         return $preview_data;
+    }
+
+
+    /**
+     * Retrieve the newest Class record prepared for template previews.
+     *
+     * @return array
+     */
+    public static function get_latest_class_preview_data() {
+        static $class_preview_data = null;
+
+        if ( null !== $class_preview_data ) {
+            return $class_preview_data;
+        }
+
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            $class_preview_data = array();
+            return $class_preview_data;
+        }
+
+        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id DESC LIMIT 1", ARRAY_A );
+
+        if ( ! $row ) {
+            $class_preview_data = array();
+            return $class_preview_data;
+        }
+
+        $class_preview_data = array(
+            'class_name'      => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+            'class_type'      => isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '',
+            'class_date'      => self::format_date_for_token( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+            'class_time'      => self::format_time_for_token( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+            'class_page'      => isset( $row['classurl'] ) ? esc_url_raw( (string) $row['classurl'] ) : '',
+            'class_team_link' => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+        );
+
+        return $class_preview_data;
     }
 
     /**
@@ -191,6 +237,53 @@ class TEQCIDB_Student_Helper {
 
         return '';
     }
+
+    /**
+     * Format date-like values for communications tokens.
+     *
+     * @param mixed $value Date value.
+     *
+     * @return string
+     */
+    private static function format_date_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        return $date ? $date->format( 'm-d-Y' ) : '';
+    }
+
+    /**
+     * Format time-like values for communications tokens.
+     *
+     * @param mixed $value Time value.
+     *
+     * @return string
+     */
+    private static function format_time_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '00:00:00' === $value || '00:00' === $value ) {
+            return '';
+        }
+
+        $time = date_create( $value );
+
+        return $time ? $time->format( 'g:i A' ) : '';
+    }
+
 
     private static function decode_list_field( $value ) {
         if ( is_array( $value ) ) {

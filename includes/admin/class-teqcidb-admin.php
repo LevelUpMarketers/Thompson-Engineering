@@ -466,6 +466,9 @@ class TEQCIDB_Admin {
             } elseif ( 'placeholder_4' === $key ) {
                 $token_value = '{student_phone_cell}';
                 $label       = __( 'Student Phone (Cell)', 'teqcidb' );
+            } elseif ( 'placeholder_5' === $key ) {
+                $token_value = '{student_certification_expiration}';
+                $label       = __( 'Certification Expiration', 'teqcidb' );
             }
 
             $token_group['tokens'][] = array(
@@ -489,6 +492,36 @@ class TEQCIDB_Admin {
             'label' => __( 'Student Phone (Office)', 'teqcidb' ),
         );
 
+        $class_token_group = array(
+            'title'  => __( 'Class Information', 'teqcidb' ),
+            'tokens' => array(
+                array(
+                    'value' => '{class_name}',
+                    'label' => __( 'Class Name', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_type}',
+                    'label' => __( 'Class Type', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_date}',
+                    'label' => __( 'Class Date', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_time}',
+                    'label' => __( 'Class Time', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_page}',
+                    'label' => __( 'Class Page', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_team_link}',
+                    'label' => __( 'Class Team Link', 'teqcidb' ),
+                ),
+            ),
+        );
+
         /**
          * Filter the token groups displayed for communications templates.
          *
@@ -500,7 +533,7 @@ class TEQCIDB_Admin {
          *                      a `title` and a `tokens` list where every token includes
          *                      `value` (the merge tag) and `label` (the admin-facing text).
          */
-        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group ) );
+        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $class_token_group ) );
 
         return array_map( array( $this, 'normalize_token_group' ), $groups );
     }
