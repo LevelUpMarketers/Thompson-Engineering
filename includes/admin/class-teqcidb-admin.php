@@ -417,15 +417,27 @@ class TEQCIDB_Admin {
                 echo '<div class="teqcidb-token-group__buttons">';
 
                 foreach ( $group['tokens'] as $token ) {
-                    if ( empty( $token['value'] ) ) {
+                    if ( empty( $token['value'] ) && ( empty( $token['open'] ) || empty( $token['close'] ) ) ) {
                         continue;
                     }
 
                     $label = isset( $token['label'] ) ? $token['label'] : $token['value'];
+                    $token_value = isset( $token['value'] ) ? $token['value'] : '';
+                    $button_attrs = '';
+
+                    if ( isset( $token['open'] ) && isset( $token['close'] ) ) {
+                        $button_attrs .= ' data-token-open="' . esc_attr( $token['open'] ) . '"';
+                        $button_attrs .= ' data-token-close="' . esc_attr( $token['close'] ) . '"';
+                    }
+
+                    if ( isset( $token['context'] ) ) {
+                        $button_attrs .= ' data-token-context="' . esc_attr( $token['context'] ) . '"';
+                    }
 
                     printf(
-                        '<button type="button" class="button button-secondary teqcidb-token-button" data-token="%1$s">%2$s</button>',
-                        esc_attr( $token['value'] ),
+                        '<button type="button" class="button button-secondary teqcidb-token-button" data-token="%1$s"%2$s>%3$s</button>',
+                        esc_attr( $token_value ),
+                        $button_attrs,
                         esc_html( $label )
                     );
                 }
@@ -522,6 +534,19 @@ class TEQCIDB_Admin {
             ),
         );
 
+        $formatting_token_group = array(
+            'title'  => __( 'Formatting', 'teqcidb' ),
+            'tokens' => array(
+                array(
+                    'value'   => '',
+                    'open'    => '<strong>',
+                    'close'   => '</strong>',
+                    'context' => 'body',
+                    'label'   => __( 'Bold', 'teqcidb' ),
+                ),
+            ),
+        );
+
         /**
          * Filter the token groups displayed for communications templates.
          *
@@ -533,7 +558,7 @@ class TEQCIDB_Admin {
          *                      a `title` and a `tokens` list where every token includes
          *                      `value` (the merge tag) and `label` (the admin-facing text).
          */
-        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $class_token_group ) );
+        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $class_token_group, $formatting_token_group ) );
 
         return array_map( array( $this, 'normalize_token_group' ), $groups );
     }
@@ -566,14 +591,35 @@ class TEQCIDB_Admin {
         $normalized_tokens = array();
 
         foreach ( $tokens as $token ) {
-            if ( ! is_array( $token ) || empty( $token['value'] ) ) {
+            if ( ! is_array( $token ) ) {
                 continue;
             }
 
-            $normalized_tokens[] = array(
-                'value' => (string) $token['value'],
-                'label' => isset( $token['label'] ) ? (string) $token['label'] : (string) $token['value'],
+            $has_value = isset( $token['value'] ) && '' !== (string) $token['value'];
+            $has_wrap  = isset( $token['open'] ) && isset( $token['close'] ) && '' !== (string) $token['open'] && '' !== (string) $token['close'];
+
+            if ( ! $has_value && ! $has_wrap ) {
+                continue;
+            }
+
+            $normalized_token = array(
+                'value' => isset( $token['value'] ) ? (string) $token['value'] : '',
+                'label' => isset( $token['label'] ) ? (string) $token['label'] : ( isset( $token['value'] ) ? (string) $token['value'] : '' ),
             );
+
+            if ( isset( $token['open'] ) ) {
+                $normalized_token['open'] = (string) $token['open'];
+            }
+
+            if ( isset( $token['close'] ) ) {
+                $normalized_token['close'] = (string) $token['close'];
+            }
+
+            if ( isset( $token['context'] ) ) {
+                $normalized_token['context'] = (string) $token['context'];
+            }
+
+            $normalized_tokens[] = $normalized_token;
         }
 
         return array(

@@ -4610,6 +4610,44 @@ jQuery(document).ready(function($){
         }
     }
 
+
+    function insertWrappedTokenIntoField($field, openToken, closeToken){
+        if (!$field || !$field.length || !openToken || !closeToken){
+            return;
+        }
+
+        var field = $field.get(0);
+
+        if (!field || typeof field.value !== 'string'){
+            return;
+        }
+
+        var start = field.selectionStart;
+        var end = field.selectionEnd;
+        var value = field.value;
+
+        if (typeof start !== 'number' || typeof end !== 'number'){
+            value += openToken + closeToken;
+            field.value = value;
+            var fallbackPosition = value.length - closeToken.length;
+            field.selectionStart = fallbackPosition;
+            field.selectionEnd = fallbackPosition;
+        } else {
+            var selectedText = value.slice(start, end);
+            field.value = value.slice(0, start) + openToken + selectedText + closeToken + value.slice(end);
+            var cursorPosition = start + openToken.length + selectedText.length;
+            field.selectionStart = cursorPosition;
+            field.selectionEnd = cursorPosition;
+        }
+
+        $field.trigger('input');
+        $field.trigger('change');
+
+        if (typeof field.focus === 'function'){
+            field.focus();
+        }
+    }
+
     $(document).on('focus click keyup', '.teqcidb-template-editor input[type="text"], .teqcidb-template-editor input[type="email"], .teqcidb-template-editor textarea', function(){
         $activeTokenTarget = $(this);
     });
@@ -4619,7 +4657,24 @@ jQuery(document).ready(function($){
 
         var $button = $(this);
         var token = $button.data('token');
+        var tokenOpen = $button.data('tokenOpen');
+        var tokenClose = $button.data('tokenClose');
+        var requiredContext = $button.data('tokenContext');
         var $target = resolveTokenTarget($button);
+
+        if (requiredContext && (!$target.length || $target.data('tokenContext') !== requiredContext)){
+            var $editor = $button.closest('.teqcidb-template-editor');
+            var $contextField = $editor.find('[data-token-context="' + requiredContext + '"]').first();
+
+            if ($contextField.length){
+                $target = $contextField;
+            }
+        }
+
+        if (tokenOpen && tokenClose){
+            insertWrappedTokenIntoField($target, tokenOpen, tokenClose);
+            return;
+        }
 
         insertTokenIntoField($target, token);
     });
