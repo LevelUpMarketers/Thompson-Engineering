@@ -448,6 +448,10 @@ class TEQCIDB_Admin {
         );
 
         foreach ( $labels as $key => $label ) {
+            if ( preg_match( '/^Placeholder\s+\d+$/i', (string) $label ) ) {
+                continue;
+            }
+
             $token_value = '{' . $key . '}';
 
             if ( 'placeholder_1' === $key ) {
