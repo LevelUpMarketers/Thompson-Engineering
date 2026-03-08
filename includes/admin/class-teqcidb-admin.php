@@ -684,45 +684,12 @@ class TEQCIDB_Admin {
         return array(
             array(
                 'id'       => 'teqcidb-email-welcome',
-                'title'    => __( 'Welcome Aboard', 'teqcidb' ),
+                'title'    => __( 'New Registration & Payment', 'teqcidb' ),
                 'tooltip'  => __( 'Sent after a customer signs up to introduce key onboarding steps.', 'teqcidb' ),
                 'meta'     => array(
-                    'trigger'            => __( 'New registration', 'teqcidb' ),
+                    'trigger'            => __( 'Individual Registration/Payment', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Onboarding', 'teqcidb' ),
-                ),
-                'content'  => __( 'Test text', 'teqcidb' ),
-            ),
-            array(
-                'id'       => 'teqcidb-email-follow-up',
-                'title'    => __( 'Consultation Follow Up', 'teqcidb' ),
-                'tooltip'  => __( 'Delivers recap notes and next steps after a discovery call wraps up.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Completed consultation', 'teqcidb' ),
-                    'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Sales Enablement', 'teqcidb' ),
-                ),
-                'content'  => __( 'Test text', 'teqcidb' ),
-            ),
-            array(
-                'id'       => 'teqcidb-email-renewal',
-                'title'    => __( 'Membership Renewal Reminder', 'teqcidb' ),
-                'tooltip'  => __( 'Warns members that their plan expires soon and outlines renewal options.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Approaching renewal date', 'teqcidb' ),
-                    'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Retention', 'teqcidb' ),
-                ),
-                'content'  => __( 'Test text', 'teqcidb' ),
-            ),
-            array(
-                'id'       => 'teqcidb-email-alert',
-                'title'    => __( 'Internal Alert: Payment Review', 'teqcidb' ),
-                'tooltip'  => __( 'Flags the support team when a payment requires manual approval.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Payment pending review', 'teqcidb' ),
-                    'communication_type' => __( 'Internal', 'teqcidb' ),
-                    'category'           => __( 'Operations', 'teqcidb' ),
                 ),
                 'content'  => __( 'Test text', 'teqcidb' ),
             ),
