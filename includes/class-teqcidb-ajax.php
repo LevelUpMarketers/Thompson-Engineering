@@ -5355,7 +5355,7 @@ class TEQCIDB_Ajax {
         $from_name  = TEQCIDB_Email_Template_Helper::resolve_from_name( $from_name );
         $from_email = TEQCIDB_Email_Template_Helper::resolve_from_email( $from_email );
 
-        $tokens = TEQCIDB_Student_Helper::get_first_preview_data();
+        $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
 
         if ( ! empty( $tokens ) ) {
             $subject = $this->replace_template_tokens( $subject, $tokens );

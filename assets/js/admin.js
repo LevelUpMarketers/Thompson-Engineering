@@ -4556,7 +4556,7 @@ jQuery(document).ready(function($){
         var $editor = $button.closest('.teqcidb-template-editor');
 
         if ($editor.length){
-            var $fallback = $editor.find('.teqcidb-token-target').first();
+            var $fallback = $editor.find('[data-template-field], .teqcidb-token-target').first();
 
             if ($fallback.length){
                 return $fallback;
@@ -4610,7 +4610,7 @@ jQuery(document).ready(function($){
         }
     }
 
-    $(document).on('focus', '.teqcidb-token-target', function(){
+    $(document).on('focus click keyup', '.teqcidb-template-editor input[type="text"], .teqcidb-template-editor input[type="email"], .teqcidb-template-editor textarea', function(){
         $activeTokenTarget = $(this);
     });
 

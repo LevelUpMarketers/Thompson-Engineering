@@ -291,7 +291,7 @@ class TEQCIDB_Admin {
         $sms_value          = isset( $template_settings['sms'] ) ? $template_settings['sms'] : '';
         $default_from_name  = TEQCIDB_Email_Template_Helper::get_default_from_name();
         $default_from_email = TEQCIDB_Email_Template_Helper::get_default_from_email();
-        $preview_data       = TEQCIDB_Student_Helper::get_first_preview_data();
+        $preview_data       = TEQCIDB_Student_Helper::get_latest_preview_data();
         $has_preview        = ! empty( $preview_data );
         $save_spinner_id    = $field_prefix . '-save-spinner';
         $save_feedback_id   = $field_prefix . '-save-feedback';
@@ -448,8 +448,15 @@ class TEQCIDB_Admin {
         );
 
         foreach ( $labels as $key => $label ) {
+            $token_value = '{' . $key . '}';
+
+            if ( 'placeholder_1' === $key ) {
+                $token_value = '{student_first_name}';
+                $label       = __( 'Student First Name', 'teqcidb' );
+            }
+
             $token_group['tokens'][] = array(
-                'value' => '{' . $key . '}',
+                'value' => $token_value,
                 'label' => $label,
             );
         }
@@ -763,7 +770,7 @@ class TEQCIDB_Admin {
             'representativeAssignmentsRemove' => __( 'Remove assigned student', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
-            'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
+            'previewEntity' => TEQCIDB_Student_Helper::get_latest_preview_data(),
             'previewEmptyMessage' => __( 'Enter a subject or body to generate the preview.', 'teqcidb' ),
             'previewUnavailableMessage' => __( 'Add a student entry to generate a preview.', 'teqcidb' ),
             'testEmailRequired' => __( 'Enter an email address before sending a test.', 'teqcidb' ),

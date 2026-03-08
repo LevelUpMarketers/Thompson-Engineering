@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TEQCIDB_Student_Helper {
 
     /**
-     * Retrieve the first Student record prepared for template previews.
+     * Retrieve the newest Student record prepared for template previews.
      *
      * @return array
      */
-    public static function get_first_preview_data() {
+    public static function get_latest_preview_data() {
         static $preview_data = null;
 
         if ( null !== $preview_data ) {
@@ -34,7 +34,7 @@ class TEQCIDB_Student_Helper {
             return $preview_data;
         }
 
-        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id ASC LIMIT 1", ARRAY_A );
+        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id DESC LIMIT 1", ARRAY_A );
 
         if ( ! $row ) {
             $preview_data = array();
@@ -63,9 +63,20 @@ class TEQCIDB_Student_Helper {
             }
         }
 
+        $prepared['student_first_name'] = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
+
         $preview_data = $prepared;
 
         return $preview_data;
+    }
+
+    /**
+     * Backward-compatible wrapper for legacy callers that still request the first preview entity.
+     *
+     * @return array
+     */
+    public static function get_first_preview_data() {
+        return self::get_latest_preview_data();
     }
 
     /**
