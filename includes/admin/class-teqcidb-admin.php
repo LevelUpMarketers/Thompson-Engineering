@@ -279,6 +279,8 @@ class TEQCIDB_Admin {
         $field_prefix  = sanitize_html_class( $template_id );
         $from_name_id  = $field_prefix . '-from-name';
         $from_email_id = $field_prefix . '-from-email';
+        $cc_id         = $field_prefix . '-cc';
+        $bcc_id        = $field_prefix . '-bcc';
         $subject_id    = $field_prefix . '-subject';
         $body_id       = $field_prefix . '-body';
         $sms_id        = $field_prefix . '-sms';
@@ -286,6 +288,8 @@ class TEQCIDB_Admin {
         $template_settings  = $this->get_email_template_settings( $template_id );
         $from_name_value    = isset( $template_settings['from_name'] ) ? $template_settings['from_name'] : '';
         $from_email_value   = isset( $template_settings['from_email'] ) ? $template_settings['from_email'] : '';
+        $cc_value           = isset( $template_settings['cc'] ) ? $template_settings['cc'] : '';
+        $bcc_value          = isset( $template_settings['bcc'] ) ? $template_settings['bcc'] : '';
         $subject_value      = isset( $template_settings['subject'] ) ? $template_settings['subject'] : '';
         $body_value         = isset( $template_settings['body'] ) ? $template_settings['body'] : '';
         $sms_value          = isset( $template_settings['sms'] ) ? $template_settings['sms'] : '';
@@ -323,6 +327,24 @@ class TEQCIDB_Admin {
             esc_attr( $template_id ),
             esc_attr( $from_email_value ),
             esc_attr( $default_from_email )
+        );
+
+        printf(
+            '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][cc]" class="regular-text" data-template-field="cc" value="%4$s" placeholder="%5$s" autocomplete="off"></div>',
+            esc_attr( $cc_id ),
+            esc_html__( 'CC Addresses', 'teqcidb' ),
+            esc_attr( $template_id ),
+            esc_attr( $cc_value ),
+            esc_attr__( 'name1@example.com, name2@example.com', 'teqcidb' )
+        );
+
+        printf(
+            '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][bcc]" class="regular-text" data-template-field="bcc" value="%4$s" placeholder="%5$s" autocomplete="off"></div>',
+            esc_attr( $bcc_id ),
+            esc_html__( 'BCC Addresses', 'teqcidb' ),
+            esc_attr( $template_id ),
+            esc_attr( $bcc_value ),
+            esc_attr__( 'name1@example.com, name2@example.com', 'teqcidb' )
         );
 
         printf(

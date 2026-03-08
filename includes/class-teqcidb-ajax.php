@@ -5279,6 +5279,8 @@ class TEQCIDB_Ajax {
 
         $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
         $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $cc = isset( $_POST['cc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['cc'] ) ) : '';
+        $bcc = isset( $_POST['bcc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['bcc'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
         $body    = isset( $_POST['body'] ) ? wp_kses_post( wp_unslash( $_POST['body'] ) ) : '';
         $sms     = isset( $_POST['sms'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sms'] ) ) : '';
@@ -5288,6 +5290,8 @@ class TEQCIDB_Ajax {
             array(
                 'from_name'  => $from_name,
                 'from_email' => $from_email,
+                'cc'         => $cc,
+                'bcc'        => $bcc,
                 'subject'    => $subject,
                 'body'       => $body,
                 'sms'        => $sms,
@@ -5339,6 +5343,8 @@ class TEQCIDB_Ajax {
 
         $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
         $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $cc = isset( $_POST['cc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['cc'] ) ) : '';
+        $bcc = isset( $_POST['bcc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['bcc'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
         $body    = isset( $_POST['body'] ) ? wp_kses_post( wp_unslash( $_POST['body'] ) ) : '';
 
@@ -5350,6 +5356,14 @@ class TEQCIDB_Ajax {
 
         if ( '' === $from_email && isset( $stored_settings['from_email'] ) ) {
             $from_email = TEQCIDB_Email_Template_Helper::sanitize_from_email( $stored_settings['from_email'] );
+        }
+
+        if ( '' === $cc && isset( $stored_settings['cc'] ) ) {
+            $cc = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( $stored_settings['cc'] );
+        }
+
+        if ( '' === $bcc && isset( $stored_settings['bcc'] ) ) {
+            $bcc = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( $stored_settings['bcc'] );
         }
 
         $from_name  = TEQCIDB_Email_Template_Helper::resolve_from_name( $from_name );
@@ -5374,6 +5388,15 @@ class TEQCIDB_Ajax {
         if ( $from_header ) {
             $headers[] = $from_header;
         }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
         $sent    = wp_mail( $to_email, $subject, $rendered_body, $headers );
 
         $this->maybe_delay( $start );

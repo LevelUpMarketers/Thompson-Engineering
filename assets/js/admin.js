@@ -4890,6 +4890,8 @@ jQuery(document).ready(function($){
             to_email: emailValue,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
             from_email: $editor.find('[data-template-field="from_email"]').first().val() || '',
+            cc: $editor.find('[data-template-field="cc"]').first().val() || '',
+            bcc: $editor.find('[data-template-field="bcc"]').first().val() || '',
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || ''
         };
@@ -4976,6 +4978,8 @@ jQuery(document).ready(function($){
             template_id: templateId,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
             from_email: $editor.find('[data-template-field="from_email"]').first().val() || '',
+            cc: $editor.find('[data-template-field="cc"]').first().val() || '',
+            bcc: $editor.find('[data-template-field="bcc"]').first().val() || '',
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || '',
             sms: $editor.find('[data-token-context="sms"]').first().val() || ''
