@@ -264,7 +264,7 @@ class TEQCIDB_Admin {
     }
 
     private function render_email_template_panel( $template ) {
-        if ( isset( $template['id'] ) && 'teqcidb-email-welcome' === $template['id'] ) {
+        if ( isset( $template['id'] ) && 0 === strpos( (string) $template['id'], 'teqcidb-email-' ) ) {
             $this->render_welcome_email_template_panel( $template );
             return;
         }
@@ -834,15 +834,136 @@ class TEQCIDB_Admin {
     private function get_sample_email_templates() {
         return array(
             array(
-                'id'       => 'teqcidb-email-welcome',
-                'title'    => __( 'New Registration & Payment', 'teqcidb' ),
-                'tooltip'  => __( 'Sent after a customer signs up to introduce key onboarding steps.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Individual Registration/Payment', 'teqcidb' ),
+                'id'      => 'teqcidb-email-student-self-initial-online',
+                'title'   => __( 'Student Self-Registration (Initial Online)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for a virtual Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Onboarding', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
-                'content'  => __( 'Test text', 'teqcidb' ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-self-refresher-online',
+                'title'   => __( 'Student Self-Registration (Refresher Online)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for a virtual Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-online-student',
+                'title'   => __( 'Representative Registration (Initial Online - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for a virtual Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-online-representative',
+                'title'   => __( 'Representative Registration (Initial Online - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in a virtual Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-online-student',
+                'title'   => __( 'Representative Registration (Refresher Online - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for a virtual Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-online-representative',
+                'title'   => __( 'Representative Registration (Refresher Online - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in a virtual Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-self-initial-in-person',
+                'title'   => __( 'Student Self-Registration (Initial In-Person)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-self-refresher-in-person',
+                'title'   => __( 'Student Self-Registration (Refresher In-Person)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-in-person-student',
+                'title'   => __( 'Representative Registration (Initial In-Person - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-in-person-representative',
+                'title'   => __( 'Representative Registration (Initial In-Person - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-in-person-student',
+                'title'   => __( 'Representative Registration (Refresher In-Person - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-in-person-representative',
+                'title'   => __( 'Representative Registration (Refresher In-Person - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
             ),
         );
     }
