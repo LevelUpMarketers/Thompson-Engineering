@@ -4706,10 +4706,6 @@ jQuery(document).ready(function($){
             return '';
         }
 
-        if (/<[a-z][\s\S]*>/i.test(content)){
-            return content;
-        }
-
         return String(content).replace(/\r?\n/g, '<br>');
     }
 

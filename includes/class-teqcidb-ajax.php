@@ -5362,10 +5362,10 @@ class TEQCIDB_Ajax {
             $body    = $this->replace_template_tokens( $body, $tokens );
         }
 
-        $rendered_body = $body;
+        $rendered_body = wp_kses_post( $body );
 
-        if ( $rendered_body && ! preg_match( '/<[a-z][\s\S]*>/i', $rendered_body ) ) {
-            $rendered_body = nl2br( esc_html( $rendered_body ) );
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
         }
 
         $headers = array( 'Content-Type: text/html; charset=UTF-8' );
