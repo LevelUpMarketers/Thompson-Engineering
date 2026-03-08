@@ -376,3 +376,6 @@
 369. 2026-03-07: Added Edit & Manage Classes accordion panel section for read-only Registered Students (First Name, Last Name, Company, Email, Phone cell/office), sourced from class-associated teqcidb_studenthistory rows mapped to teqcidb_students records and rendered in a widefat table below the class Save Changes action row.
 
 370. 2026-03-08: Updated admin pagination styling by adding left/right spacing to `.tablenav-paging-text` and applying consistent nav control button sizing/alignment with a 5px left margin for `.tablenav .tablenav-pages` buttons/nav spans.
+
+371. 2026-03-08: Updated Communications > Email Templates seed data to keep only one template, renamed it to 'Individual Registration & Payment', and changed its trigger text to 'New class registration & payment' while removing the three placeholder templates.
+
