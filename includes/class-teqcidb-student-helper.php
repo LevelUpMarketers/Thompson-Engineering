@@ -61,9 +61,17 @@ class TEQCIDB_Student_Helper {
             foreach ( $representative as $rep_key => $rep_value ) {
                 $prepared[ 'representative_' . $rep_key ] = $rep_value;
             }
+
+            $prepared['student_representative'] = trim( $representative['first_name'] . ' ' . $representative['last_name'] );
         }
 
-        $prepared['student_first_name'] = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
+        $prepared['student_first_name']    = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
+        $prepared['student_last_name']     = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
+        $prepared['student_email']         = isset( $prepared['email'] ) ? $prepared['email'] : ( isset( $prepared['placeholder_2'] ) ? $prepared['placeholder_2'] : '' );
+        $prepared['student_company']       = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
+        $prepared['student_phone_cell']    = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
+        $prepared['student_phone_office']  = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
+        $prepared['student_representative'] = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
 
         $preview_data = $prepared;
 

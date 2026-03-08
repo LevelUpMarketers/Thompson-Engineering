@@ -453,6 +453,15 @@ class TEQCIDB_Admin {
             if ( 'placeholder_1' === $key ) {
                 $token_value = '{student_first_name}';
                 $label       = __( 'Student First Name', 'teqcidb' );
+            } elseif ( 'placeholder_2' === $key ) {
+                $token_value = '{student_email}';
+                $label       = __( 'Student Email', 'teqcidb' );
+            } elseif ( 'placeholder_3' === $key ) {
+                $token_value = '{student_company}';
+                $label       = __( 'Student Company', 'teqcidb' );
+            } elseif ( 'placeholder_4' === $key ) {
+                $token_value = '{student_phone_cell}';
+                $label       = __( 'Student Phone (Cell)', 'teqcidb' );
             }
 
             $token_group['tokens'][] = array(
@@ -460,6 +469,21 @@ class TEQCIDB_Admin {
                 'label' => $label,
             );
         }
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_last_name}',
+            'label' => __( 'Student Last Name', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_representative}',
+            'label' => __( "Student's Representative", 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_phone_office}',
+            'label' => __( 'Student Phone (Office)', 'teqcidb' ),
+        );
 
         /**
          * Filter the token groups displayed for communications templates.
