@@ -791,30 +791,6 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     </dt>
                                                                     <dd><?php echo $this->format_history_display_value( $history_entry['registeredby'] ); ?></dd>
                                                                 </div>
-                                                                <div class="teqcidb-class-history-meta-item">
-                                                                    <dt>
-                                                                        <?php
-                                                                        echo esc_html_x(
-                                                                            'Course in Progress?',
-                                                                            'Student dashboard class history field label',
-                                                                            'teqcidb'
-                                                                        );
-                                                                        ?>
-                                                                    </dt>
-                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['courseinprogress'] ); ?></dd>
-                                                                </div>
-                                                                <div class="teqcidb-class-history-meta-item">
-                                                                    <dt>
-                                                                        <?php
-                                                                        echo esc_html_x(
-                                                                            'Quiz Progress',
-                                                                            'Student dashboard class history field label',
-                                                                            'teqcidb'
-                                                                        );
-                                                                        ?>
-                                                                    </dt>
-                                                                    <dd><?php echo $this->format_history_display_value( $history_entry['quizinprogress'] ); ?></dd>
-                                                                </div>
                                                             </dl>
                                                             <?php if ( ! empty( $history_entry['classurl'] ) ) : ?>
                                                                 <p class="teqcidb-class-history-link-wrap">
