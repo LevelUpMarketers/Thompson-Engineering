@@ -105,10 +105,48 @@ class TEQCIDB_Email_Template_Helper {
         return array(
             'from_name'  => '',
             'from_email' => '',
+            'cc'         => '',
+            'bcc'        => '',
             'subject'    => '',
             'body'       => '',
             'sms'        => '',
         );
+    }
+
+
+    /**
+     * Sanitize a comma-separated email recipient list.
+     *
+     * @param string $value Raw value.
+     *
+     * @return string
+     */
+    public static function sanitize_recipient_list( $value ) {
+        $value = is_string( $value ) ? $value : '';
+
+        if ( '' === trim( $value ) ) {
+            return '';
+        }
+
+        $parts = preg_split( '/[,;\n\r]+/', $value );
+
+        if ( ! is_array( $parts ) || empty( $parts ) ) {
+            return '';
+        }
+
+        $emails = array();
+
+        foreach ( $parts as $part ) {
+            $email = sanitize_email( trim( (string) $part ) );
+
+            if ( $email ) {
+                $emails[] = strtolower( $email );
+            }
+        }
+
+        $emails = array_values( array_unique( $emails ) );
+
+        return implode( ', ', $emails );
     }
 
     /**

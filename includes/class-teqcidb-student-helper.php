@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TEQCIDB_Student_Helper {
 
     /**
-     * Retrieve the first Student record prepared for template previews.
+     * Retrieve the newest Student record prepared for template previews.
      *
      * @return array
      */
-    public static function get_first_preview_data() {
+    public static function get_latest_preview_data() {
         static $preview_data = null;
 
         if ( null !== $preview_data ) {
@@ -30,14 +30,14 @@ class TEQCIDB_Student_Helper {
         $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
 
         if ( $found !== $table_name ) {
-            $preview_data = array();
+            $preview_data = self::get_latest_class_preview_data();
             return $preview_data;
         }
 
-        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id ASC LIMIT 1", ARRAY_A );
+        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id DESC LIMIT 1", ARRAY_A );
 
         if ( ! $row ) {
-            $preview_data = array();
+            $preview_data = self::get_latest_class_preview_data();
             return $preview_data;
         }
 
@@ -61,11 +61,79 @@ class TEQCIDB_Student_Helper {
             foreach ( $representative as $rep_key => $rep_value ) {
                 $prepared[ 'representative_' . $rep_key ] = $rep_value;
             }
+
+            $prepared['student_representative'] = trim( $representative['first_name'] . ' ' . $representative['last_name'] );
         }
+
+        $prepared['student_first_name']    = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
+        $prepared['student_last_name']     = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
+        $prepared['student_email']         = isset( $prepared['email'] ) ? $prepared['email'] : ( isset( $prepared['placeholder_2'] ) ? $prepared['placeholder_2'] : '' );
+        $prepared['student_company']       = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
+        $prepared['student_phone_cell']    = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
+        $prepared['student_phone_office']         = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
+        $prepared['student_representative']        = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
+        $prepared['student_certification_expiration'] = self::format_date_for_token( isset( $prepared['expiration_date'] ) ? $prepared['expiration_date'] : '' );
+
+        $prepared = array_merge( $prepared, self::get_latest_class_preview_data() );
 
         $preview_data = $prepared;
 
         return $preview_data;
+    }
+
+
+    /**
+     * Retrieve the newest Class record prepared for template previews.
+     *
+     * @return array
+     */
+    public static function get_latest_class_preview_data() {
+        static $class_preview_data = null;
+
+        if ( null !== $class_preview_data ) {
+            return $class_preview_data;
+        }
+
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            $class_preview_data = array();
+            return $class_preview_data;
+        }
+
+        $row = $wpdb->get_row( "SELECT * FROM $table_name ORDER BY id DESC LIMIT 1", ARRAY_A );
+
+        if ( ! $row ) {
+            $class_preview_data = array();
+            return $class_preview_data;
+        }
+
+        $class_preview_data = array(
+            'class_name'                       => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+            'class_type'                       => self::format_class_type_for_token( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
+            'class_date'                       => self::format_date_for_token( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+            'class_time'                       => self::format_time_for_token( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+            'class_page'                       => self::format_class_page_url_for_token( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
+            'class_team_link'                  => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+            'class_cost_total_transaction'     => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+            'class_cost_student_self'          => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+            'class_cost_student_representative' => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+        );
+
+        return $class_preview_data;
+    }
+
+    /**
+     * Backward-compatible wrapper for legacy callers that still request the first preview entity.
+     *
+     * @return array
+     */
+    public static function get_first_preview_data() {
+        return self::get_latest_preview_data();
     }
 
     /**
@@ -171,6 +239,119 @@ class TEQCIDB_Student_Helper {
         }
 
         return '';
+    }
+
+    /**
+     * Format class type values for communications tokens.
+     *
+     * @param mixed $value Class type value.
+     *
+     * @return string
+     */
+    private static function format_class_type_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = sanitize_text_field( (string) $value );
+
+        return '' === $value ? '' : ucwords( strtolower( $value ) );
+    }
+
+    /**
+     * Format class page URLs for communications tokens.
+     *
+     * @param mixed $value Class page URL value.
+     *
+     * @return string
+     */
+    private static function format_class_page_url_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        $normalized_path = '/' . ltrim( $value, '/' );
+
+        return esc_url_raw( home_url( $normalized_path ) );
+    }
+
+    /**
+     * Format date-like values for communications tokens.
+     *
+     * @param mixed $value Date value.
+     *
+     * @return string
+     */
+    private static function format_date_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        return $date ? $date->format( 'm-d-Y' ) : '';
+    }
+
+    /**
+     * Format time-like values for communications tokens.
+     *
+     * @param mixed $value Time value.
+     *
+     * @return string
+     */
+    private static function format_time_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '00:00:00' === $value || '00:00' === $value ) {
+            return '';
+        }
+
+        $time = date_create( $value );
+
+        return $time ? $time->format( 'g:i A' ) : '';
+    }
+
+
+
+    /**
+     * Format class cost values for communications tokens.
+     *
+     * @param mixed $value Stored class cost value.
+     *
+     * @return string
+     */
+    private static function format_currency_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $value );
+
+        if ( null === $normalized || '' === $normalized || ! is_numeric( $normalized ) ) {
+            return '';
+        }
+
+        return '$' . number_format( (float) $normalized, 2, '.', ',' );
     }
 
     private static function decode_list_field( $value ) {

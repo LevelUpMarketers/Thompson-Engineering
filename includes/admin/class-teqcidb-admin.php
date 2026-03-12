@@ -13,6 +13,7 @@ class TEQCIDB_Admin {
         add_action( 'admin_post_teqcidb_run_cron_event', array( $this, 'handle_run_cron_event' ) );
         add_action( 'admin_post_teqcidb_delete_cron_event', array( $this, 'handle_delete_cron_event' ) );
         add_action( 'admin_post_teqcidb_download_email_log', array( $this, 'handle_download_email_log' ) );
+        add_action( 'admin_post_teqcidb_export_class_attendees', array( $this, 'handle_export_class_attendees' ) );
         add_action( 'admin_post_teqcidb_delete_generated_content', array( $this, 'handle_delete_generated_content' ) );
         add_action( 'admin_post_teqcidb_save_quiz', array( $this, 'handle_save_quiz' ) );
         add_action( 'admin_post_teqcidb_update_quiz', array( $this, 'handle_update_quiz' ) );
@@ -264,7 +265,7 @@ class TEQCIDB_Admin {
     }
 
     private function render_email_template_panel( $template ) {
-        if ( isset( $template['id'] ) && 'teqcidb-email-welcome' === $template['id'] ) {
+        if ( isset( $template['id'] ) && 0 === strpos( (string) $template['id'], 'teqcidb-email-' ) ) {
             $this->render_welcome_email_template_panel( $template );
             return;
         }
@@ -279,6 +280,8 @@ class TEQCIDB_Admin {
         $field_prefix  = sanitize_html_class( $template_id );
         $from_name_id  = $field_prefix . '-from-name';
         $from_email_id = $field_prefix . '-from-email';
+        $cc_id         = $field_prefix . '-cc';
+        $bcc_id        = $field_prefix . '-bcc';
         $subject_id    = $field_prefix . '-subject';
         $body_id       = $field_prefix . '-body';
         $sms_id        = $field_prefix . '-sms';
@@ -286,12 +289,14 @@ class TEQCIDB_Admin {
         $template_settings  = $this->get_email_template_settings( $template_id );
         $from_name_value    = isset( $template_settings['from_name'] ) ? $template_settings['from_name'] : '';
         $from_email_value   = isset( $template_settings['from_email'] ) ? $template_settings['from_email'] : '';
+        $cc_value           = isset( $template_settings['cc'] ) ? $template_settings['cc'] : '';
+        $bcc_value          = isset( $template_settings['bcc'] ) ? $template_settings['bcc'] : '';
         $subject_value      = isset( $template_settings['subject'] ) ? $template_settings['subject'] : '';
         $body_value         = isset( $template_settings['body'] ) ? $template_settings['body'] : '';
         $sms_value          = isset( $template_settings['sms'] ) ? $template_settings['sms'] : '';
         $default_from_name  = TEQCIDB_Email_Template_Helper::get_default_from_name();
         $default_from_email = TEQCIDB_Email_Template_Helper::get_default_from_email();
-        $preview_data       = TEQCIDB_Student_Helper::get_first_preview_data();
+        $preview_data       = TEQCIDB_Student_Helper::get_latest_preview_data();
         $has_preview        = ! empty( $preview_data );
         $save_spinner_id    = $field_prefix . '-save-spinner';
         $save_feedback_id   = $field_prefix . '-save-feedback';
@@ -326,6 +331,24 @@ class TEQCIDB_Admin {
         );
 
         printf(
+            '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][cc]" class="regular-text" data-template-field="cc" value="%4$s" placeholder="%5$s" autocomplete="off"></div>',
+            esc_attr( $cc_id ),
+            esc_html__( 'CC Addresses', 'teqcidb' ),
+            esc_attr( $template_id ),
+            esc_attr( $cc_value ),
+            esc_attr__( 'name1@example.com, name2@example.com', 'teqcidb' )
+        );
+
+        printf(
+            '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][bcc]" class="regular-text" data-template-field="bcc" value="%4$s" placeholder="%5$s" autocomplete="off"></div>',
+            esc_attr( $bcc_id ),
+            esc_html__( 'BCC Addresses', 'teqcidb' ),
+            esc_attr( $template_id ),
+            esc_attr( $bcc_value ),
+            esc_attr__( 'name1@example.com, name2@example.com', 'teqcidb' )
+        );
+
+        printf(
             '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][subject]" class="regular-text teqcidb-token-target" data-token-context="subject" value="%4$s"></div>',
             esc_attr( $subject_id ),
             esc_html__( 'Email Subject', 'teqcidb' ),
@@ -349,6 +372,10 @@ class TEQCIDB_Admin {
             esc_textarea( $sms_value )
         );
 
+
+        $preview_classes = $this->get_email_template_preview_classes();
+        $preview_class_select_id = $field_prefix . '-preview-class';
+
         echo '<div class="teqcidb-template-preview" aria-live="polite">';
         echo '<h3 class="teqcidb-template-preview__title">' . esc_html__( 'Email Preview', 'teqcidb' ) . '</h3>';
         echo '<p class="teqcidb-template-preview__notice">' . esc_html( $preview_notice ) . '</p>';
@@ -356,6 +383,45 @@ class TEQCIDB_Admin {
         echo '<p class="teqcidb-template-preview__subject"><span class="teqcidb-template-preview__label">' . esc_html__( 'Subject:', 'teqcidb' ) . '</span> <span class="teqcidb-template-preview__value" data-preview-field="subject"></span></p>';
         echo '<div class="teqcidb-template-preview__body" data-preview-field="body"></div>';
         echo '</div>';
+
+        echo '<div class="teqcidb-template-preview-controls">';
+        echo '<div class="teqcidb-template-preview-controls__selection">';
+        printf(
+            '<label for="%1$s" class="teqcidb-template-preview-controls__label">%2$s</label>',
+            esc_attr( $preview_class_select_id ),
+            esc_html__( 'Preview with...', 'teqcidb' )
+        );
+        printf( '<select id="%1$s" class="teqcidb-template-preview-class-select">', esc_attr( $preview_class_select_id ) );
+        echo '<option value="" selected="selected" disabled="disabled">' . esc_html__( 'Select a Class...', 'teqcidb' ) . '</option>';
+
+        foreach ( $preview_classes as $preview_class ) {
+            printf(
+                '<option value="%1$d" data-class-name="%2$s" data-class-type="%3$s" data-class-date="%4$s" data-class-time="%5$s" data-class-page="%6$s" data-class-team-link="%7$s" data-class-cost-total-transaction="%8$s" data-class-cost-student-self="%9$s" data-class-cost-student-representative="%10$s">%11$s</option>',
+                absint( $preview_class['id'] ),
+                esc_attr( $preview_class['class_name'] ),
+                esc_attr( $preview_class['class_type'] ),
+                esc_attr( $preview_class['class_date'] ),
+                esc_attr( $preview_class['class_time'] ),
+                esc_attr( $preview_class['class_page'] ),
+                esc_attr( $preview_class['class_team_link'] ),
+                esc_attr( $preview_class['class_cost_total_transaction'] ),
+                esc_attr( $preview_class['class_cost_student_self'] ),
+                esc_attr( $preview_class['class_cost_student_representative'] ),
+                esc_html( $preview_class['label'] )
+            );
+        }
+
+        echo '</select>';
+        echo '</div>';
+
+        printf(
+            '<button type="button" class="button button-secondary teqcidb-template-export-attendees" data-export-url="%1$s" data-export-nonce="%2$s" disabled="disabled">%3$s</button>',
+            esc_url( admin_url( 'admin-post.php' ) ),
+            esc_attr( wp_create_nonce( 'teqcidb_export_class_attendees' ) ),
+            esc_html__( 'Export Class Attendees', 'teqcidb' )
+        );
+        echo '</div>';
+
         echo '</div>';
 
         echo '<div class="teqcidb-template-editor__test">';
@@ -417,15 +483,31 @@ class TEQCIDB_Admin {
                 echo '<div class="teqcidb-token-group__buttons">';
 
                 foreach ( $group['tokens'] as $token ) {
-                    if ( empty( $token['value'] ) ) {
+                    if ( empty( $token['value'] ) && ( empty( $token['open'] ) || empty( $token['close'] ) ) && empty( $token['action'] ) ) {
                         continue;
                     }
 
                     $label = isset( $token['label'] ) ? $token['label'] : $token['value'];
+                    $token_value = isset( $token['value'] ) ? $token['value'] : '';
+                    $button_attrs = '';
+
+                    if ( isset( $token['open'] ) && isset( $token['close'] ) ) {
+                        $button_attrs .= ' data-token-open="' . esc_attr( $token['open'] ) . '"';
+                        $button_attrs .= ' data-token-close="' . esc_attr( $token['close'] ) . '"';
+                    }
+
+                    if ( isset( $token['context'] ) ) {
+                        $button_attrs .= ' data-token-context="' . esc_attr( $token['context'] ) . '"';
+                    }
+
+                    if ( isset( $token['action'] ) ) {
+                        $button_attrs .= ' data-token-action="' . esc_attr( $token['action'] ) . '"';
+                    }
 
                     printf(
-                        '<button type="button" class="button button-secondary teqcidb-token-button" data-token="%1$s">%2$s</button>',
-                        esc_attr( $token['value'] ),
+                        '<button type="button" class="button button-secondary teqcidb-token-button" data-token="%1$s"%2$s>%3$s</button>',
+                        esc_attr( $token_value ),
+                        $button_attrs,
                         esc_html( $label )
                     );
                 }
@@ -448,11 +530,110 @@ class TEQCIDB_Admin {
         );
 
         foreach ( $labels as $key => $label ) {
+            if ( preg_match( '/^Placeholder\s+\d+$/i', (string) $label ) ) {
+                continue;
+            }
+
+            $token_value = '{' . $key . '}';
+
+            if ( 'placeholder_1' === $key ) {
+                $token_value = '{student_first_name}';
+                $label       = __( 'Student First Name', 'teqcidb' );
+            } elseif ( 'placeholder_2' === $key ) {
+                $token_value = '{student_email}';
+                $label       = __( 'Student Email', 'teqcidb' );
+            } elseif ( 'placeholder_3' === $key ) {
+                $token_value = '{student_company}';
+                $label       = __( 'Student Company', 'teqcidb' );
+            } elseif ( 'placeholder_4' === $key ) {
+                $token_value = '{student_phone_cell}';
+                $label       = __( 'Student Phone (Cell)', 'teqcidb' );
+            } elseif ( 'placeholder_5' === $key ) {
+                $token_value = '{student_certification_expiration}';
+                $label       = __( 'Certification Expiration', 'teqcidb' );
+            }
+
             $token_group['tokens'][] = array(
-                'value' => '{' . $key . '}',
+                'value' => $token_value,
                 'label' => $label,
             );
         }
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_last_name}',
+            'label' => __( 'Student Last Name', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_representative}',
+            'label' => __( "Student's Representative", 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_phone_office}',
+            'label' => __( 'Student Phone (Office)', 'teqcidb' ),
+        );
+
+        $class_token_group = array(
+            'title'  => __( 'Class Information', 'teqcidb' ),
+            'tokens' => array(
+                array(
+                    'value' => '{class_name}',
+                    'label' => __( 'Class Name', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_type}',
+                    'label' => __( 'Class Type', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_date}',
+                    'label' => __( 'Class Date', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_time}',
+                    'label' => __( 'Class Time', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_page}',
+                    'label' => __( 'Class Page', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_team_link}',
+                    'label' => __( 'Class Team Link', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_total_transaction}',
+                    'label' => __( 'Class Cost (Total Transaction)', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_student_self}',
+                    'label' => __( 'Class Cost (Student Self-Registration)', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_student_representative}',
+                    'label' => __( 'Class Cost (Student via Representative)', 'teqcidb' ),
+                ),
+            ),
+        );
+
+        $formatting_token_group = array(
+            'title'  => __( 'Formatting', 'teqcidb' ),
+            'tokens' => array(
+                array(
+                    'value'   => '',
+                    'open'    => '<strong>',
+                    'close'   => '</strong>',
+                    'context' => 'body',
+                    'label'   => __( 'Bold', 'teqcidb' ),
+                ),
+                array(
+                    'value'   => '',
+                    'action'  => 'link',
+                    'context' => 'body',
+                    'label'   => __( 'Link', 'teqcidb' ),
+                ),
+            ),
+        );
 
         /**
          * Filter the token groups displayed for communications templates.
@@ -465,7 +646,7 @@ class TEQCIDB_Admin {
          *                      a `title` and a `tokens` list where every token includes
          *                      `value` (the merge tag) and `label` (the admin-facing text).
          */
-        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group ) );
+        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $class_token_group, $formatting_token_group ) );
 
         return array_map( array( $this, 'normalize_token_group' ), $groups );
     }
@@ -498,14 +679,40 @@ class TEQCIDB_Admin {
         $normalized_tokens = array();
 
         foreach ( $tokens as $token ) {
-            if ( ! is_array( $token ) || empty( $token['value'] ) ) {
+            if ( ! is_array( $token ) ) {
                 continue;
             }
 
-            $normalized_tokens[] = array(
-                'value' => (string) $token['value'],
-                'label' => isset( $token['label'] ) ? (string) $token['label'] : (string) $token['value'],
+            $has_value  = isset( $token['value'] ) && '' !== (string) $token['value'];
+            $has_wrap   = isset( $token['open'] ) && isset( $token['close'] ) && '' !== (string) $token['open'] && '' !== (string) $token['close'];
+            $has_action = isset( $token['action'] ) && '' !== (string) $token['action'];
+
+            if ( ! $has_value && ! $has_wrap && ! $has_action ) {
+                continue;
+            }
+
+            $normalized_token = array(
+                'value' => isset( $token['value'] ) ? (string) $token['value'] : '',
+                'label' => isset( $token['label'] ) ? (string) $token['label'] : ( isset( $token['value'] ) ? (string) $token['value'] : '' ),
             );
+
+            if ( isset( $token['open'] ) ) {
+                $normalized_token['open'] = (string) $token['open'];
+            }
+
+            if ( isset( $token['close'] ) ) {
+                $normalized_token['close'] = (string) $token['close'];
+            }
+
+            if ( isset( $token['context'] ) ) {
+                $normalized_token['context'] = (string) $token['context'];
+            }
+
+            if ( isset( $token['action'] ) ) {
+                $normalized_token['action'] = (string) $token['action'];
+            }
+
+            $normalized_tokens[] = $normalized_token;
         }
 
         return array(
@@ -680,51 +887,267 @@ class TEQCIDB_Admin {
         echo '</div>';
     }
 
+
+    private function get_email_template_preview_classes() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $rows = $wpdb->get_results( "SELECT id, classname, classtype, classformat, classstartdate, classstarttime, classurl, teamslink, classcost FROM $table_name ORDER BY id DESC", ARRAY_A );
+
+        if ( ! is_array( $rows ) || empty( $rows ) ) {
+            return array();
+        }
+
+        $classes = array();
+
+        foreach ( $rows as $row ) {
+            $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
+            $class_type = isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '';
+            $class_type = '' === $class_type ? '' : ucwords( strtolower( $class_type ) );
+            $class_format = isset( $row['classformat'] ) ? sanitize_text_field( (string) $row['classformat'] ) : '';
+            $class_format = $this->normalize_email_template_class_format_label( $class_format );
+            $label_parts = array_filter( array( $class_name, $class_type, $class_format ), 'strlen' );
+
+            $classes[] = array(
+                'id'              => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'label'           => ! empty( $label_parts ) ? implode( ' | ', $label_parts ) : __( 'Untitled Class', 'teqcidb' ),
+                'class_name'      => $class_name,
+                'class_type'      => $class_type,
+                'class_date'      => $this->format_email_template_date( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+                'class_time'      => $this->format_email_template_time( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+                'class_page'      => $this->format_email_template_class_url( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
+                'class_team_link'                  => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+                'class_cost_total_transaction'      => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'class_cost_student_self'           => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'class_cost_student_representative' => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+            );
+        }
+
+        return $classes;
+    }
+
+    private function format_email_template_cost( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $value );
+
+        if ( null === $normalized || '' === $normalized || ! is_numeric( $normalized ) ) {
+            return '';
+        }
+
+        return '$' . number_format( (float) $normalized, 2, '.', ',' );
+    }
+
+    private function format_email_template_date( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        return $date ? $date->format( 'm-d-Y' ) : '';
+    }
+
+    private function format_email_template_time( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '00:00:00' === $value || '00:00' === $value ) {
+            return '';
+        }
+
+        $time = date_create( $value );
+
+        return $time ? $time->format( 'g:i A' ) : '';
+    }
+
+    private function format_email_template_class_url( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $value, '/' ) ) );
+    }
+
+    private function normalize_email_template_class_format_label( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = strtolower( trim( (string) $value ) );
+
+        if ( in_array( $value, array( 'inperson', 'in_person', 'in person' ), true ) ) {
+            return __( 'In Person', 'teqcidb' );
+        }
+
+        if ( in_array( $value, array( 'virtual', 'online' ), true ) ) {
+            return __( 'Online', 'teqcidb' );
+        }
+
+        return '' === $value ? '' : ucwords( str_replace( '_', ' ', $value ) );
+    }
+
     private function get_sample_email_templates() {
         return array(
             array(
-                'id'       => 'teqcidb-email-welcome',
-                'title'    => __( 'Welcome Aboard', 'teqcidb' ),
-                'tooltip'  => __( 'Sent after a customer signs up to introduce key onboarding steps.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'New registration', 'teqcidb' ),
+                'id'      => 'teqcidb-email-student-self-initial-online',
+                'title'   => __( 'Student Self-Registration (Initial Online)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an Online Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Onboarding', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
-                'content'  => __( 'Test text', 'teqcidb' ),
+                'content' => __( 'Test text', 'teqcidb' ),
             ),
             array(
-                'id'       => 'teqcidb-email-follow-up',
-                'title'    => __( 'Consultation Follow Up', 'teqcidb' ),
-                'tooltip'  => __( 'Delivers recap notes and next steps after a discovery call wraps up.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Completed consultation', 'teqcidb' ),
+                'id'      => 'teqcidb-email-student-self-refresher-online',
+                'title'   => __( 'Student Self-Registration (Refresher Online)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an Online Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Sales Enablement', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
-                'content'  => __( 'Test text', 'teqcidb' ),
+                'content' => __( 'Test text', 'teqcidb' ),
             ),
             array(
-                'id'       => 'teqcidb-email-renewal',
-                'title'    => __( 'Membership Renewal Reminder', 'teqcidb' ),
-                'tooltip'  => __( 'Warns members that their plan expires soon and outlines renewal options.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Approaching renewal date', 'teqcidb' ),
+                'id'      => 'teqcidb-email-rep-initial-online-student',
+                'title'   => __( 'Representative Registration (Initial Online - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an Online Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
-                    'category'           => __( 'Retention', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
-                'content'  => __( 'Test text', 'teqcidb' ),
+                'content' => __( 'Test text', 'teqcidb' ),
             ),
             array(
-                'id'       => 'teqcidb-email-alert',
-                'title'    => __( 'Internal Alert: Payment Review', 'teqcidb' ),
-                'tooltip'  => __( 'Flags the support team when a payment requires manual approval.', 'teqcidb' ),
-                'meta'     => array(
-                    'trigger'            => __( 'Payment pending review', 'teqcidb' ),
-                    'communication_type' => __( 'Internal', 'teqcidb' ),
-                    'category'           => __( 'Operations', 'teqcidb' ),
+                'id'      => 'teqcidb-email-rep-initial-online-representative',
+                'title'   => __( 'Representative Registration (Initial Online - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an Online Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: Online', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
-                'content'  => __( 'Test text', 'teqcidb' ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-online-student',
+                'title'   => __( 'Representative Registration (Refresher Online - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an Online Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-online-representative',
+                'title'   => __( 'Representative Registration (Refresher Online - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an Online Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-self-initial-in-person',
+                'title'   => __( 'Student Self-Registration (Initial In-Person)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-self-refresher-in-person',
+                'title'   => __( 'Student Self-Registration (Refresher In-Person)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-in-person-student',
+                'title'   => __( 'Representative Registration (Initial In-Person - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-initial-in-person-representative',
+                'title'   => __( 'Representative Registration (Initial In-Person - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an in-person Initial class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-in-person-student',
+                'title'   => __( 'Representative Registration (Refresher In-Person - Student)', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-rep-refresher-in-person-representative',
+                'title'   => __( 'Representative Registration (Refresher In-Person - Representative)', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an in-person Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: In Person', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Registration & Payment', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
             ),
         );
     }
@@ -796,11 +1219,14 @@ class TEQCIDB_Admin {
             'representativeAssignmentsRemove' => __( 'Remove assigned student', 'teqcidb' ),
             'classFields'  => $class_field_definitions,
             'editorSettings' => $this->get_inline_editor_settings(),
-            'previewEntity' => TEQCIDB_Student_Helper::get_first_preview_data(),
+            'previewEntity' => TEQCIDB_Student_Helper::get_latest_preview_data(),
             'previewEmptyMessage' => __( 'Enter a subject or body to generate the preview.', 'teqcidb' ),
             'previewUnavailableMessage' => __( 'Add a student entry to generate a preview.', 'teqcidb' ),
             'testEmailRequired' => __( 'Enter an email address before sending a test.', 'teqcidb' ),
             'testEmailSuccess'  => __( 'Test email sent.', 'teqcidb' ),
+            'linkPromptLabel'   => __( 'Enter the full URL for this link.', 'teqcidb' ),
+            'linkSelectionRequired' => __( 'Highlight text in Email Body first, then click Link.', 'teqcidb' ),
+            'linkInvalidUrl'    => __( 'Please enter a valid URL.', 'teqcidb' ),
             'emailLogCleared'   => __( 'Email log cleared.', 'teqcidb' ),
             'emailLogError'     => __( 'Unable to clear the email log. Please try again.', 'teqcidb' ),
             'emailLogEmpty'     => __( 'No email activity has been recorded yet.', 'teqcidb' ),
@@ -4737,6 +5163,83 @@ class TEQCIDB_Admin {
         header( 'Content-Length: ' . strlen( $contents ) );
 
         echo $contents;
+        exit;
+    }
+
+
+    public function handle_export_class_attendees() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You are not allowed to export class attendees.', 'teqcidb' ) );
+        }
+
+        check_admin_referer( 'teqcidb_export_class_attendees', 'teqcidb_export_class_attendees_nonce' );
+
+        $class_id = isset( $_GET['class_id'] ) ? absint( wp_unslash( $_GET['class_id'] ) ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_die( esc_html__( 'Please choose a valid class before exporting attendees.', 'teqcidb' ) );
+        }
+
+        global $wpdb;
+
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( empty( $class_row['uniqueclassid'] ) ) {
+            wp_die( esc_html__( 'Unable to find the selected class.', 'teqcidb' ) );
+        }
+
+        $attendees = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT s.first_name, s.last_name, s.email
+                FROM $history_table h
+                INNER JOIN $students_table s ON s.uniquestudentid = h.uniquestudentid
+                WHERE h.uniqueclassid = %s
+                ORDER BY s.last_name ASC, s.first_name ASC",
+                $class_row['uniqueclassid']
+            ),
+            ARRAY_A
+        );
+
+        $class_name = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : 'class';
+        $filename = sanitize_file_name( $class_name . '-attendees-' . gmdate( 'Ymd-His' ) . '.csv' );
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+
+        $output = fopen( 'php://output', 'w' );
+
+        if ( false === $output ) {
+            wp_die( esc_html__( 'Unable to prepare attendee export output.', 'teqcidb' ) );
+        }
+
+        fputcsv( $output, array(
+            __( 'First Name', 'teqcidb' ),
+            __( 'Last Name', 'teqcidb' ),
+            __( 'Email Address', 'teqcidb' ),
+        ) );
+
+        if ( is_array( $attendees ) ) {
+            foreach ( $attendees as $attendee ) {
+                fputcsv( $output, array(
+                    isset( $attendee['first_name'] ) ? sanitize_text_field( (string) $attendee['first_name'] ) : '',
+                    isset( $attendee['last_name'] ) ? sanitize_text_field( (string) $attendee['last_name'] ) : '',
+                    isset( $attendee['email'] ) ? sanitize_email( (string) $attendee['email'] ) : '',
+                ) );
+            }
+        }
+
+        fclose( $output );
         exit;
     }
 

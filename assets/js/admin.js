@@ -4556,7 +4556,7 @@ jQuery(document).ready(function($){
         var $editor = $button.closest('.teqcidb-template-editor');
 
         if ($editor.length){
-            var $fallback = $editor.find('.teqcidb-token-target').first();
+            var $fallback = $editor.find('[data-template-field], .teqcidb-token-target').first();
 
             if ($fallback.length){
                 return $fallback;
@@ -4610,7 +4610,105 @@ jQuery(document).ready(function($){
         }
     }
 
-    $(document).on('focus', '.teqcidb-token-target', function(){
+
+    function insertWrappedTokenIntoField($field, openToken, closeToken){
+        if (!$field || !$field.length || !openToken || !closeToken){
+            return;
+        }
+
+        var field = $field.get(0);
+
+        if (!field || typeof field.value !== 'string'){
+            return;
+        }
+
+        var start = field.selectionStart;
+        var end = field.selectionEnd;
+        var value = field.value;
+
+        if (typeof start !== 'number' || typeof end !== 'number'){
+            value += openToken + closeToken;
+            field.value = value;
+            var fallbackPosition = value.length - closeToken.length;
+            field.selectionStart = fallbackPosition;
+            field.selectionEnd = fallbackPosition;
+        } else {
+            var selectedText = value.slice(start, end);
+            field.value = value.slice(0, start) + openToken + selectedText + closeToken + value.slice(end);
+            var cursorPosition = start + openToken.length + selectedText.length;
+            field.selectionStart = cursorPosition;
+            field.selectionEnd = cursorPosition;
+        }
+
+        $field.trigger('input');
+        $field.trigger('change');
+
+        if (typeof field.focus === 'function'){
+            field.focus();
+        }
+    }
+
+
+    function insertLinkIntoField($field){
+        if (!$field || !$field.length){
+            return;
+        }
+
+        var field = $field.get(0);
+
+        if (!field || typeof field.value !== 'string'){
+            return;
+        }
+
+        var start = field.selectionStart;
+        var end = field.selectionEnd;
+        var value = field.value;
+
+        if (typeof start !== 'number' || typeof end !== 'number' || start === end){
+            window.alert(linkSelectionRequired);
+
+            if (typeof field.focus === 'function'){
+                field.focus();
+            }
+
+            return;
+        }
+
+        var selectedText = value.slice(start, end);
+        var rawUrl = window.prompt(linkPromptLabel, 'https://');
+
+        if (rawUrl === null){
+            return;
+        }
+
+        var url = String(rawUrl).trim();
+
+        if (!url){
+            window.alert(linkInvalidUrl);
+            return;
+        }
+
+        if (!/^(https?:|mailto:|tel:)/i.test(url)){
+            url = 'https://' + url.replace(/^\/+/, '');
+        }
+
+        var sanitizedUrl = url.replace(/"/g, '&quot;');
+        var linkMarkup = '<a href="' + sanitizedUrl + '">' + selectedText + '</a>';
+
+        field.value = value.slice(0, start) + linkMarkup + value.slice(end);
+        var newPosition = start + linkMarkup.length;
+        field.selectionStart = newPosition;
+        field.selectionEnd = newPosition;
+
+        $field.trigger('input');
+        $field.trigger('change');
+
+        if (typeof field.focus === 'function'){
+            field.focus();
+        }
+    }
+
+    $(document).on('focus click keyup', '.teqcidb-template-editor input[type="text"], .teqcidb-template-editor input[type="email"], .teqcidb-template-editor textarea', function(){
         $activeTokenTarget = $(this);
     });
 
@@ -4619,7 +4717,30 @@ jQuery(document).ready(function($){
 
         var $button = $(this);
         var token = $button.data('token');
+        var tokenOpen = $button.data('tokenOpen');
+        var tokenClose = $button.data('tokenClose');
+        var tokenAction = $button.data('tokenAction');
+        var requiredContext = $button.data('tokenContext');
         var $target = resolveTokenTarget($button);
+
+        if (requiredContext && (!$target.length || $target.data('tokenContext') !== requiredContext)){
+            var $editor = $button.closest('.teqcidb-template-editor');
+            var $contextField = $editor.find('[data-token-context="' + requiredContext + '"]').first();
+
+            if ($contextField.length){
+                $target = $contextField;
+            }
+        }
+
+        if (tokenAction === 'link'){
+            insertLinkIntoField($target);
+            return;
+        }
+
+        if (tokenOpen && tokenClose){
+            insertWrappedTokenIntoField($target, tokenOpen, tokenClose);
+            return;
+        }
 
         insertTokenIntoField($target, token);
     });
@@ -4629,17 +4750,20 @@ jQuery(document).ready(function($){
     var previewUnavailableMessage = teqcidbAdmin.previewUnavailableMessage || '';
     var testEmailRequired = teqcidbAdmin.testEmailRequired || '';
     var testEmailSuccess = teqcidbAdmin.testEmailSuccess || '';
+    var linkPromptLabel = teqcidbAdmin.linkPromptLabel || 'Enter the full URL for this link.';
+    var linkSelectionRequired = teqcidbAdmin.linkSelectionRequired || 'Highlight text in Email Body first, then click Link.';
+    var linkInvalidUrl = teqcidbAdmin.linkInvalidUrl || 'Please enter a valid URL.';
     var previewEntityKeys = Object.keys(previewEntity);
     var previewHasEntity = previewEntityKeys.length > 0;
 
-    function applyPreviewTokens(template){
+    function applyPreviewTokens(template, entity){
         if (typeof template !== 'string' || !template){
             return '';
         }
 
         return template.replace(/\{([^\{\}\s]+)\}/g, function(match, token){
-            if (Object.prototype.hasOwnProperty.call(previewEntity, token)){
-                return previewEntity[token];
+            if (Object.prototype.hasOwnProperty.call(entity, token)){
+                return entity[token];
             }
 
             return '';
@@ -4651,11 +4775,40 @@ jQuery(document).ready(function($){
             return '';
         }
 
-        if (/<[a-z][\s\S]*>/i.test(content)){
+        return String(content).replace(/\r?\n/g, '<br>');
+    }
+
+
+    function applySelectedClassLinkOverrides(content, selectedClassTokens){
+        if (typeof content !== 'string' || !content || !selectedClassTokens){
             return content;
         }
 
-        return String(content).replace(/\r?\n/g, '<br>');
+        var updated = content;
+        var replacements = [
+            {
+                oldValue: previewEntity.class_page || '',
+                newValue: selectedClassTokens.class_page || ''
+            },
+            {
+                oldValue: previewEntity.class_team_link || '',
+                newValue: selectedClassTokens.class_team_link || ''
+            }
+        ];
+
+        replacements.forEach(function(item){
+            if (!item.oldValue || !item.newValue || item.oldValue === item.newValue){
+                return;
+            }
+
+            updated = updated.split(item.oldValue).join(item.newValue);
+
+            var oldEncoded = item.oldValue.replace(/&/g, '&amp;');
+            var newEncoded = item.newValue.replace(/&/g, '&amp;');
+            updated = updated.split(oldEncoded).join(newEncoded);
+        });
+
+        return updated;
     }
 
     function updateTemplatePreview($editor){
@@ -4670,7 +4823,11 @@ jQuery(document).ready(function($){
             return;
         }
 
-        if (!previewHasEntity){
+        var previewClassTokens = $editor.data('previewClassTokens') || {};
+        var previewTokenEntity = $.extend({}, previewEntity, previewClassTokens);
+        var hasPreviewEntity = Object.keys(previewTokenEntity).length > 0;
+
+        if (!hasPreviewEntity){
             $content.removeClass('is-visible');
 
             if (previewUnavailableMessage){
@@ -4699,8 +4856,9 @@ jQuery(document).ready(function($){
                 return;
             }
 
-            var renderedSubject = applyPreviewTokens(subjectValue);
-            var renderedBody = applyPreviewTokens(bodyValue);
+            var renderedSubject = applyPreviewTokens(subjectValue, previewTokenEntity);
+            var renderedBody = applyPreviewTokens(bodyValue, previewTokenEntity);
+            renderedBody = applySelectedClassLinkOverrides(renderedBody, previewClassTokens);
 
             $notice.hide();
 
@@ -4710,6 +4868,74 @@ jQuery(document).ready(function($){
             $content.addClass('is-visible');
         }
     }
+
+
+    $(document).on('change', '.teqcidb-template-preview-class-select', function(){
+        var $select = $(this);
+        var $editor = $select.closest('.teqcidb-template-editor');
+        var $selectedOption = $select.find('option:selected');
+        var $exportButton = $editor.find('.teqcidb-template-export-attendees').first();
+
+        if (!$editor.length){
+            return;
+        }
+
+        if (!$selectedOption.length || !$selectedOption.val()){
+            $editor.removeData('previewClassTokens');
+
+            if ($exportButton.length){
+                $exportButton.prop('disabled', true).removeData('classId');
+            }
+
+            updateTemplatePreview($editor);
+            return;
+        }
+
+        var classTokens = {
+            class_name: $selectedOption.data('className') || '',
+            class_type: $selectedOption.data('classType') || '',
+            class_date: $selectedOption.data('classDate') || '',
+            class_time: $selectedOption.data('classTime') || '',
+            class_page: $selectedOption.data('classPage') || '',
+            class_team_link: $selectedOption.data('classTeamLink') || '',
+            class_cost_total_transaction: $selectedOption.data('classCostTotalTransaction') || '',
+            class_cost_student_self: $selectedOption.data('classCostStudentSelf') || '',
+            class_cost_student_representative: $selectedOption.data('classCostStudentRepresentative') || ''
+        };
+
+        $editor.data('previewClassTokens', classTokens);
+
+        if ($exportButton.length){
+            $exportButton.prop('disabled', false).data('classId', $selectedOption.val());
+        }
+
+        updateTemplatePreview($editor);
+    });
+
+    $(document).on('click', '.teqcidb-template-export-attendees', function(e){
+        e.preventDefault();
+
+        var $button = $(this);
+
+        if ($button.prop('disabled')){
+            return;
+        }
+
+        var classId = $button.data('classId');
+        var exportUrl = $button.data('exportUrl');
+        var nonce = $button.data('exportNonce');
+
+        if (!classId || !exportUrl || !nonce){
+            return;
+        }
+
+        var url = exportUrl
+            + '?action=teqcidb_export_class_attendees'
+            + '&class_id=' + encodeURIComponent(classId)
+            + '&teqcidb_export_class_attendees_nonce=' + encodeURIComponent(nonce);
+
+        window.location.href = url;
+    });
 
     $(document).on('click', '.teqcidb-template-test-send', function(e){
         e.preventDefault();
@@ -4770,6 +4996,8 @@ jQuery(document).ready(function($){
             to_email: emailValue,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
             from_email: $editor.find('[data-template-field="from_email"]').first().val() || '',
+            cc: $editor.find('[data-template-field="cc"]').first().val() || '',
+            bcc: $editor.find('[data-template-field="bcc"]').first().val() || '',
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || ''
         };
@@ -4856,6 +5084,8 @@ jQuery(document).ready(function($){
             template_id: templateId,
             from_name: $editor.find('[data-template-field="from_name"]').first().val() || '',
             from_email: $editor.find('[data-template-field="from_email"]').first().val() || '',
+            cc: $editor.find('[data-template-field="cc"]').first().val() || '',
+            bcc: $editor.find('[data-template-field="bcc"]').first().val() || '',
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || '',
             sms: $editor.find('[data-token-context="sms"]').first().val() || ''

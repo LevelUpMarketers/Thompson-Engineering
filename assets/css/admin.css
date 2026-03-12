@@ -625,7 +625,6 @@
 }
 
 .teqcidb-communications--email-templates .teqcidb-accordion__cell--title {
-    display: block;
     gap: 0;
 }
 
@@ -637,8 +636,8 @@
 }
 
 .teqcidb-communications--email-templates .teqcidb-accordion__summary-row > .teqcidb-accordion__cell {
-    min-height: 50px !important;
-    height: 50px;
+    min-height: 110px !important;
+    height: 110px;
 }
 
 .teqcidb-communications--email-logs .teqcidb-email-log {
@@ -924,6 +923,35 @@
 
 .teqcidb-template-preview__body p:last-child {
     margin-bottom: 0;
+}
+
+
+.teqcidb-template-preview-controls {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.teqcidb-template-preview-controls__selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 320px;
+    max-width: 480px;
+}
+
+.teqcidb-template-preview-controls__label {
+    font-weight: 600;
+}
+
+.teqcidb-template-preview-class-select {
+    max-width: 100%;
+}
+
+.teqcidb-template-export-attendees {
+    min-width: 190px;
 }
 
 .teqcidb-template-editor__test {
@@ -1336,4 +1364,24 @@
 .teqcidb-class-registered-students__table th,
 .teqcidb-class-registered-students__table td {
     white-space: nowrap;
+}
+
+
+.tablenav-paging-text {
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.tablenav .tablenav-pages .button,
+.tablenav .tablenav-pages .tablenav-pages-navspan {
+    display: inline-block;
+    vertical-align: baseline;
+    min-width: 30px;
+    min-height: 30px;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 16px;
+    line-height: 1.625;
+    text-align: center;
+    margin-left: 5px;
 }
