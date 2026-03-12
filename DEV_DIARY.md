@@ -397,3 +397,4 @@
 390. 2026-03-12: Removed the Class History tab metadata rows for “Course in Progress?” and “Quiz Progress” from the student dashboard so these two status items no longer render in class history cards.
 391. 2026-03-12: Fixed Failed Quizzes answer rendering in admin so saved quiz selections using runtime option keys (for example, option_1) now map to their question choice labels instead of incorrectly showing "No answer selected" for answered questions.
 392. 2026-03-12: Updated Failed Quizzes question review display to highlight incorrect Student Answer values in red and bold, with correctness determined by comparing saved selections against each question’s correct choice set (including runtime option keys).
+393. 2026-03-12: Updated initial quiz-pass student updates so `initial_training_date` is now set to today when the stored value is blank/null or legacy `0000-00-00`, ensuring initial-pass side effects repair invalid zero dates.

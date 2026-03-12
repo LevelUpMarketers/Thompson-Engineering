@@ -1601,7 +1601,7 @@ class TEQCIDB_Ajax {
         if ( 'initial' === $class_type ) {
             $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
 
-            if ( '' === $existing_initial_training_date ) {
+            if ( '' === $existing_initial_training_date || '0000-00-00' === $existing_initial_training_date ) {
                 $student_update['initial_training_date'] = $today;
                 $student_formats[]                       = '%s';
             }
