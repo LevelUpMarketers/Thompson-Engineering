@@ -925,6 +925,35 @@
     margin-bottom: 0;
 }
 
+
+.teqcidb-template-preview-controls {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.teqcidb-template-preview-controls__selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 320px;
+    max-width: 480px;
+}
+
+.teqcidb-template-preview-controls__label {
+    font-weight: 600;
+}
+
+.teqcidb-template-preview-class-select {
+    max-width: 100%;
+}
+
+.teqcidb-template-export-attendees {
+    min-width: 190px;
+}
+
 .teqcidb-template-editor__test {
     display: flex;
     align-items: center;

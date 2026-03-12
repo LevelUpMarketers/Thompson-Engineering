@@ -4756,14 +4756,14 @@ jQuery(document).ready(function($){
     var previewEntityKeys = Object.keys(previewEntity);
     var previewHasEntity = previewEntityKeys.length > 0;
 
-    function applyPreviewTokens(template){
+    function applyPreviewTokens(template, entity){
         if (typeof template !== 'string' || !template){
             return '';
         }
 
         return template.replace(/\{([^\{\}\s]+)\}/g, function(match, token){
-            if (Object.prototype.hasOwnProperty.call(previewEntity, token)){
-                return previewEntity[token];
+            if (Object.prototype.hasOwnProperty.call(entity, token)){
+                return entity[token];
             }
 
             return '';
@@ -4790,7 +4790,11 @@ jQuery(document).ready(function($){
             return;
         }
 
-        if (!previewHasEntity){
+        var previewClassTokens = $editor.data('previewClassTokens') || {};
+        var previewTokenEntity = $.extend({}, previewEntity, previewClassTokens);
+        var hasPreviewEntity = Object.keys(previewTokenEntity).length > 0;
+
+        if (!hasPreviewEntity){
             $content.removeClass('is-visible');
 
             if (previewUnavailableMessage){
@@ -4819,8 +4823,8 @@ jQuery(document).ready(function($){
                 return;
             }
 
-            var renderedSubject = applyPreviewTokens(subjectValue);
-            var renderedBody = applyPreviewTokens(bodyValue);
+            var renderedSubject = applyPreviewTokens(subjectValue, previewTokenEntity);
+            var renderedBody = applyPreviewTokens(bodyValue, previewTokenEntity);
 
             $notice.hide();
 
@@ -4830,6 +4834,71 @@ jQuery(document).ready(function($){
             $content.addClass('is-visible');
         }
     }
+
+
+    $(document).on('change', '.teqcidb-template-preview-class-select', function(){
+        var $select = $(this);
+        var $editor = $select.closest('.teqcidb-template-editor');
+        var $selectedOption = $select.find('option:selected');
+        var $exportButton = $editor.find('.teqcidb-template-export-attendees').first();
+
+        if (!$editor.length){
+            return;
+        }
+
+        if (!$selectedOption.length || !$selectedOption.val()){
+            $editor.removeData('previewClassTokens');
+
+            if ($exportButton.length){
+                $exportButton.prop('disabled', true).removeData('classId');
+            }
+
+            updateTemplatePreview($editor);
+            return;
+        }
+
+        var classTokens = {
+            class_name: $selectedOption.data('className') || '',
+            class_type: $selectedOption.data('classType') || '',
+            class_date: $selectedOption.data('classDate') || '',
+            class_time: $selectedOption.data('classTime') || '',
+            class_page: $selectedOption.data('classPage') || '',
+            class_team_link: $selectedOption.data('classTeamLink') || ''
+        };
+
+        $editor.data('previewClassTokens', classTokens);
+
+        if ($exportButton.length){
+            $exportButton.prop('disabled', false).data('classId', $selectedOption.val());
+        }
+
+        updateTemplatePreview($editor);
+    });
+
+    $(document).on('click', '.teqcidb-template-export-attendees', function(e){
+        e.preventDefault();
+
+        var $button = $(this);
+
+        if ($button.prop('disabled')){
+            return;
+        }
+
+        var classId = $button.data('classId');
+        var exportUrl = $button.data('exportUrl');
+        var nonce = $button.data('exportNonce');
+
+        if (!classId || !exportUrl || !nonce){
+            return;
+        }
+
+        var url = exportUrl
+            + '?action=teqcidb_export_class_attendees'
+            + '&class_id=' + encodeURIComponent(classId)
+            + '&teqcidb_export_class_attendees_nonce=' + encodeURIComponent(nonce);
+
+        window.location.href = url;
+    });
 
     $(document).on('click', '.teqcidb-template-test-send', function(e){
         e.preventDefault();

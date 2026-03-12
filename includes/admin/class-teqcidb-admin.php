@@ -13,6 +13,7 @@ class TEQCIDB_Admin {
         add_action( 'admin_post_teqcidb_run_cron_event', array( $this, 'handle_run_cron_event' ) );
         add_action( 'admin_post_teqcidb_delete_cron_event', array( $this, 'handle_delete_cron_event' ) );
         add_action( 'admin_post_teqcidb_download_email_log', array( $this, 'handle_download_email_log' ) );
+        add_action( 'admin_post_teqcidb_export_class_attendees', array( $this, 'handle_export_class_attendees' ) );
         add_action( 'admin_post_teqcidb_delete_generated_content', array( $this, 'handle_delete_generated_content' ) );
         add_action( 'admin_post_teqcidb_save_quiz', array( $this, 'handle_save_quiz' ) );
         add_action( 'admin_post_teqcidb_update_quiz', array( $this, 'handle_update_quiz' ) );
@@ -371,6 +372,10 @@ class TEQCIDB_Admin {
             esc_textarea( $sms_value )
         );
 
+
+        $preview_classes = $this->get_email_template_preview_classes();
+        $preview_class_select_id = $field_prefix . '-preview-class';
+
         echo '<div class="teqcidb-template-preview" aria-live="polite">';
         echo '<h3 class="teqcidb-template-preview__title">' . esc_html__( 'Email Preview', 'teqcidb' ) . '</h3>';
         echo '<p class="teqcidb-template-preview__notice">' . esc_html( $preview_notice ) . '</p>';
@@ -378,6 +383,42 @@ class TEQCIDB_Admin {
         echo '<p class="teqcidb-template-preview__subject"><span class="teqcidb-template-preview__label">' . esc_html__( 'Subject:', 'teqcidb' ) . '</span> <span class="teqcidb-template-preview__value" data-preview-field="subject"></span></p>';
         echo '<div class="teqcidb-template-preview__body" data-preview-field="body"></div>';
         echo '</div>';
+
+        echo '<div class="teqcidb-template-preview-controls">';
+        echo '<div class="teqcidb-template-preview-controls__selection">';
+        printf(
+            '<label for="%1$s" class="teqcidb-template-preview-controls__label">%2$s</label>',
+            esc_attr( $preview_class_select_id ),
+            esc_html__( 'Preview with...', 'teqcidb' )
+        );
+        printf( '<select id="%1$s" class="teqcidb-template-preview-class-select">', esc_attr( $preview_class_select_id ) );
+        echo '<option value="" selected="selected" disabled="disabled">' . esc_html__( 'Select a Class...', 'teqcidb' ) . '</option>';
+
+        foreach ( $preview_classes as $preview_class ) {
+            printf(
+                '<option value="%1$d" data-class-name="%2$s" data-class-type="%3$s" data-class-date="%4$s" data-class-time="%5$s" data-class-page="%6$s" data-class-team-link="%7$s">%8$s</option>',
+                absint( $preview_class['id'] ),
+                esc_attr( $preview_class['class_name'] ),
+                esc_attr( $preview_class['class_type'] ),
+                esc_attr( $preview_class['class_date'] ),
+                esc_attr( $preview_class['class_time'] ),
+                esc_attr( $preview_class['class_page'] ),
+                esc_attr( $preview_class['class_team_link'] ),
+                esc_html( $preview_class['label'] )
+            );
+        }
+
+        echo '</select>';
+        echo '</div>';
+
+        printf(
+            '<button type="button" class="button button-secondary teqcidb-template-export-attendees" data-export-url="%1$s" data-export-nonce="%2$s" disabled="disabled">%3$s</button>',
+            esc_url( admin_url( 'admin-post.php' ) ),
+            esc_attr( wp_create_nonce( 'teqcidb_export_class_attendees' ) ),
+            esc_html__( 'Export Class Attendees', 'teqcidb' )
+        );
+        echo '</div>';
+
         echo '</div>';
 
         echo '<div class="teqcidb-template-editor__test">';
@@ -829,6 +870,97 @@ class TEQCIDB_Admin {
         echo '<div class="teqcidb-communications teqcidb-communications--placeholder">';
         echo '<p>' . esc_html( $message ) . '</p>';
         echo '</div>';
+    }
+
+
+    private function get_email_template_preview_classes() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_classes';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $rows = $wpdb->get_results( "SELECT id, classname, classtype, classformat, classstartdate, classstarttime, classurl, teamslink FROM $table_name ORDER BY id DESC", ARRAY_A );
+
+        if ( ! is_array( $rows ) || empty( $rows ) ) {
+            return array();
+        }
+
+        $classes = array();
+
+        foreach ( $rows as $row ) {
+            $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
+            $class_type = isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '';
+            $class_format = isset( $row['classformat'] ) ? sanitize_text_field( (string) $row['classformat'] ) : '';
+            $label_parts = array_filter( array( $class_name, $class_type, $class_format ), 'strlen' );
+
+            $classes[] = array(
+                'id'              => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'label'           => ! empty( $label_parts ) ? implode( ' | ', $label_parts ) : __( 'Untitled Class', 'teqcidb' ),
+                'class_name'      => $class_name,
+                'class_type'      => '' === $class_type ? '' : ucwords( strtolower( $class_type ) ),
+                'class_date'      => $this->format_email_template_date( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+                'class_time'      => $this->format_email_template_time( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+                'class_page'      => $this->format_email_template_class_url( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
+                'class_team_link' => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+            );
+        }
+
+        return $classes;
+    }
+
+    private function format_email_template_date( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        return $date ? $date->format( 'm-d-Y' ) : '';
+    }
+
+    private function format_email_template_time( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value || '00:00:00' === $value || '00:00' === $value ) {
+            return '';
+        }
+
+        $time = date_create( $value );
+
+        return $time ? $time->format( 'g:i A' ) : '';
+    }
+
+    private function format_email_template_class_url( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $value, '/' ) ) );
     }
 
     private function get_sample_email_templates() {
@@ -4979,6 +5111,83 @@ class TEQCIDB_Admin {
         header( 'Content-Length: ' . strlen( $contents ) );
 
         echo $contents;
+        exit;
+    }
+
+
+    public function handle_export_class_attendees() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You are not allowed to export class attendees.', 'teqcidb' ) );
+        }
+
+        check_admin_referer( 'teqcidb_export_class_attendees', 'teqcidb_export_class_attendees_nonce' );
+
+        $class_id = isset( $_GET['class_id'] ) ? absint( wp_unslash( $_GET['class_id'] ) ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_die( esc_html__( 'Please choose a valid class before exporting attendees.', 'teqcidb' ) );
+        }
+
+        global $wpdb;
+
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( empty( $class_row['uniqueclassid'] ) ) {
+            wp_die( esc_html__( 'Unable to find the selected class.', 'teqcidb' ) );
+        }
+
+        $attendees = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT s.first_name, s.last_name, s.email
+                FROM $history_table h
+                INNER JOIN $students_table s ON s.uniquestudentid = h.uniquestudentid
+                WHERE h.uniqueclassid = %s
+                ORDER BY s.last_name ASC, s.first_name ASC",
+                $class_row['uniqueclassid']
+            ),
+            ARRAY_A
+        );
+
+        $class_name = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : 'class';
+        $filename = sanitize_file_name( $class_name . '-attendees-' . gmdate( 'Ymd-His' ) . '.csv' );
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+
+        $output = fopen( 'php://output', 'w' );
+
+        if ( false === $output ) {
+            wp_die( esc_html__( 'Unable to prepare attendee export output.', 'teqcidb' ) );
+        }
+
+        fputcsv( $output, array(
+            __( 'First Name', 'teqcidb' ),
+            __( 'Last Name', 'teqcidb' ),
+            __( 'Email Address', 'teqcidb' ),
+        ) );
+
+        if ( is_array( $attendees ) ) {
+            foreach ( $attendees as $attendee ) {
+                fputcsv( $output, array(
+                    isset( $attendee['first_name'] ) ? sanitize_text_field( (string) $attendee['first_name'] ) : '',
+                    isset( $attendee['last_name'] ) ? sanitize_text_field( (string) $attendee['last_name'] ) : '',
+                    isset( $attendee['email'] ) ? sanitize_email( (string) $attendee['email'] ) : '',
+                ) );
+            }
+        }
+
+        fclose( $output );
         exit;
     }
 
