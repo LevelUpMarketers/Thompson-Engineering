@@ -4897,7 +4897,10 @@ jQuery(document).ready(function($){
             class_date: $selectedOption.data('classDate') || '',
             class_time: $selectedOption.data('classTime') || '',
             class_page: $selectedOption.data('classPage') || '',
-            class_team_link: $selectedOption.data('classTeamLink') || ''
+            class_team_link: $selectedOption.data('classTeamLink') || '',
+            class_cost_total_transaction: $selectedOption.data('classCostTotalTransaction') || '',
+            class_cost_student_self: $selectedOption.data('classCostStudentSelf') || '',
+            class_cost_student_representative: $selectedOption.data('classCostStudentRepresentative') || ''
         };
 
         $editor.data('previewClassTokens', classTokens);

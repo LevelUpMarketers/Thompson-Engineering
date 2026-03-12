@@ -113,12 +113,15 @@ class TEQCIDB_Student_Helper {
         }
 
         $class_preview_data = array(
-            'class_name'      => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
-            'class_type'      => self::format_class_type_for_token( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
-            'class_date'      => self::format_date_for_token( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
-            'class_time'      => self::format_time_for_token( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
-            'class_page'      => self::format_class_page_url_for_token( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
-            'class_team_link' => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+            'class_name'                       => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
+            'class_type'                       => self::format_class_type_for_token( isset( $row['classtype'] ) ? $row['classtype'] : '' ),
+            'class_date'                       => self::format_date_for_token( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
+            'class_time'                       => self::format_time_for_token( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
+            'class_page'                       => self::format_class_page_url_for_token( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
+            'class_team_link'                  => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+            'class_cost_total_transaction'     => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+            'class_cost_student_self'          => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+            'class_cost_student_representative' => self::format_currency_for_token( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
         );
 
         return $class_preview_data;
@@ -328,6 +331,28 @@ class TEQCIDB_Student_Helper {
         return $time ? $time->format( 'g:i A' ) : '';
     }
 
+
+
+    /**
+     * Format class cost values for communications tokens.
+     *
+     * @param mixed $value Stored class cost value.
+     *
+     * @return string
+     */
+    private static function format_currency_for_token( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $value );
+
+        if ( null === $normalized || '' === $normalized || ! is_numeric( $normalized ) ) {
+            return '';
+        }
+
+        return '$' . number_format( (float) $normalized, 2, '.', ',' );
+    }
 
     private static function decode_list_field( $value ) {
         if ( is_array( $value ) ) {

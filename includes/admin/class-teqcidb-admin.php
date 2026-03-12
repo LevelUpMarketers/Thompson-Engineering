@@ -396,7 +396,7 @@ class TEQCIDB_Admin {
 
         foreach ( $preview_classes as $preview_class ) {
             printf(
-                '<option value="%1$d" data-class-name="%2$s" data-class-type="%3$s" data-class-date="%4$s" data-class-time="%5$s" data-class-page="%6$s" data-class-team-link="%7$s">%8$s</option>',
+                '<option value="%1$d" data-class-name="%2$s" data-class-type="%3$s" data-class-date="%4$s" data-class-time="%5$s" data-class-page="%6$s" data-class-team-link="%7$s" data-class-cost-total-transaction="%8$s" data-class-cost-student-self="%9$s" data-class-cost-student-representative="%10$s">%11$s</option>',
                 absint( $preview_class['id'] ),
                 esc_attr( $preview_class['class_name'] ),
                 esc_attr( $preview_class['class_type'] ),
@@ -404,6 +404,9 @@ class TEQCIDB_Admin {
                 esc_attr( $preview_class['class_time'] ),
                 esc_attr( $preview_class['class_page'] ),
                 esc_attr( $preview_class['class_team_link'] ),
+                esc_attr( $preview_class['class_cost_total_transaction'] ),
+                esc_attr( $preview_class['class_cost_student_self'] ),
+                esc_attr( $preview_class['class_cost_student_representative'] ),
                 esc_html( $preview_class['label'] )
             );
         }
@@ -597,6 +600,18 @@ class TEQCIDB_Admin {
                 array(
                     'value' => '{class_team_link}',
                     'label' => __( 'Class Team Link', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_total_transaction}',
+                    'label' => __( 'Class Cost (Total Transaction)', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_student_self}',
+                    'label' => __( 'Class Cost (Student Self-Registration)', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{class_cost_student_representative}',
+                    'label' => __( 'Class Cost (Student via Representative)', 'teqcidb' ),
                 ),
             ),
         );
@@ -884,7 +899,7 @@ class TEQCIDB_Admin {
             return array();
         }
 
-        $rows = $wpdb->get_results( "SELECT id, classname, classtype, classformat, classstartdate, classstarttime, classurl, teamslink FROM $table_name ORDER BY id DESC", ARRAY_A );
+        $rows = $wpdb->get_results( "SELECT id, classname, classtype, classformat, classstartdate, classstarttime, classurl, teamslink, classcost FROM $table_name ORDER BY id DESC", ARRAY_A );
 
         if ( ! is_array( $rows ) || empty( $rows ) ) {
             return array();
@@ -908,11 +923,28 @@ class TEQCIDB_Admin {
                 'class_date'      => $this->format_email_template_date( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
                 'class_time'      => $this->format_email_template_time( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
                 'class_page'      => $this->format_email_template_class_url( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
-                'class_team_link' => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+                'class_team_link'                  => isset( $row['teamslink'] ) ? esc_url_raw( (string) $row['teamslink'] ) : '',
+                'class_cost_total_transaction'      => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'class_cost_student_self'           => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
+                'class_cost_student_representative' => $this->format_email_template_cost( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
             );
         }
 
         return $classes;
+    }
+
+    private function format_email_template_cost( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $normalized = preg_replace( '/[^0-9.\-]/', '', (string) $value );
+
+        if ( null === $normalized || '' === $normalized || ! is_numeric( $normalized ) ) {
+            return '';
+        }
+
+        return '$' . number_format( (float) $normalized, 2, '.', ',' );
     }
 
     private function format_email_template_date( $value ) {
