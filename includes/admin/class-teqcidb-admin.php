@@ -2761,6 +2761,7 @@ class TEQCIDB_Admin {
 
             $choices[] = array(
                 'id'      => $choice_id,
+                'value'   => 'option_' . ( $index + 1 ),
                 'label'   => isset( $item['label'] ) ? sanitize_textarea_field( (string) $item['label'] ) : '',
                 'correct' => ! empty( $item['correct'] ),
             );
@@ -2789,6 +2790,10 @@ class TEQCIDB_Admin {
                 }
 
                 $choice_labels[ (string) $choice['id'] ] = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+
+                if ( ! empty( $choice['value'] ) ) {
+                    $choice_labels[ (string) $choice['value'] ] = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+                }
             }
 
             foreach ( $selected_values as $selected_value ) {
