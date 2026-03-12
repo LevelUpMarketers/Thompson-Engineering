@@ -895,6 +895,7 @@ class TEQCIDB_Admin {
         foreach ( $rows as $row ) {
             $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
             $class_type = isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '';
+            $class_type = '' === $class_type ? '' : ucwords( strtolower( $class_type ) );
             $class_format = isset( $row['classformat'] ) ? sanitize_text_field( (string) $row['classformat'] ) : '';
             $class_format = $this->normalize_email_template_class_format_label( $class_format );
             $label_parts = array_filter( array( $class_name, $class_type, $class_format ), 'strlen' );
@@ -903,7 +904,7 @@ class TEQCIDB_Admin {
                 'id'              => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
                 'label'           => ! empty( $label_parts ) ? implode( ' | ', $label_parts ) : __( 'Untitled Class', 'teqcidb' ),
                 'class_name'      => $class_name,
-                'class_type'      => '' === $class_type ? '' : ucwords( strtolower( $class_type ) ),
+                'class_type'      => $class_type,
                 'class_date'      => $this->format_email_template_date( isset( $row['classstartdate'] ) ? $row['classstartdate'] : '' ),
                 'class_time'      => $this->format_email_template_time( isset( $row['classstarttime'] ) ? $row['classstarttime'] : '' ),
                 'class_page'      => $this->format_email_template_class_url( isset( $row['classurl'] ) ? $row['classurl'] : '' ),
