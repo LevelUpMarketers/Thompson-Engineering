@@ -896,6 +896,7 @@ class TEQCIDB_Admin {
             $class_name = isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '';
             $class_type = isset( $row['classtype'] ) ? sanitize_text_field( (string) $row['classtype'] ) : '';
             $class_format = isset( $row['classformat'] ) ? sanitize_text_field( (string) $row['classformat'] ) : '';
+            $class_format = $this->normalize_email_template_class_format_label( $class_format );
             $label_parts = array_filter( array( $class_name, $class_type, $class_format ), 'strlen' );
 
             $classes[] = array(
@@ -963,14 +964,32 @@ class TEQCIDB_Admin {
         return esc_url_raw( home_url( '/' . ltrim( $value, '/' ) ) );
     }
 
+    private function normalize_email_template_class_format_label( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = strtolower( trim( (string) $value ) );
+
+        if ( in_array( $value, array( 'inperson', 'in_person', 'in person' ), true ) ) {
+            return __( 'In Person', 'teqcidb' );
+        }
+
+        if ( in_array( $value, array( 'virtual', 'online' ), true ) ) {
+            return __( 'Online', 'teqcidb' );
+        }
+
+        return '' === $value ? '' : ucwords( str_replace( '_', ' ', $value ) );
+    }
+
     private function get_sample_email_templates() {
         return array(
             array(
                 'id'      => 'teqcidb-email-student-self-initial-online',
                 'title'   => __( 'Student Self-Registration (Initial Online)', 'teqcidb' ),
-                'tooltip' => __( 'Sent to the logged-in student after successful payment for a virtual Initial class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an Online Initial class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Initial | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
@@ -979,9 +998,9 @@ class TEQCIDB_Admin {
             array(
                 'id'      => 'teqcidb-email-student-self-refresher-online',
                 'title'   => __( 'Student Self-Registration (Refresher Online)', 'teqcidb' ),
-                'tooltip' => __( 'Sent to the logged-in student after successful payment for a virtual Refresher class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent to the logged-in student after successful payment for an Online Refresher class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Student self-registration | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
@@ -990,9 +1009,9 @@ class TEQCIDB_Admin {
             array(
                 'id'      => 'teqcidb-email-rep-initial-online-student',
                 'title'   => __( 'Representative Registration (Initial Online - Student)', 'teqcidb' ),
-                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for a virtual Initial class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an Online Initial class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Initial | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
@@ -1001,9 +1020,9 @@ class TEQCIDB_Admin {
             array(
                 'id'      => 'teqcidb-email-rep-initial-online-representative',
                 'title'   => __( 'Representative Registration (Initial Online - Representative)', 'teqcidb' ),
-                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in a virtual Initial class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an Online Initial class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Initial | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
@@ -1012,9 +1031,9 @@ class TEQCIDB_Admin {
             array(
                 'id'      => 'teqcidb-email-rep-refresher-online-student',
                 'title'   => __( 'Representative Registration (Refresher Online - Student)', 'teqcidb' ),
-                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for a virtual Refresher class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent to each assigned student after a representative completes payment for an Online Refresher class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Student | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),
@@ -1023,9 +1042,9 @@ class TEQCIDB_Admin {
             array(
                 'id'      => 'teqcidb-email-rep-refresher-online-representative',
                 'title'   => __( 'Representative Registration (Refresher Online - Representative)', 'teqcidb' ),
-                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in a virtual Refresher class.', 'teqcidb' ),
+                'tooltip' => __( 'Sent only to the logged-in representative after payment for assigned students in an Online Refresher class.', 'teqcidb' ),
                 'meta'    => array(
-                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: Virtual', 'teqcidb' ),
+                    'trigger'            => __( 'Payment success | Representative registration | Recipient: Representative | Class Type: Refresher | Class Format: Online', 'teqcidb' ),
                     'communication_type' => __( 'External', 'teqcidb' ),
                     'category'           => __( 'Registration & Payment', 'teqcidb' ),
                 ),

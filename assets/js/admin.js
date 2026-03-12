@@ -4778,6 +4778,39 @@ jQuery(document).ready(function($){
         return String(content).replace(/\r?\n/g, '<br>');
     }
 
+
+    function applySelectedClassLinkOverrides(content, selectedClassTokens){
+        if (typeof content !== 'string' || !content || !selectedClassTokens){
+            return content;
+        }
+
+        var updated = content;
+        var replacements = [
+            {
+                oldValue: previewEntity.class_page || '',
+                newValue: selectedClassTokens.class_page || ''
+            },
+            {
+                oldValue: previewEntity.class_team_link || '',
+                newValue: selectedClassTokens.class_team_link || ''
+            }
+        ];
+
+        replacements.forEach(function(item){
+            if (!item.oldValue || !item.newValue || item.oldValue === item.newValue){
+                return;
+            }
+
+            updated = updated.split(item.oldValue).join(item.newValue);
+
+            var oldEncoded = item.oldValue.replace(/&/g, '&amp;');
+            var newEncoded = item.newValue.replace(/&/g, '&amp;');
+            updated = updated.split(oldEncoded).join(newEncoded);
+        });
+
+        return updated;
+    }
+
     function updateTemplatePreview($editor){
         if (!$editor || !$editor.length){
             return;
@@ -4825,6 +4858,7 @@ jQuery(document).ready(function($){
 
             var renderedSubject = applyPreviewTokens(subjectValue, previewTokenEntity);
             var renderedBody = applyPreviewTokens(bodyValue, previewTokenEntity);
+            renderedBody = applySelectedClassLinkOverrides(renderedBody, previewClassTokens);
 
             $notice.hide();
 
