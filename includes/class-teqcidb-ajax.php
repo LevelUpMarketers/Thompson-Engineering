@@ -1856,7 +1856,12 @@ class TEQCIDB_Ajax {
         $selected_count    = count( $selected_students );
 
         if ( $selected_count <= 0 ) {
-            $selected_count = 1;
+            $selected_students = array(
+                array(
+                    'wpid' => get_current_user_id(),
+                ),
+            );
+            $selected_count    = 1;
         }
 
         $discount_count = $this->count_association_discounts_for_selected_students( $selected_students );
