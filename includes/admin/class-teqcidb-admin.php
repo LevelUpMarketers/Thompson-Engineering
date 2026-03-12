@@ -2812,6 +2812,75 @@ class TEQCIDB_Admin {
         return implode( ', ', $labels );
     }
 
+    private function is_attempt_answer_correct( $question_type, array $selected_values, $choices_json, array $choices ) {
+        $question_type  = sanitize_key( (string) $question_type );
+        $selected_values = array_values(
+            array_unique(
+                array_filter(
+                    array_map( 'sanitize_key', $selected_values )
+                )
+            )
+        );
+
+        if ( empty( $selected_values ) ) {
+            return false;
+        }
+
+        if ( 'true_false' === $question_type ) {
+            $correct = $this->get_true_false_answer_from_choices_json( $choices_json );
+
+            return '' !== $correct && 1 === count( $selected_values ) && $correct === $selected_values[0];
+        }
+
+        $choice_lookup = array();
+        $correct_keys  = array();
+
+        foreach ( $choices as $choice ) {
+            if ( ! is_array( $choice ) ) {
+                continue;
+            }
+
+            $canonical = ! empty( $choice['value'] )
+                ? sanitize_key( (string) $choice['value'] )
+                : sanitize_key( (string) ( isset( $choice['id'] ) ? $choice['id'] : '' ) );
+
+            if ( '' === $canonical ) {
+                continue;
+            }
+
+            if ( ! empty( $choice['id'] ) ) {
+                $choice_lookup[ sanitize_key( (string) $choice['id'] ) ] = $canonical;
+            }
+
+            if ( ! empty( $choice['value'] ) ) {
+                $choice_lookup[ sanitize_key( (string) $choice['value'] ) ] = $canonical;
+            }
+
+            if ( ! empty( $choice['correct'] ) ) {
+                $correct_keys[] = $canonical;
+            }
+        }
+
+        $correct_keys = array_values( array_unique( array_filter( $correct_keys ) ) );
+
+        if ( empty( $correct_keys ) ) {
+            return false;
+        }
+
+        $selected_keys = array();
+
+        foreach ( $selected_values as $selected_value ) {
+            $selected_keys[] = isset( $choice_lookup[ $selected_value ] ) ? $choice_lookup[ $selected_value ] : $selected_value;
+        }
+
+        $selected_keys = array_values( array_unique( array_filter( $selected_keys ) ) );
+
+        sort( $selected_keys );
+        sort( $correct_keys );
+
+        return $selected_keys === $correct_keys;
+    }
+
     private function get_correct_answer_label_string( $question_type, $choices_json, array $choices ) {
         if ( 'true_false' === $question_type ) {
             $correct = $this->get_true_false_answer_from_choices_json( $choices_json );
@@ -3857,12 +3926,13 @@ class TEQCIDB_Admin {
                         $choices       = $this->get_multi_select_choices_from_choices_json( $choices_json );
                         $selected      = isset( $answers[ $question_id ] ) && is_array( $answers[ $question_id ] ) ? $answers[ $question_id ] : array();
 
-                        $selected_label = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
-                        $correct_label  = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $selected_label      = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
+                        $correct_label       = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $is_selected_correct = $this->is_attempt_answer_correct( $question_type, $selected, $choices_json, $choices );
 
                         echo '<tr>';
                         echo '<td>' . esc_html( '' !== $prompt ? $prompt : __( 'Untitled question', 'teqcidb' ) ) . '</td>';
-                        echo '<td>' . esc_html( $selected_label ) . '</td>';
+                        echo '<td' . ( $is_selected_correct ? '' : ' style="color: #b32d2e; font-weight: 600;"' ) . '>' . esc_html( $selected_label ) . '</td>';
                         echo '<td>' . esc_html( $correct_label ) . '</td>';
                         echo '</tr>';
                     }
