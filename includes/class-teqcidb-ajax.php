@@ -31,6 +31,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_delete_studenthistory', array( $this, 'delete_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
         add_action( 'wp_ajax_teqcidb_read_class', array( $this, 'read_class' ) );
+        add_action( 'wp_ajax_teqcidb_read_class_registered_students', array( $this, 'read_class_registered_students' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
         add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
         add_action( 'wp_ajax_teqcidb_upload_legacy_student', array( $this, 'upload_legacy_records' ) );
@@ -4991,6 +4992,68 @@ class TEQCIDB_Ajax {
         );
     }
 
+
+    public function read_class_registered_students() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid class selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+        $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 40;
+
+        if ( $per_page <= 0 ) {
+            $per_page = 40;
+        }
+
+        $per_page = min( $per_page, 100 );
+
+        $class_entity = $this->get_class_entity_for_registered_students( $class_id );
+
+        if ( empty( $class_entity ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Class not found.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $registered_data = $this->get_registered_students_page_for_class( $class_entity, $page, $per_page );
+        $total           = isset( $registered_data['total'] ) ? absint( $registered_data['total'] ) : 0;
+        $students        = isset( $registered_data['students'] ) && is_array( $registered_data['students'] ) ? $registered_data['students'] : array();
+        $total_pages     = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+
+        if ( $total_pages < 1 ) {
+            $total_pages = 1;
+        }
+
+        if ( $page > $total_pages ) {
+            $page = $total_pages;
+        }
+
+        $loaded_count = ( $page - 1 ) * $per_page + count( $students );
+
+        wp_send_json_success(
+            array(
+                'students'     => $students,
+                'page'         => $page,
+                'per_page'     => $per_page,
+                'total'        => $total,
+                'total_pages'  => $total_pages,
+                'loaded_count' => min( $loaded_count, $total ),
+                'has_more'     => $loaded_count < $total,
+            )
+        );
+    }
+
+
     public function read_student() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
@@ -7522,7 +7585,8 @@ class TEQCIDB_Ajax {
         $entity['coursestudentsrestricted'] = $this->format_class_student_list_for_response( isset( $entity['coursestudentsrestricted'] ) ? $entity['coursestudentsrestricted'] : '' );
         $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
         $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
-        $entity['registered_students']      = $this->get_registered_students_for_class( $entity );
+        $entity['registered_students_total'] = $this->get_registered_students_total_for_class( $entity );
+        $entity['registered_students_loaded'] = 0;
 
         $class_url_value = isset( $entity['classurl'] ) ? trim( (string) $entity['classurl'] ) : '';
 
@@ -7558,45 +7622,161 @@ class TEQCIDB_Ajax {
 
 
     private function get_registered_students_for_class( array $entity ) {
+        $registered_data = $this->get_registered_students_page_for_class( $entity, 1, $this->get_registered_students_total_for_class( $entity ) );
+
+        return isset( $registered_data['students'] ) && is_array( $registered_data['students'] ) ? $registered_data['students'] : array();
+    }
+
+    private function get_class_entity_for_registered_students( $class_id ) {
         global $wpdb;
 
-        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
-        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $row           = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, uniqueclassid, classname FROM $classes_table WHERE id = %d",
+                absint( $class_id )
+            ),
+            ARRAY_A
+        );
+
+        return is_array( $row ) ? $row : array();
+    }
+
+    private function get_registered_students_total_for_class( array $entity ) {
+        $history_args = $this->get_class_history_query_args( $entity );
+
+        if ( empty( $history_args ) ) {
+            return 0;
+        }
+
+        global $wpdb;
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+
+        $count_query = "SELECT COUNT(*) FROM (
+            SELECT CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key
+            FROM $history_table
+            WHERE {$history_args['where_sql']}
+            AND ( wpuserid > 0 OR uniquestudentid <> '' )
+            GROUP BY student_key
+        ) AS registered_students";
+
+        return (int) $wpdb->get_var( $wpdb->prepare( $count_query, $history_args['where_params'] ) );
+    }
+
+    private function get_registered_students_page_for_class( array $entity, $page, $per_page ) {
+        global $wpdb;
+
+        $total = $this->get_registered_students_total_for_class( $entity );
+
+        if ( $total <= 0 ) {
+            return array(
+                'students' => array(),
+                'total'    => 0,
+            );
+        }
+
+        $page     = max( 1, absint( $page ) );
+        $per_page = max( 1, absint( $per_page ) );
+        $per_page = min( $per_page, 100 );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        if ( $offset < 0 ) {
+            $offset = 0;
+        }
+
+        $history_args = $this->get_class_history_query_args( $entity );
+
+        if ( empty( $history_args ) ) {
+            return array(
+                'students' => array(),
+                'total'    => 0,
+            );
+        }
+
+        $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
+        $identifier_sql  = "SELECT
+                CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key,
+                MIN(id) AS history_id,
+                MAX(CASE WHEN wpuserid > 0 THEN wpuserid ELSE 0 END) AS wpuserid,
+                MAX(uniquestudentid) AS uniquestudentid
+            FROM $history_table
+            WHERE {$history_args['where_sql']}
+            AND ( wpuserid > 0 OR uniquestudentid <> '' )
+            GROUP BY student_key
+            ORDER BY history_id ASC
+            LIMIT %d OFFSET %d";
+        $identifier_args = array_merge( $history_args['where_params'], array( $per_page, $offset ) );
+        $identifier_rows = $wpdb->get_results( $wpdb->prepare( $identifier_sql, $identifier_args ), ARRAY_A );
+
+        if ( ! is_array( $identifier_rows ) || empty( $identifier_rows ) ) {
+            return array(
+                'students' => array(),
+                'total'    => $total,
+            );
+        }
+
+        $students_by_key = $this->get_students_map_for_registered_identifiers( $identifier_rows );
+        $students        = array();
+
+        foreach ( $identifier_rows as $identifier_row ) {
+            $wp_user_id = isset( $identifier_row['wpuserid'] ) ? absint( $identifier_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $identifier_row['uniquestudentid'] ) ? sanitize_text_field( (string) $identifier_row['uniquestudentid'] ) : '';
+            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
+
+            if ( isset( $students_by_key[ $student_key ] ) ) {
+                $students[] = $students_by_key[ $student_key ];
+            }
+        }
+
+        return array(
+            'students' => $students,
+            'total'    => $total,
+        );
+    }
+
+    private function get_class_history_query_args( array $entity ) {
+        global $wpdb;
+
+        $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
         $unique_class_id = isset( $entity['uniqueclassid'] ) ? sanitize_text_field( (string) $entity['uniqueclassid'] ) : '';
         $class_name      = isset( $entity['classname'] ) ? sanitize_text_field( (string) $entity['classname'] ) : '';
 
-        $history_rows = array();
-
         if ( '' !== $unique_class_id ) {
-            $history_rows = $wpdb->get_results(
+            $has_unique_rows = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE uniqueclassid = %s ORDER BY id ASC",
+                    "SELECT COUNT(*) FROM $history_table WHERE uniqueclassid = %s",
                     $unique_class_id
-                ),
-                ARRAY_A
+                )
+            );
+
+            if ( $has_unique_rows > 0 ) {
+                return array(
+                    'where_sql'    => 'uniqueclassid = %s',
+                    'where_params' => array( $unique_class_id ),
+                );
+            }
+        }
+
+        if ( '' !== $class_name ) {
+            return array(
+                'where_sql'    => 'classname = %s',
+                'where_params' => array( $class_name ),
             );
         }
 
-        if ( empty( $history_rows ) && '' !== $class_name ) {
-            $history_rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE classname = %s ORDER BY id ASC",
-                    $class_name
-                ),
-                ARRAY_A
-            );
-        }
+        return array();
+    }
 
-        if ( ! is_array( $history_rows ) || empty( $history_rows ) ) {
-            return array();
-        }
+    private function get_students_map_for_registered_identifiers( array $identifier_rows ) {
+        global $wpdb;
 
-        $wp_user_ids = array();
-        $unique_ids  = array();
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $wp_user_ids    = array();
+        $unique_ids     = array();
 
-        foreach ( $history_rows as $history_row ) {
-            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
-            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+        foreach ( $identifier_rows as $identifier_row ) {
+            $wp_user_id = isset( $identifier_row['wpuserid'] ) ? absint( $identifier_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $identifier_row['uniquestudentid'] ) ? sanitize_text_field( (string) $identifier_row['uniquestudentid'] ) : '';
 
             if ( $wp_user_id > 0 ) {
                 $wp_user_ids[] = $wp_user_id;
@@ -7633,17 +7813,13 @@ class TEQCIDB_Ajax {
             $student_query .= ' WHERE ' . implode( ' OR ', $where_clauses );
         }
 
-        $student_rows = $wpdb->get_results(
-            $wpdb->prepare( $student_query, $query_params ),
-            ARRAY_A
-        );
+        $student_rows = $wpdb->get_results( $wpdb->prepare( $student_query, $query_params ), ARRAY_A );
 
         if ( ! is_array( $student_rows ) || empty( $student_rows ) ) {
             return array();
         }
 
-        $students_by_wpid   = array();
-        $students_by_unique = array();
+        $students_by_key = array();
 
         foreach ( $student_rows as $student_row ) {
             if ( ! is_array( $student_row ) ) {
@@ -7651,55 +7827,27 @@ class TEQCIDB_Ajax {
             }
 
             $prepared = $this->prepare_student_entity( $student_row );
-            $prepared_student = array(
-                'wpuserid'      => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
+            $student  = array(
+                'wpuserid'       => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
                 'uniquestudentid' => isset( $prepared['uniquestudentid'] ) ? sanitize_text_field( (string) $prepared['uniquestudentid'] ) : '',
-                'first_name'    => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
-                'last_name'     => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
-                'company'       => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
-                'email'         => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
-                'phone_cell'    => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
-                'phone_office'  => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+                'first_name'     => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
+                'last_name'      => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
+                'company'        => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
+                'email'          => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
+                'phone_cell'     => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
+                'phone_office'   => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
             );
 
-            if ( $prepared_student['wpuserid'] > 0 ) {
-                $students_by_wpid[ $prepared_student['wpuserid'] ] = $prepared_student;
+            if ( $student['wpuserid'] > 0 ) {
+                $students_by_key[ 'wpid:' . $student['wpuserid'] ] = $student;
             }
 
-            if ( '' !== $prepared_student['uniquestudentid'] ) {
-                $students_by_unique[ $prepared_student['uniquestudentid'] ] = $prepared_student;
+            if ( '' !== $student['uniquestudentid'] ) {
+                $students_by_key[ 'uid:' . $student['uniquestudentid'] ] = $student;
             }
         }
 
-        $registered_students = array();
-        $seen                = array();
-
-        foreach ( $history_rows as $history_row ) {
-            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
-            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
-            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
-
-            if ( isset( $seen[ $student_key ] ) ) {
-                continue;
-            }
-
-            $student = array();
-
-            if ( $wp_user_id > 0 && isset( $students_by_wpid[ $wp_user_id ] ) ) {
-                $student = $students_by_wpid[ $wp_user_id ];
-            } elseif ( '' !== $unique_id && isset( $students_by_unique[ $unique_id ] ) ) {
-                $student = $students_by_unique[ $unique_id ];
-            }
-
-            if ( empty( $student ) ) {
-                continue;
-            }
-
-            $seen[ $student_key ] = true;
-            $registered_students[] = $student;
-        }
-
-        return $registered_students;
+        return $students_by_key;
     }
 
     private function decode_class_address_field( $value ) {
