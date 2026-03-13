@@ -402,3 +402,4 @@
 395. 2026-03-12: Updated Initial Online certificate title text from “Online Initial Training” to “Initial QCI Training” for both backend-generated and front-end dashboard certificate PDFs.
 396. 2026-03-12: Added front-end Certificates & Important Dates actions to print/download Refresher Online certificates using logged-in student profile data, and updated certificate heading text from “Online Refresher Training” to “Refresher QCI Training” for both backend and front-end generation.
 397. 2026-03-12: Scoped Certificates & Important Dates tab button sizing so only the six wallet/initial/refresher certificate action buttons receive `min-width: 365px` via the certificates panel selector.
+398. 2026-03-12: Added a scoped create-account label alignment rule so only `.teqcidb-auth-section .teqcidb-create-form .teqcidb-form-field > label` gets `margin-top: auto`, limiting the tweak to the student registration auth/create form output.

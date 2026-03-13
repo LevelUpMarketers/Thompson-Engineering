@@ -320,6 +320,10 @@
     color: #2c2c2c;
 }
 
+.teqcidb-auth-section .teqcidb-create-form .teqcidb-form-field > label {
+    margin-top: auto;
+}
+
 .teqcidb-form-field input,
 .teqcidb-form-field select {
     border: 1px solid #d8d8d8;
