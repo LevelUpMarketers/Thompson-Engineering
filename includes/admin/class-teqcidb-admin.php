@@ -1248,6 +1248,7 @@ class TEQCIDB_Admin {
             'resourceNameLabel' => __( 'Resource Name', 'teqcidb' ),
             'resourceTypeLabel' => __( 'Resource Type', 'teqcidb' ),
             'resourceUrlLabel' => __( 'Resource URL', 'teqcidb' ),
+            'resourceChooseButton' => __( 'Add or Choose a Resource', 'teqcidb' ),
             'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
             'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
             'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
@@ -3212,6 +3213,7 @@ class TEQCIDB_Admin {
                     echo '<div class="teqcidb-resource-subfield">';
                     echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['url'] ) ? $resource_tooltips['url'] : '' ) . '"></span>' . esc_html__( 'Resource URL', 'teqcidb' ) . '</label>';
                     echo '<input type="url" name="' . esc_attr( $field['name'] ) . '[url][]" class="regular-text teqcidb-resource-url" />';
+                    echo '<button type="button" class="button teqcidb-select-resource-media">' . esc_html__( 'Add or Choose a Resource', 'teqcidb' ) . '</button>';
                     echo '</div>';
 
                     echo '</div>';

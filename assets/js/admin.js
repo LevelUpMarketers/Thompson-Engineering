@@ -3186,7 +3186,10 @@ jQuery(document).ready(function($){
                             name: fieldName + '[url][]',
                             'class': 'regular-text teqcidb-resource-url',
                             value: resource.url || ''
-                        }));
+                        })).append($('<button/>', {
+                            type: 'button',
+                            'class': 'button teqcidb-select-resource-media'
+                        }).text(teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource'));
 
                         $resourceFields.append($nameSubfield).append($typeSubfield).append($urlSubfield);
 
@@ -4485,6 +4488,40 @@ jQuery(document).ready(function($){
                 }
             });
         }
+    });
+
+
+    $(document).on('click', '.teqcidb-select-resource-media', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (typeof wp === 'undefined' || !wp.media) {
+            return;
+        }
+
+        var $button = $(this);
+        var $urlInput = $button.closest('.teqcidb-resource-subfield').find('.teqcidb-resource-url').first();
+
+        if (!$urlInput.length) {
+            return;
+        }
+
+        var frame = wp.media({
+            title: teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource',
+            button: { text: teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource' },
+            multiple: false
+        });
+
+        frame.on('select', function(){
+            var attachment = frame.state().get('selection').first().toJSON();
+            var resourceUrl = attachment && attachment.url ? String(attachment.url) : '';
+
+            if (resourceUrl) {
+                $urlInput.val(resourceUrl).trigger('change');
+            }
+        });
+
+        frame.open();
     });
 
 
