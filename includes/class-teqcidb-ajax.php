@@ -4947,7 +4947,7 @@ class TEQCIDB_Ajax {
                 $select_query .= ' ' . $where_sql;
             }
 
-            $select_query .= ' ORDER BY classstartdate ASC, classname ASC, id ASC LIMIT %d OFFSET %d';
+            $select_query .= ' ORDER BY id DESC, classstartdate DESC, classname ASC LIMIT %d OFFSET %d';
 
             $select_params   = $where_params;
             $select_params[] = $per_page;
@@ -7523,6 +7523,12 @@ class TEQCIDB_Ajax {
         $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
         $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
         $entity['registered_students']      = $this->get_registered_students_for_class( $entity );
+
+        $class_url_value = isset( $entity['classurl'] ) ? trim( (string) $entity['classurl'] ) : '';
+
+        if ( '' !== $class_url_value && 0 === strpos( $class_url_value, '/' ) ) {
+            $entity['classurl'] = esc_url_raw( home_url( $class_url_value ) );
+        }
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),

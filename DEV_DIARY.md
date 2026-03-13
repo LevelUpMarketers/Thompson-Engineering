@@ -404,3 +404,4 @@
 397. 2026-03-12: Scoped Certificates & Important Dates tab button sizing so only the six wallet/initial/refresher certificate action buttons receive `min-width: 365px` via the certificates panel selector.
 398. 2026-03-12: Added a scoped create-account label alignment rule so only `.teqcidb-auth-section .teqcidb-create-form .teqcidb-form-field > label` gets `margin-top: auto`, limiting the tweak to the student registration auth/create form output.
 399. 2026-03-12: Added a class-resource media-library picker button (“Add or Choose a Resource”) in class create/edit resource URL rows (including dynamically added rows) so selecting/uploading a media item auto-fills the corresponding resource URL input.
+400. 2026-03-12: Updated Edit & Manage Classes listing order to show newest-created classes first (id DESC) and normalized class URL response values to absolute site URLs so the read-only Class URL field shows a copy-ready full URL.
