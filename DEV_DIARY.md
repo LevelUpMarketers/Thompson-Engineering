@@ -401,3 +401,4 @@
 394. 2026-03-12: Updated Initial Online certificate PDH copy from six (6.0) to eight (8.0) and added front-end Certificates & Important Dates actions to print/download an Initial Certificate PDF for the logged-in student using their wallet-card profile data.
 395. 2026-03-12: Updated Initial Online certificate title text from “Online Initial Training” to “Initial QCI Training” for both backend-generated and front-end dashboard certificate PDFs.
 396. 2026-03-12: Added front-end Certificates & Important Dates actions to print/download Refresher Online certificates using logged-in student profile data, and updated certificate heading text from “Online Refresher Training” to “Refresher QCI Training” for both backend and front-end generation.
+397. 2026-03-12: Scoped Certificates & Important Dates tab button sizing so only the six wallet/initial/refresher certificate action buttons receive `min-width: 365px` via the certificates panel selector.

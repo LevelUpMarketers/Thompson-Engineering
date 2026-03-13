@@ -162,6 +162,11 @@
     margin-top: 8px;
 }
 
+
+#teqcidb-dashboard-panel-certificates-dates .teqcidb-wallet-card-actions .teqcidb-button {
+    min-width: 365px;
+}
+
 .teqcidb-class-history-list {
     display: flex;
     flex-direction: column;
