@@ -1333,7 +1333,7 @@ class TEQCIDB_Admin {
                 'certificateTitle' => __( 'Certificate of Completion', 'teqcidb' ),
                 'grantedLabel' => __( 'is hereby granted to:', 'teqcidb' ),
                 'completionLabel' => __( 'for satisfactory completion of', 'teqcidb' ),
-                'trainingTitleLineOne' => __( 'Online Refresher', 'teqcidb' ),
+                'trainingTitleLineOne' => __( 'Refresher QCI', 'teqcidb' ),
                 'trainingTitleLineTwo' => __( 'Training', 'teqcidb' ),
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expiresLabel' => __( 'Expires', 'teqcidb' ),

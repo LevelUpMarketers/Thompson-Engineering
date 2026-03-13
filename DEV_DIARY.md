@@ -400,3 +400,4 @@
 393. 2026-03-12: Updated initial quiz-pass student updates so `initial_training_date` is now set to today when the stored value is blank/null or legacy `0000-00-00`, ensuring initial-pass side effects repair invalid zero dates.
 394. 2026-03-12: Updated Initial Online certificate PDH copy from six (6.0) to eight (8.0) and added front-end Certificates & Important Dates actions to print/download an Initial Certificate PDF for the logged-in student using their wallet-card profile data.
 395. 2026-03-12: Updated Initial Online certificate title text from “Online Initial Training” to “Initial QCI Training” for both backend-generated and front-end dashboard certificate PDFs.
+396. 2026-03-12: Added front-end Certificates & Important Dates actions to print/download Refresher Online certificates using logged-in student profile data, and updated certificate heading text from “Online Refresher Training” to “Refresher QCI Training” for both backend and front-end generation.

@@ -649,6 +649,14 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                             <?php echo esc_html_x( 'Download Initial Certificate', 'Student dashboard initial certificate download button label', 'teqcidb' ); ?>
                                                         </button>
                                                     </div>
+                                                    <div class="teqcidb-wallet-card-actions" role="group" aria-label="<?php echo esc_attr_x( 'Refresher certificate actions', 'Student dashboard refresher certificate actions label', 'teqcidb' ); ?>">
+                                                        <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-refresher-certificate-action="print">
+                                                            <?php echo esc_html_x( 'Print Refresher Certificate', 'Student dashboard refresher certificate print button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                        <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-refresher-certificate-action="download">
+                                                            <?php echo esc_html_x( 'Download Refresher Certificate', 'Student dashboard refresher certificate download button label', 'teqcidb' ); ?>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
@@ -2171,6 +2179,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'footerText' => esc_html_x( 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'Initial online certificate footer text', 'teqcidb' ),
                         'downloadFileName' => esc_html_x( 'qci-initial-online-certificate.pdf', 'Initial online certificate download file name', 'teqcidb' ),
                         'missingPdfMessage' => esc_html_x( 'Unable to generate the certificate right now. Please try again.', 'Initial online certificate missing PDF library message', 'teqcidb' ),
+                    ),
+                    'refresherOnlineCertificate' => array(
+                        'programTitle' => esc_html_x( 'QCI Training Program', 'Refresher online certificate title line', 'teqcidb' ),
+                        'certificateTitle' => esc_html_x( 'Certificate of Completion', 'Refresher online certificate title line', 'teqcidb' ),
+                        'grantedLabel' => esc_html_x( 'is hereby granted to:', 'Refresher online certificate granted label', 'teqcidb' ),
+                        'completionLabel' => esc_html_x( 'for satisfactory completion of', 'Refresher online certificate completion label', 'teqcidb' ),
+                        'trainingTitleLineOne' => esc_html_x( 'Refresher QCI', 'Refresher online certificate training title line one', 'teqcidb' ),
+                        'trainingTitleLineTwo' => esc_html_x( 'Training', 'Refresher online certificate training title line two', 'teqcidb' ),
+                        'qciNumberLabel' => esc_html_x( 'QCI No.', 'Refresher online certificate QCI number label', 'teqcidb' ),
+                        'expiresLabel' => esc_html_x( 'Expires', 'Refresher online certificate expiration label', 'teqcidb' ),
+                        'footerText' => esc_html_x( 'This certificate confers four (4.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'Refresher online certificate footer text', 'teqcidb' ),
+                        'downloadFileName' => esc_html_x( 'qci-refresher-online-certificate.pdf', 'Refresher online certificate download file name', 'teqcidb' ),
+                        'missingPdfMessage' => esc_html_x( 'Unable to generate the certificate right now. Please try again.', 'Refresher online certificate missing PDF library message', 'teqcidb' ),
                     ),
                 )
             );
