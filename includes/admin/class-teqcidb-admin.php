@@ -1326,7 +1326,7 @@ class TEQCIDB_Admin {
                 'trainingTitleLineTwo' => __( 'Training', 'teqcidb' ),
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expiresLabel' => __( 'Expires', 'teqcidb' ),
-                'footerText' => __( 'This certificate confers six (6.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
+                'footerText' => __( 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
             ),
             'refresherOnlineCertificate' => array(
                 'programTitle' => __( 'QCI Training Program', 'teqcidb' ),

@@ -1872,7 +1872,7 @@ jQuery(document).ready(function($){
 
             doc.setFont('times', 'normal');
             doc.setFontSize(10.5);
-            var footer = certSettings.footerText || 'This certificate confers six (6.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+            var footer = certSettings.footerText || 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
             var wrappedFooter = doc.splitTextToSize(footer, 8.0);
             doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
 
