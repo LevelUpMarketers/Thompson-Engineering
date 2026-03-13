@@ -2164,7 +2164,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'certificateTitle' => esc_html_x( 'Certificate of Completion', 'Initial online certificate title line', 'teqcidb' ),
                         'grantedLabel' => esc_html_x( 'is hereby granted to:', 'Initial online certificate granted label', 'teqcidb' ),
                         'completionLabel' => esc_html_x( 'for satisfactory completion of', 'Initial online certificate completion label', 'teqcidb' ),
-                        'trainingTitleLineOne' => esc_html_x( 'Online Initial', 'Initial online certificate training title line one', 'teqcidb' ),
+                        'trainingTitleLineOne' => esc_html_x( 'Initial QCI', 'Initial online certificate training title line one', 'teqcidb' ),
                         'trainingTitleLineTwo' => esc_html_x( 'Training', 'Initial online certificate training title line two', 'teqcidb' ),
                         'qciNumberLabel' => esc_html_x( 'QCI No.', 'Initial online certificate QCI number label', 'teqcidb' ),
                         'expiresLabel' => esc_html_x( 'Expires', 'Initial online certificate expiration label', 'teqcidb' ),

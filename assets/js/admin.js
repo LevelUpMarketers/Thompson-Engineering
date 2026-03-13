@@ -1861,7 +1861,7 @@ jQuery(document).ready(function($){
             doc.setFont('times', 'bolditalic');
             doc.setTextColor(56, 60, 170);
             doc.setFontSize(23);
-            doc.text(certSettings.trainingTitleLineOne || 'Online Initial', width / 2, 5.76, { align: 'center' });
+            doc.text(certSettings.trainingTitleLineOne || 'Initial QCI', width / 2, 5.76, { align: 'center' });
             doc.text(certSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
 
             doc.setTextColor(0, 0, 0);

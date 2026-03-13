@@ -399,3 +399,4 @@
 392. 2026-03-12: Updated Failed Quizzes question review display to highlight incorrect Student Answer values in red and bold, with correctness determined by comparing saved selections against each question’s correct choice set (including runtime option keys).
 393. 2026-03-12: Updated initial quiz-pass student updates so `initial_training_date` is now set to today when the stored value is blank/null or legacy `0000-00-00`, ensuring initial-pass side effects repair invalid zero dates.
 394. 2026-03-12: Updated Initial Online certificate PDH copy from six (6.0) to eight (8.0) and added front-end Certificates & Important Dates actions to print/download an Initial Certificate PDF for the logged-in student using their wallet-card profile data.
+395. 2026-03-12: Updated Initial Online certificate title text from “Online Initial Training” to “Initial QCI Training” for both backend-generated and front-end dashboard certificate PDFs.

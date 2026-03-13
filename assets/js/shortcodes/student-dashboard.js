@@ -2054,7 +2054,7 @@
         doc.setFont('times', 'bolditalic');
         doc.setTextColor(56, 60, 170);
         doc.setFontSize(23);
-        doc.text(initialOnlineCertificateSettings.trainingTitleLineOne || 'Online Initial', width / 2, 5.76, { align: 'center' });
+        doc.text(initialOnlineCertificateSettings.trainingTitleLineOne || 'Initial QCI', width / 2, 5.76, { align: 'center' });
         doc.text(initialOnlineCertificateSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
 
         doc.setTextColor(0, 0, 0);
