@@ -406,3 +406,4 @@
 399. 2026-03-12: Added a class-resource media-library picker button (“Add or Choose a Resource”) in class create/edit resource URL rows (including dynamically added rows) so selecting/uploading a media item auto-fills the corresponding resource URL input.
 400. 2026-03-12: Updated Edit & Manage Classes listing order to show newest-created classes first (id DESC) and normalized class URL response values to absolute site URLs so the read-only Class URL field shows a copy-ready full URL.
 401. 2026-03-12: Added extra breathing room to student registration checkout iframe resize handling by applying a +6px buffer to Authorize.Net resize events, raising the common inline iframe height from 709px to approximately 715px to avoid unnecessary internal scrollbars.
+402. 2026-03-12: Added a targeted admin style rule setting `margin-top: 10px` on `.teqcidb-select-resource-media` so only the “Add or Choose a Resource” class-resource picker button gets extra top spacing.

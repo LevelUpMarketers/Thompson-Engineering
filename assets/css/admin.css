@@ -1145,6 +1145,10 @@
     max-width: 100%;
 }
 
+.teqcidb-resource-subfield .teqcidb-select-resource-media {
+    margin-top: 10px;
+}
+
 .teqcidb-resource-row__actions {
     margin-top: 12px;
     display: flex;
