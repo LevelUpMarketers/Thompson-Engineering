@@ -2607,7 +2607,7 @@
                 const iframeHeight = parseInt(params.get('height') || '', 10);
 
                 if (Number.isFinite(iframeHeight) && iframeHeight > 0 && paymentIframe) {
-                    paymentIframe.style.height = `${Math.max(iframeHeight, 480)}px`;
+                    paymentIframe.style.height = `${Math.max(iframeHeight + 6, 480)}px`;
                 }
 
                 return;
