@@ -1820,7 +1820,7 @@ class TEQCIDB_Ajax {
         $table_name = $wpdb->prefix . 'teqcidb_classes';
         $row        = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, classcost, classstartdate, classhide FROM $table_name WHERE id = %d",
+                "SELECT id, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
                 $class_id
             ),
             ARRAY_A
@@ -1834,8 +1834,10 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $raw_cost    = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
-        $base_amount = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+        $raw_cost                     = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
+        $base_amount                  = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+        $class_type                   = isset( $row['classtype'] ) ? sanitize_key( (string) $row['classtype'] ) : '';
+        $allow_association_discounts  = $this->class_type_allows_association_discount( $class_type );
 
         $selected_students = $this->parse_selected_students_for_checkout( $multiple_raw );
         $selected_count    = count( $selected_students );
@@ -1849,7 +1851,7 @@ class TEQCIDB_Ajax {
             $selected_count    = 1;
         }
 
-        $discount_count = $this->count_association_discounts_for_selected_students( $selected_students );
+        $discount_count = $allow_association_discounts ? $this->count_association_discounts_for_selected_students( $selected_students ) : 0;
         $amount         = ( $base_amount * $selected_count ) - ( 50 * $discount_count );
 
         if ( $amount <= 0 ) {
@@ -1932,6 +1934,10 @@ class TEQCIDB_Ajax {
                 }
             )
         );
+    }
+
+    private function class_type_allows_association_discount( $class_type ) {
+        return 'initial' === strtolower( sanitize_key( (string) $class_type ) );
     }
 
     private function count_association_discounts_for_selected_students( array $selected_students ) {
@@ -2218,7 +2224,8 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $class_name = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $class_name                  = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $allow_association_discounts = $this->class_type_allows_association_discount( is_array( $class_row ) && isset( $class_row['classtype'] ) ? (string) $class_row['classtype'] : '' );
 
         $amount_numeric = (float) preg_replace( '/[^0-9.\-]/', '', $total_paid_raw );
         $total_paid     = number_format( $amount_numeric, 2, '.', '' );
@@ -2312,7 +2319,7 @@ class TEQCIDB_Ajax {
                     continue;
                 }
 
-                $student_has_discount = $this->student_has_any_association( $student_associations );
+                $student_has_discount = $allow_association_discounts && $this->student_has_any_association( $student_associations );
                 $student_amount_value = max( 0, $class_cost - ( $student_has_discount ? 50 : 0 ) );
                 $student_amount_paid  = number_format( $student_amount_value, 2, '.', '' );
 
