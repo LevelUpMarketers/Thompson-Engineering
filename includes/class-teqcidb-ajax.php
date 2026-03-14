@@ -1917,12 +1917,26 @@ class TEQCIDB_Ajax {
         $normalized = array();
 
         foreach ( $decoded as $entry ) {
-            if ( ! is_array( $entry ) ) {
+            $wpid = 0;
+
+            if ( is_array( $entry ) ) {
+                if ( isset( $entry['wpid'] ) ) {
+                    $wpid = absint( $entry['wpid'] );
+                } elseif ( isset( $entry['wpuserid'] ) ) {
+                    $wpid = absint( $entry['wpuserid'] );
+                } elseif ( isset( $entry['id'] ) ) {
+                    $wpid = absint( $entry['id'] );
+                }
+            } elseif ( is_scalar( $entry ) ) {
+                $wpid = absint( $entry );
+            }
+
+            if ( $wpid <= 0 ) {
                 continue;
             }
 
             $normalized[] = array(
-                'wpid' => isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0,
+                'wpid' => $wpid,
             );
         }
 
