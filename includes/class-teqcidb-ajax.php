@@ -1820,7 +1820,7 @@ class TEQCIDB_Ajax {
         $table_name = $wpdb->prefix . 'teqcidb_classes';
         $row        = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, classcost, classstartdate, classhide FROM $table_name WHERE id = %d",
+                "SELECT id, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
                 $class_id
             ),
             ARRAY_A
@@ -1834,8 +1834,10 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $raw_cost    = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
-        $base_amount = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+        $raw_cost                     = isset( $row['classcost'] ) ? (string) $row['classcost'] : '';
+        $base_amount                  = (float) preg_replace( '/[^0-9.]/', '', $raw_cost );
+        $class_type                   = isset( $row['classtype'] ) ? sanitize_key( (string) $row['classtype'] ) : '';
+        $allow_association_discounts  = $this->class_type_allows_association_discount( $class_type );
 
         $selected_students = $this->parse_selected_students_for_checkout( $multiple_raw );
         $selected_count    = count( $selected_students );
@@ -1849,7 +1851,7 @@ class TEQCIDB_Ajax {
             $selected_count    = 1;
         }
 
-        $discount_count = $this->count_association_discounts_for_selected_students( $selected_students );
+        $discount_count = $allow_association_discounts ? $this->count_association_discounts_for_selected_students( $selected_students ) : 0;
         $amount         = ( $base_amount * $selected_count ) - ( 50 * $discount_count );
 
         if ( $amount <= 0 ) {
@@ -1915,12 +1917,26 @@ class TEQCIDB_Ajax {
         $normalized = array();
 
         foreach ( $decoded as $entry ) {
-            if ( ! is_array( $entry ) ) {
+            $wpid = 0;
+
+            if ( is_array( $entry ) ) {
+                if ( isset( $entry['wpid'] ) ) {
+                    $wpid = absint( $entry['wpid'] );
+                } elseif ( isset( $entry['wpuserid'] ) ) {
+                    $wpid = absint( $entry['wpuserid'] );
+                } elseif ( isset( $entry['id'] ) ) {
+                    $wpid = absint( $entry['id'] );
+                }
+            } elseif ( is_scalar( $entry ) ) {
+                $wpid = absint( $entry );
+            }
+
+            if ( $wpid <= 0 ) {
                 continue;
             }
 
             $normalized[] = array(
-                'wpid' => isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0,
+                'wpid' => $wpid,
             );
         }
 
@@ -1932,6 +1948,10 @@ class TEQCIDB_Ajax {
                 }
             )
         );
+    }
+
+    private function class_type_allows_association_discount( $class_type ) {
+        return 'initial' === strtolower( sanitize_key( (string) $class_type ) );
     }
 
     private function count_association_discounts_for_selected_students( array $selected_students ) {
@@ -2055,7 +2075,7 @@ class TEQCIDB_Ajax {
         }
 
         $placeholders = implode( ', ', array_fill( 0, count( $wpids ), '%d' ) );
-        $query        = "SELECT wpuserid, uniquestudentid, email, associations FROM $students_table WHERE wpuserid IN ($placeholders)";
+        $query        = "SELECT wpuserid, uniquestudentid, first_name, last_name, email, company, phone_cell, their_representative, associations FROM $students_table WHERE wpuserid IN ($placeholders)";
         $results      = $wpdb->get_results( $wpdb->prepare( $query, $wpids ), ARRAY_A );
 
         return is_array( $results ) ? $results : array();
@@ -2218,7 +2238,8 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $class_name = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $class_name                  = is_array( $class_row ) && ! empty( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+        $allow_association_discounts = $this->class_type_allows_association_discount( is_array( $class_row ) && isset( $class_row['classtype'] ) ? (string) $class_row['classtype'] : '' );
 
         $amount_numeric = (float) preg_replace( '/[^0-9.\-]/', '', $total_paid_raw );
         $total_paid     = number_format( $amount_numeric, 2, '.', '' );
@@ -2312,7 +2333,7 @@ class TEQCIDB_Ajax {
                     continue;
                 }
 
-                $student_has_discount = $this->student_has_any_association( $student_associations );
+                $student_has_discount = $allow_association_discounts && $this->student_has_any_association( $student_associations );
                 $student_amount_value = max( 0, $class_cost - ( $student_has_discount ? 50 : 0 ) );
                 $student_amount_paid  = number_format( $student_amount_value, 2, '.', '' );
 
@@ -2438,8 +2459,78 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( empty( $selected_student_rows ) ) {
+        if ( ! empty( $selected_student_rows ) ) {
+            $representative_context = is_array( $student_row ) ? $student_row : array();
+            $class_context          = is_array( $class_row ) ? $class_row : array();
+
+            $this->maybe_send_representative_initial_online_student_emails(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_refresher_online_student_emails(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_initial_in_person_student_emails(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_refresher_in_person_student_emails(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_initial_online_representative_email(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_refresher_online_representative_email(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_initial_in_person_representative_email(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+            $this->maybe_send_representative_refresher_in_person_representative_email(
+                $representative_context,
+                $class_context,
+                $total_paid,
+                $selected_student_rows
+            );
+        } else {
             $this->maybe_send_student_self_initial_online_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
+            $this->maybe_send_student_self_refresher_online_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
+            $this->maybe_send_student_self_initial_in_person_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
+            $this->maybe_send_student_self_refresher_in_person_email(
                 $email,
                 is_array( $student_row ) ? $student_row : array(),
                 is_array( $class_row ) ? $class_row : array(),
@@ -5411,10 +5502,94 @@ class TEQCIDB_Ajax {
      * @param string $total_paid Formatted transaction total.
      */
     private function maybe_send_student_self_initial_online_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_email_for_class_type_and_format(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'initial',
+            array( 'virtual', 'online' ),
+            'teqcidb-email-student-self-initial-online'
+        );
+    }
+
+    /**
+     * Send the Student Self-Registration (Refresher Online) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_refresher_online_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_email_for_class_type_and_format(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'refresher',
+            array( 'virtual', 'online' ),
+            'teqcidb-email-student-self-refresher-online'
+        );
+    }
+
+
+    /**
+     * Send the Student Self-Registration (Initial In-Person) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_initial_in_person_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_email_for_class_type_and_format(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'initial',
+            array( 'in_person', 'inperson' ),
+            'teqcidb-email-student-self-initial-in-person'
+        );
+    }
+
+
+    /**
+     * Send the Student Self-Registration (Refresher In-Person) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_refresher_in_person_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_email_for_class_type_and_format(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'refresher',
+            array( 'in_person', 'inperson' ),
+            'teqcidb-email-student-self-refresher-in-person'
+        );
+    }
+
+    /**
+     * Send a self-registration template after a qualifying payment by class type and class format.
+     *
+     * @param string $to_email            Recipient email address.
+     * @param array  $student             Student row data.
+     * @param array  $class               Class row data.
+     * @param string $total_paid          Formatted transaction total.
+     * @param string $required_class_type Required class type slug.
+     * @param string $template_id         Template ID to send.
+     */
+    private function maybe_send_student_self_email_for_class_type_and_format( $to_email, array $student, array $class, $total_paid, $required_class_type, array $required_formats, $template_id ) {
         $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
         $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
 
-        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+        if ( strtolower( sanitize_key( (string) $required_class_type ) ) !== $normalized_type || ! in_array( $normalized_format, $required_formats, true ) ) {
             return;
         }
 
@@ -5424,7 +5599,7 @@ class TEQCIDB_Ajax {
             return;
         }
 
-        $template_id      = 'teqcidb-email-student-self-initial-online';
+        $template_id      = sanitize_key( (string) $template_id );
         $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
         $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
         $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
@@ -5484,6 +5659,766 @@ class TEQCIDB_Ajax {
         );
     }
 
+
+    /**
+     * Send the Representative Registration (Initial Online - Student) template to each selected student after a qualifying representative checkout.
+     *
+     * @param array  $representative Representative student row data.
+     * @param array  $class          Class row data.
+     * @param string $total_paid     Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_initial_online_student_emails( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+            return;
+        }
+
+        if ( empty( $selected_students ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-initial-online-student';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        foreach ( $selected_students as $selected_student ) {
+            if ( ! is_array( $selected_student ) ) {
+                continue;
+            }
+
+            $recipient = isset( $selected_student['email'] ) ? sanitize_email( (string) $selected_student['email'] ) : '';
+
+            if ( '' === $recipient || ! is_email( $recipient ) ) {
+                continue;
+            }
+
+            $tokens  = $this->build_registration_email_tokens( $selected_student, $class, $total_paid, $representative );
+            $subject = $this->replace_template_tokens( $subject_template, $tokens );
+            $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+            $rendered_body = wp_kses_post( $body );
+
+            if ( '' !== $rendered_body ) {
+                $rendered_body = nl2br( $rendered_body );
+            }
+
+            $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+            $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+            if ( '' !== $from_header ) {
+                $headers[] = $from_header;
+            }
+
+            if ( '' !== $cc ) {
+                $headers[] = 'Cc: ' . $cc;
+            }
+
+            if ( '' !== $bcc ) {
+                $headers[] = 'Bcc: ' . $bcc;
+            }
+
+            $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+            if ( ! $sent ) {
+                continue;
+            }
+
+            TEQCIDB_Email_Log_Helper::log_email(
+                array(
+                    'template_id'    => $template_id,
+                    'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                    'recipient'      => $recipient,
+                    'from_name'      => $from_name,
+                    'from_email'     => $from_email,
+                    'subject'        => $subject,
+                    'body'           => $rendered_body,
+                    'context'        => __( 'Automatic representative registration student email', 'teqcidb' ),
+                    'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+                )
+            );
+        }
+    }
+
+
+
+
+    /**
+     * Send the Representative Registration (Initial In-Person - Student) template to each selected student after a qualifying representative checkout.
+     *
+     * @param array  $representative Representative student row data.
+     * @param array  $class          Class row data.
+     * @param string $total_paid     Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_initial_in_person_student_emails( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'in_person', 'inperson' ), true ) ) {
+            return;
+        }
+
+        if ( empty( $selected_students ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-initial-in-person-student';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        foreach ( $selected_students as $selected_student ) {
+            if ( ! is_array( $selected_student ) ) {
+                continue;
+            }
+
+            $recipient = isset( $selected_student['email'] ) ? sanitize_email( (string) $selected_student['email'] ) : '';
+
+            if ( '' === $recipient || ! is_email( $recipient ) ) {
+                continue;
+            }
+
+            $tokens  = $this->build_registration_email_tokens( $selected_student, $class, $total_paid, $representative );
+            $subject = $this->replace_template_tokens( $subject_template, $tokens );
+            $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+            $rendered_body = wp_kses_post( $body );
+
+            if ( '' !== $rendered_body ) {
+                $rendered_body = nl2br( $rendered_body );
+            }
+
+            $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+            $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+            if ( '' !== $from_header ) {
+                $headers[] = $from_header;
+            }
+
+            if ( '' !== $cc ) {
+                $headers[] = 'Cc: ' . $cc;
+            }
+
+            if ( '' !== $bcc ) {
+                $headers[] = 'Bcc: ' . $bcc;
+            }
+
+            $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+            if ( ! $sent ) {
+                continue;
+            }
+
+            TEQCIDB_Email_Log_Helper::log_email(
+                array(
+                    'template_id'    => $template_id,
+                    'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                    'recipient'      => $recipient,
+                    'from_name'      => $from_name,
+                    'from_email'     => $from_email,
+                    'subject'        => $subject,
+                    'body'           => $rendered_body,
+                    'context'        => __( 'Automatic representative registration student email', 'teqcidb' ),
+                    'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+                )
+            );
+        }
+    }
+
+
+    /**
+     * Send the Representative Registration (Refresher In-Person - Student) template to each selected student after a qualifying representative checkout.
+     *
+     * @param array  $representative Representative student row data.
+     * @param array  $class          Class row data.
+     * @param string $total_paid     Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_refresher_in_person_student_emails( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'refresher' !== $normalized_type || ! in_array( $normalized_format, array( 'in_person', 'inperson' ), true ) ) {
+            return;
+        }
+
+        if ( empty( $selected_students ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-refresher-in-person-student';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        foreach ( $selected_students as $selected_student ) {
+            if ( ! is_array( $selected_student ) ) {
+                continue;
+            }
+
+            $recipient = isset( $selected_student['email'] ) ? sanitize_email( (string) $selected_student['email'] ) : '';
+
+            if ( '' === $recipient || ! is_email( $recipient ) ) {
+                continue;
+            }
+
+            $tokens  = $this->build_registration_email_tokens( $selected_student, $class, $total_paid, $representative );
+            $subject = $this->replace_template_tokens( $subject_template, $tokens );
+            $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+            $rendered_body = wp_kses_post( $body );
+
+            if ( '' !== $rendered_body ) {
+                $rendered_body = nl2br( $rendered_body );
+            }
+
+            $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+            $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+            if ( '' !== $from_header ) {
+                $headers[] = $from_header;
+            }
+
+            if ( '' !== $cc ) {
+                $headers[] = 'Cc: ' . $cc;
+            }
+
+            if ( '' !== $bcc ) {
+                $headers[] = 'Bcc: ' . $bcc;
+            }
+
+            $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+            if ( ! $sent ) {
+                continue;
+            }
+
+            TEQCIDB_Email_Log_Helper::log_email(
+                array(
+                    'template_id'    => $template_id,
+                    'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                    'recipient'      => $recipient,
+                    'from_name'      => $from_name,
+                    'from_email'     => $from_email,
+                    'subject'        => $subject,
+                    'body'           => $rendered_body,
+                    'context'        => __( 'Automatic representative registration student email', 'teqcidb' ),
+                    'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+                )
+            );
+        }
+    }
+
+    /**
+     * Send the Representative Registration (Refresher Online - Student) template to each selected student after a qualifying representative checkout.
+     *
+     * @param array  $representative Representative student row data.
+     * @param array  $class          Class row data.
+     * @param string $total_paid     Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_refresher_online_student_emails( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'refresher' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+            return;
+        }
+
+        if ( empty( $selected_students ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-refresher-online-student';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        foreach ( $selected_students as $selected_student ) {
+            if ( ! is_array( $selected_student ) ) {
+                continue;
+            }
+
+            $recipient = isset( $selected_student['email'] ) ? sanitize_email( (string) $selected_student['email'] ) : '';
+
+            if ( '' === $recipient || ! is_email( $recipient ) ) {
+                continue;
+            }
+
+            $tokens  = $this->build_registration_email_tokens( $selected_student, $class, $total_paid, $representative );
+            $subject = $this->replace_template_tokens( $subject_template, $tokens );
+            $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+            $rendered_body = wp_kses_post( $body );
+
+            if ( '' !== $rendered_body ) {
+                $rendered_body = nl2br( $rendered_body );
+            }
+
+            $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+            $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+            if ( '' !== $from_header ) {
+                $headers[] = $from_header;
+            }
+
+            if ( '' !== $cc ) {
+                $headers[] = 'Cc: ' . $cc;
+            }
+
+            if ( '' !== $bcc ) {
+                $headers[] = 'Bcc: ' . $bcc;
+            }
+
+            $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+            if ( ! $sent ) {
+                continue;
+            }
+
+            TEQCIDB_Email_Log_Helper::log_email(
+                array(
+                    'template_id'    => $template_id,
+                    'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                    'recipient'      => $recipient,
+                    'from_name'      => $from_name,
+                    'from_email'     => $from_email,
+                    'subject'        => $subject,
+                    'body'           => $rendered_body,
+                    'context'        => __( 'Automatic representative registration student email', 'teqcidb' ),
+                    'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+                )
+            );
+        }
+    }
+
+    /**
+     * Send the Representative Registration (Initial Online - Representative) template to the logged-in representative after a qualifying checkout.
+     *
+     * @param array  $representative   Representative student row data.
+     * @param array  $class            Class row data.
+     * @param string $total_paid       Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_initial_online_representative_email( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+            return;
+        }
+
+        $recipient = isset( $representative['email'] ) ? sanitize_email( (string) $representative['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-initial-online-representative';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens = $this->build_registration_email_tokens( $representative, $class, $total_paid, $representative );
+        $tokens['individuals_registered'] = $this->build_individuals_registered_html_from_students( $selected_students );
+
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic representative registration representative email', 'teqcidb' ),
+                'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+            )
+        );
+    }
+
+
+    /**
+     * Send the Representative Registration (Refresher Online - Representative) template to the logged-in representative after a qualifying checkout.
+     *
+     * @param array  $representative   Representative student row data.
+     * @param array  $class            Class row data.
+     * @param string $total_paid       Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_refresher_online_representative_email( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'refresher' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+            return;
+        }
+
+        $recipient = isset( $representative['email'] ) ? sanitize_email( (string) $representative['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-refresher-online-representative';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens = $this->build_registration_email_tokens( $representative, $class, $total_paid, $representative );
+        $tokens['individuals_registered'] = $this->build_individuals_registered_html_from_students( $selected_students );
+
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic representative registration representative email', 'teqcidb' ),
+                'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+            )
+        );
+    }
+
+
+    /**
+     * Send the Representative Registration (Initial In-Person - Representative) template to the logged-in representative after a qualifying checkout.
+     *
+     * @param array  $representative   Representative student row data.
+     * @param array  $class            Class row data.
+     * @param string $total_paid       Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_initial_in_person_representative_email( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'in_person', 'inperson' ), true ) ) {
+            return;
+        }
+
+        $recipient = isset( $representative['email'] ) ? sanitize_email( (string) $representative['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-initial-in-person-representative';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens = $this->build_registration_email_tokens( $representative, $class, $total_paid, $representative );
+        $tokens['individuals_registered'] = $this->build_individuals_registered_html_from_students( $selected_students );
+
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic representative registration representative email', 'teqcidb' ),
+                'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+            )
+        );
+    }
+
+
+    /**
+     * Send the Representative Registration (Refresher In-Person - Representative) template to the logged-in representative after a qualifying checkout.
+     *
+     * @param array  $representative   Representative student row data.
+     * @param array  $class            Class row data.
+     * @param string $total_paid       Formatted transaction total.
+     * @param array  $selected_students Selected student rows for this payment.
+     */
+    private function maybe_send_representative_refresher_in_person_representative_email( array $representative, array $class, $total_paid, array $selected_students ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'refresher' !== $normalized_type || ! in_array( $normalized_format, array( 'in_person', 'inperson' ), true ) ) {
+            return;
+        }
+
+        $recipient = isset( $representative['email'] ) ? sanitize_email( (string) $representative['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-rep-refresher-in-person-representative';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens = $this->build_registration_email_tokens( $representative, $class, $total_paid, $representative );
+        $tokens['individuals_registered'] = $this->build_individuals_registered_html_from_students( $selected_students );
+
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic representative registration representative email', 'teqcidb' ),
+                'triggered_by'   => __( 'Representative registration payment success', 'teqcidb' ),
+            )
+        );
+    }
+
+    /**
+     * Build an email-safe unordered list of selected students for representative registration templates.
+     *
+     * @param array $selected_students Selected student rows for a representative transaction.
+     *
+     * @return string
+     */
+    private function build_individuals_registered_html_from_students( array $selected_students ) {
+        if ( empty( $selected_students ) ) {
+            return '';
+        }
+
+        $items = array();
+
+        foreach ( $selected_students as $selected_student ) {
+            if ( ! is_array( $selected_student ) ) {
+                continue;
+            }
+
+            $first_name = isset( $selected_student['first_name'] ) ? sanitize_text_field( (string) $selected_student['first_name'] ) : '';
+            $last_name  = isset( $selected_student['last_name'] ) ? sanitize_text_field( (string) $selected_student['last_name'] ) : '';
+            $email      = isset( $selected_student['email'] ) ? sanitize_email( (string) $selected_student['email'] ) : '';
+            $full_name  = trim( $first_name . ' ' . $last_name );
+
+            if ( '' === $full_name && '' === $email ) {
+                continue;
+            }
+
+            $label = '';
+
+            if ( '' !== $full_name && '' !== $email ) {
+                $label = sprintf( '%1$s (%2$s)', $full_name, $email );
+            } elseif ( '' !== $full_name ) {
+                $label = $full_name;
+            } else {
+                $label = $email;
+            }
+
+            $items[] = '<li>' . esc_html( $label ) . '</li>';
+        }
+
+        if ( empty( $items ) ) {
+            return '';
+        }
+
+        return '<ul>' . implode( '', $items ) . '</ul>';
+    }
+
     /**
      * Build merge-token values for registration confirmation emails.
      *
@@ -5493,12 +6428,26 @@ class TEQCIDB_Ajax {
      *
      * @return array
      */
-    private function build_registration_email_tokens( array $student, array $class, $total_paid ) {
+    private function build_registration_email_tokens( array $student, array $class, $total_paid, array $representative = array() ) {
         $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
 
         $tokens['student_first_name'] = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['student_first_name'] ) ? $tokens['student_first_name'] : '' );
         $tokens['student_last_name']  = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['student_last_name'] ) ? $tokens['student_last_name'] : '' );
-        $tokens['student_email']      = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
+
+        $representative_first_name = isset( $representative['first_name'] ) ? sanitize_text_field( (string) $representative['first_name'] ) : '';
+        $representative_last_name  = isset( $representative['last_name'] ) ? sanitize_text_field( (string) $representative['last_name'] ) : '';
+
+        if ( '' === $representative_first_name ) {
+            $representative_first_name = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['representative_first_name'] ) ? $tokens['representative_first_name'] : '' );
+        }
+
+        if ( '' === $representative_last_name ) {
+            $representative_last_name = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['representative_last_name'] ) ? $tokens['representative_last_name'] : '' );
+        }
+
+        $tokens['representative_first_name'] = $representative_first_name;
+        $tokens['representative_last_name']  = $representative_last_name;
+        $tokens['student_email']           = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
 
@@ -5518,7 +6467,7 @@ class TEQCIDB_Ajax {
         $tokens['class_type']      = isset( $class['classtype'] ) ? ucwords( str_replace( array( '_', '-' ), ' ', sanitize_text_field( (string) $class['classtype'] ) ) ) : ( isset( $tokens['class_type'] ) ? $tokens['class_type'] : '' );
         $tokens['class_date']      = isset( $class['classstartdate'] ) ? $this->format_date_token_value( $class['classstartdate'] ) : ( isset( $tokens['class_date'] ) ? $tokens['class_date'] : '' );
         $tokens['class_time']      = isset( $class['classstarttime'] ) ? $this->format_time_token_value( $class['classstarttime'] ) : ( isset( $tokens['class_time'] ) ? $tokens['class_time'] : '' );
-        $tokens['class_page']      = isset( $class['classurl'] ) ? esc_url_raw( (string) $class['classurl'] ) : ( isset( $tokens['class_page'] ) ? $tokens['class_page'] : '' );
+        $tokens['class_page']      = isset( $class['classurl'] ) ? $this->format_email_template_class_url( $class['classurl'] ) : ( isset( $tokens['class_page'] ) ? $tokens['class_page'] : '' );
         $tokens['class_team_link'] = isset( $class['teamslink'] ) ? esc_url_raw( (string) $class['teamslink'] ) : ( isset( $tokens['class_team_link'] ) ? $tokens['class_team_link'] : '' );
 
         $transaction_total                          = (float) preg_replace( '/[^0-9.\-]/', '', (string) $total_paid );
@@ -5571,6 +6520,25 @@ class TEQCIDB_Ajax {
         }
 
         return gmdate( 'g:i A', $timestamp );
+    }
+
+
+    private function format_email_template_class_url( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $value, '/' ) ) );
     }
 
     public function clear_email_log() {
