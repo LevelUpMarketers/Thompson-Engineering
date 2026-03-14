@@ -31,6 +31,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_delete_studenthistory', array( $this, 'delete_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
         add_action( 'wp_ajax_teqcidb_read_class', array( $this, 'read_class' ) );
+        add_action( 'wp_ajax_teqcidb_read_class_registered_students', array( $this, 'read_class_registered_students' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
         add_action( 'wp_ajax_teqcidb_save_api_settings', array( $this, 'save_api_settings' ) );
         add_action( 'wp_ajax_teqcidb_upload_legacy_student', array( $this, 'upload_legacy_records' ) );
@@ -1018,6 +1019,7 @@ class TEQCIDB_Ajax {
             wp_send_json_error( array( 'message' => $result->get_error_message() ), $this->get_error_status_code( $result ) );
         }
 
+
         wp_send_json_success(
             array(
                 'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
@@ -1600,7 +1602,7 @@ class TEQCIDB_Ajax {
         if ( 'initial' === $class_type ) {
             $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
 
-            if ( '' === $existing_initial_training_date ) {
+            if ( '' === $existing_initial_training_date || '0000-00-00' === $existing_initial_training_date ) {
                 $student_update['initial_training_date'] = $today;
                 $student_formats[]                       = '%s';
             }
@@ -1787,23 +1789,6 @@ class TEQCIDB_Ajax {
         return add_query_arg( 'tab', 'certificates-dates', $base_url );
     }
 
-    private function maybe_delay( $start, $minimum_time = TEQCIDB_MIN_EXECUTION_TIME ) {
-        if ( $minimum_time <= 0 ) {
-            return;
-        }
-
-        $elapsed = microtime( true ) - $start;
-
-        if ( $elapsed < $minimum_time ) {
-            $remaining    = $minimum_time - $elapsed;
-            $microseconds = (int) ceil( max( 0, $remaining ) * 1000000 );
-
-            if ( $microseconds > 0 ) {
-                usleep( $microseconds );
-            }
-        }
-    }
-
 
     /**
      * Create an Accept Hosted payment token for a selected class.
@@ -1856,7 +1841,12 @@ class TEQCIDB_Ajax {
         $selected_count    = count( $selected_students );
 
         if ( $selected_count <= 0 ) {
-            $selected_count = 1;
+            $selected_students = array(
+                array(
+                    'wpid' => get_current_user_id(),
+                ),
+            );
+            $selected_count    = 1;
         }
 
         $discount_count = $this->count_association_discounts_for_selected_students( $selected_students );
@@ -2191,7 +2181,7 @@ class TEQCIDB_Ajax {
 
         $student_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT uniquestudentid, is_a_representative, email FROM $students_table WHERE wpuserid = %d LIMIT 1",
+                "SELECT uniquestudentid, is_a_representative, email, first_name, last_name, company, phone_cell, their_representative FROM $students_table WHERE wpuserid = %d LIMIT 1",
                 $user_id
             ),
             ARRAY_A
@@ -2213,7 +2203,7 @@ class TEQCIDB_Ajax {
         if ( $class_id > 0 ) {
             $class_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT uniqueclassid, classname, classcost FROM $classes_table WHERE id = %d LIMIT 1",
+                    "SELECT uniqueclassid, classname, classcost, classtype, classformat, classstartdate, classstarttime, classurl, teamslink FROM $classes_table WHERE id = %d LIMIT 1",
                     $class_id
                 ),
                 ARRAY_A
@@ -2305,7 +2295,6 @@ class TEQCIDB_Ajax {
         if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $enrollment_date ) ) {
             $enrollment_date = ( new DateTimeImmutable( 'now', $eastern_timezone ) )->format( 'Y-m-d' );
         }
-
         $student_history_table = $wpdb->prefix . 'teqcidb_studenthistory';
 
         if ( ! empty( $selected_student_rows ) ) {
@@ -2449,6 +2438,15 @@ class TEQCIDB_Ajax {
             }
         }
 
+        if ( empty( $selected_student_rows ) ) {
+            $this->maybe_send_student_self_initial_online_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
+        }
+
         wp_send_json_success(
             array(
                 'id' => $payment_history_id,
@@ -2525,7 +2523,6 @@ class TEQCIDB_Ajax {
         $email          = $email_provided ? $this->sanitize_email_value( 'email' ) : '';
 
         if ( $creating_new_student && '' === $email ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
@@ -2534,7 +2531,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( ! $creating_new_student && $email_provided && '' === $email ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
@@ -2550,7 +2546,6 @@ class TEQCIDB_Ajax {
             $existing_user = get_user_by( 'email', $email );
 
             if ( $existing_user ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => sprintf(
@@ -2574,14 +2569,12 @@ class TEQCIDB_Ajax {
             if ( '' === $user_pass ) {
                 $user_pass = wp_generate_password( 20, true, true );
             } elseif ( $password !== $verify_password ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'The passwords do not match.', 'teqcidb' ),
                     )
                 );
             } elseif ( ! $this->is_strong_password( $user_pass ) ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Your password must be at least 12 characters long and include uppercase and lowercase letters, a number, and a symbol.', 'teqcidb' ),
@@ -2601,7 +2594,6 @@ class TEQCIDB_Ajax {
             $new_wp_user_id = wp_insert_user( $user_args );
 
             if ( is_wp_error( $new_wp_user_id ) ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => sprintf(
@@ -2729,7 +2721,6 @@ class TEQCIDB_Ajax {
             $message = __( 'Changes saved.', 'teqcidb' );
 
             if ( false === $result && $wpdb->last_error ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to save changes. Please try again.', 'teqcidb' ),
@@ -2741,7 +2732,6 @@ class TEQCIDB_Ajax {
             $message = __( 'Saved', 'teqcidb' );
 
             if ( false === $result ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to save the record. Please try again.', 'teqcidb' ),
@@ -2881,7 +2871,6 @@ class TEQCIDB_Ajax {
         $saved_student_id = $id > 0 ? $id : (int) $wpdb->insert_id;
         $this->sync_admin_representative_assignments( $saved_student_id );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => $message,
@@ -2898,7 +2887,6 @@ class TEQCIDB_Ajax {
         $remember = isset( $_POST['rememberme'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['rememberme'] ) );
 
         if ( '' === $username || '' === $password ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please enter your username/email and password.', 'teqcidb' ),
@@ -2916,7 +2904,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( is_wp_error( $user ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'We could not log you in with those credentials. Please try again.', 'teqcidb' ),
@@ -2932,7 +2919,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! is_user_logged_in() ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You must be logged in to update your profile.', 'teqcidb' ),
@@ -2943,7 +2929,6 @@ class TEQCIDB_Ajax {
         $current_user = wp_get_current_user();
 
         if ( ! ( $current_user instanceof WP_User ) || ! $current_user->exists() ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to locate your account.', 'teqcidb' ),
@@ -2955,7 +2940,6 @@ class TEQCIDB_Ajax {
         $last_name  = $this->sanitize_text_value( 'last_name' );
 
         if ( '' === $first_name || '' === $last_name ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please complete all required fields.', 'teqcidb' ),
@@ -2975,7 +2959,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( ! $row ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to locate your student record.', 'teqcidb' ),
@@ -3003,7 +2986,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( false === $result && $wpdb->last_error ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to save your profile. Please try again.', 'teqcidb' ),
@@ -3011,7 +2993,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Profile saved.', 'teqcidb' ),
@@ -3037,7 +3018,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -3050,7 +3030,6 @@ class TEQCIDB_Ajax {
         $history_id = isset( $_POST['history_id'] ) ? absint( $_POST['history_id'] ) : 0;
 
         if ( $history_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid student history entry.', 'teqcidb' ),
@@ -3061,7 +3040,6 @@ class TEQCIDB_Ajax {
         $history_data = isset( $_POST['studenthistory'] ) ? wp_unslash( $_POST['studenthistory'] ) : array();
 
         if ( ! is_array( $history_data ) || ! isset( $history_data[ $history_id ] ) || ! is_array( $history_data[ $history_id ] ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Missing student history details.', 'teqcidb' ),
@@ -3144,7 +3122,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( false === $result ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to save the student history entry. Please try again.', 'teqcidb' ),
@@ -3152,7 +3129,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Student history entry saved.', 'teqcidb' ),
@@ -3165,7 +3141,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -3178,7 +3153,6 @@ class TEQCIDB_Ajax {
         $history_id = isset( $_POST['history_id'] ) ? absint( $_POST['history_id'] ) : 0;
 
         if ( $history_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid student history entry.', 'teqcidb' ),
@@ -3189,7 +3163,6 @@ class TEQCIDB_Ajax {
         $deleted = $wpdb->delete( $table, array( 'id' => $history_id ), array( '%d' ) );
 
         if ( false === $deleted ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to delete the student history entry. Please try again.', 'teqcidb' ),
@@ -3197,7 +3170,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Student history entry deleted.', 'teqcidb' ),
@@ -3210,7 +3182,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -3221,7 +3192,6 @@ class TEQCIDB_Ajax {
         $history_key = isset( $_POST['history_id'] ) ? sanitize_key( wp_unslash( $_POST['history_id'] ) ) : '';
 
         if ( '' === $history_key ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid student history entry.', 'teqcidb' ),
@@ -3232,7 +3202,6 @@ class TEQCIDB_Ajax {
         $history_data = isset( $_POST['studenthistory'] ) ? wp_unslash( $_POST['studenthistory'] ) : array();
 
         if ( ! is_array( $history_data ) || ! isset( $history_data[ $history_key ] ) || ! is_array( $history_data[ $history_key ] ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Missing student history details.', 'teqcidb' ),
@@ -3245,7 +3214,6 @@ class TEQCIDB_Ajax {
         $unique_student_id = isset( $entry['uniquestudentid'] ) ? sanitize_text_field( (string) $entry['uniquestudentid'] ) : '';
 
         if ( '' === $unique_student_id ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'A unique student ID is required to create a history entry.', 'teqcidb' ),
@@ -3331,7 +3299,6 @@ class TEQCIDB_Ajax {
         $result = $wpdb->insert( $table, $data, $formats );
 
         if ( false === $result ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to create the student history entry. Please try again.', 'teqcidb' ),
@@ -3339,7 +3306,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Student history entry created.', 'teqcidb' ),
@@ -3352,7 +3318,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to save this class.', 'teqcidb' ),
@@ -3370,7 +3335,6 @@ class TEQCIDB_Ajax {
         $type_options   = array( 'initial', 'refresher', 'other' );
 
         if ( '' === $class_name ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please provide a class name before saving.', 'teqcidb' ),
@@ -3447,7 +3411,6 @@ class TEQCIDB_Ajax {
             $message = __( 'Changes saved.', 'teqcidb' );
 
             if ( false === $result && $wpdb->last_error ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to save changes. Please try again.', 'teqcidb' ),
@@ -3459,7 +3422,6 @@ class TEQCIDB_Ajax {
             $message = __( 'Class saved.', 'teqcidb' );
 
             if ( false === $result ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to save the class. Please try again.', 'teqcidb' ),
@@ -3474,7 +3436,6 @@ class TEQCIDB_Ajax {
             $this->sync_class_quiz_mapping( $saved_class_id, $quiz_id );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => $message,
@@ -3597,7 +3558,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to save quiz questions.', 'teqcidb' ),
@@ -3612,7 +3572,6 @@ class TEQCIDB_Ajax {
         $correct       = isset( $_POST['correct'] ) ? sanitize_key( wp_unslash( $_POST['correct'] ) ) : '';
 
         if ( $quiz_id <= 0 || $question_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid quiz question selection.', 'teqcidb' ),
@@ -3625,7 +3584,6 @@ class TEQCIDB_Ajax {
         $option_correct_raw = isset( $_POST['option_correct'] ) ? (array) wp_unslash( $_POST['option_correct'] ) : array();
 
         if ( ! in_array( $question_type, array( 'true_false', 'multi_select', 'multiple_choice' ), true ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Saving this question type is coming soon.', 'teqcidb' ),
@@ -3634,7 +3592,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( 'true_false' === $question_type && 'true' !== $correct && 'false' !== $correct ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Select True or False before saving this question.', 'teqcidb' ),
@@ -3656,7 +3613,6 @@ class TEQCIDB_Ajax {
         $saved_type = sanitize_key( (string) $type );
 
         if ( $question_type !== $saved_type ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'This question type changed. Refresh and try again.', 'teqcidb' ),
@@ -3674,7 +3630,6 @@ class TEQCIDB_Ajax {
             );
 
             if ( ! $choices_json ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to encode the true/false answer.', 'teqcidb' ),
@@ -3707,7 +3662,6 @@ class TEQCIDB_Ajax {
             }
 
             if ( empty( $choices ) ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
@@ -3725,7 +3679,6 @@ class TEQCIDB_Ajax {
                 }
 
                 if ( 1 !== $correct_count ) {
-                    $this->maybe_delay( $start );
                     wp_send_json_error(
                         array(
                             'message' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
@@ -3737,7 +3690,6 @@ class TEQCIDB_Ajax {
             $choices_json = wp_json_encode( $choices );
 
             if ( ! $choices_json ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Unable to encode the answer options.', 'teqcidb' ),
@@ -3762,7 +3714,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( false === $updated ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to save the quiz question. Please try again.', 'teqcidb' ),
@@ -3770,7 +3721,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Question saved.', 'teqcidb' ),
@@ -3783,7 +3733,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to reset this quiz attempt.', 'teqcidb' ),
@@ -3796,7 +3745,6 @@ class TEQCIDB_Ajax {
         $user_id  = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
 
         if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid quiz attempt selection.', 'teqcidb' ),
@@ -3819,7 +3767,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( 'refresher' !== sanitize_key( (string) $class_type ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Only refresher quiz attempts can be reset.', 'teqcidb' ),
@@ -3839,7 +3786,6 @@ class TEQCIDB_Ajax {
         $attempt_ids = array_values( array_filter( array_map( 'absint', is_array( $attempt_ids ) ? $attempt_ids : array() ) ) );
 
         if ( empty( $attempt_ids ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'No matching quiz attempts were found to reset.', 'teqcidb' ),
@@ -3870,7 +3816,6 @@ class TEQCIDB_Ajax {
             )
         );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Quiz attempt reset. The student can now retake this quiz.', 'teqcidb' ),
@@ -3884,7 +3829,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to delete quiz questions.', 'teqcidb' ),
@@ -3896,7 +3840,6 @@ class TEQCIDB_Ajax {
         $question_id = isset( $_POST['question_id'] ) ? absint( wp_unslash( $_POST['question_id'] ) ) : 0;
 
         if ( $quiz_id <= 0 || $question_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid quiz question selection.', 'teqcidb' ),
@@ -3916,7 +3859,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( ! $exists ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'That question no longer exists.', 'teqcidb' ),
@@ -3934,7 +3876,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( false === $deleted ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to delete the quiz question. Please try again.', 'teqcidb' ),
@@ -3942,7 +3883,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Question deleted. Reloading…', 'teqcidb' ),
@@ -3957,7 +3897,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to create quiz questions.', 'teqcidb' ),
@@ -3971,7 +3910,6 @@ class TEQCIDB_Ajax {
         $correct       = isset( $_POST['correct'] ) ? sanitize_key( wp_unslash( $_POST['correct'] ) ) : '';
 
         if ( $quiz_id <= 0 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid quiz selection.', 'teqcidb' ),
@@ -3980,7 +3918,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( ! in_array( $question_type, array( 'true_false', 'multi_select', 'multiple_choice' ), true ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Choose a valid question type before saving.', 'teqcidb' ),
@@ -3989,7 +3926,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( '' === trim( $prompt ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Enter the question text before saving.', 'teqcidb' ),
@@ -4005,7 +3941,6 @@ class TEQCIDB_Ajax {
 
         if ( 'true_false' === $question_type ) {
             if ( 'true' !== $correct && 'false' !== $correct ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Select True or False before saving this question.', 'teqcidb' ),
@@ -4046,7 +3981,6 @@ class TEQCIDB_Ajax {
             }
 
             if ( empty( $choices ) ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Add at least one answer option before saving this question.', 'teqcidb' ),
@@ -4064,7 +3998,6 @@ class TEQCIDB_Ajax {
                 }
 
                 if ( 1 !== $correct_count ) {
-                    $this->maybe_delay( $start );
                     wp_send_json_error(
                         array(
                             'message' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
@@ -4077,7 +4010,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( ! $choices_json ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to encode question data for saving.', 'teqcidb' ),
@@ -4091,7 +4023,6 @@ class TEQCIDB_Ajax {
         $quiz_exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $quiz_table WHERE id = %d LIMIT 1", $quiz_id ) );
 
         if ( ! $quiz_exists ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'The selected quiz no longer exists.', 'teqcidb' ),
@@ -4117,7 +4048,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( false === $inserted ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to create the quiz question. Please try again.', 'teqcidb' ),
@@ -4127,7 +4057,6 @@ class TEQCIDB_Ajax {
 
         $question_id = absint( $wpdb->insert_id );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message'     => __( 'Question created. Reloading…', 'teqcidb' ),
@@ -4142,7 +4071,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to search students.', 'teqcidb' ),
@@ -4154,7 +4082,6 @@ class TEQCIDB_Ajax {
         $term = trim( $term );
 
         if ( strlen( $term ) < 2 ) {
-            $this->maybe_delay( $start );
             wp_send_json_success(
                 array(
                     'results' => array(),
@@ -4213,7 +4140,6 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'results' => $results,
@@ -4226,7 +4152,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to save these settings.', 'teqcidb' ),
@@ -4241,7 +4166,6 @@ class TEQCIDB_Ajax {
             $stored = TEQCIDB_Settings_Helper::get_general_settings();
 
             if ( $stored !== $sanitized ) {
-                $this->maybe_delay( $start );
                 wp_send_json_error(
                     array(
                         'message' => __( 'Settings could not be saved. Please try again.', 'teqcidb' ),
@@ -4250,7 +4174,6 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Settings saved.', 'teqcidb' ),
@@ -4263,7 +4186,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to save these settings.', 'teqcidb' ),
@@ -4319,7 +4241,6 @@ class TEQCIDB_Ajax {
         );
 
         if ( ! $api_key || ! isset( $api_definitions[ $api_key ] ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unknown API configuration.', 'teqcidb' ),
@@ -4362,7 +4283,6 @@ class TEQCIDB_Ajax {
 
         update_option( 'teqcidb_api_settings', $all_settings );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'API settings saved.', 'teqcidb' ),
@@ -4375,7 +4295,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You do not have permission to upload legacy records.', 'teqcidb' ),
@@ -4389,7 +4308,6 @@ class TEQCIDB_Ajax {
         $raw_record = $this->get_legacy_upload_payload( $raw_record );
 
         if ( is_wp_error( $raw_record ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => $raw_record->get_error_message(),
@@ -4409,7 +4327,6 @@ class TEQCIDB_Ajax {
         $selected_types = array_values( array_intersect( $requested_types, $allowed_types ) );
 
         if ( empty( $selected_types ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Select at least one supported upload type.', 'teqcidb' ),
@@ -4418,7 +4335,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( count( $selected_types ) > 1 ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please choose a single upload type at a time.', 'teqcidb' ),
@@ -4445,7 +4361,6 @@ class TEQCIDB_Ajax {
         $records = $this->split_legacy_rows( $raw_record );
 
         if ( empty( $records ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please paste a legacy student history row before uploading.', 'teqcidb' ),
@@ -4535,7 +4450,6 @@ class TEQCIDB_Ajax {
             $inserted++; 
         }
 
-        $this->maybe_delay( $start );
 
         if ( $inserted > 0 ) {
             $message = __( 'Legacy student history uploaded successfully.', 'teqcidb' );
@@ -4569,7 +4483,6 @@ class TEQCIDB_Ajax {
         $records = $this->split_legacy_rows( $raw_record );
 
         if ( empty( $records ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please paste a legacy student row before uploading.', 'teqcidb' ),
@@ -4680,7 +4593,6 @@ class TEQCIDB_Ajax {
             $inserted++;
         }
 
-        $this->maybe_delay( $start );
 
         if ( $inserted > 0 ) {
             $message = __( 'Legacy student uploaded successfully.', 'teqcidb' );
@@ -4714,7 +4626,6 @@ class TEQCIDB_Ajax {
         $records = $this->split_legacy_rows( $raw_record );
 
         if ( empty( $records ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please paste a legacy class row before uploading.', 'teqcidb' ),
@@ -4809,7 +4720,6 @@ class TEQCIDB_Ajax {
             $inserted++;
         }
 
-        $this->maybe_delay( $start );
 
         if ( $inserted > 0 ) {
             $message = __( 'Legacy class uploaded successfully.', 'teqcidb' );
@@ -4844,7 +4754,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to modify error logs.', 'teqcidb' ),
@@ -4855,7 +4764,6 @@ class TEQCIDB_Ajax {
         $scope = isset( $_POST['scope'] ) ? TEQCIDB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
 
         if ( '' === $scope ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unknown log scope.', 'teqcidb' ),
@@ -4866,7 +4774,6 @@ class TEQCIDB_Ajax {
         $cleared = TEQCIDB_Error_Log_Helper::clear_log( $scope );
 
         if ( ! $cleared ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to clear the requested log. Please check file permissions.', 'teqcidb' ),
@@ -4880,7 +4787,6 @@ class TEQCIDB_Ajax {
             $message = __( 'Log cleared.', 'teqcidb' );
         }
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => $message,
@@ -4894,7 +4800,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to download error logs.', 'teqcidb' ),
@@ -4905,7 +4810,6 @@ class TEQCIDB_Ajax {
         $scope = isset( $_POST['scope'] ) ? TEQCIDB_Error_Log_Helper::normalize_scope( wp_unslash( $_POST['scope'] ) ) : '';
 
         if ( '' === $scope ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unknown log scope.', 'teqcidb' ),
@@ -4916,7 +4820,6 @@ class TEQCIDB_Ajax {
         $filename = TEQCIDB_Error_Log_Helper::get_download_filename( $scope );
 
         if ( '' === $filename ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Unable to prepare the download filename.', 'teqcidb' ),
@@ -4926,7 +4829,6 @@ class TEQCIDB_Ajax {
 
         $contents = TEQCIDB_Error_Log_Helper::get_log_contents( $scope );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message'  => __( 'Log download ready.', 'teqcidb' ),
@@ -4943,7 +4845,6 @@ class TEQCIDB_Ajax {
         global $wpdb;
         $table = $wpdb->prefix . 'teqcidb_students';
         $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
-        $this->maybe_delay( $start );
         wp_send_json_success( array( 'message' => __( 'Deleted', 'teqcidb' ) ) );
     }
 
@@ -5047,7 +4948,7 @@ class TEQCIDB_Ajax {
                 $select_query .= ' ' . $where_sql;
             }
 
-            $select_query .= ' ORDER BY classstartdate ASC, classname ASC, id ASC LIMIT %d OFFSET %d';
+            $select_query .= ' ORDER BY id DESC, classstartdate DESC, classname ASC LIMIT %d OFFSET %d';
 
             $select_params   = $where_params;
             $select_params[] = $per_page;
@@ -5080,7 +4981,6 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $this->maybe_delay( $start, 0 );
         wp_send_json_success(
             array(
                 'entities'    => $entities,
@@ -5091,6 +4991,68 @@ class TEQCIDB_Ajax {
             )
         );
     }
+
+
+    public function read_class_registered_students() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid class selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+        $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 40;
+
+        if ( $per_page <= 0 ) {
+            $per_page = 40;
+        }
+
+        $per_page = min( $per_page, 100 );
+
+        $class_entity = $this->get_class_entity_for_registered_students( $class_id );
+
+        if ( empty( $class_entity ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Class not found.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $registered_data = $this->get_registered_students_page_for_class( $class_entity, $page, $per_page );
+        $total           = isset( $registered_data['total'] ) ? absint( $registered_data['total'] ) : 0;
+        $students        = isset( $registered_data['students'] ) && is_array( $registered_data['students'] ) ? $registered_data['students'] : array();
+        $total_pages     = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+
+        if ( $total_pages < 1 ) {
+            $total_pages = 1;
+        }
+
+        if ( $page > $total_pages ) {
+            $page = $total_pages;
+        }
+
+        $loaded_count = ( $page - 1 ) * $per_page + count( $students );
+
+        wp_send_json_success(
+            array(
+                'students'     => $students,
+                'page'         => $page,
+                'per_page'     => $per_page,
+                'total'        => $total,
+                'total_pages'  => $total_pages,
+                'loaded_count' => min( $loaded_count, $total ),
+                'has_more'     => $loaded_count < $total,
+            )
+        );
+    }
+
 
     public function read_student() {
         $start = microtime( true );
@@ -5241,7 +5203,6 @@ class TEQCIDB_Ajax {
             unset( $entity );
         }
 
-        $this->maybe_delay( $start, 0 );
         wp_send_json_success(
             array(
                 'entities'    => $entities,
@@ -5258,7 +5219,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -5269,7 +5229,6 @@ class TEQCIDB_Ajax {
         $template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : '';
 
         if ( '' === $template_id ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid template selection.', 'teqcidb' ),
@@ -5298,7 +5257,6 @@ class TEQCIDB_Ajax {
             )
         );
 
-        $this->maybe_delay( $start );
         wp_send_json_success(
             array(
                 'message' => __( 'Template saved.', 'teqcidb' ),
@@ -5311,7 +5269,6 @@ class TEQCIDB_Ajax {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -5322,7 +5279,6 @@ class TEQCIDB_Ajax {
         $template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : '';
 
         if ( '' === $template_id ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Invalid template selection.', 'teqcidb' ),
@@ -5333,7 +5289,6 @@ class TEQCIDB_Ajax {
         $to_email = isset( $_POST['to_email'] ) ? sanitize_email( wp_unslash( $_POST['to_email'] ) ) : '';
 
         if ( ! $to_email || ! is_email( $to_email ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Please provide a valid email address.', 'teqcidb' ),
@@ -5399,7 +5354,6 @@ class TEQCIDB_Ajax {
 
         $sent    = wp_mail( $to_email, $subject, $rendered_body, $headers );
 
-        $this->maybe_delay( $start );
 
         if ( ! $sent ) {
             wp_send_json_error(
@@ -5448,12 +5402,182 @@ class TEQCIDB_Ajax {
         );
     }
 
+    /**
+     * Send the Student Self-Registration (Initial Online) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_initial_online_email( $to_email, array $student, array $class, $total_paid ) {
+        $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+        $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
+
+        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+            return;
+        }
+
+        $recipient = sanitize_email( (string) $to_email );
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $template_id      = 'teqcidb-email-student-self-initial-online';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens  = $this->build_registration_email_tokens( $student, $class, $total_paid );
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic self-registration email', 'teqcidb' ),
+                'triggered_by'   => __( 'Student registration payment success', 'teqcidb' ),
+            )
+        );
+    }
+
+    /**
+     * Build merge-token values for registration confirmation emails.
+     *
+     * @param array  $student    Student row data.
+     * @param array  $class      Class row data.
+     * @param string $total_paid Formatted transaction total.
+     *
+     * @return array
+     */
+    private function build_registration_email_tokens( array $student, array $class, $total_paid ) {
+        $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
+
+        $tokens['student_first_name'] = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['student_first_name'] ) ? $tokens['student_first_name'] : '' );
+        $tokens['student_last_name']  = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['student_last_name'] ) ? $tokens['student_last_name'] : '' );
+        $tokens['student_email']      = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
+        $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
+        $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
+
+        $representative = isset( $student['their_representative'] ) ? json_decode( (string) $student['their_representative'], true ) : array();
+
+        if ( is_array( $representative ) ) {
+            $tokens['student_representative'] = trim(
+                sprintf(
+                    '%s %s',
+                    isset( $representative['first_name'] ) ? sanitize_text_field( (string) $representative['first_name'] ) : '',
+                    isset( $representative['last_name'] ) ? sanitize_text_field( (string) $representative['last_name'] ) : ''
+                )
+            );
+        }
+
+        $tokens['class_name']      = isset( $class['classname'] ) ? sanitize_text_field( (string) $class['classname'] ) : ( isset( $tokens['class_name'] ) ? $tokens['class_name'] : '' );
+        $tokens['class_type']      = isset( $class['classtype'] ) ? ucwords( str_replace( array( '_', '-' ), ' ', sanitize_text_field( (string) $class['classtype'] ) ) ) : ( isset( $tokens['class_type'] ) ? $tokens['class_type'] : '' );
+        $tokens['class_date']      = isset( $class['classstartdate'] ) ? $this->format_date_token_value( $class['classstartdate'] ) : ( isset( $tokens['class_date'] ) ? $tokens['class_date'] : '' );
+        $tokens['class_time']      = isset( $class['classstarttime'] ) ? $this->format_time_token_value( $class['classstarttime'] ) : ( isset( $tokens['class_time'] ) ? $tokens['class_time'] : '' );
+        $tokens['class_page']      = isset( $class['classurl'] ) ? esc_url_raw( (string) $class['classurl'] ) : ( isset( $tokens['class_page'] ) ? $tokens['class_page'] : '' );
+        $tokens['class_team_link'] = isset( $class['teamslink'] ) ? esc_url_raw( (string) $class['teamslink'] ) : ( isset( $tokens['class_team_link'] ) ? $tokens['class_team_link'] : '' );
+
+        $transaction_total                          = (float) preg_replace( '/[^0-9.\-]/', '', (string) $total_paid );
+        $tokens['class_cost_total_transaction']     = '$' . number_format( max( 0, $transaction_total ), 2 );
+        $tokens['class_cost_student_self']          = $tokens['class_cost_total_transaction'];
+        $tokens['class_cost_student_representative'] = isset( $class['classcost'] ) && is_numeric( preg_replace( '/[^0-9.\-]/', '', (string) $class['classcost'] ) )
+            ? '$' . number_format( (float) preg_replace( '/[^0-9.\-]/', '', (string) $class['classcost'] ), 2 )
+            : ( isset( $tokens['class_cost_student_representative'] ) ? $tokens['class_cost_student_representative'] : '' );
+
+        return $tokens;
+    }
+
+    /**
+     * Format a YYYY-mm-dd date value for token replacement.
+     *
+     * @param string $value Raw date value.
+     *
+     * @return string
+     */
+    private function format_date_token_value( $value ) {
+        $value = sanitize_text_field( (string) $value );
+
+        if ( '' === $value || '0000-00-00' === $value ) {
+            return '';
+        }
+
+        $date = date_create( $value );
+
+        return $date ? $date->format( 'm-d-Y' ) : '';
+    }
+
+    /**
+     * Format a stored class time for token replacement.
+     *
+     * @param string $value Raw time value.
+     *
+     * @return string
+     */
+    private function format_time_token_value( $value ) {
+        $value = sanitize_text_field( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        $timestamp = strtotime( $value );
+
+        if ( false === $timestamp ) {
+            return '';
+        }
+
+        return gmdate( 'g:i A', $timestamp );
+    }
+
     public function clear_email_log() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'You are not allowed to perform this action.', 'teqcidb' ),
@@ -5462,7 +5586,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( ! TEQCIDB_Email_Log_Helper::is_log_available() ) {
-            $this->maybe_delay( $start );
             wp_send_json_error(
                 array(
                     'message' => __( 'Email logging is unavailable. Check directory permissions and try again.', 'teqcidb' ),
@@ -5472,7 +5595,6 @@ class TEQCIDB_Ajax {
 
         $cleared = TEQCIDB_Email_Log_Helper::clear_log();
 
-        $this->maybe_delay( $start );
 
         if ( ! $cleared ) {
             wp_send_json_error(
@@ -7463,7 +7585,14 @@ class TEQCIDB_Ajax {
         $entity['coursestudentsrestricted'] = $this->format_class_student_list_for_response( isset( $entity['coursestudentsrestricted'] ) ? $entity['coursestudentsrestricted'] : '' );
         $entity['quizstudentsrestricted']   = $this->format_class_student_list_for_response( isset( $entity['quizstudentsrestricted'] ) ? $entity['quizstudentsrestricted'] : '' );
         $entity['instructors']             = $this->format_class_label_list_for_response( isset( $entity['instructors'] ) ? $entity['instructors'] : '' );
-        $entity['registered_students']      = $this->get_registered_students_for_class( $entity );
+        $entity['registered_students_total'] = $this->get_registered_students_total_for_class( $entity );
+        $entity['registered_students_loaded'] = 0;
+
+        $class_url_value = isset( $entity['classurl'] ) ? trim( (string) $entity['classurl'] ) : '';
+
+        if ( '' !== $class_url_value && 0 === strpos( $class_url_value, '/' ) ) {
+            $entity['classurl'] = esc_url_raw( home_url( $class_url_value ) );
+        }
 
         $format_labels = array(
             'in_person' => __( 'In Person', 'teqcidb' ),
@@ -7493,45 +7622,161 @@ class TEQCIDB_Ajax {
 
 
     private function get_registered_students_for_class( array $entity ) {
+        $registered_data = $this->get_registered_students_page_for_class( $entity, 1, $this->get_registered_students_total_for_class( $entity ) );
+
+        return isset( $registered_data['students'] ) && is_array( $registered_data['students'] ) ? $registered_data['students'] : array();
+    }
+
+    private function get_class_entity_for_registered_students( $class_id ) {
         global $wpdb;
 
-        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
-        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $row           = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, uniqueclassid, classname FROM $classes_table WHERE id = %d",
+                absint( $class_id )
+            ),
+            ARRAY_A
+        );
+
+        return is_array( $row ) ? $row : array();
+    }
+
+    private function get_registered_students_total_for_class( array $entity ) {
+        $history_args = $this->get_class_history_query_args( $entity );
+
+        if ( empty( $history_args ) ) {
+            return 0;
+        }
+
+        global $wpdb;
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+
+        $count_query = "SELECT COUNT(*) FROM (
+            SELECT CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key
+            FROM $history_table
+            WHERE {$history_args['where_sql']}
+            AND ( wpuserid > 0 OR uniquestudentid <> '' )
+            GROUP BY student_key
+        ) AS registered_students";
+
+        return (int) $wpdb->get_var( $wpdb->prepare( $count_query, $history_args['where_params'] ) );
+    }
+
+    private function get_registered_students_page_for_class( array $entity, $page, $per_page ) {
+        global $wpdb;
+
+        $total = $this->get_registered_students_total_for_class( $entity );
+
+        if ( $total <= 0 ) {
+            return array(
+                'students' => array(),
+                'total'    => 0,
+            );
+        }
+
+        $page     = max( 1, absint( $page ) );
+        $per_page = max( 1, absint( $per_page ) );
+        $per_page = min( $per_page, 100 );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        if ( $offset < 0 ) {
+            $offset = 0;
+        }
+
+        $history_args = $this->get_class_history_query_args( $entity );
+
+        if ( empty( $history_args ) ) {
+            return array(
+                'students' => array(),
+                'total'    => 0,
+            );
+        }
+
+        $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
+        $identifier_sql  = "SELECT
+                CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key,
+                MIN(id) AS history_id,
+                MAX(CASE WHEN wpuserid > 0 THEN wpuserid ELSE 0 END) AS wpuserid,
+                MAX(uniquestudentid) AS uniquestudentid
+            FROM $history_table
+            WHERE {$history_args['where_sql']}
+            AND ( wpuserid > 0 OR uniquestudentid <> '' )
+            GROUP BY student_key
+            ORDER BY history_id ASC
+            LIMIT %d OFFSET %d";
+        $identifier_args = array_merge( $history_args['where_params'], array( $per_page, $offset ) );
+        $identifier_rows = $wpdb->get_results( $wpdb->prepare( $identifier_sql, $identifier_args ), ARRAY_A );
+
+        if ( ! is_array( $identifier_rows ) || empty( $identifier_rows ) ) {
+            return array(
+                'students' => array(),
+                'total'    => $total,
+            );
+        }
+
+        $students_by_key = $this->get_students_map_for_registered_identifiers( $identifier_rows );
+        $students        = array();
+
+        foreach ( $identifier_rows as $identifier_row ) {
+            $wp_user_id = isset( $identifier_row['wpuserid'] ) ? absint( $identifier_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $identifier_row['uniquestudentid'] ) ? sanitize_text_field( (string) $identifier_row['uniquestudentid'] ) : '';
+            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
+
+            if ( isset( $students_by_key[ $student_key ] ) ) {
+                $students[] = $students_by_key[ $student_key ];
+            }
+        }
+
+        return array(
+            'students' => $students,
+            'total'    => $total,
+        );
+    }
+
+    private function get_class_history_query_args( array $entity ) {
+        global $wpdb;
+
+        $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
         $unique_class_id = isset( $entity['uniqueclassid'] ) ? sanitize_text_field( (string) $entity['uniqueclassid'] ) : '';
         $class_name      = isset( $entity['classname'] ) ? sanitize_text_field( (string) $entity['classname'] ) : '';
 
-        $history_rows = array();
-
         if ( '' !== $unique_class_id ) {
-            $history_rows = $wpdb->get_results(
+            $has_unique_rows = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE uniqueclassid = %s ORDER BY id ASC",
+                    "SELECT COUNT(*) FROM $history_table WHERE uniqueclassid = %s",
                     $unique_class_id
-                ),
-                ARRAY_A
+                )
+            );
+
+            if ( $has_unique_rows > 0 ) {
+                return array(
+                    'where_sql'    => 'uniqueclassid = %s',
+                    'where_params' => array( $unique_class_id ),
+                );
+            }
+        }
+
+        if ( '' !== $class_name ) {
+            return array(
+                'where_sql'    => 'classname = %s',
+                'where_params' => array( $class_name ),
             );
         }
 
-        if ( empty( $history_rows ) && '' !== $class_name ) {
-            $history_rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT wpuserid, uniquestudentid FROM $history_table WHERE classname = %s ORDER BY id ASC",
-                    $class_name
-                ),
-                ARRAY_A
-            );
-        }
+        return array();
+    }
 
-        if ( ! is_array( $history_rows ) || empty( $history_rows ) ) {
-            return array();
-        }
+    private function get_students_map_for_registered_identifiers( array $identifier_rows ) {
+        global $wpdb;
 
-        $wp_user_ids = array();
-        $unique_ids  = array();
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $wp_user_ids    = array();
+        $unique_ids     = array();
 
-        foreach ( $history_rows as $history_row ) {
-            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
-            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
+        foreach ( $identifier_rows as $identifier_row ) {
+            $wp_user_id = isset( $identifier_row['wpuserid'] ) ? absint( $identifier_row['wpuserid'] ) : 0;
+            $unique_id  = isset( $identifier_row['uniquestudentid'] ) ? sanitize_text_field( (string) $identifier_row['uniquestudentid'] ) : '';
 
             if ( $wp_user_id > 0 ) {
                 $wp_user_ids[] = $wp_user_id;
@@ -7568,17 +7813,13 @@ class TEQCIDB_Ajax {
             $student_query .= ' WHERE ' . implode( ' OR ', $where_clauses );
         }
 
-        $student_rows = $wpdb->get_results(
-            $wpdb->prepare( $student_query, $query_params ),
-            ARRAY_A
-        );
+        $student_rows = $wpdb->get_results( $wpdb->prepare( $student_query, $query_params ), ARRAY_A );
 
         if ( ! is_array( $student_rows ) || empty( $student_rows ) ) {
             return array();
         }
 
-        $students_by_wpid   = array();
-        $students_by_unique = array();
+        $students_by_key = array();
 
         foreach ( $student_rows as $student_row ) {
             if ( ! is_array( $student_row ) ) {
@@ -7586,55 +7827,27 @@ class TEQCIDB_Ajax {
             }
 
             $prepared = $this->prepare_student_entity( $student_row );
-            $prepared_student = array(
-                'wpuserid'      => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
+            $student  = array(
+                'wpuserid'       => isset( $prepared['wpuserid'] ) ? absint( $prepared['wpuserid'] ) : 0,
                 'uniquestudentid' => isset( $prepared['uniquestudentid'] ) ? sanitize_text_field( (string) $prepared['uniquestudentid'] ) : '',
-                'first_name'    => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
-                'last_name'     => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
-                'company'       => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
-                'email'         => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
-                'phone_cell'    => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
-                'phone_office'  => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+                'first_name'     => isset( $prepared['first_name'] ) ? sanitize_text_field( (string) $prepared['first_name'] ) : '',
+                'last_name'      => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
+                'company'        => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
+                'email'          => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
+                'phone_cell'     => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
+                'phone_office'   => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
             );
 
-            if ( $prepared_student['wpuserid'] > 0 ) {
-                $students_by_wpid[ $prepared_student['wpuserid'] ] = $prepared_student;
+            if ( $student['wpuserid'] > 0 ) {
+                $students_by_key[ 'wpid:' . $student['wpuserid'] ] = $student;
             }
 
-            if ( '' !== $prepared_student['uniquestudentid'] ) {
-                $students_by_unique[ $prepared_student['uniquestudentid'] ] = $prepared_student;
+            if ( '' !== $student['uniquestudentid'] ) {
+                $students_by_key[ 'uid:' . $student['uniquestudentid'] ] = $student;
             }
         }
 
-        $registered_students = array();
-        $seen                = array();
-
-        foreach ( $history_rows as $history_row ) {
-            $wp_user_id = isset( $history_row['wpuserid'] ) ? absint( $history_row['wpuserid'] ) : 0;
-            $unique_id  = isset( $history_row['uniquestudentid'] ) ? sanitize_text_field( (string) $history_row['uniquestudentid'] ) : '';
-            $student_key = $wp_user_id > 0 ? 'wpid:' . $wp_user_id : 'uid:' . $unique_id;
-
-            if ( isset( $seen[ $student_key ] ) ) {
-                continue;
-            }
-
-            $student = array();
-
-            if ( $wp_user_id > 0 && isset( $students_by_wpid[ $wp_user_id ] ) ) {
-                $student = $students_by_wpid[ $wp_user_id ];
-            } elseif ( '' !== $unique_id && isset( $students_by_unique[ $unique_id ] ) ) {
-                $student = $students_by_unique[ $unique_id ];
-            }
-
-            if ( empty( $student ) ) {
-                continue;
-            }
-
-            $seen[ $student_key ] = true;
-            $registered_students[] = $student;
-        }
-
-        return $registered_students;
+        return $students_by_key;
     }
 
     private function decode_class_address_field( $value ) {

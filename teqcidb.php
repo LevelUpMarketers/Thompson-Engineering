@@ -16,7 +16,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Plugin constants.
 define( 'TEQCIDB_VERSION', '0.1.0' );
-define( 'TEQCIDB_MIN_EXECUTION_TIME', 4 );
 define( 'TEQCIDB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TEQCIDB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

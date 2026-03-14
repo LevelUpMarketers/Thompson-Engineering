@@ -1861,7 +1861,7 @@ jQuery(document).ready(function($){
             doc.setFont('times', 'bolditalic');
             doc.setTextColor(56, 60, 170);
             doc.setFontSize(23);
-            doc.text(certSettings.trainingTitleLineOne || 'Online Initial', width / 2, 5.76, { align: 'center' });
+            doc.text(certSettings.trainingTitleLineOne || 'Initial QCI', width / 2, 5.76, { align: 'center' });
             doc.text(certSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
 
             doc.setTextColor(0, 0, 0);
@@ -1872,7 +1872,7 @@ jQuery(document).ready(function($){
 
             doc.setFont('times', 'normal');
             doc.setFontSize(10.5);
-            var footer = certSettings.footerText || 'This certificate confers six (6.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+            var footer = certSettings.footerText || 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
             var wrappedFooter = doc.splitTextToSize(footer, 8.0);
             doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
 
@@ -1985,7 +1985,7 @@ jQuery(document).ready(function($){
             doc.setFont('times', 'bolditalic');
             doc.setTextColor(56, 60, 170);
             doc.setFontSize(23);
-            doc.text(certSettings.trainingTitleLineOne || 'Online Refresher', width / 2, 5.76, { align: 'center' });
+            doc.text(certSettings.trainingTitleLineOne || 'Refresher QCI', width / 2, 5.76, { align: 'center' });
             doc.text(certSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
 
             doc.setTextColor(0, 0, 0);
@@ -3186,7 +3186,10 @@ jQuery(document).ready(function($){
                             name: fieldName + '[url][]',
                             'class': 'regular-text teqcidb-resource-url',
                             value: resource.url || ''
-                        }));
+                        })).append($('<button/>', {
+                            type: 'button',
+                            'class': 'button teqcidb-select-resource-media'
+                        }).text(teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource'));
 
                         $resourceFields.append($nameSubfield).append($typeSubfield).append($urlSubfield);
 
@@ -3240,16 +3243,163 @@ jQuery(document).ready(function($){
         }
 
 
-        function buildClassRegisteredStudentsSection(entity){
-            var students = entity && Array.isArray(entity.registered_students) ? entity.registered_students : [];
-            var $section = $('<section/>', { 'class': 'teqcidb-class-registered-students' });
-            $section.append($('<h4/>', { 'class': 'teqcidb-class-registered-students__title' }).text(teqcidbAdmin.classRegisteredStudentsHeading || 'Registered Students'));
+        function appendRegisteredStudentsRows($tbody, students, columns){
+            students.forEach(function(student){
+                var $row = $('<tr/>');
 
-            if (!students.length){
-                $section.append($('<p/>', { 'class': 'description teqcidb-class-registered-students__empty' }).text(teqcidbAdmin.classRegisteredStudentsEmpty || 'No students are currently associated with this class.'));
-                return $section;
+                columns.forEach(function(column){
+                    var value = student && Object.prototype.hasOwnProperty.call(student, column.key) ? student[column.key] : '';
+                    $row.append($('<td/>').text(classFormatValue(value)));
+                });
+
+                $tbody.append($row);
+            });
+        }
+
+        function updateRegisteredStudentsSummary($section){
+            var loaded = parseInt($section.data('loadedCount'), 10) || 0;
+            var total = parseInt($section.data('totalCount'), 10) || 0;
+            var $summary = $section.find('[data-teqcidb-registered-students-summary]');
+
+            if (!$summary.length){
+                return;
             }
 
+            if (total <= 0){
+                $summary.text('');
+                return;
+            }
+
+            var template = teqcidbAdmin.classRegisteredStudentsShowing || 'Showing %1$s of %2$s';
+            $summary.text(formatString(template, loaded, total));
+        }
+
+        function setRegisteredStudentsLoadingState($section, isLoading){
+            var $spinner = $section.find('[data-teqcidb-registered-students-spinner]');
+            var $buttons = $section.find('[data-teqcidb-load-registered-students], [data-teqcidb-load-more-registered-students]');
+
+            if ($spinner.length){
+                $spinner.toggleClass('is-active', !!isLoading);
+            }
+
+            if ($buttons.length){
+                $buttons.prop('disabled', !!isLoading);
+            }
+
+            $section.data('isLoadingStudents', !!isLoading);
+        }
+
+        function showRegisteredStudentsMessage($section, message){
+            var $feedback = $section.find('[data-teqcidb-registered-students-feedback]');
+
+            if (!$feedback.length){
+                return;
+            }
+
+            if (message){
+                $feedback.text(message).addClass('is-visible');
+            } else {
+                $feedback.removeClass('is-visible').text('');
+            }
+        }
+
+        function fetchClassRegisteredStudents($section, page){
+            if (!$section.length){
+                return;
+            }
+
+            if ($section.data('isLoadingStudents')){
+                return;
+            }
+
+            var classId = parseInt($section.data('classId'), 10) || 0;
+
+            if (!classId){
+                return;
+            }
+
+            var targetPage = Math.max(1, parseInt(page, 10) || 1);
+            var perPage = parseInt($section.data('perPage'), 10) || 40;
+
+            showRegisteredStudentsMessage($section, '');
+            setRegisteredStudentsLoadingState($section, true);
+
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_read_class_registered_students',
+                _ajax_nonce: teqcidbAjax.nonce,
+                class_id: classId,
+                page: targetPage,
+                per_page: perPage
+            })
+                .done(function(response){
+                    if (!(response && response.success && response.data)){
+                        showRegisteredStudentsMessage($section, (response && response.data && response.data.message) ? response.data.message : (teqcidbAdmin.error || ''));
+                        return;
+                    }
+
+                    var data = response.data;
+                    var students = Array.isArray(data.students) ? data.students : [];
+                    var total = parseInt(data.total, 10) || 0;
+                    var currentPage = parseInt(data.page, 10) || targetPage;
+                    var hasMore = !!data.has_more;
+                    var loadedCount = parseInt(data.loaded_count, 10);
+                    var $empty = $section.find('[data-teqcidb-registered-students-empty]');
+                    var $tableWrap = $section.find('[data-teqcidb-registered-students-table-wrap]');
+                    var $tbody = $section.find('[data-teqcidb-registered-students-body]');
+                    var columns = $section.data('columns') || [];
+
+                    if (currentPage === 1){
+                        $tbody.empty();
+                    }
+
+                    if (students.length){
+                        appendRegisteredStudentsRows($tbody, students, columns);
+                        $tableWrap.show();
+                        $empty.hide();
+                    } else if (currentPage === 1) {
+                        $tableWrap.hide();
+                        $empty.show();
+                    }
+
+                    if (isNaN(loadedCount)){
+                        loadedCount = Math.min((currentPage * perPage), total);
+                    }
+
+                    $section.data('studentsLoaded', true);
+                    $section.data('studentsPage', currentPage);
+                    $section.data('totalCount', total);
+                    $section.data('loadedCount', loadedCount);
+
+                    updateRegisteredStudentsSummary($section);
+
+                    var $loadButton = $section.find('[data-teqcidb-load-registered-students]');
+                    var $loadMoreButton = $section.find('[data-teqcidb-load-more-registered-students]');
+
+                    if (total <= 0){
+                        $loadButton.hide();
+                        $loadMoreButton.hide();
+                        return;
+                    }
+
+                    $loadButton.hide();
+
+                    if (hasMore){
+                        $loadMoreButton.show();
+                    } else {
+                        $loadMoreButton.hide();
+                    }
+                })
+                .fail(function(){
+                    showRegisteredStudentsMessage($section, teqcidbAdmin.classRegisteredStudentsLoadError || teqcidbAdmin.error || '');
+                })
+                .always(function(){
+                    setRegisteredStudentsLoadingState($section, false);
+                });
+        }
+
+        function buildClassRegisteredStudentsSection(entity){
+            var classId = entity && entity.id ? parseInt(entity.id, 10) : 0;
+            var totalCount = entity && typeof entity.registered_students_total !== 'undefined' ? (parseInt(entity.registered_students_total, 10) || 0) : 0;
             var columns = [
                 { key: 'first_name', label: teqcidbAdmin.studentFirstNameLabel || 'First Name' },
                 { key: 'last_name', label: teqcidbAdmin.studentLastNameLabel || 'Last Name' },
@@ -3258,29 +3408,72 @@ jQuery(document).ready(function($){
                 { key: 'phone_cell', label: teqcidbAdmin.studentPhoneCellLabel || 'Phone (cell)' },
                 { key: 'phone_office', label: teqcidbAdmin.studentPhoneOfficeLabel || 'Phone (office)' }
             ];
-
-            var $tableWrap = $('<div/>', { 'class': 'teqcidb-class-registered-students__table-wrap' });
+            var $section = $('<section/>', {
+                'class': 'teqcidb-class-registered-students',
+                'data-class-id': classId,
+                'data-teqcidb-registered-students-section': '',
+                'data-total-count': totalCount,
+                'data-loaded-count': 0,
+                'data-students-page': 0,
+                'data-per-page': 40
+            });
+            var $title = $('<h4/>', { 'class': 'teqcidb-class-registered-students__title' }).text(teqcidbAdmin.classRegisteredStudentsHeading || 'Registered Students');
+            var $summary = $('<p/>', {
+                'class': 'description teqcidb-class-registered-students__summary',
+                'data-teqcidb-registered-students-summary': ''
+            });
+            var $tableWrap = $('<div/>', {
+                'class': 'teqcidb-class-registered-students__table-wrap',
+                'data-teqcidb-registered-students-table-wrap': ''
+            }).hide();
             var $table = $('<table/>', { 'class': 'wp-list-table widefat striped teqcidb-class-registered-students__table' });
             var $theadRow = $('<tr/>');
+
             columns.forEach(function(column){
                 $theadRow.append($('<th/>', { scope: 'col' }).text(column.label));
             });
 
-            var $thead = $('<thead/>').append($theadRow);
-            var $tbody = $('<tbody/>');
+            var $tbody = $('<tbody/>', { 'data-teqcidb-registered-students-body': '' });
+            $table.append($('<thead/>').append($theadRow)).append($tbody);
+            $tableWrap.append($table);
 
-            students.forEach(function(student){
-                var $row = $('<tr/>');
-                columns.forEach(function(column){
-                    var value = student && Object.prototype.hasOwnProperty.call(student, column.key) ? student[column.key] : '';
-                    $row.append($('<td/>').text(classFormatValue(value)));
-                });
-                $tbody.append($row);
+            var $empty = $('<p/>', {
+                'class': 'description teqcidb-class-registered-students__empty',
+                'data-teqcidb-registered-students-empty': ''
+            }).text(teqcidbAdmin.classRegisteredStudentsEmpty || 'No students are currently associated with this class.').hide();
+
+            var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
+            var $loadButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-secondary',
+                'data-teqcidb-load-registered-students': ''
+            }).text(teqcidbAdmin.classRegisteredStudentsLoad || 'Load Students');
+            var $loadMoreButton = $('<button/>', {
+                type: 'button',
+                'class': 'button button-secondary',
+                'data-teqcidb-load-more-registered-students': ''
+            }).text(teqcidbAdmin.classRegisteredStudentsLoadMore || 'Load More Students').hide();
+            var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
+            var $spinner = $('<span/>', { 'class': 'spinner', 'aria-hidden': 'true', 'data-teqcidb-registered-students-spinner': '' });
+            var $feedback = $('<span/>', {
+                'class': 'teqcidb-class-registered-students__feedback',
+                role: 'status',
+                'aria-live': 'polite',
+                'data-teqcidb-registered-students-feedback': ''
             });
 
-            $table.append($thead).append($tbody);
-            $tableWrap.append($table);
-            $section.append($tableWrap);
+            $feedbackArea.append($spinner).append($feedback);
+            $actions.append($loadButton).append($loadMoreButton).append($feedbackArea);
+
+            $section.data('columns', columns);
+            $section.append($title).append($summary).append($actions).append($empty).append($tableWrap);
+
+            updateRegisteredStudentsSummary($section);
+
+            if (totalCount <= 0){
+                $loadButton.hide();
+                $empty.show();
+            }
 
             return $section;
         }
@@ -3524,6 +3717,23 @@ jQuery(document).ready(function($){
                 }
             });
         }
+
+        $classTableBody.on('click', '[data-teqcidb-load-registered-students]', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $section = $(this).closest('[data-teqcidb-registered-students-section]');
+            fetchClassRegisteredStudents($section, 1);
+        });
+
+        $classTableBody.on('click', '[data-teqcidb-load-more-registered-students]', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $section = $(this).closest('[data-teqcidb-registered-students-section]');
+            var currentPage = parseInt($section.data('studentsPage'), 10) || 1;
+            fetchClassRegisteredStudents($section, currentPage + 1);
+        });
 
         $classTableBody.on('submit', '.teqcidb-class-edit-form', function(e){
             e.preventDefault();
@@ -4485,6 +4695,40 @@ jQuery(document).ready(function($){
                 }
             });
         }
+    });
+
+
+    $(document).on('click', '.teqcidb-select-resource-media', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (typeof wp === 'undefined' || !wp.media) {
+            return;
+        }
+
+        var $button = $(this);
+        var $urlInput = $button.closest('.teqcidb-resource-subfield').find('.teqcidb-resource-url').first();
+
+        if (!$urlInput.length) {
+            return;
+        }
+
+        var frame = wp.media({
+            title: teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource',
+            button: { text: teqcidbAdmin.resourceChooseButton || 'Add or Choose a Resource' },
+            multiple: false
+        });
+
+        frame.on('select', function(){
+            var attachment = frame.state().get('selection').first().toJSON();
+            var resourceUrl = attachment && attachment.url ? String(attachment.url) : '';
+
+            if (resourceUrl) {
+                $urlInput.val(resourceUrl).trigger('change');
+            }
+        });
+
+        frame.open();
     });
 
 

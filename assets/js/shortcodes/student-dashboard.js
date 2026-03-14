@@ -1814,6 +1814,8 @@
     initCountdowns();
 
     const walletCardSettings = settings.walletCard || {};
+    const initialOnlineCertificateSettings = settings.initialOnlineCertificate || {};
+    const refresherOnlineCertificateSettings = settings.refresherOnlineCertificate || {};
     const registrationReceiptSettings = settings.registrationReceipt || {};
 
     const loadWalletCardImage = (url) => {
@@ -1981,6 +1983,181 @@
                 logoHeight
             );
         }
+
+        return doc;
+    };
+
+    const renderInitialOnlineCertificatePdf = async (data) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const [ademLogo, thompsonLogo] = await Promise.all([
+            loadWalletCardImage(walletCardSettings.ademLogoUrl),
+            loadWalletCardImage(walletCardSettings.thompsonLogoUrl),
+        ]);
+
+        const doc = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+        const width = 11;
+        const height = 8.5;
+
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, width, height, 'F');
+
+        doc.setDrawColor(192, 180, 106);
+        doc.setLineWidth(0.04);
+        doc.rect(0.06, 0.06, width - 0.12, height - 0.12);
+        doc.setDrawColor(124, 153, 90);
+        doc.setLineWidth(0.02);
+        doc.rect(0.14, 0.14, width - 0.28, height - 0.28);
+        doc.setDrawColor(111, 108, 115);
+        doc.setLineWidth(0.03);
+        doc.rect(0.21, 0.21, width - 0.42, height - 0.42);
+
+        if (ademLogo) {
+            doc.addImage(ademLogo, 'JPEG', 0.78, 1.46, 1.9, 0.7);
+        }
+
+        if (thompsonLogo) {
+            const thompsonLogoWidth = 1.38;
+            const thompsonLogoHeight = thompsonLogoWidth / (331 / 257);
+            doc.addImage(thompsonLogo, 'JPEG', 8.98, 1.32, thompsonLogoWidth, thompsonLogoHeight);
+        }
+
+        doc.setFont('times', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(27);
+        doc.text(initialOnlineCertificateSettings.programTitle || 'QCI Training Program', width / 2, 1.78, { align: 'center' });
+
+        doc.setTextColor(56, 60, 170);
+        doc.setFontSize(53);
+        doc.text(initialOnlineCertificateSettings.certificateTitle || 'Certificate of Completion', width / 2, 2.95, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('times', 'italic');
+        doc.setFontSize(22);
+        doc.text(initialOnlineCertificateSettings.grantedLabel || 'is hereby granted to:', width / 2, 3.72, { align: 'center' });
+
+        doc.setFontSize(30);
+        doc.text(getWalletCardValue(data.name), width / 2, 4.45, { align: 'center' });
+
+        doc.setFont('times', 'bolditalic');
+        doc.setFontSize(23);
+        doc.text(getWalletCardValue(data.company), width / 2, 4.95, { align: 'center' });
+
+        doc.setFont('times', 'italic');
+        doc.setFontSize(19);
+        doc.text(initialOnlineCertificateSettings.completionLabel || 'for satisfactory completion of', width / 2, 5.34, { align: 'center' });
+
+        doc.setFont('times', 'bolditalic');
+        doc.setTextColor(56, 60, 170);
+        doc.setFontSize(23);
+        doc.text(initialOnlineCertificateSettings.trainingTitleLineOne || 'Initial QCI', width / 2, 5.76, { align: 'center' });
+        doc.text(initialOnlineCertificateSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(20);
+        doc.text(`${initialOnlineCertificateSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`, width / 2, 6.73, { align: 'center' });
+        doc.text(`${initialOnlineCertificateSettings.expiresLabel || 'Expires'} ${getWalletCardValue(data.expiration_date)}`, width / 2, 7.12, { align: 'center' });
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(10.5);
+        const footer = initialOnlineCertificateSettings.footerText ||
+            'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+        const wrappedFooter = doc.splitTextToSize(footer, 8.0);
+        doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
+
+        return doc;
+    };
+
+
+    const renderRefresherOnlineCertificatePdf = async (data) => {
+        const jspdf = window.jspdf || {};
+        const { jsPDF } = jspdf;
+
+        if (!jsPDF) {
+            throw new Error('missing-js-pdf');
+        }
+
+        const [ademLogo, thompsonLogo] = await Promise.all([
+            loadWalletCardImage(walletCardSettings.ademLogoUrl),
+            loadWalletCardImage(walletCardSettings.thompsonLogoUrl),
+        ]);
+
+        const doc = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+        const width = 11;
+        const height = 8.5;
+
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, width, height, 'F');
+
+        doc.setDrawColor(192, 180, 106);
+        doc.setLineWidth(0.04);
+        doc.rect(0.06, 0.06, width - 0.12, height - 0.12);
+        doc.setDrawColor(124, 153, 90);
+        doc.setLineWidth(0.02);
+        doc.rect(0.14, 0.14, width - 0.28, height - 0.28);
+        doc.setDrawColor(111, 108, 115);
+        doc.setLineWidth(0.03);
+        doc.rect(0.21, 0.21, width - 0.42, height - 0.42);
+
+        if (ademLogo) {
+            doc.addImage(ademLogo, 'JPEG', 0.78, 1.46, 1.9, 0.7);
+        }
+
+        if (thompsonLogo) {
+            const thompsonLogoWidth = 1.38;
+            const thompsonLogoHeight = thompsonLogoWidth / (331 / 257);
+            doc.addImage(thompsonLogo, 'JPEG', 8.98, 1.32, thompsonLogoWidth, thompsonLogoHeight);
+        }
+
+        doc.setFont('times', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(27);
+        doc.text(refresherOnlineCertificateSettings.programTitle || 'QCI Training Program', width / 2, 1.78, { align: 'center' });
+
+        doc.setTextColor(56, 60, 170);
+        doc.setFontSize(53);
+        doc.text(refresherOnlineCertificateSettings.certificateTitle || 'Certificate of Completion', width / 2, 2.95, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('times', 'italic');
+        doc.setFontSize(22);
+        doc.text(refresherOnlineCertificateSettings.grantedLabel || 'is hereby granted to:', width / 2, 3.72, { align: 'center' });
+
+        doc.setFontSize(30);
+        doc.text(getWalletCardValue(data.name), width / 2, 4.45, { align: 'center' });
+
+        doc.setFont('times', 'bolditalic');
+        doc.setFontSize(23);
+        doc.text(getWalletCardValue(data.company), width / 2, 4.95, { align: 'center' });
+
+        doc.setFont('times', 'italic');
+        doc.setFontSize(19);
+        doc.text(refresherOnlineCertificateSettings.completionLabel || 'for satisfactory completion of', width / 2, 5.34, { align: 'center' });
+
+        doc.setFont('times', 'bolditalic');
+        doc.setTextColor(56, 60, 170);
+        doc.setFontSize(23);
+        doc.text(refresherOnlineCertificateSettings.trainingTitleLineOne || 'Refresher QCI', width / 2, 5.76, { align: 'center' });
+        doc.text(refresherOnlineCertificateSettings.trainingTitleLineTwo || 'Training', width / 2, 6.12, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('times', 'bold');
+        doc.setFontSize(20);
+        doc.text(`${refresherOnlineCertificateSettings.qciNumberLabel || 'QCI No.'} ${getWalletCardValue(data.qci_number)}`, width / 2, 6.73, { align: 'center' });
+        doc.text(`${refresherOnlineCertificateSettings.expiresLabel || 'Expires'} ${getWalletCardValue(data.expiration_date)}`, width / 2, 7.12, { align: 'center' });
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(10.5);
+        const footer = refresherOnlineCertificateSettings.footerText ||
+            'This certificate confers four (4.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.';
+        const wrappedFooter = doc.splitTextToSize(footer, 8.0);
+        doc.text(wrappedFooter, width / 2, 7.9, { align: 'center' });
 
         return doc;
     };
@@ -2430,7 +2607,7 @@
                 const iframeHeight = parseInt(params.get('height') || '', 10);
 
                 if (Number.isFinite(iframeHeight) && iframeHeight > 0 && paymentIframe) {
-                    paymentIframe.style.height = `${Math.max(iframeHeight, 480)}px`;
+                    paymentIframe.style.height = `${Math.max(iframeHeight + 6, 480)}px`;
                 }
 
                 return;
@@ -2716,6 +2893,82 @@
         }
     };
 
+    const handleInitialCertificateAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-initial-certificate-action]');
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbInitialCertificateAction;
+        const wrapper = button.closest('[data-teqcidb-wallet-card]');
+        const data = parseWalletCardData(wrapper);
+
+        if (!data) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            const doc = await renderInitialOnlineCertificatePdf(data);
+
+            if (action === 'print') {
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } else {
+                doc.save(initialOnlineCertificateSettings.downloadFileName || 'qci-initial-online-certificate.pdf');
+            }
+        } catch (error) {
+            window.alert(
+                initialOnlineCertificateSettings.missingPdfMessage ||
+                    'Unable to generate the certificate right now. Please try again.'
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
+
+
+    const handleRefresherCertificateAction = async (event) => {
+        const button = event.target.closest('[data-teqcidb-refresher-certificate-action]');
+
+        if (!button) {
+            return;
+        }
+
+        const action = button.dataset.teqcidbRefresherCertificateAction;
+        const wrapper = button.closest('[data-teqcidb-wallet-card]');
+        const data = parseWalletCardData(wrapper);
+
+        if (!data) {
+            return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+            const doc = await renderRefresherOnlineCertificatePdf(data);
+
+            if (action === 'print') {
+                doc.autoPrint();
+                doc.output('dataurlnewwindow');
+            } else {
+                doc.save(refresherOnlineCertificateSettings.downloadFileName || 'qci-refresher-online-certificate.pdf');
+            }
+        } catch (error) {
+            window.alert(
+                refresherOnlineCertificateSettings.missingPdfMessage ||
+                    'Unable to generate the certificate right now. Please try again.'
+            );
+        } finally {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
+    };
     const handlePaymentHistoryReceiptAction = async (event) => {
         const button = event.target.closest('[data-teqcidb-payment-history-receipt-action]');
 
@@ -2764,5 +3017,7 @@
     };
 
     document.addEventListener('click', handleWalletCardAction);
+    document.addEventListener('click', handleInitialCertificateAction);
+    document.addEventListener('click', handleRefresherCertificateAction);
     document.addEventListener('click', handlePaymentHistoryReceiptAction);
 })();

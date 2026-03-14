@@ -162,6 +162,11 @@
     margin-top: 8px;
 }
 
+
+#teqcidb-dashboard-panel-certificates-dates .teqcidb-wallet-card-actions .teqcidb-button {
+    min-width: 365px;
+}
+
 .teqcidb-class-history-list {
     display: flex;
     flex-direction: column;
@@ -313,6 +318,10 @@
 .teqcidb-form-field legend {
     font-weight: 600;
     color: #2c2c2c;
+}
+
+.teqcidb-auth-section .teqcidb-create-form .teqcidb-form-field > label {
+    margin-top: auto;
 }
 
 .teqcidb-form-field input,

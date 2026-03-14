@@ -1239,6 +1239,10 @@ class TEQCIDB_Admin {
             'classEditHeading' => __( 'Edit Class Details', 'teqcidb' ),
             'classRegisteredStudentsHeading' => __( 'Registered Students', 'teqcidb' ),
             'classRegisteredStudentsEmpty' => __( 'No students are currently associated with this class.', 'teqcidb' ),
+            'classRegisteredStudentsLoad' => __( 'Load Students', 'teqcidb' ),
+            'classRegisteredStudentsLoadMore' => __( 'Load More Students', 'teqcidb' ),
+            'classRegisteredStudentsShowing' => __( 'Showing %1$s of %2$s', 'teqcidb' ),
+            'classRegisteredStudentsLoadError' => __( 'Unable to load registered students right now. Please try again.', 'teqcidb' ),
             'studentFirstNameLabel' => __( 'First Name', 'teqcidb' ),
             'studentLastNameLabel' => __( 'Last Name', 'teqcidb' ),
             'studentCompanyLabel' => __( 'Company', 'teqcidb' ),
@@ -1248,6 +1252,7 @@ class TEQCIDB_Admin {
             'resourceNameLabel' => __( 'Resource Name', 'teqcidb' ),
             'resourceTypeLabel' => __( 'Resource Type', 'teqcidb' ),
             'resourceUrlLabel' => __( 'Resource URL', 'teqcidb' ),
+            'resourceChooseButton' => __( 'Add or Choose a Resource', 'teqcidb' ),
             'resourceTypePdf'   => __( 'PDF', 'teqcidb' ),
             'resourceTypeVideo' => __( 'Video', 'teqcidb' ),
             'resourceTypeExternalLink' => __( 'External Link', 'teqcidb' ),
@@ -1322,18 +1327,18 @@ class TEQCIDB_Admin {
                 'certificateTitle' => __( 'Certificate of Completion', 'teqcidb' ),
                 'grantedLabel' => __( 'is hereby granted to:', 'teqcidb' ),
                 'completionLabel' => __( 'for satisfactory completion of', 'teqcidb' ),
-                'trainingTitleLineOne' => __( 'Online Initial', 'teqcidb' ),
+                'trainingTitleLineOne' => __( 'Initial QCI', 'teqcidb' ),
                 'trainingTitleLineTwo' => __( 'Training', 'teqcidb' ),
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expiresLabel' => __( 'Expires', 'teqcidb' ),
-                'footerText' => __( 'This certificate confers six (6.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
+                'footerText' => __( 'This certificate confers eight (8.0) professional development hours (PDHs) to students who require credits for licenses or certifications. Such PDHs are subject to the qualifying requirements of the licensing or certifying organization.', 'teqcidb' ),
             ),
             'refresherOnlineCertificate' => array(
                 'programTitle' => __( 'QCI Training Program', 'teqcidb' ),
                 'certificateTitle' => __( 'Certificate of Completion', 'teqcidb' ),
                 'grantedLabel' => __( 'is hereby granted to:', 'teqcidb' ),
                 'completionLabel' => __( 'for satisfactory completion of', 'teqcidb' ),
-                'trainingTitleLineOne' => __( 'Online Refresher', 'teqcidb' ),
+                'trainingTitleLineOne' => __( 'Refresher QCI', 'teqcidb' ),
                 'trainingTitleLineTwo' => __( 'Training', 'teqcidb' ),
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expiresLabel' => __( 'Expires', 'teqcidb' ),
@@ -2761,6 +2766,7 @@ class TEQCIDB_Admin {
 
             $choices[] = array(
                 'id'      => $choice_id,
+                'value'   => 'option_' . ( $index + 1 ),
                 'label'   => isset( $item['label'] ) ? sanitize_textarea_field( (string) $item['label'] ) : '',
                 'correct' => ! empty( $item['correct'] ),
             );
@@ -2789,6 +2795,10 @@ class TEQCIDB_Admin {
                 }
 
                 $choice_labels[ (string) $choice['id'] ] = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+
+                if ( ! empty( $choice['value'] ) ) {
+                    $choice_labels[ (string) $choice['value'] ] = isset( $choice['label'] ) ? (string) $choice['label'] : '';
+                }
             }
 
             foreach ( $selected_values as $selected_value ) {
@@ -2805,6 +2815,75 @@ class TEQCIDB_Admin {
         }
 
         return implode( ', ', $labels );
+    }
+
+    private function is_attempt_answer_correct( $question_type, array $selected_values, $choices_json, array $choices ) {
+        $question_type  = sanitize_key( (string) $question_type );
+        $selected_values = array_values(
+            array_unique(
+                array_filter(
+                    array_map( 'sanitize_key', $selected_values )
+                )
+            )
+        );
+
+        if ( empty( $selected_values ) ) {
+            return false;
+        }
+
+        if ( 'true_false' === $question_type ) {
+            $correct = $this->get_true_false_answer_from_choices_json( $choices_json );
+
+            return '' !== $correct && 1 === count( $selected_values ) && $correct === $selected_values[0];
+        }
+
+        $choice_lookup = array();
+        $correct_keys  = array();
+
+        foreach ( $choices as $choice ) {
+            if ( ! is_array( $choice ) ) {
+                continue;
+            }
+
+            $canonical = ! empty( $choice['value'] )
+                ? sanitize_key( (string) $choice['value'] )
+                : sanitize_key( (string) ( isset( $choice['id'] ) ? $choice['id'] : '' ) );
+
+            if ( '' === $canonical ) {
+                continue;
+            }
+
+            if ( ! empty( $choice['id'] ) ) {
+                $choice_lookup[ sanitize_key( (string) $choice['id'] ) ] = $canonical;
+            }
+
+            if ( ! empty( $choice['value'] ) ) {
+                $choice_lookup[ sanitize_key( (string) $choice['value'] ) ] = $canonical;
+            }
+
+            if ( ! empty( $choice['correct'] ) ) {
+                $correct_keys[] = $canonical;
+            }
+        }
+
+        $correct_keys = array_values( array_unique( array_filter( $correct_keys ) ) );
+
+        if ( empty( $correct_keys ) ) {
+            return false;
+        }
+
+        $selected_keys = array();
+
+        foreach ( $selected_values as $selected_value ) {
+            $selected_keys[] = isset( $choice_lookup[ $selected_value ] ) ? $choice_lookup[ $selected_value ] : $selected_value;
+        }
+
+        $selected_keys = array_values( array_unique( array_filter( $selected_keys ) ) );
+
+        sort( $selected_keys );
+        sort( $correct_keys );
+
+        return $selected_keys === $correct_keys;
     }
 
     private function get_correct_answer_label_string( $question_type, $choices_json, array $choices ) {
@@ -3138,6 +3217,7 @@ class TEQCIDB_Admin {
                     echo '<div class="teqcidb-resource-subfield">';
                     echo '<label><span class="teqcidb-tooltip-icon dashicons dashicons-editor-help" data-tooltip="' . esc_attr( isset( $resource_tooltips['url'] ) ? $resource_tooltips['url'] : '' ) . '"></span>' . esc_html__( 'Resource URL', 'teqcidb' ) . '</label>';
                     echo '<input type="url" name="' . esc_attr( $field['name'] ) . '[url][]" class="regular-text teqcidb-resource-url" />';
+                    echo '<button type="button" class="button teqcidb-select-resource-media">' . esc_html__( 'Add or Choose a Resource', 'teqcidb' ) . '</button>';
                     echo '</div>';
 
                     echo '</div>';
@@ -3852,12 +3932,13 @@ class TEQCIDB_Admin {
                         $choices       = $this->get_multi_select_choices_from_choices_json( $choices_json );
                         $selected      = isset( $answers[ $question_id ] ) && is_array( $answers[ $question_id ] ) ? $answers[ $question_id ] : array();
 
-                        $selected_label = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
-                        $correct_label  = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $selected_label      = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
+                        $correct_label       = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $is_selected_correct = $this->is_attempt_answer_correct( $question_type, $selected, $choices_json, $choices );
 
                         echo '<tr>';
                         echo '<td>' . esc_html( '' !== $prompt ? $prompt : __( 'Untitled question', 'teqcidb' ) ) . '</td>';
-                        echo '<td>' . esc_html( $selected_label ) . '</td>';
+                        echo '<td' . ( $is_selected_correct ? '' : ' style="color: #b32d2e; font-weight: 600;"' ) . '>' . esc_html( $selected_label ) . '</td>';
                         echo '<td>' . esc_html( $correct_label ) . '</td>';
                         echo '</tr>';
                     }
