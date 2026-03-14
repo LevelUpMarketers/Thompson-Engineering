@@ -2492,6 +2492,12 @@ class TEQCIDB_Ajax {
                 is_array( $class_row ) ? $class_row : array(),
                 $total_paid
             );
+            $this->maybe_send_student_self_refresher_in_person_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
         }
 
         wp_send_json_success(
@@ -5507,6 +5513,27 @@ class TEQCIDB_Ajax {
             'initial',
             array( 'in_person', 'inperson' ),
             'teqcidb-email-student-self-initial-in-person'
+        );
+    }
+
+
+    /**
+     * Send the Student Self-Registration (Refresher In-Person) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_refresher_in_person_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_email_for_class_type_and_format(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'refresher',
+            array( 'in_person', 'inperson' ),
+            'teqcidb-email-student-self-refresher-in-person'
         );
     }
 
