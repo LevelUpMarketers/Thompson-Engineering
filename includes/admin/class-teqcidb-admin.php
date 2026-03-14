@@ -1167,6 +1167,17 @@ class TEQCIDB_Admin {
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
+            array(
+                'id'      => 'teqcidb-email-expiration-reminder-45-day',
+                'title'   => __( '45-Day Expiration Reminder', 'teqcidb' ),
+                'tooltip' => __( 'Sent automatically to students when their QCI expiration date is 45 days away.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Scheduled cron | Expiration reminder | Student certification expiration in 45 days', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Expiration Reminders', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
         );
     }
 
