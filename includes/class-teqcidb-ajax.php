@@ -5549,9 +5549,11 @@ class TEQCIDB_Ajax {
     private function build_registration_email_tokens( array $student, array $class, $total_paid ) {
         $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
 
-        $tokens['student_first_name'] = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['student_first_name'] ) ? $tokens['student_first_name'] : '' );
-        $tokens['student_last_name']  = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['student_last_name'] ) ? $tokens['student_last_name'] : '' );
-        $tokens['student_email']      = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
+        $tokens['student_first_name']      = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['student_first_name'] ) ? $tokens['student_first_name'] : '' );
+        $tokens['student_last_name']       = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['student_last_name'] ) ? $tokens['student_last_name'] : '' );
+        $tokens['representative_first_name'] = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['representative_first_name'] ) ? $tokens['representative_first_name'] : '' );
+        $tokens['representative_last_name']  = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['representative_last_name'] ) ? $tokens['representative_last_name'] : '' );
+        $tokens['student_email']           = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
 

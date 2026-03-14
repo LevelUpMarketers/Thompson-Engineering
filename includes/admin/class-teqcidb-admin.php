@@ -574,6 +574,20 @@ class TEQCIDB_Admin {
             'label' => __( 'Student Phone (Office)', 'teqcidb' ),
         );
 
+        $representative_token_group = array(
+            'title'  => __( 'Representative Information', 'teqcidb' ),
+            'tokens' => array(
+                array(
+                    'value' => '{representative_first_name}',
+                    'label' => __( 'Representative First Name', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{representative_last_name}',
+                    'label' => __( 'Representative Last Name', 'teqcidb' ),
+                ),
+            ),
+        );
+
         $class_token_group = array(
             'title'  => __( 'Class Information', 'teqcidb' ),
             'tokens' => array(
@@ -646,7 +660,7 @@ class TEQCIDB_Admin {
          *                      a `title` and a `tokens` list where every token includes
          *                      `value` (the merge tag) and `label` (the admin-facing text).
          */
-        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $class_token_group, $formatting_token_group ) );
+        $groups = apply_filters( 'teqcidb_communications_token_groups', array( $token_group, $representative_token_group, $class_token_group, $formatting_token_group ) );
 
         return array_map( array( $this, 'normalize_token_group' ), $groups );
     }
