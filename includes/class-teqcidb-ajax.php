@@ -5525,7 +5525,7 @@ class TEQCIDB_Ajax {
         $tokens['class_type']      = isset( $class['classtype'] ) ? ucwords( str_replace( array( '_', '-' ), ' ', sanitize_text_field( (string) $class['classtype'] ) ) ) : ( isset( $tokens['class_type'] ) ? $tokens['class_type'] : '' );
         $tokens['class_date']      = isset( $class['classstartdate'] ) ? $this->format_date_token_value( $class['classstartdate'] ) : ( isset( $tokens['class_date'] ) ? $tokens['class_date'] : '' );
         $tokens['class_time']      = isset( $class['classstarttime'] ) ? $this->format_time_token_value( $class['classstarttime'] ) : ( isset( $tokens['class_time'] ) ? $tokens['class_time'] : '' );
-        $tokens['class_page']      = isset( $class['classurl'] ) ? esc_url_raw( (string) $class['classurl'] ) : ( isset( $tokens['class_page'] ) ? $tokens['class_page'] : '' );
+        $tokens['class_page']      = isset( $class['classurl'] ) ? $this->format_email_template_class_url( $class['classurl'] ) : ( isset( $tokens['class_page'] ) ? $tokens['class_page'] : '' );
         $tokens['class_team_link'] = isset( $class['teamslink'] ) ? esc_url_raw( (string) $class['teamslink'] ) : ( isset( $tokens['class_team_link'] ) ? $tokens['class_team_link'] : '' );
 
         $transaction_total                          = (float) preg_replace( '/[^0-9.\-]/', '', (string) $total_paid );
@@ -5578,6 +5578,25 @@ class TEQCIDB_Ajax {
         }
 
         return gmdate( 'g:i A', $timestamp );
+    }
+
+
+    private function format_email_template_class_url( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( preg_match( '#^https?://#i', $value ) ) {
+            return esc_url_raw( $value );
+        }
+
+        return esc_url_raw( home_url( '/' . ltrim( $value, '/' ) ) );
     }
 
     public function clear_email_log() {
