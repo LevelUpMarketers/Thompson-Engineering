@@ -74,6 +74,7 @@ class TEQCIDB_Student_Helper {
         $prepared['student_representative']          = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
         $prepared['representative_first_name']       = isset( $prepared['first_name'] ) ? $prepared['first_name'] : '';
         $prepared['representative_last_name']        = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
+        $prepared['individuals_registered']           = self::get_latest_representative_registration_individuals_html();
         $prepared['student_certification_expiration'] = self::format_date_for_token( isset( $prepared['expiration_date'] ) ? $prepared['expiration_date'] : '' );
 
         $prepared = array_merge( $prepared, self::get_latest_class_preview_data() );
@@ -136,6 +137,131 @@ class TEQCIDB_Student_Helper {
      */
     public static function get_first_preview_data() {
         return self::get_latest_preview_data();
+    }
+
+    /**
+     * Build an email-safe unordered list of students from the most recent representative registration transaction.
+     *
+     * @return string
+     */
+    private static function get_latest_representative_registration_individuals_html() {
+        global $wpdb;
+
+        $payment_table  = $wpdb->prefix . 'teqcidb_paymenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+
+        $payment_like  = $wpdb->esc_like( $payment_table );
+        $payment_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $payment_like ) );
+
+        if ( $payment_found !== $payment_table ) {
+            return '';
+        }
+
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return '';
+        }
+
+        $transaction = $wpdb->get_row(
+            "SELECT multiplestudents FROM $payment_table WHERE multiplestudents IS NOT NULL AND multiplestudents != '' ORDER BY id DESC LIMIT 1",
+            ARRAY_A
+        );
+
+        if ( ! is_array( $transaction ) || empty( $transaction['multiplestudents'] ) ) {
+            return '';
+        }
+
+        $decoded = json_decode( (string) $transaction['multiplestudents'], true );
+
+        if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+            return '';
+        }
+
+        $ordered_wpids = array();
+
+        foreach ( $decoded as $entry ) {
+            if ( is_array( $entry ) ) {
+                $wpid = isset( $entry['wpid'] ) ? absint( $entry['wpid'] ) : 0;
+            } else {
+                $wpid = absint( $entry );
+            }
+
+            if ( $wpid <= 0 || in_array( $wpid, $ordered_wpids, true ) ) {
+                continue;
+            }
+
+            $ordered_wpids[] = $wpid;
+        }
+
+        if ( empty( $ordered_wpids ) ) {
+            return '';
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $ordered_wpids ), '%d' ) );
+        $query        = "SELECT wpuserid, first_name, last_name, email FROM $students_table WHERE wpuserid IN ($placeholders)";
+        $rows         = $wpdb->get_results( $wpdb->prepare( $query, $ordered_wpids ), ARRAY_A );
+
+        if ( ! is_array( $rows ) || empty( $rows ) ) {
+            return '';
+        }
+
+        $rows_by_wpid = array();
+
+        foreach ( $rows as $row ) {
+            if ( ! is_array( $row ) ) {
+                continue;
+            }
+
+            $wpid = isset( $row['wpuserid'] ) ? absint( $row['wpuserid'] ) : 0;
+
+            if ( $wpid <= 0 ) {
+                continue;
+            }
+
+            $rows_by_wpid[ $wpid ] = $row;
+        }
+
+        if ( empty( $rows_by_wpid ) ) {
+            return '';
+        }
+
+        $items = array();
+
+        foreach ( $ordered_wpids as $wpid ) {
+            if ( ! isset( $rows_by_wpid[ $wpid ] ) ) {
+                continue;
+            }
+
+            $row        = $rows_by_wpid[ $wpid ];
+            $first_name = isset( $row['first_name'] ) ? sanitize_text_field( (string) $row['first_name'] ) : '';
+            $last_name  = isset( $row['last_name'] ) ? sanitize_text_field( (string) $row['last_name'] ) : '';
+            $email      = isset( $row['email'] ) ? sanitize_email( (string) $row['email'] ) : '';
+            $full_name  = trim( $first_name . ' ' . $last_name );
+
+            if ( '' === $full_name && '' === $email ) {
+                continue;
+            }
+
+            $label = '';
+
+            if ( '' !== $full_name && '' !== $email ) {
+                $label = sprintf( '%1$s (%2$s)', $full_name, $email );
+            } elseif ( '' !== $full_name ) {
+                $label = $full_name;
+            } else {
+                $label = $email;
+            }
+
+            $items[] = '<li>' . esc_html( $label ) . '</li>';
+        }
+
+        if ( empty( $items ) ) {
+            return '';
+        }
+
+        return '<ul>' . implode( '', $items ) . '</ul>';
     }
 
     /**

@@ -585,6 +585,10 @@ class TEQCIDB_Admin {
                     'value' => '{representative_last_name}',
                     'label' => __( 'Representative Last Name', 'teqcidb' ),
                 ),
+                array(
+                    'value' => '{individuals_registered}',
+                    'label' => __( 'Individuals Registered', 'teqcidb' ),
+                ),
             ),
         );
 
