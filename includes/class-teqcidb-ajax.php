@@ -2452,6 +2452,12 @@ class TEQCIDB_Ajax {
                 is_array( $class_row ) ? $class_row : array(),
                 $total_paid
             );
+            $this->maybe_send_student_self_refresher_online_email(
+                $email,
+                is_array( $student_row ) ? $student_row : array(),
+                is_array( $class_row ) ? $class_row : array(),
+                $total_paid
+            );
         }
 
         wp_send_json_success(
@@ -5418,10 +5424,50 @@ class TEQCIDB_Ajax {
      * @param string $total_paid Formatted transaction total.
      */
     private function maybe_send_student_self_initial_online_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_online_email_for_class_type(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'initial',
+            'teqcidb-email-student-self-initial-online'
+        );
+    }
+
+    /**
+     * Send the Student Self-Registration (Refresher Online) template after a qualifying self-registration payment.
+     *
+     * @param string $to_email Recipient email address.
+     * @param array  $student  Student row data.
+     * @param array  $class    Class row data.
+     * @param string $total_paid Formatted transaction total.
+     */
+    private function maybe_send_student_self_refresher_online_email( $to_email, array $student, array $class, $total_paid ) {
+        $this->maybe_send_student_self_online_email_for_class_type(
+            $to_email,
+            $student,
+            $class,
+            $total_paid,
+            'refresher',
+            'teqcidb-email-student-self-refresher-online'
+        );
+    }
+
+    /**
+     * Send a self-registration template after a qualifying Online/Virtual payment by class type.
+     *
+     * @param string $to_email            Recipient email address.
+     * @param array  $student             Student row data.
+     * @param array  $class               Class row data.
+     * @param string $total_paid          Formatted transaction total.
+     * @param string $required_class_type Required class type slug.
+     * @param string $template_id         Template ID to send.
+     */
+    private function maybe_send_student_self_online_email_for_class_type( $to_email, array $student, array $class, $total_paid, $required_class_type, $template_id ) {
         $normalized_type   = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
         $normalized_format = strtolower( sanitize_text_field( isset( $class['classformat'] ) ? (string) $class['classformat'] : '' ) );
 
-        if ( 'initial' !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
+        if ( strtolower( sanitize_key( (string) $required_class_type ) ) !== $normalized_type || ! in_array( $normalized_format, array( 'virtual', 'online' ), true ) ) {
             return;
         }
 
@@ -5431,7 +5477,7 @@ class TEQCIDB_Ajax {
             return;
         }
 
-        $template_id      = 'teqcidb-email-student-self-initial-online';
+        $template_id      = sanitize_key( (string) $template_id );
         $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
         $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
         $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
