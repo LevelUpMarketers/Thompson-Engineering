@@ -4790,6 +4790,10 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
+            if ( ! empty( $mapped['import_warning'] ) ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped['import_warning'] );
+            }
+
             if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'A class with this unique ID already exists.', 'teqcidb' ) );
                 continue;
@@ -7151,6 +7155,20 @@ class TEQCIDB_Ajax {
 
         $class_size        = $this->normalize_legacy_value( isset( $legacy_record['classsize'] ) ? $legacy_record['classsize'] : '' );
         $registrant_number = $this->normalize_legacy_value( isset( $legacy_record['classregistrantnumber'] ) ? $legacy_record['classregistrantnumber'] : '' );
+        $class_size_warning = '';
+
+        if ( '' !== $class_size ) {
+            $class_size_numeric = preg_replace( '/[^0-9]/', '', (string) $class_size );
+
+            if ( '' !== $class_size_numeric && is_numeric( $class_size_numeric ) ) {
+                if ( (float) $class_size_numeric > 4294967295 ) {
+                    $class_size         = '4294967295';
+                    $class_size_warning = __( 'Class size exceeded the maximum allowed value and was clamped to 4294967295.', 'teqcidb' );
+                } else {
+                    $class_size = $class_size_numeric;
+                }
+            }
+        }
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['classstreetaddress'] ) ? $legacy_record['classstreetaddress'] : '' ),
@@ -7178,6 +7196,7 @@ class TEQCIDB_Ajax {
             'classcost'             => $this->convert_legacy_cost( isset( $legacy_record['classcost'] ) ? $legacy_record['classcost'] : '' ),
             'classdescription'      => sanitize_textarea_field( isset( $legacy_record['classdescription'] ) ? $legacy_record['classdescription'] : '' ),
             'classhide'             => $this->convert_legacy_flag( isset( $legacy_record['classhide'] ) ? $legacy_record['classhide'] : '' ),
+            'import_warning'        => $class_size_warning,
         );
     }
 
