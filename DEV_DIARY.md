@@ -434,3 +434,4 @@
 427. 2026-03-15: Applied strict ID preservation to legacy student history uploads by requiring positive legacy IDs, inserting those IDs into teqcidb_studenthistory.id, and reporting row-level skips for missing/invalid or duplicate IDs (for empty-table full reload workflows).
 428. 2026-03-15: Applied strict ID preservation to legacy class uploads by requiring positive legacy IDs, inserting those IDs into teqcidb_classes.id, and surfacing row-level skips for missing/invalid or duplicate IDs.
 429. 2026-03-15: Clamped oversized legacy classsize values during class imports to 4294967295 (unsigned int max) and surfaced row-level import warnings when clamping occurs so import audits capture adjusted values.
+430. 2026-03-15: Updated student registration shortcode class filtering to hide full or past classes from front-end output, and automatically set classhide=1 for those classes based on classsize/registered counts and classstartdate comparisons.

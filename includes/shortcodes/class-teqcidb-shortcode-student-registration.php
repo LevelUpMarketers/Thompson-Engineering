@@ -282,12 +282,23 @@ class TEQCIDB_Shortcode_Student_Registration {
 
         $today = wp_date( 'Y-m-d' );
 
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $history_like  = $wpdb->esc_like( $history_table );
+        $history_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $history_like ) );
+
+        $registered_join = '';
+
+        if ( $history_found === $history_table ) {
+            $registered_join = " LEFT JOIN (SELECT uniqueclassid, COUNT(*) AS registered_total FROM $history_table WHERE LOWER(COALESCE(registered, '')) = 'yes' GROUP BY uniqueclassid) reg ON reg.uniqueclassid = c.uniqueclassid";
+        }
+
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, classname, classdescription, classcost, classtype, classformat, classstartdate, classstarttime, classendtime, classsaddress
-                FROM $table_name
-                WHERE COALESCE(classhide, 0) <> 1
-                ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
+                "SELECT c.id, c.uniqueclassid, c.classname, c.classdescription, c.classcost, c.classtype, c.classformat, c.classstartdate, c.classstarttime, c.classendtime, c.classsaddress, c.classsize, COALESCE(reg.registered_total, 0) AS registered_total
+                FROM $table_name c
+                $registered_join
+                WHERE COALESCE(c.classhide, 0) <> 1
+                ORDER BY CASE WHEN c.classstartdate >= %s THEN 0 ELSE 1 END ASC, c.classstartdate ASC, c.classname ASC, c.id ASC",
                 $today
             ),
             ARRAY_A
@@ -297,7 +308,8 @@ class TEQCIDB_Shortcode_Student_Registration {
             return array();
         }
 
-        $classes = array();
+        $classes     = array();
+        $hide_ids    = array();
 
         foreach ( $rows as $row ) {
             if ( ! is_array( $row ) ) {
@@ -310,10 +322,25 @@ class TEQCIDB_Shortcode_Student_Registration {
                 continue;
             }
 
+            $class_id         = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+            $class_size       = isset( $row['classsize'] ) ? absint( $row['classsize'] ) : 0;
+            $registered_total = isset( $row['registered_total'] ) ? absint( $row['registered_total'] ) : 0;
+            $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+            $is_full          = $class_size > 0 && $registered_total >= $class_size;
+            $is_past          = '' !== $class_start_date && $class_start_date < $today;
+
+            if ( $is_full || $is_past ) {
+                if ( $class_id > 0 ) {
+                    $hide_ids[] = $class_id;
+                }
+
+                continue;
+            }
+
             $address = $this->decode_class_address_field( isset( $row['classsaddress'] ) ? (string) $row['classsaddress'] : '' );
 
             $classes[] = array(
-                'class_id'       => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+                'class_id'       => $class_id,
                 'classname'      => $class_name,
                 'classdescription' => $this->format_description_for_display( isset( $row['classdescription'] ) ? $row['classdescription'] : '' ),
                 'classcost'      => $this->format_cost_for_display( isset( $row['classcost'] ) ? $row['classcost'] : '' ),
@@ -329,7 +356,35 @@ class TEQCIDB_Shortcode_Student_Registration {
             );
         }
 
+        if ( ! empty( $hide_ids ) ) {
+            $this->hide_classes_by_id( $hide_ids, $table_name );
+        }
+
         return $classes;
+    }
+
+    /**
+     * Mark classes as hidden.
+     *
+     * @param array<int,int> $class_ids Class IDs to hide.
+     * @param string         $table_name Classes table name.
+     */
+    private function hide_classes_by_id( array $class_ids, $table_name ) {
+        global $wpdb;
+
+        $class_ids = array_values( array_filter( array_map( 'absint', $class_ids ) ) );
+
+        if ( empty( $class_ids ) ) {
+            return;
+        }
+
+        $placeholders = implode( ', ', array_fill( 0, count( $class_ids ), '%d' ) );
+        $query        = "UPDATE $table_name SET classhide = 1 WHERE id IN ($placeholders)";
+        $prepared     = $wpdb->prepare( $query, $class_ids );
+
+        if ( is_string( $prepared ) ) {
+            $wpdb->query( $prepared );
+        }
     }
 
     /**
