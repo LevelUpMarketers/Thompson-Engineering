@@ -45,6 +45,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - This preserves import completeness while clearly marking that the email did not come from an active modern account record.
 - Legacy Student Records uploads now run in strict ID-preservation mode: each row must include a positive legacy `ID`, and that value is inserted into `teqcidb_students.id`; rows with missing/invalid IDs (or duplicate IDs already present) are skipped with per-row feedback.
 - Legacy Student History Records uploads now also run in strict ID-preservation mode: each row must include a positive legacy `ID`, and that value is inserted into `teqcidb_studenthistory.id`; rows with missing/invalid IDs (or duplicate IDs already present) are skipped with per-row feedback.
+- Legacy Class Records uploads now also run in strict ID-preservation mode: each row must include a positive legacy `ID`, and that value is inserted into `teqcidb_classes.id`; rows with missing/invalid IDs (or duplicate IDs already present) are skipped with per-row feedback.
 
 ## Admin Form Guidelines
 
