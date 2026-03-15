@@ -4475,6 +4475,13 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
+            $legacy_id = isset( $parsed['ID'] ) ? absint( $parsed['ID'] ) : 0;
+
+            if ( $legacy_id <= 0 ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'Legacy ID is required and must be a positive integer in strict ID mode.', 'teqcidb' ) );
+                continue;
+            }
+
             $mapped = $this->map_legacy_student_history_record( $parsed );
 
             if ( is_wp_error( $mapped ) ) {
@@ -4483,6 +4490,7 @@ class TEQCIDB_Ajax {
             }
 
             $data = array(
+                'id'             => $legacy_id,
                 'uniquestudentid' => $mapped['uniquestudentid'],
                 'wpuserid'        => $mapped['wpuserid'],
                 'classname'       => $mapped['classname'],
@@ -4500,6 +4508,7 @@ class TEQCIDB_Ajax {
             );
 
             $formats = array(
+                'id'             => '%d',
                 'uniquestudentid' => '%s',
                 'wpuserid'        => '%d',
                 'classname'       => '%s',
@@ -4534,6 +4543,15 @@ class TEQCIDB_Ajax {
 
             if ( false === $result ) {
                 $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+
+                if ( false !== stripos( $error_message, 'Duplicate entry' ) && false !== stripos( $error_message, 'PRIMARY' ) ) {
+                    $error_message = sprintf(
+                        /* translators: %d: legacy student history ID from import row. */
+                        __( 'Legacy history ID %d already exists.', 'teqcidb' ),
+                        $legacy_id
+                    );
+                }
+
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
@@ -4543,7 +4561,7 @@ class TEQCIDB_Ajax {
 
 
         if ( $inserted > 0 ) {
-            $message = __( 'Legacy student history uploaded successfully.', 'teqcidb' );
+            $message = __( 'Legacy student history uploaded successfully. Strict ID mode is active: rows without a valid legacy ID are skipped.', 'teqcidb' );
 
             if ( ! empty( $skipped_messages ) ) {
                 $message = sprintf(
@@ -4597,6 +4615,13 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
+            $legacy_id = isset( $parsed['ID'] ) ? absint( $parsed['ID'] ) : 0;
+
+            if ( $legacy_id <= 0 ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'Legacy ID is required and must be a positive integer in strict ID mode.', 'teqcidb' ) );
+                continue;
+            }
+
             $mapped = $this->map_legacy_student_record( $parsed, $row_number );
 
             if ( is_wp_error( $mapped ) ) {
@@ -4614,6 +4639,7 @@ class TEQCIDB_Ajax {
             }
 
             $data = array(
+                'id'                    => $legacy_id,
                 'wpuserid'              => $mapped['wpuserid'],
                 'uniquestudentid'       => $mapped['uniquestudentid'],
                 'first_name'            => $mapped['first_name'],
@@ -4637,6 +4663,7 @@ class TEQCIDB_Ajax {
             );
 
             $formats = array(
+                'id'                    => '%d',
                 'wpuserid'              => '%d',
                 'uniquestudentid'       => '%s',
                 'first_name'            => '%s',
@@ -4677,6 +4704,15 @@ class TEQCIDB_Ajax {
 
             if ( false === $result ) {
                 $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+
+                if ( false !== stripos( $error_message, 'Duplicate entry' ) && false !== stripos( $error_message, 'PRIMARY' ) ) {
+                    $error_message = sprintf(
+                        /* translators: %d: legacy student ID from import row. */
+                        __( 'Legacy ID %d already exists.', 'teqcidb' ),
+                        $legacy_id
+                    );
+                }
+
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
@@ -4686,7 +4722,7 @@ class TEQCIDB_Ajax {
 
 
         if ( $inserted > 0 ) {
-            $message = __( 'Legacy student uploaded successfully.', 'teqcidb' );
+            $message = __( 'Legacy student uploaded successfully. Strict ID mode is active: rows without a valid legacy ID are skipped.', 'teqcidb' );
 
             if ( ! empty( $skipped_messages ) ) {
                 $message = sprintf(
@@ -4740,11 +4776,22 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
+            $legacy_id = isset( $parsed['ID'] ) ? absint( $parsed['ID'] ) : 0;
+
+            if ( $legacy_id <= 0 ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'Legacy ID is required and must be a positive integer in strict ID mode.', 'teqcidb' ) );
+                continue;
+            }
+
             $mapped = $this->map_legacy_class_record( $parsed );
 
             if ( is_wp_error( $mapped ) ) {
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped->get_error_message() );
                 continue;
+            }
+
+            if ( ! empty( $mapped['import_warning'] ) ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $mapped['import_warning'] );
             }
 
             if ( $this->legacy_class_value_exists( $table, 'uniqueclassid', $mapped['uniqueclassid'] ) ) {
@@ -4753,6 +4800,7 @@ class TEQCIDB_Ajax {
             }
 
             $data = array(
+                'id'                    => $legacy_id,
                 'uniqueclassid'         => $mapped['uniqueclassid'],
                 'classname'             => $mapped['classname'],
                 'classformat'           => $mapped['classformat'],
@@ -4770,6 +4818,7 @@ class TEQCIDB_Ajax {
             );
 
             $formats = array(
+                'id'                    => '%d',
                 'uniqueclassid'         => '%s',
                 'classname'             => '%s',
                 'classformat'           => '%s',
@@ -4804,6 +4853,15 @@ class TEQCIDB_Ajax {
 
             if ( false === $result ) {
                 $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+
+                if ( false !== stripos( $error_message, 'Duplicate entry' ) && false !== stripos( $error_message, 'PRIMARY' ) ) {
+                    $error_message = sprintf(
+                        /* translators: %d: legacy class ID from import row. */
+                        __( 'Legacy class ID %d already exists.', 'teqcidb' ),
+                        $legacy_id
+                    );
+                }
+
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
@@ -4813,7 +4871,7 @@ class TEQCIDB_Ajax {
 
 
         if ( $inserted > 0 ) {
-            $message = __( 'Legacy class uploaded successfully.', 'teqcidb' );
+            $message = __( 'Legacy class uploaded successfully. Strict ID mode is active: rows without a valid legacy ID are skipped.', 'teqcidb' );
 
             if ( ! empty( $skipped_messages ) ) {
                 $message = sprintf(
@@ -6690,6 +6748,70 @@ class TEQCIDB_Ajax {
             return array();
         }
 
+        $rows             = array();
+        $length           = strlen( $normalized );
+        $inside_quotes    = false;
+        $paren_depth      = 0;
+        $current_fragment = '';
+
+        for ( $index = 0; $index < $length; $index++ ) {
+            $character = $normalized[ $index ];
+
+            if ( "'" === $character ) {
+                if ( $this->is_legacy_quote_backslash_escaped( $normalized, $index ) ) {
+                    if ( $paren_depth > 0 ) {
+                        $current_fragment .= $character;
+                    }
+
+                    continue;
+                }
+
+                if ( $inside_quotes && ( $index + 1 ) < $length && "'" === $normalized[ $index + 1 ] ) {
+                    if ( $paren_depth > 0 ) {
+                        $current_fragment .= "''";
+                    }
+
+                    $index++;
+                    continue;
+                }
+
+                $inside_quotes = ! $inside_quotes;
+            }
+
+            if ( ! $inside_quotes ) {
+                if ( '(' === $character ) {
+                    if ( 0 === $paren_depth ) {
+                        $current_fragment = '';
+                    }
+
+                    $paren_depth++;
+                }
+
+                if ( $paren_depth > 0 ) {
+                    $current_fragment .= $character;
+                }
+
+                if ( ')' === $character && $paren_depth > 0 ) {
+                    $paren_depth--;
+
+                    if ( 0 === $paren_depth ) {
+                        $rows[]           = trim( $current_fragment, ",; \t\n\r\0\x0B" );
+                        $current_fragment = '';
+                    }
+                }
+
+                continue;
+            }
+
+            if ( $paren_depth > 0 ) {
+                $current_fragment .= $character;
+            }
+        }
+
+        if ( ! empty( $rows ) ) {
+            return array_values( array_filter( $rows ) );
+        }
+
         $lines = preg_split( '/\r\n|\r|\n/', $normalized );
         $lines = array_filter(
             array_map(
@@ -6712,6 +6834,20 @@ class TEQCIDB_Ajax {
         }
 
         return array( $normalized );
+    }
+
+    private function is_legacy_quote_backslash_escaped( $value, $quote_index ) {
+        $backslash_count = 0;
+
+        for ( $index = (int) $quote_index - 1; $index >= 0; $index-- ) {
+            if ( '\\' !== $value[ $index ] ) {
+                break;
+            }
+
+            $backslash_count++;
+        }
+
+        return 1 === ( $backslash_count % 2 );
     }
 
     private function add_legacy_skipped_row_message( array &$messages, $row_number, $reason ) {
@@ -6957,7 +7093,7 @@ class TEQCIDB_Ajax {
             $email = $this->generate_legacy_placeholder_email( $legacy_record, $row_number );
         }
 
-        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
+        $wp_user_id = null;
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['contactstreetaddress'] ) ? $legacy_record['contactstreetaddress'] : '' ),
@@ -7019,6 +7155,20 @@ class TEQCIDB_Ajax {
 
         $class_size        = $this->normalize_legacy_value( isset( $legacy_record['classsize'] ) ? $legacy_record['classsize'] : '' );
         $registrant_number = $this->normalize_legacy_value( isset( $legacy_record['classregistrantnumber'] ) ? $legacy_record['classregistrantnumber'] : '' );
+        $class_size_warning = '';
+
+        if ( '' !== $class_size ) {
+            $class_size_numeric = preg_replace( '/[^0-9]/', '', (string) $class_size );
+
+            if ( '' !== $class_size_numeric && is_numeric( $class_size_numeric ) ) {
+                if ( (float) $class_size_numeric > 4294967295 ) {
+                    $class_size         = '4294967295';
+                    $class_size_warning = __( 'Class size exceeded the maximum allowed value and was clamped to 4294967295.', 'teqcidb' );
+                } else {
+                    $class_size = $class_size_numeric;
+                }
+            }
+        }
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['classstreetaddress'] ) ? $legacy_record['classstreetaddress'] : '' ),
@@ -7046,6 +7196,7 @@ class TEQCIDB_Ajax {
             'classcost'             => $this->convert_legacy_cost( isset( $legacy_record['classcost'] ) ? $legacy_record['classcost'] : '' ),
             'classdescription'      => sanitize_textarea_field( isset( $legacy_record['classdescription'] ) ? $legacy_record['classdescription'] : '' ),
             'classhide'             => $this->convert_legacy_flag( isset( $legacy_record['classhide'] ) ? $legacy_record['classhide'] : '' ),
+            'import_warning'        => $class_size_warning,
         );
     }
 
@@ -7456,25 +7607,31 @@ class TEQCIDB_Ajax {
     }
 
     private function generate_legacy_placeholder_email( array $legacy_record, $row_number = 0, $suffix = '' ) {
-        $seed = sanitize_key( (string) $suffix );
+        $seed = '';
 
-        if ( '' === $seed && ! empty( $legacy_record['uniquestudentid'] ) ) {
-            $seed = sanitize_key( (string) $legacy_record['uniquestudentid'] );
+        if ( ! empty( $legacy_record['uniquestudentid'] ) ) {
+            $seed = preg_replace( '/[^a-z0-9]/', '', strtolower( (string) $legacy_record['uniquestudentid'] ) );
         }
 
         if ( '' === $seed && ! empty( $legacy_record['ID'] ) ) {
-            $seed = 'id-' . absint( $legacy_record['ID'] );
+            $seed = 'id' . absint( $legacy_record['ID'] );
         }
 
         if ( '' === $seed && $row_number ) {
-            $seed = 'row-' . absint( $row_number );
+            $seed = 'row' . absint( $row_number );
         }
 
         if ( '' === $seed ) {
             $seed = sanitize_key( wp_generate_uuid4() );
         }
 
-        return sprintf( 'legacy-student-%s@example.invalid', $seed );
+        $suffix = sanitize_key( (string) $suffix );
+
+        if ( '' !== $suffix ) {
+            $seed .= $suffix;
+        }
+
+        return sprintf( 'old%s@fromolddb.com', $seed );
     }
 
     private function generate_unique_legacy_student_email( array $legacy_record, $row_number, $table, $current_email = '' ) {
@@ -8693,6 +8850,15 @@ class TEQCIDB_Ajax {
 
             if ( isset( $students_by_key[ $student_key ] ) ) {
                 $students[] = $students_by_key[ $student_key ];
+                continue;
+            }
+
+            if ( $wp_user_id > 0 && '' !== $unique_id ) {
+                $fallback_key = 'uid:' . $unique_id;
+
+                if ( isset( $students_by_key[ $fallback_key ] ) ) {
+                    $students[] = $students_by_key[ $fallback_key ];
+                }
             }
         }
 

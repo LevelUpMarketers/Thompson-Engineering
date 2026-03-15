@@ -44,6 +44,7 @@ require_once TEQCIDB_PLUGIN_DIR . 'includes/admin/class-teqcidb-admin.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student-dashboard.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-student-registration.php';
+require_once TEQCIDB_PLUGIN_DIR . 'includes/shortcodes/class-teqcidb-shortcode-qci-list.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/blocks/class-teqcidb-block-student.php';
 require_once TEQCIDB_PLUGIN_DIR . 'includes/class-teqcidb-plugin.php';
 
