@@ -36,6 +36,14 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
 - Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). These values are saved in the `teqcidb_api_settings` option and are now used by each class accordion's **Register & Pay Online** action to request an Accept Hosted token and load the embedded checkout iframe. The embedded communicator now uses the public path `/teqcidb-authorize-communicator/` instead of an admin-ajax URL to better align with host CSP policies. Each class panel also includes a **Print & Email Your Registration Form** button that opens the latest QCI registration PDF in a new tab for offline completion. Each class panel now also shows a policy/instructions text block above the registration action buttons with cancellation terms, completion notes, and contact/mailing guidance. After a successful payment, the iframe now fades out, the class panel collapses smoothly, and the feedback area shows transaction details with a receipt-download link that generates a branded PDF copy of the transaction. Successful registration payments are also recorded in the `teqcidb_paymenthistory` table with user/class/payment/transaction metadata for reporting. Those successful payments now also create matching `teqcidb_studenthistory` records (registered/payment status, amount paid, enrollment date, and class linkage) for downstream student timeline views.
 
+## Legacy Migration Note (Student Email Placeholders)
+
+- During **Legacy Student Records** SQL uploads, some old rows arrive with blank/invalid email values.
+- The current `teqcidb_students.email` column is required (`NOT NULL`) and unique, so those rows cannot be inserted with an empty email.
+- For those specific rows, the importer generates a placeholder email in the format `old{uniquestudentid}@fromolddb.com` (with a uniqueness suffix only when needed).
+- These placeholder-email records are believed to be primarily from older historical data (commonly around 2005–2007), often without matching WordPress accounts in the current site, and many appear to carry legacy certification-era dates (for example 2005-04-30).
+- This preserves import completeness while clearly marking that the email did not come from an active modern account record.
+
 ## Admin Form Guidelines
 
 - Each field is wrapped in a `.teqcidb-field` container with a 178px width.
