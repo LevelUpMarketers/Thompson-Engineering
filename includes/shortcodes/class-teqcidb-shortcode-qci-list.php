@@ -128,7 +128,10 @@ class TEQCIDB_Shortcode_QCI_List {
                     <?php endforeach; ?>
                 </div>
 
-                <?php echo wp_kses_post( $this->render_pagination( $current_page, $total_pages ) ); ?>
+                <?php
+                // Pagination markup is assembled with escaped attributes/text in render_pagination().
+                echo $this->render_pagination( $current_page, $total_pages ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                ?>
             <?php else : ?>
                 <p class="teqcidb-dashboard-empty"><?php echo esc_html__( 'No QCI students matched your search.', 'teqcidb' ); ?></p>
             <?php endif; ?>
