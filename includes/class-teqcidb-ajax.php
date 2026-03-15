@@ -7035,7 +7035,7 @@ class TEQCIDB_Ajax {
             $email = $this->generate_legacy_placeholder_email( $legacy_record, $row_number );
         }
 
-        $wp_user_id = $this->resolve_legacy_history_user_id( $legacy_record );
+        $wp_user_id = null;
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['contactstreetaddress'] ) ? $legacy_record['contactstreetaddress'] : '' ),
