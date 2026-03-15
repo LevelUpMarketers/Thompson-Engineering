@@ -6690,6 +6690,62 @@ class TEQCIDB_Ajax {
             return array();
         }
 
+        $rows             = array();
+        $length           = strlen( $normalized );
+        $inside_quotes    = false;
+        $paren_depth      = 0;
+        $current_fragment = '';
+
+        for ( $index = 0; $index < $length; $index++ ) {
+            $character = $normalized[ $index ];
+
+            if ( "'" === $character ) {
+                if ( $inside_quotes && ( $index + 1 ) < $length && "'" === $normalized[ $index + 1 ] ) {
+                    if ( $paren_depth > 0 ) {
+                        $current_fragment .= "''";
+                    }
+
+                    $index++;
+                    continue;
+                }
+
+                $inside_quotes = ! $inside_quotes;
+            }
+
+            if ( ! $inside_quotes ) {
+                if ( '(' === $character ) {
+                    if ( 0 === $paren_depth ) {
+                        $current_fragment = '';
+                    }
+
+                    $paren_depth++;
+                }
+
+                if ( $paren_depth > 0 ) {
+                    $current_fragment .= $character;
+                }
+
+                if ( ')' === $character && $paren_depth > 0 ) {
+                    $paren_depth--;
+
+                    if ( 0 === $paren_depth ) {
+                        $rows[]           = trim( $current_fragment, ",; \t\n\r\0\x0B" );
+                        $current_fragment = '';
+                    }
+                }
+
+                continue;
+            }
+
+            if ( $paren_depth > 0 ) {
+                $current_fragment .= $character;
+            }
+        }
+
+        if ( ! empty( $rows ) ) {
+            return array_values( array_filter( $rows ) );
+        }
+
         $lines = preg_split( '/\r\n|\r|\n/', $normalized );
         $lines = array_filter(
             array_map(
