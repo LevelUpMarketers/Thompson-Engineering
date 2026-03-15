@@ -6700,6 +6700,14 @@ class TEQCIDB_Ajax {
             $character = $normalized[ $index ];
 
             if ( "'" === $character ) {
+                if ( $this->is_legacy_quote_backslash_escaped( $normalized, $index ) ) {
+                    if ( $paren_depth > 0 ) {
+                        $current_fragment .= $character;
+                    }
+
+                    continue;
+                }
+
                 if ( $inside_quotes && ( $index + 1 ) < $length && "'" === $normalized[ $index + 1 ] ) {
                     if ( $paren_depth > 0 ) {
                         $current_fragment .= "''";
@@ -6768,6 +6776,20 @@ class TEQCIDB_Ajax {
         }
 
         return array( $normalized );
+    }
+
+    private function is_legacy_quote_backslash_escaped( $value, $quote_index ) {
+        $backslash_count = 0;
+
+        for ( $index = (int) $quote_index - 1; $index >= 0; $index-- ) {
+            if ( '\\' !== $value[ $index ] ) {
+                break;
+            }
+
+            $backslash_count++;
+        }
+
+        return 1 === ( $backslash_count % 2 );
     }
 
     private function add_legacy_skipped_row_message( array &$messages, $row_number, $reason ) {
