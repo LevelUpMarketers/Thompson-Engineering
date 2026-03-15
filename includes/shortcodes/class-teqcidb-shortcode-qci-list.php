@@ -261,11 +261,11 @@ class TEQCIDB_Shortcode_QCI_List {
             $address = $this->decode_student_address( isset( $row['student_address'] ) ? (string) $row['student_address'] : '' );
 
             $students[] = array(
-                'first_name'      => sanitize_text_field( (string) ( isset( $row['first_name'] ) ? $row['first_name'] : '' ) ),
-                'last_name'       => sanitize_text_field( (string) ( isset( $row['last_name'] ) ? $row['last_name'] : '' ) ),
-                'company'         => sanitize_text_field( (string) ( isset( $row['company'] ) ? $row['company'] : '' ) ),
-                'city'            => sanitize_text_field( (string) $address['city'] ),
-                'state'           => sanitize_text_field( (string) $address['state'] ),
+                'first_name'      => $this->sanitize_display_name_value( isset( $row['first_name'] ) ? $row['first_name'] : '' ),
+                'last_name'       => $this->sanitize_display_name_value( isset( $row['last_name'] ) ? $row['last_name'] : '' ),
+                'company'         => $this->sanitize_display_name_value( isset( $row['company'] ) ? $row['company'] : '' ),
+                'city'            => $this->sanitize_display_name_value( $address['city'] ),
+                'state'           => $this->sanitize_display_name_value( $address['state'] ),
                 'qcinumber'       => sanitize_text_field( (string) ( isset( $row['qcinumber'] ) ? $row['qcinumber'] : '' ) ),
                 'expiration_date' => $this->format_date_for_display( isset( $row['expiration_date'] ) ? $row['expiration_date'] : '' ),
             );
@@ -318,17 +318,48 @@ class TEQCIDB_Shortcode_QCI_List {
         $base_args = $this->get_current_shortcode_query_args();
         unset( $base_args['teqcidb_qci_page'] );
 
-        $markup = '<nav class="teqcidb-qci-list__pagination" aria-label="' . esc_attr__( 'QCI list pagination', 'teqcidb' ) . '">';
+        $previous_page = max( 1, (int) $current_page - 1 );
+        $next_page     = min( (int) $total_pages, (int) $current_page + 1 );
+        $previous_url  = add_query_arg( array_merge( $base_args, array( 'teqcidb_qci_page' => $previous_page ) ) );
+        $next_url      = add_query_arg( array_merge( $base_args, array( 'teqcidb_qci_page' => $next_page ) ) );
+
+        $markup  = '<nav class="teqcidb-qci-list__pagination" aria-label="' . esc_attr__( 'QCI list pagination', 'teqcidb' ) . '">';
+
+        if ( (int) $current_page > 1 ) {
+            $markup .= '<a class="teqcidb-qci-list__pager-button" href="' . esc_url( $previous_url ) . '">' . esc_html__( 'Previous', 'teqcidb' ) . '</a>';
+        } else {
+            $markup .= '<span class="teqcidb-qci-list__pager-button is-disabled" aria-disabled="true">' . esc_html__( 'Previous', 'teqcidb' ) . '</span>';
+        }
+
+        $markup .= '<form method="get" class="teqcidb-qci-list__pagination-form">';
+
+        foreach ( $base_args as $key => $value ) {
+            $markup .= '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( $value ) . '" />';
+        }
+
+        $markup .= '<label class="screen-reader-text" for="teqcidb-qci-page-select">' . esc_html__( 'Select QCI list page', 'teqcidb' ) . '</label>';
+        $markup .= '<select id="teqcidb-qci-page-select" name="teqcidb_qci_page" class="teqcidb-qci-list__page-select" onchange="this.form.submit()">';
 
         for ( $page = 1; $page <= $total_pages; $page++ ) {
-            $url      = add_query_arg( array_merge( $base_args, array( 'teqcidb_qci_page' => $page ) ) );
-            $is_active = $page === (int) $current_page;
+            $is_selected = $page === (int) $current_page;
+            $markup     .= '<option value="' . esc_attr( (string) $page ) . '"' . selected( $is_selected, true, false ) . '>';
+            $markup     .= esc_html(
+                sprintf(
+                    /* translators: %d: QCI results page number. */
+                    __( 'Page %d', 'teqcidb' ),
+                    $page
+                )
+            );
+            $markup .= '</option>';
+        }
 
-            if ( $is_active ) {
-                $markup .= '<span class="teqcidb-qci-list__page is-active" aria-current="page">' . esc_html( (string) $page ) . '</span>';
-            } else {
-                $markup .= '<a class="teqcidb-qci-list__page" href="' . esc_url( $url ) . '">' . esc_html( (string) $page ) . '</a>';
-            }
+        $markup .= '</select>';
+        $markup .= '</form>';
+
+        if ( (int) $current_page < (int) $total_pages ) {
+            $markup .= '<a class="teqcidb-qci-list__pager-button" href="' . esc_url( $next_url ) . '">' . esc_html__( 'Next', 'teqcidb' ) . '</a>';
+        } else {
+            $markup .= '<span class="teqcidb-qci-list__pager-button is-disabled" aria-disabled="true">' . esc_html__( 'Next', 'teqcidb' ) . '</span>';
         }
 
         $markup .= '</nav>';
@@ -414,6 +445,19 @@ class TEQCIDB_Shortcode_QCI_List {
         }
 
         return sanitize_text_field( (string) wp_unslash( $_GET[ $key ] ) );
+    }
+
+    /**
+     * Sanitize and normalize display-facing name/location strings.
+     *
+     * @param string $value Raw value.
+     *
+     * @return string
+     */
+    private function sanitize_display_name_value( $value ) {
+        $sanitized = sanitize_text_field( (string) $value );
+
+        return str_replace( array( "'", '’' ), '', $sanitized );
     }
 
     /**

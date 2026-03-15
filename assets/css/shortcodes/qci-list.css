@@ -80,24 +80,37 @@
 .teqcidb-qci-list__pagination {
     margin-top: 1rem;
     display: flex;
+    align-items: center;
+    justify-content: center;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.65rem;
 }
 
-.teqcidb-qci-list__page {
-    min-width: 34px;
+.teqcidb-qci-list__pagination-form {
+    margin: 0;
+}
+
+.teqcidb-qci-list__page-select {
+    min-width: 130px;
+    height: 38px;
+    border: 1px solid #c7ced8;
+    border-radius: 4px;
+    background: #fff;
+    padding: 0 0.6rem;
+}
+
+.teqcidb-qci-list__pager-button {
+    min-width: 92px;
     text-align: center;
     text-decoration: none;
     border: 1px solid #c7ced8;
     border-radius: 4px;
-    padding: 0.35rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     color: inherit;
     background: #fff;
 }
 
-.teqcidb-qci-list__page.is-active {
-    background: #1d4e89;
-    border-color: #1d4e89;
-    color: #fff;
-    font-weight: 600;
+.teqcidb-qci-list__pager-button.is-disabled {
+    opacity: 0.55;
+    pointer-events: none;
 }
