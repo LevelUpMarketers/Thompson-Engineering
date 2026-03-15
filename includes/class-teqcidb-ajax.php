@@ -7534,25 +7534,31 @@ class TEQCIDB_Ajax {
     }
 
     private function generate_legacy_placeholder_email( array $legacy_record, $row_number = 0, $suffix = '' ) {
-        $seed = sanitize_key( (string) $suffix );
+        $seed = '';
 
-        if ( '' === $seed && ! empty( $legacy_record['uniquestudentid'] ) ) {
-            $seed = sanitize_key( (string) $legacy_record['uniquestudentid'] );
+        if ( ! empty( $legacy_record['uniquestudentid'] ) ) {
+            $seed = preg_replace( '/[^a-z0-9]/', '', strtolower( (string) $legacy_record['uniquestudentid'] ) );
         }
 
         if ( '' === $seed && ! empty( $legacy_record['ID'] ) ) {
-            $seed = 'id-' . absint( $legacy_record['ID'] );
+            $seed = 'id' . absint( $legacy_record['ID'] );
         }
 
         if ( '' === $seed && $row_number ) {
-            $seed = 'row-' . absint( $row_number );
+            $seed = 'row' . absint( $row_number );
         }
 
         if ( '' === $seed ) {
             $seed = sanitize_key( wp_generate_uuid4() );
         }
 
-        return sprintf( 'legacy-student-%s@example.invalid', $seed );
+        $suffix = sanitize_key( (string) $suffix );
+
+        if ( '' !== $suffix ) {
+            $seed .= $suffix;
+        }
+
+        return sprintf( 'old%s@fromolddb.com', $seed );
     }
 
     private function generate_unique_legacy_student_email( array $legacy_record, $row_number, $table, $current_email = '' ) {
