@@ -44,6 +44,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - These placeholder-email records are believed to be primarily from older historical data (commonly around 2005–2007), often without matching WordPress accounts in the current site, and many appear to carry legacy certification-era dates (for example 2005-04-30).
 - This preserves import completeness while clearly marking that the email did not come from an active modern account record.
 - Legacy Student Records uploads now run in strict ID-preservation mode: each row must include a positive legacy `ID`, and that value is inserted into `teqcidb_students.id`; rows with missing/invalid IDs (or duplicate IDs already present) are skipped with per-row feedback.
+- Legacy Student History Records uploads now also run in strict ID-preservation mode: each row must include a positive legacy `ID`, and that value is inserted into `teqcidb_studenthistory.id`; rows with missing/invalid IDs (or duplicate IDs already present) are skipped with per-row feedback.
 
 ## Admin Form Guidelines
 
