@@ -435,3 +435,4 @@
 428. 2026-03-15: Applied strict ID preservation to legacy class uploads by requiring positive legacy IDs, inserting those IDs into teqcidb_classes.id, and surfacing row-level skips for missing/invalid or duplicate IDs.
 429. 2026-03-15: Clamped oversized legacy classsize values during class imports to 4294967295 (unsigned int max) and surfaced row-level import warnings when clamping occurs so import audits capture adjusted values.
 430. 2026-03-15: Updated student registration shortcode class filtering to hide full or past classes from front-end output, and automatically set classhide=1 for those classes based on classsize/registered counts and classstartdate comparisons.
+431. 2026-03-15: Fixed class registered-students loading to fall back from wpuserid-based history keys to uniquestudentid keys when student rows lack wpuserid, so Edit & Manage Classes load results remain populated after legacy imports that intentionally leave students.wpuserid null.

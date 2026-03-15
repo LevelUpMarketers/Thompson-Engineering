@@ -8850,6 +8850,15 @@ class TEQCIDB_Ajax {
 
             if ( isset( $students_by_key[ $student_key ] ) ) {
                 $students[] = $students_by_key[ $student_key ];
+                continue;
+            }
+
+            if ( $wp_user_id > 0 && '' !== $unique_id ) {
+                $fallback_key = 'uid:' . $unique_id;
+
+                if ( isset( $students_by_key[ $fallback_key ] ) ) {
+                    $students[] = $students_by_key[ $fallback_key ];
+                }
             }
         }
 
