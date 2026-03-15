@@ -4534,6 +4534,15 @@ class TEQCIDB_Ajax {
 
             if ( false === $result ) {
                 $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+
+                if ( false !== stripos( $error_message, 'Duplicate entry' ) && false !== stripos( $error_message, 'PRIMARY' ) ) {
+                    $error_message = sprintf(
+                        /* translators: %d: legacy student ID from import row. */
+                        __( 'Legacy ID %d already exists.', 'teqcidb' ),
+                        $legacy_id
+                    );
+                }
+
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
@@ -4597,6 +4606,13 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
+            $legacy_id = isset( $parsed['ID'] ) ? absint( $parsed['ID'] ) : 0;
+
+            if ( $legacy_id <= 0 ) {
+                $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, __( 'Legacy ID is required and must be a positive integer in strict ID mode.', 'teqcidb' ) );
+                continue;
+            }
+
             $mapped = $this->map_legacy_student_record( $parsed, $row_number );
 
             if ( is_wp_error( $mapped ) ) {
@@ -4614,6 +4630,7 @@ class TEQCIDB_Ajax {
             }
 
             $data = array(
+                'id'                    => $legacy_id,
                 'wpuserid'              => $mapped['wpuserid'],
                 'uniquestudentid'       => $mapped['uniquestudentid'],
                 'first_name'            => $mapped['first_name'],
@@ -4637,6 +4654,7 @@ class TEQCIDB_Ajax {
             );
 
             $formats = array(
+                'id'                    => '%d',
                 'wpuserid'              => '%d',
                 'uniquestudentid'       => '%s',
                 'first_name'            => '%s',
@@ -4677,6 +4695,15 @@ class TEQCIDB_Ajax {
 
             if ( false === $result ) {
                 $error_message = $wpdb->last_error ? wp_strip_all_tags( $wpdb->last_error ) : __( 'Unable to upload the record. Please check the data and try again.', 'teqcidb' );
+
+                if ( false !== stripos( $error_message, 'Duplicate entry' ) && false !== stripos( $error_message, 'PRIMARY' ) ) {
+                    $error_message = sprintf(
+                        /* translators: %d: legacy student ID from import row. */
+                        __( 'Legacy ID %d already exists.', 'teqcidb' ),
+                        $legacy_id
+                    );
+                }
+
                 $this->add_legacy_skipped_row_message( $skipped_messages, $row_number, $error_message );
                 continue;
             }
@@ -4686,7 +4713,7 @@ class TEQCIDB_Ajax {
 
 
         if ( $inserted > 0 ) {
-            $message = __( 'Legacy student uploaded successfully.', 'teqcidb' );
+            $message = __( 'Legacy student uploaded successfully. Strict ID mode is active: rows without a valid legacy ID are skipped.', 'teqcidb' );
 
             if ( ! empty( $skipped_messages ) ) {
                 $message = sprintf(
