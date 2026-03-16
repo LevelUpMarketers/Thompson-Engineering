@@ -60,3 +60,9 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 ## Development
 
 See `AGENTS.md` for workflow instructions. Update this document when features change.
+
+## Load Testing
+
+- A starter k6 burst-test workflow for the class-page Initial quiz is available in `load-tests/`.
+- See `load-tests/README.md` for setup, credential preparation, and run commands.
+

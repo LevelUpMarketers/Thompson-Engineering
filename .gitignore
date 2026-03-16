@@ -1,2 +1,5 @@
 # Ignore the dashboard icon binary; supplied manually in deployments
 assets/images/alabama_dashboard_icon.png
+
+# Local-only load test credentials
+load-tests/users.local.json
