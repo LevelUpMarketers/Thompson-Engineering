@@ -1017,8 +1017,7 @@ class TEQCIDB_Ajax {
                 'answers'       => $answers_payload,
             ),
             $current_user,
-            false,
-            'ajax'
+            false
         );
 
         if ( is_wp_error( $result ) ) {
@@ -1064,8 +1063,7 @@ class TEQCIDB_Ajax {
                 'answers'       => $answers_payload,
             ),
             $current_user,
-            true,
-            'ajax'
+            true
         );
 
         if ( is_wp_error( $result ) ) {
@@ -1085,7 +1083,7 @@ class TEQCIDB_Ajax {
         );
     }
 
-    public function process_quiz_attempt_request( $request_data, $user_id, $is_final_submission, $request_source = 'ajax' ) {
+    public function process_quiz_attempt_request( $request_data, $user_id, $is_final_submission ) {
         $quiz_id       = isset( $request_data['quiz_id'] ) ? absint( $request_data['quiz_id'] ) : 0;
         $class_id      = isset( $request_data['class_id'] ) ? absint( $request_data['class_id'] ) : 0;
         $attempt_id    = isset( $request_data['attempt_id'] ) ? absint( $request_data['attempt_id'] ) : 0;
@@ -1137,8 +1135,6 @@ class TEQCIDB_Ajax {
         if ( is_wp_error( $result ) ) {
             return $result;
         }
-
-        $this->log_quiz_endpoint_usage( $request_source . '_' . ( $is_final_submission ? 'submit' : 'progress' ) );
 
         return $result;
     }
@@ -1375,24 +1371,6 @@ class TEQCIDB_Ajax {
         }
 
         return 400;
-    }
-
-    private function log_quiz_endpoint_usage( $channel ) {
-        $option_key = 'teqcidb_quiz_endpoint_usage';
-        $usage      = get_option( $option_key, array() );
-
-        if ( ! is_array( $usage ) ) {
-            $usage = array();
-        }
-
-        $usage_key = sanitize_key( (string) $channel );
-
-        if ( '' === $usage_key ) {
-            return;
-        }
-
-        $usage[ $usage_key ] = isset( $usage[ $usage_key ] ) ? absint( $usage[ $usage_key ] ) + 1 : 1;
-        update_option( $option_key, $usage, false );
     }
 
     private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission, $attempt_id = 0, $attempt_metadata = null ) {

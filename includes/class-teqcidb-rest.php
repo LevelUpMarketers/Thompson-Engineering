@@ -87,7 +87,7 @@ class TEQCIDB_Rest {
             return $throttle_error;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false, 'rest' );
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -111,7 +111,7 @@ class TEQCIDB_Rest {
             return $validated;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true, 'rest' );
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true );
 
         if ( is_wp_error( $result ) ) {
             return $result;
