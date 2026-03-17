@@ -33,6 +33,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Configure options in **TEQCIDB Settings**, switching between **General Settings** and **Style Settings** tabs.
 - Monitor scheduled tasks in **TEQCIDB Settings → Cron Jobs**, where you can review countdowns, run hooks immediately, or delete plugin-created cron events.
 - Plan customer touchpoints in **TEQCIDB Communications**, beginning with the **Email Templates** tab that showcases reusable accordion layouts for future automation work.
+- Added a new **New Student & Account Creation** Communications email template that can send internal alerts after front-end create-account form submissions successfully create both a WordPress user and a matching `teqcidb_students` record; this template includes a dedicated **Primary Recipient Address** field above CC addresses. This template now also supports account-creation-specific tokens for `{student_username}`, `{student_password}`, `{representative_phone}`, and `{representative_email}` along with representative name token hydration from alternate-contact form fields when provided.
 - View plugin-generated pages or posts under **TEQCIDB Logs → Generated Content**.
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
 - Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). These values are saved in the `teqcidb_api_settings` option and are now used by each class accordion's **Register & Pay Online** action to request an Accept Hosted token and load the embedded checkout iframe. The embedded communicator now uses the public path `/teqcidb-authorize-communicator/` instead of an admin-ajax URL to better align with host CSP policies. Each class panel also includes a **Print & Email Your Registration Form** button that opens the latest QCI registration PDF in a new tab for offline completion. Each class panel now also shows a policy/instructions text block above the registration action buttons with cancellation terms, completion notes, and contact/mailing guidance. After a successful payment, the iframe now fades out, the class panel collapses smoothly, and the feedback area shows transaction details with a receipt-download link that generates a branded PDF copy of the transaction. Successful registration payments are also recorded in the `teqcidb_paymenthistory` table with user/class/payment/transaction metadata for reporting. Those successful payments now also create matching `teqcidb_studenthistory` records (registered/payment status, amount paid, enrollment date, and class linkage) for downstream student timeline views.
@@ -60,3 +61,9 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 ## Development
 
 See `AGENTS.md` for workflow instructions. Update this document when features change.
+
+## Load Testing
+
+- A starter k6 burst-test workflow for the class-page Initial quiz is available in `load-tests/`.
+- See `load-tests/README.md` for setup, credential preparation, and run commands.
+

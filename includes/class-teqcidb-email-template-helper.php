@@ -105,6 +105,7 @@ class TEQCIDB_Email_Template_Helper {
         return array(
             'from_name'  => '',
             'from_email' => '',
+            'to'         => '',
             'cc'         => '',
             'bcc'        => '',
             'subject'    => '',

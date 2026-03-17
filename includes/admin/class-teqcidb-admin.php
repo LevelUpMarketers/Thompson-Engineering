@@ -280,6 +280,7 @@ class TEQCIDB_Admin {
         $field_prefix  = sanitize_html_class( $template_id );
         $from_name_id  = $field_prefix . '-from-name';
         $from_email_id = $field_prefix . '-from-email';
+        $primary_to_id = $field_prefix . '-primary-to';
         $cc_id         = $field_prefix . '-cc';
         $bcc_id        = $field_prefix . '-bcc';
         $subject_id    = $field_prefix . '-subject';
@@ -289,6 +290,7 @@ class TEQCIDB_Admin {
         $template_settings  = $this->get_email_template_settings( $template_id );
         $from_name_value    = isset( $template_settings['from_name'] ) ? $template_settings['from_name'] : '';
         $from_email_value   = isset( $template_settings['from_email'] ) ? $template_settings['from_email'] : '';
+        $primary_to_value   = isset( $template_settings['to'] ) ? $template_settings['to'] : '';
         $cc_value           = isset( $template_settings['cc'] ) ? $template_settings['cc'] : '';
         $bcc_value          = isset( $template_settings['bcc'] ) ? $template_settings['bcc'] : '';
         $subject_value      = isset( $template_settings['subject'] ) ? $template_settings['subject'] : '';
@@ -329,6 +331,18 @@ class TEQCIDB_Admin {
             esc_attr( $from_email_value ),
             esc_attr( $default_from_email )
         );
+
+
+        if ( 'teqcidb-email-new-student-account-creation' === $template_id ) {
+            printf(
+                '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="email" id="%1$s" name="templates[%3$s][to]" class="regular-text" data-template-field="to" value="%4$s" placeholder="%5$s" autocomplete="email"></div>',
+                esc_attr( $primary_to_id ),
+                esc_html__( 'Primary Recipient Address', 'teqcidb' ),
+                esc_attr( $template_id ),
+                esc_attr( $primary_to_value ),
+                esc_attr__( 'name@example.com', 'teqcidb' )
+            );
+        }
 
         printf(
             '<div class="teqcidb-template-editor__field"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="templates[%3$s][cc]" class="regular-text" data-template-field="cc" value="%4$s" placeholder="%5$s" autocomplete="off"></div>',
@@ -574,6 +588,16 @@ class TEQCIDB_Admin {
             'label' => __( 'Student Phone (Office)', 'teqcidb' ),
         );
 
+        $token_group['tokens'][] = array(
+            'value' => '{student_username}',
+            'label' => __( 'Student Username', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_password}',
+            'label' => __( 'Student Password', 'teqcidb' ),
+        );
+
         $representative_token_group = array(
             'title'  => __( 'Representative Information', 'teqcidb' ),
             'tokens' => array(
@@ -584,6 +608,14 @@ class TEQCIDB_Admin {
                 array(
                     'value' => '{representative_last_name}',
                     'label' => __( 'Representative Last Name', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{representative_phone}',
+                    'label' => __( 'Representative Phone', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{representative_email}',
+                    'label' => __( 'Representative Email', 'teqcidb' ),
                 ),
                 array(
                     'value' => '{individuals_registered}',
@@ -1112,6 +1144,19 @@ class TEQCIDB_Admin {
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
+
+            array(
+                'id'      => 'teqcidb-email-new-student-account-creation',
+                'title'   => __( 'New Student & Account Creation', 'teqcidb' ),
+                'tooltip' => __( 'Sent to an internal recipient after a front-end create-account form successfully creates both a WordPress user and a TEQCIDB student record.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Create-account success | Front-end registration | WordPress user + TEQCIDB student created', 'teqcidb' ),
+                    'communication_type' => __( 'Internal', 'teqcidb' ),
+                    'category'           => __( 'Account Creation', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+
             array(
                 'id'      => 'teqcidb-email-student-self-refresher-in-person',
                 'title'   => __( 'Student Self-Registration (Refresher In-Person)', 'teqcidb' ),
