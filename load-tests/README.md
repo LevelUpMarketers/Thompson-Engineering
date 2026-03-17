@@ -32,8 +32,17 @@ k6 run load-tests/k6-initial-quiz-burst.js
 - `VUS` (default `20`)
 - `THINK_MIN_SECONDS` (default `4`)
 - `THINK_MAX_SECONDS` (default `12`)
-- `SAVE_EVERY_N_QUESTIONS` (default `2`)
+- `SAVE_EVERY_N_QUESTIONS` (default `3`)
 - `MAX_DURATION` (default `20m`)
+
+## Production cadence alignment
+
+- Front-end quiz autosave cadence now defaults to 12 seconds (`autosaveIntervalMs = 12000`) to reduce routine autosave request volume while preserving existing reliability triggers (dirty-state gating, boundary saves, visibility/blur saves, beforeunload beacon saves, and full final submit payloads).
+- This k6 script defaults to `SAVE_EVERY_N_QUESTIONS=3` to better mirror that less-chatty production save cadence.
+
+## When to tighten autosave cadence intentionally
+
+Temporarily lower save cadence (for example `SAVE_EVERY_N_QUESTIONS=1` or `2`) when you explicitly want to stress quiz save endpoints, simulate worst-case autosave chatter, or run regression checks around resume/save durability under frequent writes. Return to the default cadence for standard load characterization.
 
 ## Notes
 

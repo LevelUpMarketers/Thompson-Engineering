@@ -47,7 +47,7 @@
             }))
         )
     );
-    var autosaveIntervalMs = 8000;
+    var autosaveIntervalMs = 12000;
     var fullSnapshotEveryAutosaves = 5;
     var autosaveProgressSaves = 0;
     var isDirty = false;
