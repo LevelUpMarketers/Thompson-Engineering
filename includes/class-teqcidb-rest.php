@@ -87,7 +87,7 @@ class TEQCIDB_Rest {
             return $throttle_error;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false, 'rest' );
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -111,7 +111,7 @@ class TEQCIDB_Rest {
             return $validated;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true, 'rest' );
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -251,6 +251,10 @@ class TEQCIDB_Rest {
 
         if ( $quiz_id <= 0 || $class_id <= 0 ) {
             return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID and class ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( null === $answers_raw ) {
+            $answers_raw = array();
         }
 
         if ( ! is_array( $answers_raw ) ) {
