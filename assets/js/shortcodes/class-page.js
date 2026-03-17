@@ -48,8 +48,11 @@
         )
     );
     var autosaveIntervalMs = 8000;
+    var fullSnapshotEveryAutosaves = 5;
+    var autosaveProgressSaves = 0;
     var isDirty = false;
     var lastSavedHash = '';
+    var dirtyAnswerQuestionIds = {};
     var slideIndex = 0;
     var slideViewedMap = {};
     var initialSlideProgress = runtime.slideProgress || {};
@@ -156,22 +159,51 @@
         return Array.isArray(selected) ? selected : [];
     }
 
-    function setCurrentSelection(questionId, selected){
-        answers[String(questionId)] = selected;
+    function markQuestionAnswerDirty(questionId){
+        var normalizedQuestionId = parseInt(questionId, 10);
+
+        if (isNaN(normalizedQuestionId) || normalizedQuestionId <= 0) {
+            return;
+        }
+
+        dirtyAnswerQuestionIds[String(normalizedQuestionId)] = true;
     }
 
-    function buildProgressPayload(){
+    function buildPartialAnswerPayload(){
+        var partialAnswers = {};
+
+        Object.keys(dirtyAnswerQuestionIds).forEach(function(questionId){
+            if (!Object.prototype.hasOwnProperty.call(answers, questionId)) {
+                return;
+            }
+
+            partialAnswers[questionId] = answers[questionId];
+        });
+
+        return partialAnswers;
+    }
+
+    function setCurrentSelection(questionId, selected){
+        var normalizedQuestionId = String(questionId);
+        answers[normalizedQuestionId] = selected;
+        markQuestionAnswerDirty(normalizedQuestionId);
+    }
+
+    function buildProgressPayload(options){
+        var payloadOptions = options || {};
+        var fullSnapshot = !!payloadOptions.fullSnapshot;
+
         return {
             quiz_id: runtime.quiz.id,
             class_id: runtime.quiz.classId,
             attempt_id: attemptId,
             current_question_index: currentIndex,
-            answers: answers
+            answers: fullSnapshot ? answers : buildPartialAnswerPayload()
         };
     }
 
     function getProgressPayloadHash(){
-        return JSON.stringify(buildProgressPayload());
+        return JSON.stringify(buildProgressPayload({ fullSnapshot: true }));
     }
 
     function markDirty(){
@@ -584,8 +616,8 @@
     }
 
 
-    function toQueryPayload(){
-        return buildProgressPayload();
+    function toQueryPayload(options){
+        return buildProgressPayload(options);
     }
 
     function parseAjaxResponse(payload){
@@ -602,7 +634,9 @@
         return payload;
     }
 
-    function requestQuizEndpoint(restPath, ajaxAction, failureMessage){
+    function requestQuizEndpoint(restPath, ajaxAction, failureMessage, requestOptions){
+        var endpointOptions = requestOptions || {};
+
         if (useRestQuizApi && runtime.restUrl) {
             return fetch(String(runtime.restUrl).replace(/\/$/, '') + restPath, {
                 method: 'POST',
@@ -611,7 +645,7 @@
                     'Content-Type': 'application/json',
                     'X-WP-Nonce': runtime.restNonce || ''
                 },
-                body: JSON.stringify(toQueryPayload())
+                body: JSON.stringify(toQueryPayload({ fullSnapshot: !!endpointOptions.fullSnapshot }))
             }).then(function(resp){
                 return resp.json().then(function(payload){
                     if (!resp.ok) {
@@ -623,14 +657,16 @@
                 if (!useRestQuizApi || !runtime.ajaxUrl) {
                     throw err;
                 }
-                return requestQuizEndpointFallback(ajaxAction, failureMessage);
+                return requestQuizEndpointFallback(ajaxAction, failureMessage, endpointOptions);
             });
         }
 
-        return requestQuizEndpointFallback(ajaxAction, failureMessage);
+        return requestQuizEndpointFallback(ajaxAction, failureMessage, endpointOptions);
     }
 
-    function requestQuizEndpointFallback(ajaxAction, failureMessage){
+    function requestQuizEndpointFallback(ajaxAction, failureMessage, requestOptions){
+        var endpointOptions = requestOptions || {};
+        var progressPayload = toQueryPayload({ fullSnapshot: !!endpointOptions.fullSnapshot });
         var formData = new FormData();
         formData.append('action', ajaxAction);
         formData.append('_ajax_nonce', runtime.nonce || '');
@@ -638,7 +674,7 @@
         formData.append('class_id', runtime.quiz.classId);
         formData.append('attempt_id', String(attemptId || 0));
         formData.append('current_index', String(currentIndex));
-        formData.append('answers_json', JSON.stringify(answers));
+        formData.append('answers_json', JSON.stringify(progressPayload.answers || {}));
 
         return fetch(runtime.ajaxUrl, {
             method: 'POST',
@@ -825,6 +861,7 @@
     function saveProgress(options){
         var saveOptions = options || {};
         var payloadHash = getProgressPayloadHash();
+        var shouldSendFullSnapshot = !!saveOptions.forceFullSnapshot;
 
         if (isSubmitted) {
             return;
@@ -841,14 +878,22 @@
             return;
         }
 
+        if (!shouldSendFullSnapshot) {
+            autosaveProgressSaves += 1;
+            if (autosaveProgressSaves % fullSnapshotEveryAutosaves === 0) {
+                shouldSendFullSnapshot = true;
+            }
+        }
+
         saveState.isSaving = true;
         metrics.saveAttempts += 1;
         recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
 
-        requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.').then(function(payload){
+        requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.', { fullSnapshot: shouldSendFullSnapshot }).then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             lastSavedHash = payloadHash;
             isDirty = false;
+            dirtyAnswerQuestionIds = {};
             metrics.saveSuccess += 1;
             recordMetric('quiz_save_success', { reason: saveOptions.reason || 'unspecified' });
             if (saveOptions.reason === 'boundary') {
@@ -874,10 +919,11 @@
 
         markDirty();
 
-        requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.').then(function(payload){
+        requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.', { fullSnapshot: true }).then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             isSubmitted = true;
             isDirty = false;
+            dirtyAnswerQuestionIds = {};
             lastSavedHash = getProgressPayloadHash();
             render({
                 score: payload.score,
@@ -934,6 +980,12 @@
                 },
                 body: JSON.stringify(slidePayload)
             });
+        }
+    });
+
+    window.addEventListener('blur', function(){
+        if (!isSubmitted) {
+            saveProgress({ reason: 'window_blur', forceFullSnapshot: true });
         }
     });
 

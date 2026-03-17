@@ -253,6 +253,10 @@ class TEQCIDB_Rest {
             return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID and class ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
         }
 
+        if ( null === $answers_raw ) {
+            $answers_raw = array();
+        }
+
         if ( ! is_array( $answers_raw ) ) {
             return new WP_Error( 'teqcidb_rest_invalid_answers', __( 'Answer payload must be an object keyed by question ID.', 'teqcidb' ), array( 'status' => 400 ) );
         }

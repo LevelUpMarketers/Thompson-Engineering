@@ -1002,6 +1002,10 @@ class TEQCIDB_Ajax {
 
         $answers_payload = json_decode( (string) $answers_json, true );
 
+        if ( ! is_array( $answers_payload ) ) {
+            $answers_payload = array();
+        }
+
         $result = $this->process_quiz_attempt_request(
             array(
                 'quiz_id'       => $quiz_id,
@@ -1044,6 +1048,10 @@ class TEQCIDB_Ajax {
         $current_user  = get_current_user_id();
 
         $answers_payload = json_decode( (string) $answers_json, true );
+
+        if ( ! is_array( $answers_payload ) ) {
+            $answers_payload = array();
+        }
 
         $result = $this->process_quiz_attempt_request(
             array(
