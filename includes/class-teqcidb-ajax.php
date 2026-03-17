@@ -2972,7 +2972,13 @@ class TEQCIDB_Ajax {
             );
 
             if ( is_array( $student_row ) ) {
-                $this->maybe_send_new_student_account_creation_email( $student_row );
+                $this->maybe_send_new_student_account_creation_email(
+                    $student_row,
+                    array(
+                        'student_username' => $user_login,
+                        'student_password' => $user_pass,
+                    )
+                );
             }
         }
 
@@ -2989,7 +2995,7 @@ class TEQCIDB_Ajax {
      *
      * @param array $student Student data for token replacement.
      */
-    private function maybe_send_new_student_account_creation_email( array $student ) {
+    private function maybe_send_new_student_account_creation_email( array $student, array $context = array() ) {
         $template_id      = 'teqcidb-email-new-student-account-creation';
         $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
         $recipient        = isset( $stored_settings['to'] ) ? sanitize_email( (string) $stored_settings['to'] ) : '';
@@ -3016,6 +3022,15 @@ class TEQCIDB_Ajax {
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
         $tokens['student_representative'] = isset( $student['their_representative'] ) ? sanitize_text_field( (string) $student['their_representative'] ) : ( isset( $tokens['student_representative'] ) ? $tokens['student_representative'] : '' );
+
+        $representative = $this->decode_representative_contact_field( isset( $student['their_representative'] ) ? $student['their_representative'] : '' );
+        $tokens['representative_first_name'] = isset( $representative['first_name'] ) ? sanitize_text_field( (string) $representative['first_name'] ) : '';
+        $tokens['representative_last_name']  = isset( $representative['last_name'] ) ? sanitize_text_field( (string) $representative['last_name'] ) : '';
+        $tokens['representative_phone']      = isset( $representative['phone'] ) ? sanitize_text_field( (string) $representative['phone'] ) : '';
+        $tokens['representative_email']      = isset( $representative['email'] ) ? sanitize_email( (string) $representative['email'] ) : '';
+
+        $tokens['student_username'] = isset( $context['student_username'] ) ? sanitize_user( (string) $context['student_username'], true ) : '';
+        $tokens['student_password'] = isset( $context['student_password'] ) ? sanitize_text_field( (string) $context['student_password'] ) : '';
 
         $subject = $this->replace_template_tokens( $subject_template, $tokens );
         $body    = $this->replace_template_tokens( $body_template, $tokens );

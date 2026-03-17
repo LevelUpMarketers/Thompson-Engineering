@@ -588,6 +588,16 @@ class TEQCIDB_Admin {
             'label' => __( 'Student Phone (Office)', 'teqcidb' ),
         );
 
+        $token_group['tokens'][] = array(
+            'value' => '{student_username}',
+            'label' => __( 'Student Username', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
+            'value' => '{student_password}',
+            'label' => __( 'Student Password', 'teqcidb' ),
+        );
+
         $representative_token_group = array(
             'title'  => __( 'Representative Information', 'teqcidb' ),
             'tokens' => array(
@@ -598,6 +608,14 @@ class TEQCIDB_Admin {
                 array(
                     'value' => '{representative_last_name}',
                     'label' => __( 'Representative Last Name', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{representative_phone}',
+                    'label' => __( 'Representative Phone', 'teqcidb' ),
+                ),
+                array(
+                    'value' => '{representative_email}',
+                    'label' => __( 'Representative Email', 'teqcidb' ),
                 ),
                 array(
                     'value' => '{individuals_registered}',
