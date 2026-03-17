@@ -2962,9 +2962,103 @@ class TEQCIDB_Ajax {
         $saved_student_id = $id > 0 ? $id : (int) $wpdb->insert_id;
         $this->sync_admin_representative_assignments( $saved_student_id );
 
+        if ( $creating_new_student && $new_wp_user_id > 0 && ! current_user_can( 'manage_options' ) ) {
+            $student_row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT first_name, last_name, email, company, phone_cell, their_representative FROM $table WHERE id = %d LIMIT 1",
+                    $saved_student_id
+                ),
+                ARRAY_A
+            );
+
+            if ( is_array( $student_row ) ) {
+                $this->maybe_send_new_student_account_creation_email( $student_row );
+            }
+        }
+
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+
+    /**
+     * Send the New Student & Account Creation admin alert after successful front-end account creation.
+     *
+     * @param array $student Student data for token replacement.
+     */
+    private function maybe_send_new_student_account_creation_email( array $student ) {
+        $template_id      = 'teqcidb-email-new-student-account-creation';
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $recipient        = isset( $stored_settings['to'] ) ? sanitize_email( (string) $stored_settings['to'] ) : '';
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
+
+        $tokens['student_first_name'] = isset( $student['first_name'] ) ? sanitize_text_field( (string) $student['first_name'] ) : ( isset( $tokens['student_first_name'] ) ? $tokens['student_first_name'] : '' );
+        $tokens['student_last_name']  = isset( $student['last_name'] ) ? sanitize_text_field( (string) $student['last_name'] ) : ( isset( $tokens['student_last_name'] ) ? $tokens['student_last_name'] : '' );
+        $tokens['student_email']      = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
+        $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
+        $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
+        $tokens['student_representative'] = isset( $student['their_representative'] ) ? sanitize_text_field( (string) $student['their_representative'] ) : ( isset( $tokens['student_representative'] ) ? $tokens['student_representative'] : '' );
+
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic new student account creation alert', 'teqcidb' ),
+                'triggered_by'   => __( 'Front-end account creation', 'teqcidb' ),
             )
         );
     }
@@ -5387,6 +5481,7 @@ class TEQCIDB_Ajax {
 
         $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
         $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $to = isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '';
         $cc = isset( $_POST['cc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['cc'] ) ) : '';
         $bcc = isset( $_POST['bcc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['bcc'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
@@ -5398,6 +5493,7 @@ class TEQCIDB_Ajax {
             array(
                 'from_name'  => $from_name,
                 'from_email' => $from_email,
+                'to'         => $to,
                 'cc'         => $cc,
                 'bcc'        => $bcc,
                 'subject'    => $subject,
@@ -5447,6 +5543,7 @@ class TEQCIDB_Ajax {
 
         $from_name = isset( $_POST['from_name'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_name( wp_unslash( $_POST['from_name'] ) ) : '';
         $from_email = isset( $_POST['from_email'] ) ? TEQCIDB_Email_Template_Helper::sanitize_from_email( wp_unslash( $_POST['from_email'] ) ) : '';
+        $to = isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '';
         $cc = isset( $_POST['cc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['cc'] ) ) : '';
         $bcc = isset( $_POST['bcc'] ) ? TEQCIDB_Email_Template_Helper::sanitize_recipient_list( wp_unslash( $_POST['bcc'] ) ) : '';
         $subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
