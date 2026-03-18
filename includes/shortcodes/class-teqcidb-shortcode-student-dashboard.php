@@ -119,7 +119,12 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $expiration_date_raw = isset( $student_row['expiration_date'] )
                 ? sanitize_text_field( (string) $student_row['expiration_date'] )
                 : '';
-            $expiration_timestamp = $expiration_date_raw ? strtotime( $expiration_date_raw ) : false;
+            $expiration_timestamp = ( '' !== $expiration_date_raw && '0000-00-00' !== $expiration_date_raw )
+                ? strtotime( $expiration_date_raw )
+                : false;
+            if ( $expiration_timestamp && $expiration_timestamp <= 0 ) {
+                $expiration_timestamp = false;
+            }
             $expiration_date_display = $expiration_timestamp
                 ? wp_date( get_option( 'date_format' ), $expiration_timestamp )
                 : '';
@@ -128,12 +133,22 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $initial_training_date_raw = isset( $student_row['initial_training_date'] )
                 ? sanitize_text_field( (string) $student_row['initial_training_date'] )
                 : '';
-            $initial_training_timestamp = $initial_training_date_raw ? strtotime( $initial_training_date_raw ) : false;
+            $initial_training_timestamp = ( '' !== $initial_training_date_raw && '0000-00-00' !== $initial_training_date_raw )
+                ? strtotime( $initial_training_date_raw )
+                : false;
+            if ( $initial_training_timestamp && $initial_training_timestamp <= 0 ) {
+                $initial_training_timestamp = false;
+            }
             $initial_training_date_card = $initial_training_timestamp ? wp_date( 'm-d-Y', $initial_training_timestamp ) : '';
             $last_refresher_date_raw = isset( $student_row['last_refresher_date'] )
                 ? sanitize_text_field( (string) $student_row['last_refresher_date'] )
                 : '';
-            $last_refresher_timestamp = $last_refresher_date_raw ? strtotime( $last_refresher_date_raw ) : false;
+            $last_refresher_timestamp = ( '' !== $last_refresher_date_raw && '0000-00-00' !== $last_refresher_date_raw )
+                ? strtotime( $last_refresher_date_raw )
+                : false;
+            if ( $last_refresher_timestamp && $last_refresher_timestamp <= 0 ) {
+                $last_refresher_timestamp = false;
+            }
             $last_refresher_date_card = $last_refresher_timestamp ? wp_date( 'm-d-Y', $last_refresher_timestamp ) : '';
 
             $states = $this->get_dashboard_state_options();
@@ -566,17 +581,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 </p>
                                             </div>
 
-                                            <?php if ( ! $expiration_timestamp ) : ?>
-                                                <p class="teqcidb-dashboard-empty">
-                                                    <?php
-                                                    echo esc_html_x(
-                                                        'Your expiration date is not available yet.',
-                                                        'Student dashboard certificates tab empty state',
-                                                        'teqcidb'
-                                                    );
-                                                    ?>
-                                                </p>
-                                            <?php else : ?>
+                                            <?php if ( $expiration_timestamp ) : ?>
                                                 <?php
                                                 $wallet_card_data = array(
                                                     'name' => trim( $profile['first_name'] . ' ' . $profile['last_name'] ),
@@ -656,6 +661,29 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                         <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-refresher-certificate-action="download">
                                                             <?php echo esc_html_x( 'Download Refresher Certificate', 'Student dashboard refresher certificate download button label', 'teqcidb' ); ?>
                                                         </button>
+                                                    </div>
+                                                </div>
+                                            <?php else : ?>
+                                                <div class="teqcidb-countdown">
+                                                    <div class="teqcidb-countdown-meta">
+                                                        <p class="teqcidb-countdown-label">
+                                                            <?php
+                                                            echo esc_html_x(
+                                                                'QCI Expiration Date',
+                                                                'Student dashboard certificates expiration label',
+                                                                'teqcidb'
+                                                            );
+                                                            ?>
+                                                        </p>
+                                                        <p class="teqcidb-countdown-date">
+                                                            <?php
+                                                            echo esc_html_x(
+                                                                'You don\'t have an expiration date yet!',
+                                                                'Student dashboard certificates missing expiration message',
+                                                                'teqcidb'
+                                                            );
+                                                            ?>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             <?php endif; ?>
