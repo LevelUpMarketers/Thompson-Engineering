@@ -11,6 +11,8 @@ class TEQCIDB_Ajax {
     const AUTHORIZENET_COMMUNICATOR_PATH      = 'teqcidb-authorize-communicator';
     const CLASS_PAGE_QUERY_VAR                = 'teqcidb_class_page';
     const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
+    const QUIZ_ATTEMPT_META_CACHE_GROUP       = 'teqcidb_quiz_attempt_meta';
+    const QUIZ_ATTEMPT_META_CACHE_TTL         = 300;
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -1002,6 +1004,10 @@ class TEQCIDB_Ajax {
 
         $answers_payload = json_decode( (string) $answers_json, true );
 
+        if ( ! is_array( $answers_payload ) ) {
+            $answers_payload = array();
+        }
+
         $result = $this->process_quiz_attempt_request(
             array(
                 'quiz_id'       => $quiz_id,
@@ -1011,8 +1017,7 @@ class TEQCIDB_Ajax {
                 'answers'       => $answers_payload,
             ),
             $current_user,
-            false,
-            'ajax'
+            false
         );
 
         if ( is_wp_error( $result ) ) {
@@ -1045,6 +1050,10 @@ class TEQCIDB_Ajax {
 
         $answers_payload = json_decode( (string) $answers_json, true );
 
+        if ( ! is_array( $answers_payload ) ) {
+            $answers_payload = array();
+        }
+
         $result = $this->process_quiz_attempt_request(
             array(
                 'quiz_id'       => $quiz_id,
@@ -1054,8 +1063,7 @@ class TEQCIDB_Ajax {
                 'answers'       => $answers_payload,
             ),
             $current_user,
-            true,
-            'ajax'
+            true
         );
 
         if ( is_wp_error( $result ) ) {
@@ -1075,7 +1083,7 @@ class TEQCIDB_Ajax {
         );
     }
 
-    public function process_quiz_attempt_request( $request_data, $user_id, $is_final_submission, $request_source = 'ajax' ) {
+    public function process_quiz_attempt_request( $request_data, $user_id, $is_final_submission ) {
         $quiz_id       = isset( $request_data['quiz_id'] ) ? absint( $request_data['quiz_id'] ) : 0;
         $class_id      = isset( $request_data['class_id'] ) ? absint( $request_data['class_id'] ) : 0;
         $attempt_id    = isset( $request_data['attempt_id'] ) ? absint( $request_data['attempt_id'] ) : 0;
@@ -1087,11 +1095,34 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_invalid_payload', __( 'Unable to process quiz request because the payload was invalid.', 'teqcidb' ), array( 'status' => 400 ) );
         }
 
-        if ( ! $this->is_quiz_assigned_to_class( $quiz_id, $class_id ) ) {
+        $attempt_metadata = null;
+
+        if ( $attempt_id > 0 ) {
+            $cached_metadata = $this->get_quiz_attempt_access_metadata( $attempt_id );
+
+            if ( is_array( $cached_metadata )
+                && isset( $cached_metadata['quiz_id'], $cached_metadata['class_id'], $cached_metadata['user_id'] )
+                && absint( $cached_metadata['quiz_id'] ) === $quiz_id
+                && absint( $cached_metadata['class_id'] ) === $class_id
+                && absint( $cached_metadata['user_id'] ) === $user_id
+            ) {
+                $attempt_metadata = $cached_metadata;
+            }
+        }
+
+        if ( ! is_array( $attempt_metadata ) ) {
+            $attempt_metadata = $this->build_quiz_attempt_access_metadata( $quiz_id, $class_id, $user_id );
+
+            if ( $attempt_id > 0 && is_array( $attempt_metadata ) ) {
+                $this->set_quiz_attempt_access_metadata( $attempt_id, $attempt_metadata );
+            }
+        }
+
+        if ( ! is_array( $attempt_metadata ) || empty( $attempt_metadata['quiz_assigned'] ) ) {
             return new WP_Error( 'teqcidb_quiz_unavailable', __( 'This quiz is not available for the selected class.', 'teqcidb' ), array( 'status' => 403 ) );
         }
 
-        if ( ! $this->user_can_access_class_quiz( $class_id, $user_id ) ) {
+        if ( empty( $attempt_metadata['allowed'] ) ) {
             return new WP_Error( 'teqcidb_quiz_forbidden', __( 'You do not have access to this quiz.', 'teqcidb' ), array( 'status' => 403 ) );
         }
 
@@ -1099,13 +1130,11 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_attempt_forbidden', __( 'That quiz attempt does not belong to the current user.', 'teqcidb' ), array( 'status' => 403 ) );
         }
 
-        $result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers, $current_index, $is_final_submission, $attempt_id );
+        $result = $this->persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers, $current_index, $is_final_submission, $attempt_id, $attempt_metadata );
 
         if ( is_wp_error( $result ) ) {
             return $result;
         }
-
-        $this->log_quiz_endpoint_usage( $request_source . '_' . ( $is_final_submission ? 'submit' : 'progress' ) );
 
         return $result;
     }
@@ -1189,6 +1218,147 @@ class TEQCIDB_Ajax {
         return $match_id > 0;
     }
 
+    private function get_quiz_attempt_meta_cache_key( $attempt_id ) {
+        $attempt_id = absint( $attempt_id );
+
+        if ( $attempt_id <= 0 ) {
+            return '';
+        }
+
+        return 'teqcidb_attempt_meta_' . $attempt_id;
+    }
+
+    private function get_quiz_attempt_access_metadata( $attempt_id ) {
+        $cache_key = $this->get_quiz_attempt_meta_cache_key( $attempt_id );
+
+        if ( '' === $cache_key ) {
+            return null;
+        }
+
+        $cached = wp_cache_get( $cache_key, self::QUIZ_ATTEMPT_META_CACHE_GROUP );
+
+        if ( false !== $cached ) {
+            return is_array( $cached ) ? $cached : null;
+        }
+
+        $transient_value = get_transient( $cache_key );
+
+        if ( is_array( $transient_value ) ) {
+            wp_cache_set( $cache_key, $transient_value, self::QUIZ_ATTEMPT_META_CACHE_GROUP, self::QUIZ_ATTEMPT_META_CACHE_TTL );
+            return $transient_value;
+        }
+
+        return null;
+    }
+
+    private function set_quiz_attempt_access_metadata( $attempt_id, $metadata ) {
+        $cache_key = $this->get_quiz_attempt_meta_cache_key( $attempt_id );
+
+        if ( '' === $cache_key || ! is_array( $metadata ) ) {
+            return;
+        }
+
+        wp_cache_set( $cache_key, $metadata, self::QUIZ_ATTEMPT_META_CACHE_GROUP, self::QUIZ_ATTEMPT_META_CACHE_TTL );
+        set_transient( $cache_key, $metadata, self::QUIZ_ATTEMPT_META_CACHE_TTL );
+    }
+
+    private function delete_quiz_attempt_access_metadata( $attempt_id ) {
+        $cache_key = $this->get_quiz_attempt_meta_cache_key( $attempt_id );
+
+        if ( '' === $cache_key ) {
+            return;
+        }
+
+        wp_cache_delete( $cache_key, self::QUIZ_ATTEMPT_META_CACHE_GROUP );
+        delete_transient( $cache_key );
+    }
+
+    private function invalidate_class_quiz_attempt_access_cache( $class_id ) {
+        global $wpdb;
+
+        $class_id = absint( $class_id );
+
+        if ( $class_id <= 0 ) {
+            return;
+        }
+
+        $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $attempt_ids    = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM $attempts_table WHERE class_id = %d",
+                $class_id
+            )
+        );
+
+        if ( ! is_array( $attempt_ids ) ) {
+            return;
+        }
+
+        foreach ( $attempt_ids as $attempt_id ) {
+            $this->delete_quiz_attempt_access_metadata( $attempt_id );
+        }
+    }
+
+    private function build_quiz_attempt_access_metadata( $quiz_id, $class_id, $user_id ) {
+        global $wpdb;
+
+        $classes_table      = $wpdb->prefix . 'teqcidb_classes';
+        $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT classtype, allallowedquiz, quizstudentsallowed FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return null;
+        }
+
+        $quiz_assigned = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT q.id FROM $quizzes_table q INNER JOIN $quiz_classes_table qc ON qc.quiz_id = q.id WHERE q.id = %d AND qc.class_id = %d LIMIT 1",
+                $quiz_id,
+                $class_id
+            )
+        ) > 0;
+
+        if ( ! $quiz_assigned ) {
+            $quiz_assigned = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $quizzes_table WHERE id = %d AND FIND_IN_SET( CAST( %d AS CHAR ), REPLACE( class_id, ' ', '' ) ) > 0 LIMIT 1",
+                    $quiz_id,
+                    $class_id
+                )
+            ) > 0;
+        }
+
+        $quiz_access_mode       = isset( $class_row['allallowedquiz'] ) ? sanitize_key( (string) $class_row['allallowedquiz'] ) : '';
+        $quiz_students_allowed  = $this->format_class_student_list_for_response( isset( $class_row['quizstudentsallowed'] ) ? $class_row['quizstudentsallowed'] : '' );
+        $user_has_quiz_access   = 'blocked' !== $quiz_access_mode;
+
+        if ( ! $user_has_quiz_access ) {
+            foreach ( $quiz_students_allowed as $allowed_student ) {
+                if ( isset( $allowed_student['wpuserid'] ) && absint( $allowed_student['wpuserid'] ) === $user_id ) {
+                    $user_has_quiz_access = true;
+                    break;
+                }
+            }
+        }
+
+        return array(
+            'quiz_id'       => $quiz_id,
+            'class_id'      => $class_id,
+            'user_id'       => $user_id,
+            'class_type'    => isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '',
+            'quiz_assigned' => $quiz_assigned,
+            'allowed'       => ( $quiz_assigned && $user_has_quiz_access ),
+        );
+    }
+
     private function get_error_status_code( $error ) {
         if ( ! ( $error instanceof WP_Error ) ) {
             return 400;
@@ -1203,25 +1373,7 @@ class TEQCIDB_Ajax {
         return 400;
     }
 
-    private function log_quiz_endpoint_usage( $channel ) {
-        $option_key = 'teqcidb_quiz_endpoint_usage';
-        $usage      = get_option( $option_key, array() );
-
-        if ( ! is_array( $usage ) ) {
-            $usage = array();
-        }
-
-        $usage_key = sanitize_key( (string) $channel );
-
-        if ( '' === $usage_key ) {
-            return;
-        }
-
-        $usage[ $usage_key ] = isset( $usage[ $usage_key ] ) ? absint( $usage[ $usage_key ] ) + 1 : 1;
-        update_option( $option_key, $usage, false );
-    }
-
-    private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission, $attempt_id = 0 ) {
+    private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission, $attempt_id = 0, $attempt_metadata = null ) {
         global $wpdb;
 
         $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -1276,6 +1428,10 @@ class TEQCIDB_Ajax {
             }
 
             $attempt_id = (int) $wpdb->insert_id;
+
+            if ( is_array( $attempt_metadata ) ) {
+                $this->set_quiz_attempt_access_metadata( $attempt_id, $attempt_metadata );
+            }
         }
 
         $question_rows = $wpdb->get_results(
@@ -1469,12 +1625,20 @@ class TEQCIDB_Ajax {
         $total_questions = count( $question_rows );
         $score           = $total_questions > 0 ? (int) round( ( $correct_count / $total_questions ) * 100 ) : 0;
 
-        $class_type = (string) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
-                $class_id
-            )
-        );
+        $class_type = '';
+
+        if ( is_array( $attempt_metadata ) && isset( $attempt_metadata['class_type'] ) ) {
+            $class_type = (string) $attempt_metadata['class_type'];
+        }
+
+        if ( '' === $class_type ) {
+            $class_type = (string) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
+                    $class_id
+                )
+            );
+        }
 
         $pass_threshold = ( 'refresher' === strtolower( sanitize_key( $class_type ) ) ) ? 80 : 75;
         $passed         = $score >= $pass_threshold;
@@ -1529,6 +1693,8 @@ class TEQCIDB_Ajax {
             array( '%d', '%d', '%s', '%d' ),
             array( '%d' )
         );
+
+        $this->delete_quiz_attempt_access_metadata( $attempt_id );
 
         if ( $passed ) {
             $normalized_class_type = strtolower( sanitize_key( $class_type ) );
@@ -3542,13 +3708,15 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $existing_unique_id = '';
-        $existing_class_url = '';
+        $existing_unique_id          = '';
+        $existing_class_url          = '';
+        $previous_quiz_access_mode   = '';
+        $previous_quiz_allowed_users = '';
 
         if ( $id > 0 ) {
             $existing_class = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT uniqueclassid, classurl FROM $table WHERE id = %d",
+                    "SELECT uniqueclassid, classurl, allallowedquiz, quizstudentsallowed FROM $table WHERE id = %d",
                     $id
                 ),
                 ARRAY_A
@@ -3557,6 +3725,8 @@ class TEQCIDB_Ajax {
             if ( is_array( $existing_class ) ) {
                 $existing_unique_id = isset( $existing_class['uniqueclassid'] ) ? (string) $existing_class['uniqueclassid'] : '';
                 $existing_class_url = isset( $existing_class['classurl'] ) ? (string) $existing_class['classurl'] : '';
+                $previous_quiz_access_mode   = isset( $existing_class['allallowedquiz'] ) ? sanitize_key( (string) $existing_class['allallowedquiz'] ) : '';
+                $previous_quiz_allowed_users = isset( $existing_class['quizstudentsallowed'] ) ? (string) $existing_class['quizstudentsallowed'] : '';
             }
         }
 
@@ -3634,6 +3804,19 @@ class TEQCIDB_Ajax {
 
         if ( $saved_class_id > 0 ) {
             $this->sync_class_quiz_mapping( $saved_class_id, $quiz_id );
+
+            $has_quiz_access_setting_changes = false;
+
+            if ( $id > 0 ) {
+                $current_quiz_access_mode   = isset( $data['allallowedquiz'] ) ? sanitize_key( (string) $data['allallowedquiz'] ) : '';
+                $current_quiz_allowed_users = isset( $data['quizstudentsallowed'] ) ? (string) $data['quizstudentsallowed'] : '';
+
+                $has_quiz_access_setting_changes = $previous_quiz_access_mode !== $current_quiz_access_mode || $previous_quiz_allowed_users !== $current_quiz_allowed_users;
+            }
+
+            if ( $has_quiz_access_setting_changes ) {
+                $this->invalidate_class_quiz_attempt_access_cache( $saved_class_id );
+            }
         }
 
         wp_send_json_success(
@@ -3994,6 +4177,10 @@ class TEQCIDB_Ajax {
         }
 
         $placeholders = implode( ',', array_fill( 0, count( $attempt_ids ), '%d' ) );
+
+        foreach ( $attempt_ids as $attempt_id ) {
+            $this->delete_quiz_attempt_access_metadata( $attempt_id );
+        }
 
         $wpdb->query(
             $wpdb->prepare(

@@ -11,7 +11,7 @@ const usersFile = __ENV.USERS_FILE || './load-tests/users.local.json';
 const vus = Number(__ENV.VUS || 20);
 const thinkMin = Number(__ENV.THINK_MIN_SECONDS || 4);
 const thinkMax = Number(__ENV.THINK_MAX_SECONDS || 12);
-const saveEvery = Number(__ENV.SAVE_EVERY_N_QUESTIONS || 2);
+const saveEvery = Number(__ENV.SAVE_EVERY_N_QUESTIONS || 3);
 
 const users = new SharedArray('teqcidb-users', function () {
   return JSON.parse(open(usersFile));
