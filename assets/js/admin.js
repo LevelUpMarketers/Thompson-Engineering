@@ -1452,6 +1452,40 @@ jQuery(document).ready(function($){
             return doc;
         }
 
+        function openPdfPrintWindow(doc, fileName){
+            var pdfBlob = doc.output('blob');
+
+            if (!pdfBlob) {
+                throw new Error('missing-pdf-blob');
+            }
+
+            var blobUrl = URL.createObjectURL(pdfBlob);
+            var printWindow = window.open(blobUrl, '_blank');
+
+            if (!printWindow) {
+                URL.revokeObjectURL(blobUrl);
+                throw new Error('blocked-print-window');
+            }
+
+            var cleanup = function(){
+                window.setTimeout(function(){
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000);
+            };
+
+            printWindow.addEventListener('load', cleanup, { once: true });
+            printWindow.addEventListener('afterprint', cleanup, { once: true });
+            printWindow.addEventListener('beforeunload', cleanup, { once: true });
+
+            try {
+                if (fileName) {
+                    printWindow.document.title = fileName;
+                }
+            } catch (error) {
+                // Ignore cross-context title assignment issues for blob viewers.
+            }
+        }
+
         async function handleStudentFormsWalletCardAction(event){
             var button = event.target.closest('.teqcidb-student-forms-wallet-card-button[data-teqcidb-wallet-card-action]');
             if (!button) {
@@ -1477,7 +1511,7 @@ jQuery(document).ready(function($){
             try {
                 var doc = await renderWalletCardPdf(data);
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, 'wallet-card.pdf');
             } catch (error) {
                 window.alert(teqcidbAdmin.studentFormsWalletCardMissingPdfMessage || 'Unable to generate the wallet card right now. Please try again.');
             } finally {
@@ -1640,7 +1674,7 @@ jQuery(document).ready(function($){
             try {
                 var doc = await renderInitialInPersonCertificatePdf(data, instructorName);
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, 'qci-initial-in-person-certificate.pdf');
             } catch (error) {
                 window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
             } finally {
@@ -1781,7 +1815,7 @@ jQuery(document).ready(function($){
             try {
                 var doc = await renderRefresherInPersonCertificatePdf(data, instructorName);
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, 'qci-refresher-in-person-certificate.pdf');
             } catch (error) {
                 window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
             } finally {
@@ -1905,7 +1939,7 @@ jQuery(document).ready(function($){
             try {
                 var doc = await renderInitialOnlineCertificatePdf(data);
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, 'qci-initial-online-certificate.pdf');
             } catch (error) {
                 window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
             } finally {
@@ -2029,7 +2063,7 @@ jQuery(document).ready(function($){
             try {
                 var doc = await renderRefresherOnlineCertificatePdf(data);
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, 'qci-refresher-online-certificate.pdf');
             } catch (error) {
                 window.alert(teqcidbAdmin.studentFormsCertificateMissingPdfMessage || 'Unable to generate the certificate right now. Please try again.');
             } finally {

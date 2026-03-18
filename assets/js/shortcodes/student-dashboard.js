@@ -1987,6 +1987,40 @@
         return doc;
     };
 
+    const openPdfPrintWindow = (doc, fileName = '') => {
+        const pdfBlob = doc.output('blob');
+
+        if (!pdfBlob) {
+            throw new Error('missing-pdf-blob');
+        }
+
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const printWindow = window.open(blobUrl, '_blank');
+
+        if (!printWindow) {
+            URL.revokeObjectURL(blobUrl);
+            throw new Error('blocked-print-window');
+        }
+
+        const cleanup = () => {
+            window.setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+            }, 1000);
+        };
+
+        printWindow.addEventListener('load', cleanup, { once: true });
+        printWindow.addEventListener('afterprint', cleanup, { once: true });
+        printWindow.addEventListener('beforeunload', cleanup, { once: true });
+
+        try {
+            if (fileName) {
+                printWindow.document.title = fileName;
+            }
+        } catch (error) {
+            // Ignore cross-context title assignment issues for blob viewers.
+        }
+    };
+
     const renderInitialOnlineCertificatePdf = async (data) => {
         const jspdf = window.jspdf || {};
         const { jsPDF } = jspdf;
@@ -2491,7 +2525,7 @@
     const printRegistrationReceiptPdf = async (receiptData) => {
         const doc = await buildRegistrationReceiptPdfDocument(receiptData);
         doc.autoPrint();
-        doc.output('dataurlnewwindow');
+        openPdfPrintWindow(doc, registrationReceiptSettings.downloadFileName || 'qci-registration-receipt.pdf');
     };
 
     const buildRegistrationSuccessMessage = (receiptData = {}) => {
@@ -2878,7 +2912,7 @@
             const doc = await renderWalletCardPdf(data);
             if (action === 'print') {
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, walletCardSettings.downloadFileName || 'wallet-card.pdf');
             } else {
                 doc.save(walletCardSettings.downloadFileName || 'wallet-card.pdf');
             }
@@ -2916,7 +2950,7 @@
 
             if (action === 'print') {
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, initialOnlineCertificateSettings.downloadFileName || 'qci-initial-online-certificate.pdf');
             } else {
                 doc.save(initialOnlineCertificateSettings.downloadFileName || 'qci-initial-online-certificate.pdf');
             }
@@ -2955,7 +2989,7 @@
 
             if (action === 'print') {
                 doc.autoPrint();
-                doc.output('dataurlnewwindow');
+                openPdfPrintWindow(doc, refresherOnlineCertificateSettings.downloadFileName || 'qci-refresher-online-certificate.pdf');
             } else {
                 doc.save(refresherOnlineCertificateSettings.downloadFileName || 'qci-refresher-online-certificate.pdf');
             }

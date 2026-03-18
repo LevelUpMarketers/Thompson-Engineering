@@ -448,3 +448,4 @@
 441. 2026-03-17: Increased front-end quiz autosave interval default to 12 seconds, changed k6 burst-test save cadence default to every 3 questions, and documented the new defaults with guidance on when to temporarily tighten save frequency for targeted stress testing.
 442. 2026-03-18: Restored legacy student record imports to preserve the uploaded row's wpuserid value on teqcidb_students inserts, without changing the legacy class or legacy student history import paths.
 443. 2026-03-18: Normalized student dashboard address-state values so Profile Info state selects accept either stored USPS abbreviations (for example AL) or full state names and still select the proper option after legacy imports.
+444. 2026-03-18 22:40 UTC: Switched certificate, wallet-card, and receipt print actions from jsPDF data-URL popups to blob-URL windows so browser PDF viewers load printable documents reliably instead of opening blank white tabs.
