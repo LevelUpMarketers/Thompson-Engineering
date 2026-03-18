@@ -7392,7 +7392,8 @@ class TEQCIDB_Ajax {
             $email = $this->generate_legacy_placeholder_email( $legacy_record, $row_number );
         }
 
-        $wp_user_id = null;
+        $wp_user_id = isset( $legacy_record['wpuserid'] ) ? absint( $legacy_record['wpuserid'] ) : 0;
+        $wp_user_id = $wp_user_id > 0 ? $wp_user_id : null;
 
         $address = array(
             'street_1' => sanitize_text_field( isset( $legacy_record['contactstreetaddress'] ) ? $legacy_record['contactstreetaddress'] : '' ),
