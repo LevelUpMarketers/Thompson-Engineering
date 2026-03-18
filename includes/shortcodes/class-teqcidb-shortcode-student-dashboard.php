@@ -133,12 +133,22 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $initial_training_date_raw = isset( $student_row['initial_training_date'] )
                 ? sanitize_text_field( (string) $student_row['initial_training_date'] )
                 : '';
-            $initial_training_timestamp = $initial_training_date_raw ? strtotime( $initial_training_date_raw ) : false;
+            $initial_training_timestamp = ( '' !== $initial_training_date_raw && '0000-00-00' !== $initial_training_date_raw )
+                ? strtotime( $initial_training_date_raw )
+                : false;
+            if ( $initial_training_timestamp && $initial_training_timestamp <= 0 ) {
+                $initial_training_timestamp = false;
+            }
             $initial_training_date_card = $initial_training_timestamp ? wp_date( 'm-d-Y', $initial_training_timestamp ) : '';
             $last_refresher_date_raw = isset( $student_row['last_refresher_date'] )
                 ? sanitize_text_field( (string) $student_row['last_refresher_date'] )
                 : '';
-            $last_refresher_timestamp = $last_refresher_date_raw ? strtotime( $last_refresher_date_raw ) : false;
+            $last_refresher_timestamp = ( '' !== $last_refresher_date_raw && '0000-00-00' !== $last_refresher_date_raw )
+                ? strtotime( $last_refresher_date_raw )
+                : false;
+            if ( $last_refresher_timestamp && $last_refresher_timestamp <= 0 ) {
+                $last_refresher_timestamp = false;
+            }
             $last_refresher_date_card = $last_refresher_timestamp ? wp_date( 'm-d-Y', $last_refresher_timestamp ) : '';
 
             $states = $this->get_dashboard_state_options();

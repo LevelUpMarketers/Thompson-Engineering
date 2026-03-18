@@ -450,3 +450,4 @@
 443. 2026-03-18: Normalized student dashboard address-state values so Profile Info state selects accept either stored USPS abbreviations (for example AL) or full state names and still select the proper option after legacy imports.
 444. 2026-03-18 22:40 UTC: Switched certificate, wallet-card, and receipt print actions from jsPDF data-URL popups to blob-URL windows so browser PDF viewers load printable documents reliably instead of opening blank white tabs.
 445. 2026-03-18 23:05 UTC: Updated the student dashboard Certificates & Important Dates tab to treat empty and `0000-00-00` expiration dates as missing values and show “You don't have an expiration date yet!” instead of rendering an invalid historical date.
+446. 2026-03-18 23:14 UTC: Updated wallet card and certificate date formatting so empty and `0000-00-00` expiration, initial training, and most recent annual update values render as an em dash (`—`) instead of invalid placeholder dates.

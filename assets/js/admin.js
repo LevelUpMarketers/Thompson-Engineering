@@ -1293,6 +1293,11 @@ jQuery(document).ready(function($){
             }
 
             var trimmed = value.trim();
+
+            if (!trimmed || '0000-00-00' === trimmed) {
+                return '';
+            }
+
             var match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
             if (!match) {
@@ -1523,10 +1528,15 @@ jQuery(document).ready(function($){
 
         function formatCertificateDate(value){
             if (!value || typeof value !== 'string') {
-                return '';
+                return getWalletCardValue('');
             }
 
             var trimmed = value.trim();
+
+            if (!trimmed || '0000-00-00' === trimmed) {
+                return getWalletCardValue('');
+            }
+
             var isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
             if (isoMatch) {
@@ -1539,7 +1549,7 @@ jQuery(document).ready(function($){
                 return slashMatch[1] + '-' + slashMatch[2] + '-' + slashMatch[3];
             }
 
-            return trimmed;
+            return trimmed || getWalletCardValue('');
         }
 
         async function renderInitialInPersonCertificatePdf(data, instructorName){
