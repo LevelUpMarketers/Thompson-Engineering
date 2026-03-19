@@ -452,3 +452,4 @@
 445. 2026-03-18 23:05 UTC: Updated the student dashboard Certificates & Important Dates tab to treat empty and `0000-00-00` expiration dates as missing values and show “You don't have an expiration date yet!” instead of rendering an invalid historical date.
 446. 2026-03-18 23:14 UTC: Updated wallet card and certificate date formatting so empty and `0000-00-00` expiration, initial training, and most recent annual update values render as an em dash (`—`) instead of invalid placeholder dates.
 447. 2026-03-19 00:00 UTC: Updated `[teqcidb_qci_list_shortcode]` to require both a non-empty QCI number and a populated `wpuserid` before showing a student in the public QCI list, and documented the shortcode behavior change in `README.md`.
+448. 2026-03-19 00:10 UTC: Formatted `[teqcidb_qci_list_shortcode]` result counts with localized thousands separators and fixed the Reset Search Fields link to rebuild a clean base URL without carrying over prior search query parameters.
