@@ -189,8 +189,10 @@ class TEQCIDB_Shortcode_QCI_List {
         }
 
         $where_clauses = array(
-            "qcinumber IS NOT NULL",
+            'qcinumber IS NOT NULL',
             "qcinumber <> ''",
+            'wpuserid IS NOT NULL',
+            'wpuserid <> 0',
         );
         $params        = array();
 
