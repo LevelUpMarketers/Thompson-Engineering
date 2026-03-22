@@ -101,9 +101,9 @@ class TEQCIDB_Shortcode_QCI_List {
             <p class="teqcidb-qci-list__count">
                 <?php
                 printf(
-                    /* translators: %d: total matching students. */
-                    esc_html__( 'Showing %d QCI students.', 'teqcidb' ),
-                    $total
+                    /* translators: %s: formatted total matching students. */
+                    esc_html__( 'Showing %s QCI students.', 'teqcidb' ),
+                    esc_html( number_format_i18n( $total ) )
                 );
                 ?>
             </p>
@@ -189,8 +189,10 @@ class TEQCIDB_Shortcode_QCI_List {
         }
 
         $where_clauses = array(
-            "qcinumber IS NOT NULL",
+            'qcinumber IS NOT NULL',
             "qcinumber <> ''",
+            'wpuserid IS NOT NULL',
+            'wpuserid <> 0',
         );
         $params        = array();
 
@@ -377,6 +379,9 @@ class TEQCIDB_Shortcode_QCI_List {
      */
     private function get_clear_search_url() {
         $args = $this->get_current_shortcode_query_args();
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '/';
+        $path_only   = strtok( $request_uri, '?' );
+        $base_url    = home_url( false !== $path_only ? $path_only : '/' );
 
         foreach ( array(
             'teqcidb_qci_first_name',
@@ -390,7 +395,11 @@ class TEQCIDB_Shortcode_QCI_List {
             unset( $args[ $remove_key ] );
         }
 
-        return add_query_arg( $args );
+        if ( empty( $args ) ) {
+            return $base_url;
+        }
+
+        return add_query_arg( $args, $base_url );
     }
 
     /**

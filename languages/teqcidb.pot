@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Thompson Engineering QCI Database plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: Thompson Engineering QCI Database 0.1.0\n"
+"Project-Id-Version: Thompson Engineering QCI Database 1.0.0\n"
 "Report-Msgid-Bugs-To: https://levelupmarketers.com/contact/\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"

@@ -3,7 +3,7 @@
  * Plugin Name:       Thompson Engineering QCI Database
  * Plugin URI:        https://training.thompsonengineering.com/
  * Description:       Manage Thompson Engineering QCI students, training history, certifications, and communications from a dedicated WordPress dashboard.
- * Version:           0.1.0
+ * Version:           1.0.0
  * Author:            Level Up Digital Marketing
  * Author URI:        https://levelupmarketers.com
  * Text Domain:       teqcidb
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'TEQCIDB_VERSION', '0.1.0' );
+define( 'TEQCIDB_VERSION', '1.0.0' );
 define( 'TEQCIDB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TEQCIDB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
