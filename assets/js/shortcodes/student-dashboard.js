@@ -2498,9 +2498,9 @@
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         const policyParagraphs = [
-            'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.',
+            'Registration fees for classes are non-refundable. Payment is required prior to or on the date of the training. If you have a special circumstance, please contact qci@thompsonengineering.com.',
             'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.',
-            'For more information or clarification, please call (251) 666-2443.',
+            'For more information or clarification, please call (251) 665-5409.',
         ];
 
         policyParagraphs.forEach((paragraph) => {
