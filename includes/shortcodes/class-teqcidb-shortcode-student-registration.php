@@ -308,6 +308,7 @@ class TEQCIDB_Shortcode_Student_Registration {
             return array();
         }
 
+        $can_view_refresher_classes = $this->can_student_view_refresher_classes();
         $classes     = array();
         $hide_ids    = array();
 
@@ -326,11 +327,13 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_size       = isset( $row['classsize'] ) ? absint( $row['classsize'] ) : 0;
             $registered_total = isset( $row['registered_total'] ) ? absint( $row['registered_total'] ) : 0;
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+            $class_type       = isset( $row['classtype'] ) ? sanitize_key( (string) $row['classtype'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
+            $hide_refresher   = ( ! $can_view_refresher_classes && 'refresher' === $class_type );
 
-            if ( $is_full || $is_past ) {
-                if ( $class_id > 0 ) {
+            if ( $is_full || $is_past || $hide_refresher ) {
+                if ( ( $is_full || $is_past ) && $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
 
@@ -361,6 +364,49 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine whether the current logged-in student can register for refresher classes.
+     *
+     * @return bool
+     */
+    private function can_student_view_refresher_classes() {
+        if ( ! is_user_logged_in() ) {
+            return true;
+        }
+
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_table !== $students_found ) {
+            return true;
+        }
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                get_current_user_id()
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_row ) ) {
+            return true;
+        }
+
+        $expiration_date = isset( $student_row['expiration_date'] ) ? sanitize_text_field( (string) $student_row['expiration_date'] ) : '';
+
+        if ( '' === $expiration_date || '0000-00-00' === $expiration_date ) {
+            return true;
+        }
+
+        $today = wp_date( 'Y-m-d' );
+
+        return $expiration_date >= $today;
     }
 
     /**
