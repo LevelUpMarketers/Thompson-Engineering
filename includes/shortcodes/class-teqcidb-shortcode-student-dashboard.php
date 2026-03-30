@@ -1146,7 +1146,21 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                     <p class="teqcidb-registration-payment-policy-intro"><?php echo esc_html_x( 'Please read this information before completing your registration and payment below!', 'Student registration payment policy intro text', 'teqcidb' ); ?></p>
                                                     <p>
                                                         <strong><?php echo esc_html_x( 'Cancellation & Payment Policy:', 'Student registration payment policy heading', 'teqcidb' ); ?></strong>
-                                                        <?php echo esc_html_x( 'Registration fees for classes are non-refundable. Payment is required prior to or on the date of the training. If you have a special circumstance, please contact qci@thompsonengineering.com.', 'Student registration payment policy details', 'teqcidb' ); ?>
+                                                        <?php
+                                                        echo wp_kses(
+                                                            sprintf(
+                                                                /* translators: %1$s: email link open tag, %2$s: email link close tag. */
+                                                                __( 'Registration fees for classes are non-refundable. Payment is required prior to or on the date of the training. If you have a special circumstance, please contact %1$sqci@thompsonengineering.com%2$s.', 'teqcidb' ),
+                                                                '<a href="mailto:qci@thompsonengineering.com">',
+                                                                '</a>'
+                                                            ),
+                                                            array(
+                                                                'a' => array(
+                                                                    'href' => true,
+                                                                ),
+                                                            )
+                                                        );
+                                                        ?>
                                                     </p>
                                                     <p><?php echo esc_html_x( 'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.', 'Student registration payment policy completion details', 'teqcidb' ); ?></p>
                                                     <p>
