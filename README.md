@@ -62,6 +62,15 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 See `AGENTS.md` for workflow instructions. Update this document when features change.
 
+## Version Notes
+
+### 1.0.1 (2026-03-30)
+
+- Updated `[teqcidb_student_registration_shortcode]` to suppress refresher classes for logged-in students whose `teqcidb_students.expiration_date` is earlier than the current date, while still allowing refresher visibility for empty/`0000-00-00` dates and throughout the listed expiration day.
+- Updated Authorize.Net payment-success registration history writes so new `teqcidb_studenthistory.adminapproved` values are now stored as `Pending Approval` for both self-registration and representative registration flows.
+- Updated registration payment-policy copy in student registration and dashboard shortcode outputs to the new cancellation/payment wording, including clickable `mailto:qci@thompsonengineering.com` links where applicable.
+- Updated registration-related contact phone output from `(251) 666-2443` to `(251) 665-5409` in policy/help text and payment success receipt messaging (including `tel:` links in rendered HTML).
+
 ## Load Testing
 
 - A starter k6 burst-test workflow for the class-page Initial quiz is available in `load-tests/`.
