@@ -158,7 +158,21 @@ class TEQCIDB_Shortcode_Student_Registration {
                                         <p class="teqcidb-registration-payment-policy-intro"><?php echo esc_html_x( 'Please read this information before completing your registration and payment below!', 'Student registration payment policy intro text', 'teqcidb' ); ?></p>
                                         <p>
                                             <strong><?php echo esc_html_x( 'Cancellation & Payment Policy:', 'Student registration payment policy heading', 'teqcidb' ); ?></strong>
-                                            <?php echo esc_html_x( 'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.', 'Student registration payment policy details', 'teqcidb' ); ?>
+                                            <?php
+                                            echo wp_kses(
+                                                sprintf(
+                                                    /* translators: %1$s: email link open tag, %2$s: email link close tag. */
+                                                    __( 'Registration fees for classes are non-refundable. Payment is required prior to or on the date of the training. If you have a special circumstance, please contact %1$sqci@thompsonengineering.com%2$s.', 'teqcidb' ),
+                                                    '<a href="mailto:qci@thompsonengineering.com">',
+                                                    '</a>'
+                                                ),
+                                                array(
+                                                    'a' => array(
+                                                        'href' => true,
+                                                    ),
+                                                )
+                                            );
+                                            ?>
                                         </p>
                                         <p><?php echo esc_html_x( 'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.', 'Student registration payment policy completion details', 'teqcidb' ); ?></p>
                                         <p>
@@ -166,8 +180,8 @@ class TEQCIDB_Shortcode_Student_Registration {
                                             echo wp_kses(
                                                 sprintf(
                                                     /* translators: %1$s: phone link open tag, %2$s: phone link close tag. */
-                                                    __( 'For more information or clarification, please call %1$s(251) 666-2443%2$s.', 'teqcidb' ),
-                                                    '<a href="tel:2516662443">',
+                                                    __( 'For more information or clarification, please call %1$s(251) 665-5409%2$s.', 'teqcidb' ),
+                                                    '<a href="tel:2516655409">',
                                                     '</a>'
                                                 ),
                                                 array(
@@ -183,8 +197,8 @@ class TEQCIDB_Shortcode_Student_Registration {
                                             echo wp_kses(
                                                 sprintf(
                                                     /* translators: %1$s: email link open tag, %2$s: email link close tag. */
-                                                    __( 'If you choose to register by registration form, please email the completed form to %1$sQCI@thompsonengineering.com%2$s, or mail to the address below. Payments can be mailed to this address as well.', 'teqcidb' ),
-                                                    '<a href="mailto:QCI@thompsonengineering.com">',
+                                                    __( 'If you choose to register by completing a registration form, please email the completed form to %1$sqci@thompsonengineering.com%2$s or mail to the address below. Payments can be mailed to this address as well:', 'teqcidb' ),
+                                                    '<a href="mailto:qci@thompsonengineering.com">',
                                                     '</a>'
                                                 ),
                                                 array(
@@ -308,6 +322,7 @@ class TEQCIDB_Shortcode_Student_Registration {
             return array();
         }
 
+        $can_view_refresher_classes = $this->can_student_view_refresher_classes();
         $classes     = array();
         $hide_ids    = array();
 
@@ -326,11 +341,13 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_size       = isset( $row['classsize'] ) ? absint( $row['classsize'] ) : 0;
             $registered_total = isset( $row['registered_total'] ) ? absint( $row['registered_total'] ) : 0;
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+            $class_type       = isset( $row['classtype'] ) ? sanitize_key( (string) $row['classtype'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
+            $hide_refresher   = ( ! $can_view_refresher_classes && 'refresher' === $class_type );
 
-            if ( $is_full || $is_past ) {
-                if ( $class_id > 0 ) {
+            if ( $is_full || $is_past || $hide_refresher ) {
+                if ( ( $is_full || $is_past ) && $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
 
@@ -361,6 +378,49 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine whether the current logged-in student can register for refresher classes.
+     *
+     * @return bool
+     */
+    private function can_student_view_refresher_classes() {
+        if ( ! is_user_logged_in() ) {
+            return true;
+        }
+
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_table !== $students_found ) {
+            return true;
+        }
+
+        $student_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                get_current_user_id()
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student_row ) ) {
+            return true;
+        }
+
+        $expiration_date = isset( $student_row['expiration_date'] ) ? sanitize_text_field( (string) $student_row['expiration_date'] ) : '';
+
+        if ( '' === $expiration_date || '0000-00-00' === $expiration_date ) {
+            return true;
+        }
+
+        $today = wp_date( 'Y-m-d' );
+
+        return $expiration_date >= $today;
     }
 
     /**

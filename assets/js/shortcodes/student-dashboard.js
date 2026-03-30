@@ -2484,7 +2484,7 @@
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
         const nextSteps = doc.splitTextToSize(
-            "Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you still don't see an email, please contact Ilka Porter at (251) 666-2443, or QCI@thompsonengineering.com for more info.",
+            "Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you still don't see an email, please contact Ilka Porter at (251) 665-5409, or QCI@thompsonengineering.com for more info.",
             contentWidth
         );
         doc.text(nextSteps, margin, y);
@@ -2498,9 +2498,9 @@
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         const policyParagraphs = [
-            'Registration fees for in-person classes and online courses are non-refundable. Payment is requested prior to or on the date of the training. In certain situations, we may issue credits that are good for one year from the original (initial) training date. These credits may be transferable to another employee of the same company/organization. We do not issue credits for online refresher training fees.',
+            'Registration fees for classes are non-refundable. Payment is required prior to or on the date of the training. If you have a special circumstance, please contact qci@thompsonengineering.com.',
             'Certificates of completion and QCI numbers issued upon completion of training and receipt of payment.',
-            'For more information or clarification, please call (251) 666-2443.',
+            'For more information or clarification, please call (251) 665-5409.',
         ];
 
         policyParagraphs.forEach((paragraph) => {
@@ -2549,7 +2549,7 @@
             </p>
             <p class="teqcidb-registration-payment-success-next-title">What's Next?</p>
             <p>
-                Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you <strong><em>still</em></strong> don't see an email, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a>, or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for more info.
+                Check your email - you should have received information about how to access your class. If you don't see an email, please check all junk and spam folders. If you <strong><em>still</em></strong> don't see an email, please contact Ilka Porter at <a href="tel:2516655409">(251) 665-5409</a>, or <a href="mailto:QCI@thompsonengineering.com">QCI@thompsonengineering.com</a> for more info.
             </p>
         `;
     };
