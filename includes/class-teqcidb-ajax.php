@@ -156,6 +156,7 @@ class TEQCIDB_Ajax {
         header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
 
         $class_name            = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_teams_link      = isset( $class_row['teamslink'] ) ? esc_url_raw( (string) $class_row['teamslink'] ) : '';
         $class_id              = isset( $class_row['id'] ) ? absint( $class_row['id'] ) : 0;
         $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
         $class_page_script     = TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/class-page.js';
@@ -172,6 +173,10 @@ class TEQCIDB_Ajax {
             echo '<h1 class="teqcidb-class-route__title">' . esc_html( sprintf( __( '%s Class Page', 'teqcidb' ), $class_name ) ) . '</h1>';
         } else {
             echo '<h1 class="teqcidb-class-route__title">' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
+        }
+
+        if ( '' !== $class_teams_link ) {
+            echo '<p class="teqcidb-class-route__teams-link"><a href="' . esc_url( $class_teams_link ) . '">' . esc_html__( 'Click here to join this class online via Microsoft Teams', 'teqcidb' ) . '</a></p>';
         }
 
         echo '</header>';

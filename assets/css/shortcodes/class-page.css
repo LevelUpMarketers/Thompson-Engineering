@@ -58,6 +58,11 @@
     font-size: 1.9rem;
 }
 
+.teqcidb-class-route__teams-link {
+    margin: 0;
+    font-weight: 600;
+}
+
 .teqcidb-class-route__panel,
 .teqcidb-auth-card,
 .teqcidb-class-route__resources,
