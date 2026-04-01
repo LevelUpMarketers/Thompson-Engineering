@@ -211,6 +211,7 @@ class TEQCIDB_Ajax {
             echo '<p><a class="teqcidb-auth-link" href="' . esc_url( $lost_password_url ) . '">' . esc_html__( 'Forgot your password? Reset it here!', 'teqcidb' ) . '</a></p>';
             echo '</form>';
             echo '</article>';
+            echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
             echo '</main></body></html>';
             exit;
         }
