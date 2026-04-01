@@ -49,7 +49,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'label' => esc_html_x( 'Profile Info', 'Student dashboard tab label', 'teqcidb' ),
                 ),
                 'class-history' => array(
-                    'label' => esc_html_x( 'Class History', 'Student dashboard tab label', 'teqcidb' ),
+                    'label' => esc_html_x( 'Your Classes', 'Student dashboard tab label', 'teqcidb' ),
                 ),
                 'certificates-dates' => array(
                     'label' => esc_html_x( 'Certificates & Important Dates', 'Student dashboard tab label', 'teqcidb' ),
@@ -697,7 +697,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 <h2 class="teqcidb-dashboard-section-title">
                                                     <?php
                                                     echo esc_html_x(
-                                                        'Your Class History',
+                                                        'Your QCI Classes',
                                                         'Student dashboard class history heading',
                                                         'teqcidb'
                                                     );
@@ -846,6 +846,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         echo esc_html_x(
                                                                             'Click here to visit the Class Page',
                                                                             'Student dashboard class history class page link label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </a>
+                                                                </p>
+                                                            <?php endif; ?>
+                                                            <?php if ( ! empty( $history_entry['class_team_link'] ) ) : ?>
+                                                                <p class="teqcidb-class-history-link-wrap">
+                                                                    <a class="teqcidb-class-history-link" href="<?php echo esc_url( $history_entry['class_team_link'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Click here to join this class online via Microsoft Teams',
+                                                                            'Student dashboard class history Teams link label',
                                                                             'teqcidb'
                                                                         );
                                                                         ?>
@@ -2419,7 +2432,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl
+                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl, class.teamslink
                 FROM $table_name AS history
                 LEFT JOIN $class_table AS class ON class.uniqueclassid = history.uniqueclassid
                 WHERE history.wpuserid = %d
@@ -2466,6 +2479,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'courseinprogress' => isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '',
                 'quizinprogress' => isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '',
                 'classurl' => $this->normalize_class_history_url( isset( $entry['classurl'] ) ? $entry['classurl'] : '' ),
+                'class_team_link' => isset( $entry['teamslink'] ) ? esc_url_raw( (string) $entry['teamslink'] ) : '',
             );
         }
 
