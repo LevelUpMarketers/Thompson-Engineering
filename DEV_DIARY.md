@@ -454,3 +454,4 @@
 447. 2026-03-19 00:00 UTC: Updated `[teqcidb_qci_list_shortcode]` to require both a non-empty QCI number and a populated `wpuserid` before showing a student in the public QCI list, and documented the shortcode behavior change in `README.md`.
 448. 2026-03-19 00:10 UTC: Formatted `[teqcidb_qci_list_shortcode]` result counts with localized thousands separators and fixed the Reset Search Fields link to rebuild a clean base URL without carrying over prior search query parameters.
 449. 2026-03-22 00:00 UTC: Bumped the plugin release version from `0.1.0` to `1.0.0` in the main plugin bootstrap and translation template metadata ahead of the client launch.
+450. 2026-04-01 00:00 UTC: Fixed Email Templates "Send Test Email" rendering so selected "Preview with..." class values are posted to AJAX, sanitized server-side, merged into test-email token replacement, and now match the currently selected class shown in Email Preview.

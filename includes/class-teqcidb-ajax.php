@@ -5773,6 +5773,11 @@ class TEQCIDB_Ajax {
         $from_email = TEQCIDB_Email_Template_Helper::resolve_from_email( $from_email );
 
         $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
+        $selected_class_tokens = isset( $_POST['class_tokens'] ) ? $this->sanitize_email_template_preview_class_tokens( wp_unslash( $_POST['class_tokens'] ) ) : array();
+
+        if ( ! empty( $selected_class_tokens ) ) {
+            $tokens = array_merge( $tokens, $selected_class_tokens );
+        }
 
         if ( ! empty( $tokens ) ) {
             $subject = $this->replace_template_tokens( $subject, $tokens );
@@ -5848,6 +5853,48 @@ class TEQCIDB_Ajax {
                 'message' => __( 'Test email sent.', 'teqcidb' ),
             )
         );
+    }
+
+    /**
+     * Sanitize class-token overrides passed from the Email Templates preview selector.
+     *
+     * @param mixed $raw_tokens Raw class token payload.
+     * @return array<string, string>
+     */
+    private function sanitize_email_template_preview_class_tokens( $raw_tokens ) {
+        if ( ! is_array( $raw_tokens ) ) {
+            return array();
+        }
+
+        $allowed_keys = array(
+            'class_name'                        => 'text',
+            'class_type'                        => 'text',
+            'class_date'                        => 'text',
+            'class_time'                        => 'text',
+            'class_page'                        => 'url',
+            'class_team_link'                   => 'url',
+            'class_cost_total_transaction'      => 'text',
+            'class_cost_student_self'           => 'text',
+            'class_cost_student_representative' => 'text',
+        );
+        $sanitized    = array();
+
+        foreach ( $allowed_keys as $key => $type ) {
+            if ( ! array_key_exists( $key, $raw_tokens ) ) {
+                continue;
+            }
+
+            $value = (string) $raw_tokens[ $key ];
+
+            if ( 'url' === $type ) {
+                $sanitized[ $key ] = esc_url_raw( $value );
+                continue;
+            }
+
+            $sanitized[ $key ] = sanitize_text_field( $value );
+        }
+
+        return $sanitized;
     }
 
     /**

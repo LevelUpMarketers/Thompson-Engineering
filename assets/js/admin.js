@@ -5290,6 +5290,11 @@ jQuery(document).ready(function($){
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || ''
         };
+        var selectedClassTokens = $editor.data('previewClassTokens') || {};
+
+        if (selectedClassTokens && Object.keys(selectedClassTokens).length){
+            payload.class_tokens = selectedClassTokens;
+        }
 
         $.post(teqcidbAjax.ajaxurl, payload)
             .done(function(response){
