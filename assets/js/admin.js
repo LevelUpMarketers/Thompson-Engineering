@@ -1430,7 +1430,7 @@ jQuery(document).ready(function($){
             [
                 (settings.expirationLabel || 'Expiration Date') + ': ' + getWalletCardValue(data.expiration_date),
                 (settings.initialTrainingLabel || 'Initial Training') + ': ' + getWalletCardValue(data.initial_training_date),
-                (settings.mostRecentLabel || 'Most Recent Annual Update') + ':',
+                (settings.mostRecentLabel || 'Most Recent Biennial Update') + ':',
                 getWalletCardValue(data.last_refresher_date)
             ].forEach(function(line, index){
                 doc.text(line, rightCenterX, baseY + index * lineHeight, { align: 'center' });

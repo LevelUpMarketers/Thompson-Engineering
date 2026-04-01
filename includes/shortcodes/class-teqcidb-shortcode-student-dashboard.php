@@ -2203,7 +2203,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'qciNumberLabel' => esc_html_x( 'QCI No.', 'Wallet card QCI number label', 'teqcidb' ),
                         'expirationLabel' => esc_html_x( 'Expiration Date', 'Wallet card expiration label', 'teqcidb' ),
                         'initialTrainingLabel' => esc_html_x( 'Initial Training', 'Wallet card initial training label', 'teqcidb' ),
-                        'mostRecentLabel' => esc_html_x( 'Most Recent Annual Update', 'Wallet card most recent update label', 'teqcidb' ),
+                        'mostRecentLabel' => esc_html_x( 'Most Recent Biennial Update', 'Wallet card most recent update label', 'teqcidb' ),
                         'backTitle' => esc_html_x( 'QCI Important Information', 'Wallet card back title', 'teqcidb' ),
                         'backBullets' => array(
                             esc_html_x(

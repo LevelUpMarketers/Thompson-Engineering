@@ -1430,7 +1430,7 @@ class TEQCIDB_Admin {
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expirationLabel' => __( 'Expiration Date', 'teqcidb' ),
                 'initialTrainingLabel' => __( 'Initial Training', 'teqcidb' ),
-                'mostRecentLabel' => __( 'Most Recent Annual Update', 'teqcidb' ),
+                'mostRecentLabel' => __( 'Most Recent Biennial Update', 'teqcidb' ),
                 'backTitle' => __( 'QCI Important Information', 'teqcidb' ),
                 'backBullets' => array(
                     __( 'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
