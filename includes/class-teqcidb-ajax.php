@@ -139,7 +139,7 @@ class TEQCIDB_Ajax {
         $class_url = $this->generate_class_page_relative_url( $route_token );
         $class_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, uniqueclassid, classtype, allallowedquiz, quizstudentsallowed, classresources FROM $table WHERE classurl = %s LIMIT 1",
+                "SELECT id, classname, uniqueclassid, classtype, allallowedquiz, quizstudentsallowed, classresources, teamslink FROM $table WHERE classurl = %s LIMIT 1",
                 $class_url
             ),
             ARRAY_A
