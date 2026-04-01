@@ -38,6 +38,25 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - Enable plugin PHP error logging from **TEQCIDB Settings → General Settings** when you need diagnostics. The logger records message details and stack traces for Thompson Engineering QCI Database functionality when enabled.
 - Configure Authorize.Net credentials in **TEQCIDB Settings → API Settings → Payment Gateway** (Environment, Login ID, Transaction Key, and Client Key). These values are saved in the `teqcidb_api_settings` option and are now used by each class accordion's **Register & Pay Online** action to request an Accept Hosted token and load the embedded checkout iframe. The embedded communicator now uses the public path `/teqcidb-authorize-communicator/` instead of an admin-ajax URL to better align with host CSP policies. Each class panel also includes a **Print & Email Your Registration Form** button that opens the latest QCI registration PDF in a new tab for offline completion. Each class panel now also shows a policy/instructions text block above the registration action buttons with cancellation terms, completion notes, and contact/mailing guidance. After a successful payment, the iframe now fades out, the class panel collapses smoothly, and the feedback area shows transaction details with a receipt-download link that generates a branded PDF copy of the transaction. Successful registration payments are also recorded in the `teqcidb_paymenthistory` table with user/class/payment/transaction metadata for reporting. Those successful payments now also create matching `teqcidb_studenthistory` records (registered/payment status, amount paid, enrollment date, and class linkage) for downstream student timeline views.
 
+## Version History
+
+### 1.0.2 (current)
+
+Changes in **1.0.2** compared with **1.0.1** (this branch/day of work):
+
+- Email Templates now support selecting a specific student in the preview controls, with live preview token hydration via autocomplete + AJAX and matching student/class context in **Send Test Email** rendering.
+- Added a dedicated admin AJAX endpoint to resolve selected-student preview tokens and server-side sanitization/merge handling for selected preview class token overrides used during test sends.
+- Class-page unauthenticated login now supports password show/hide toggles (with lightweight Dashicons + accessibility helper styling) and loads the toggle script in unauthenticated responses.
+- Class pages now show a conditional Teams link directly under the class title when a Teams URL exists.
+- Dashboard **Class History** tab label/heading updates:
+  - tab label changed from **Class History** to **Your Classes**
+  - section heading changed from **Your Class History** to **Your QCI Classes**
+- Dashboard class-history cards now show a conditional Teams link under the existing class-page link when that class has a Teams URL.
+- Dashboard **Certificates & Important Dates** now only shows refresher certificate actions when the student has a passed refresher class-history entry.
+- Wallet-card wording updates:
+  - **Most Recent Annual Update** → **Most Recent Biennial Update**
+  - **annual refresher training** policy copy → **biennial refresher training** policy copy
+
 ## Legacy Migration Note (Student Email Placeholders)
 
 - During **Legacy Student Records** SQL uploads, some old rows arrive with blank/invalid email values.
