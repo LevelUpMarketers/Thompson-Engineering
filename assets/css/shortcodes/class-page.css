@@ -6,6 +6,42 @@
     min-height: 100vh;
 }
 
+@font-face {
+    font-family: dashicons;
+    src: url('/wp-includes/fonts/dashicons.woff2') format('woff2'),
+         url('/wp-includes/fonts/dashicons.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.dashicons,
+.dashicons-before:before {
+    font-family: dashicons;
+    display: inline-block;
+    line-height: 1;
+    font-weight: 400;
+    font-style: normal;
+    text-decoration: inherit;
+    text-transform: none;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    vertical-align: top;
+    text-align: center;
+    transition: color .1s ease-in;
+}
+
+.dashicons-visibility:before {
+    content: "\f177";
+}
+
+.dashicons-hidden:before {
+    content: "\f530";
+}
+
 .teqcidb-class-route__main {
     max-width: 1200px;
     margin: 0 auto;
