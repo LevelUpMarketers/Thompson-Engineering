@@ -41,47 +41,51 @@ class TEQCIDB_Student_Helper {
             return $preview_data;
         }
 
-        $prepared = array();
-
-        foreach ( $row as $key => $value ) {
-            $prepared[ $key ] = self::normalize_preview_token_value( $key, $value );
-        }
-
-        if ( isset( $row['student_address'] ) ) {
-            $address = self::decode_student_address_field( $row['student_address'] );
-
-            foreach ( $address as $address_key => $address_value ) {
-                $prepared[ 'student_address_' . $address_key ] = $address_value;
-            }
-        }
-
-        if ( isset( $row['their_representative'] ) ) {
-            $representative = self::decode_representative_field( $row['their_representative'] );
-
-            foreach ( $representative as $rep_key => $rep_value ) {
-                $prepared[ 'representative_' . $rep_key ] = $rep_value;
-            }
-
-            $prepared['student_representative'] = trim( $representative['first_name'] . ' ' . $representative['last_name'] );
-        }
-
-        $prepared['student_first_name']    = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
-        $prepared['student_last_name']     = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
-        $prepared['student_email']         = isset( $prepared['email'] ) ? $prepared['email'] : ( isset( $prepared['placeholder_2'] ) ? $prepared['placeholder_2'] : '' );
-        $prepared['student_company']       = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
-        $prepared['student_phone_cell']    = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
-        $prepared['student_phone_office']            = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
-        $prepared['student_representative']          = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
-        $prepared['representative_first_name']       = isset( $prepared['first_name'] ) ? $prepared['first_name'] : '';
-        $prepared['representative_last_name']        = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
-        $prepared['individuals_registered']           = self::get_latest_representative_registration_individuals_html();
-        $prepared['student_certification_expiration'] = self::format_date_for_token( isset( $prepared['expiration_date'] ) ? $prepared['expiration_date'] : '' );
-
-        $prepared = array_merge( $prepared, self::get_latest_class_preview_data() );
-
-        $preview_data = $prepared;
+        $preview_data = self::prepare_preview_data_from_student_row( $row );
 
         return $preview_data;
+    }
+
+    /**
+     * Retrieve a specific Student record prepared for template previews.
+     *
+     * @param int    $wpuserid        WordPress user ID.
+     * @param string $uniquestudentid Unique student identifier.
+     * @return array
+     */
+    public static function get_preview_data_for_student( $wpuserid = 0, $uniquestudentid = '' ) {
+        $wpuserid        = absint( $wpuserid );
+        $uniquestudentid = sanitize_text_field( (string) $uniquestudentid );
+
+        if ( $wpuserid <= 0 && '' === $uniquestudentid ) {
+            return array();
+        }
+
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'teqcidb_students';
+        $like       = $wpdb->esc_like( $table_name );
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+        if ( $found !== $table_name ) {
+            return array();
+        }
+
+        $row = null;
+
+        if ( $wpuserid > 0 ) {
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE wpuserid = %d ORDER BY id DESC LIMIT 1", $wpuserid ), ARRAY_A );
+        }
+
+        if ( ! is_array( $row ) && '' !== $uniquestudentid ) {
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE uniquestudentid = %s ORDER BY id DESC LIMIT 1", $uniquestudentid ), ARRAY_A );
+        }
+
+        if ( ! is_array( $row ) ) {
+            return array();
+        }
+
+        return self::prepare_preview_data_from_student_row( $row );
     }
 
 
@@ -262,6 +266,52 @@ class TEQCIDB_Student_Helper {
         }
 
         return '<ul>' . implode( '', $items ) . '</ul>';
+    }
+
+    /**
+     * Prepare token-ready student preview data from a single student row.
+     *
+     * @param array $row Student row data.
+     * @return array
+     */
+    private static function prepare_preview_data_from_student_row( array $row ) {
+        $prepared = array();
+
+        foreach ( $row as $key => $value ) {
+            $prepared[ $key ] = self::normalize_preview_token_value( $key, $value );
+        }
+
+        if ( isset( $row['student_address'] ) ) {
+            $address = self::decode_student_address_field( $row['student_address'] );
+
+            foreach ( $address as $address_key => $address_value ) {
+                $prepared[ 'student_address_' . $address_key ] = $address_value;
+            }
+        }
+
+        if ( isset( $row['their_representative'] ) ) {
+            $representative = self::decode_representative_field( $row['their_representative'] );
+
+            foreach ( $representative as $rep_key => $rep_value ) {
+                $prepared[ 'representative_' . $rep_key ] = $rep_value;
+            }
+
+            $prepared['student_representative'] = trim( $representative['first_name'] . ' ' . $representative['last_name'] );
+        }
+
+        $prepared['student_first_name']             = isset( $prepared['first_name'] ) ? $prepared['first_name'] : ( isset( $prepared['placeholder_1'] ) ? $prepared['placeholder_1'] : '' );
+        $prepared['student_last_name']              = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
+        $prepared['student_email']                  = isset( $prepared['email'] ) ? $prepared['email'] : ( isset( $prepared['placeholder_2'] ) ? $prepared['placeholder_2'] : '' );
+        $prepared['student_company']                = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
+        $prepared['student_phone_cell']             = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
+        $prepared['student_phone_office']           = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
+        $prepared['student_representative']         = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
+        $prepared['representative_first_name']      = isset( $prepared['first_name'] ) ? $prepared['first_name'] : '';
+        $prepared['representative_last_name']       = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
+        $prepared['individuals_registered']         = self::get_latest_representative_registration_individuals_html();
+        $prepared['student_certification_expiration'] = self::format_date_for_token( isset( $prepared['expiration_date'] ) ? $prepared['expiration_date'] : '' );
+
+        return array_merge( $prepared, self::get_latest_class_preview_data() );
     }
 
     /**

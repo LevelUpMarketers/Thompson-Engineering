@@ -44,6 +44,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
+        add_action( 'wp_ajax_teqcidb_get_student_preview_tokens', array( $this, 'get_student_preview_tokens' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
@@ -4534,6 +4535,36 @@ class TEQCIDB_Ajax {
         );
     }
 
+    public function get_student_preview_tokens() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to preview student data.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $wpuserid        = isset( $_GET['wpuserid'] ) ? absint( wp_unslash( $_GET['wpuserid'] ) ) : 0;
+        $uniquestudentid = isset( $_GET['uniquestudentid'] ) ? sanitize_text_field( wp_unslash( $_GET['uniquestudentid'] ) ) : '';
+        $tokens          = TEQCIDB_Student_Helper::get_preview_data_for_student( $wpuserid, $uniquestudentid );
+
+        if ( empty( $tokens ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to find preview data for the selected student.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'tokens' => $tokens,
+            )
+        );
+    }
+
     public function save_general_settings() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
@@ -5772,8 +5803,13 @@ class TEQCIDB_Ajax {
         $from_name  = TEQCIDB_Email_Template_Helper::resolve_from_name( $from_name );
         $from_email = TEQCIDB_Email_Template_Helper::resolve_from_email( $from_email );
 
-        $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
+        $tokens                  = TEQCIDB_Student_Helper::get_latest_preview_data();
+        $selected_student_tokens = isset( $_POST['selected_student'] ) ? $this->get_email_template_preview_student_tokens_from_request( wp_unslash( $_POST['selected_student'] ) ) : array();
         $selected_class_tokens = isset( $_POST['class_tokens'] ) ? $this->sanitize_email_template_preview_class_tokens( wp_unslash( $_POST['class_tokens'] ) ) : array();
+
+        if ( ! empty( $selected_student_tokens ) ) {
+            $tokens = array_merge( $tokens, $selected_student_tokens );
+        }
 
         if ( ! empty( $selected_class_tokens ) ) {
             $tokens = array_merge( $tokens, $selected_class_tokens );
@@ -5895,6 +5931,27 @@ class TEQCIDB_Ajax {
         }
 
         return $sanitized;
+    }
+
+    /**
+     * Resolve selected student preview tokens from the test-email request.
+     *
+     * @param mixed $selected_student Raw selected student payload.
+     * @return array<string, string>
+     */
+    private function get_email_template_preview_student_tokens_from_request( $selected_student ) {
+        if ( ! is_array( $selected_student ) ) {
+            return array();
+        }
+
+        $wpuserid        = isset( $selected_student['wpuserid'] ) ? absint( $selected_student['wpuserid'] ) : 0;
+        $uniquestudentid = isset( $selected_student['uniquestudentid'] ) ? sanitize_text_field( (string) $selected_student['uniquestudentid'] ) : '';
+
+        if ( $wpuserid <= 0 && '' === $uniquestudentid ) {
+            return array();
+        }
+
+        return TEQCIDB_Student_Helper::get_preview_data_for_student( $wpuserid, $uniquestudentid );
     }
 
     /**

@@ -405,6 +405,11 @@ class TEQCIDB_Admin {
             esc_attr( $preview_class_select_id ),
             esc_html__( 'Preview with...', 'teqcidb' )
         );
+        printf(
+            '<label class="screen-reader-text" for="%1$s">%2$s</label><input type="text" id="%1$s" class="regular-text teqcidb-autocomplete-field teqcidb-template-preview-student-select" data-autocomplete="student" placeholder="%2$s" autocomplete="off">',
+            esc_attr( $field_prefix . '-preview-student' ),
+            esc_attr__( 'Start typing a student name or email...', 'teqcidb' )
+        );
         printf( '<select id="%1$s" class="teqcidb-template-preview-class-select">', esc_attr( $preview_class_select_id ) );
         echo '<option value="" selected="selected" disabled="disabled">' . esc_html__( 'Select a Class...', 'teqcidb' ) . '</option>';
 
