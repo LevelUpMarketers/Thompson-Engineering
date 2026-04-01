@@ -1307,13 +1307,28 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                 );
                                 ?>
                             </label>
-                            <input
-                                type="password"
-                                id="teqcidb-login-password"
-                                name="teqcidb_login_password"
-                                autocomplete="current-password"
-                                placeholder="<?php echo esc_attr_x( 'Your password', 'Login form field placeholder', 'teqcidb' ); ?>"
-                            />
+                            <div class="teqcidb-password-input">
+                                <input
+                                    type="password"
+                                    id="teqcidb-login-password"
+                                    name="teqcidb_login_password"
+                                    autocomplete="current-password"
+                                    placeholder="<?php echo esc_attr_x( 'Your password', 'Login form field placeholder', 'teqcidb' ); ?>"
+                                />
+                                <button
+                                    class="teqcidb-password-toggle"
+                                    type="button"
+                                    data-teqcidb-toggle-target="teqcidb-login-password"
+                                    aria-pressed="false"
+                                    aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                    title="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                >
+                                    <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                                    <span class="screen-reader-text">
+                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="teqcidb-form-field teqcidb-form-checkbox">
