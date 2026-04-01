@@ -1433,7 +1433,7 @@ class TEQCIDB_Admin {
                 'mostRecentLabel' => __( 'Most Recent Biennial Update', 'teqcidb' ),
                 'backTitle' => __( 'QCI Important Information', 'teqcidb' ),
                 'backBullets' => array(
-                    __( 'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
+                    __( 'Initial training and biennial refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
                     __( 'QCIs must recertify if they change employers or if their training provider is no longer certified.', 'teqcidb' ),
                     __( 'For more information about QCI training, including class dates and locations, call 251.666.2443 or visit training.thompsonengineering.com.', 'teqcidb' ),
                 ),

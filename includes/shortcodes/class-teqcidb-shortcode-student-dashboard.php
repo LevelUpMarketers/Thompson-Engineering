@@ -2207,7 +2207,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'backTitle' => esc_html_x( 'QCI Important Information', 'Wallet card back title', 'teqcidb' ),
                         'backBullets' => array(
                             esc_html_x(
-                                'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.',
+                                'Initial training and biennial refresher training must be obtained from the same training provider or a recognized reciprocal partner.',
                                 'Wallet card back bullet',
                                 'teqcidb'
                             ),

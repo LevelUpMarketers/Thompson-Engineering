@@ -465,3 +465,4 @@
 458. 2026-04-01 02:30 UTC: Fixed class-page Teams link rendering by updating the class-page class lookup query to include the `teamslink` column so the conditional Teams-link output has access to saved Teams URLs.
 459. 2026-04-01 02:45 UTC: Updated dashboard class-history labeling from "Class History" to "Your Classes" and changed the class-history section heading to "Your QCI Classes", plus added a conditional Teams link under each class card's Class Page link when that class has a non-empty Teams URL.
 460. 2026-04-01 03:00 UTC: Updated wallet card labeling across admin and front-end print/download flows, changing "Most Recent Annual Update" to "Most Recent Biennial Update" (localized labels and JS fallbacks).
+461. 2026-04-01 03:10 UTC: Updated wallet card back-of-card policy copy across admin/front-end localization sources, changing "annual refresher training" wording to "biennial refresher training."
