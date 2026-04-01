@@ -100,6 +100,29 @@
     width: auto;
 }
 
+.teqcidb-password-input {
+    align-items: center;
+    display: flex;
+    position: relative;
+}
+
+.teqcidb-password-input input {
+    padding-right: 48px;
+}
+
+.teqcidb-password-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #555;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    padding: 0;
+    position: absolute;
+    right: 14px;
+}
+
 .teqcidb-button {
     border: 0;
     border-radius: 8px;

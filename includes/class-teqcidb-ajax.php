@@ -192,7 +192,13 @@ class TEQCIDB_Ajax {
             echo '</div>';
             echo '<div class="teqcidb-form-field">';
             echo '<label for="teqcidb-login-password">' . esc_html__( 'Password', 'teqcidb' ) . '</label>';
+            echo '<div class="teqcidb-password-input">';
             echo '<input type="password" id="teqcidb-login-password" name="pwd" autocomplete="current-password" placeholder="' . esc_attr__( 'Your password', 'teqcidb' ) . '" required />';
+            echo '<button class="teqcidb-password-toggle" type="button" data-teqcidb-toggle-target="teqcidb-login-password" aria-pressed="false" aria-label="' . esc_attr__( 'Show password', 'teqcidb' ) . '" title="' . esc_attr__( 'Show password', 'teqcidb' ) . '">';
+            echo '<span class="dashicons dashicons-visibility" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Show', 'teqcidb' ) . '</span>';
+            echo '</button>';
+            echo '</div>';
             echo '</div>';
             echo '<div class="teqcidb-form-field teqcidb-form-checkbox">';
             echo '<label for="teqcidb-login-remember">';
