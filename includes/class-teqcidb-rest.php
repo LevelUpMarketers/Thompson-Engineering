@@ -23,6 +23,16 @@ class TEQCIDB_Rest {
     public function register_routes() {
         register_rest_route(
             'teqcidb/v1',
+            '/quiz/progress',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'save_quiz_progress' ),
+                'permission_callback' => array( $this, 'can_manage_quiz_request' ),
+            )
+        );
+
+        register_rest_route(
+            'teqcidb/v1',
             '/quiz/submit',
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
@@ -62,6 +72,36 @@ class TEQCIDB_Rest {
         }
 
         return true;
+    }
+
+    public function save_quiz_progress( $request ) {
+        $validated = $this->validate_request_payload( $request );
+
+        if ( is_wp_error( $validated ) ) {
+            return $validated;
+        }
+
+        $throttle_error = $this->enforce_progress_rate_limit( get_current_user_id(), $validated['attempt_id'], $validated['quiz_id'], $validated['class_id'] );
+
+        if ( is_wp_error( $throttle_error ) ) {
+            return $throttle_error;
+        }
+
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return rest_ensure_response(
+            array(
+                'ok'             => true,
+                'attempt_id'     => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
+                'saved_at'       => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
+                'server_version' => TEQCIDB_VERSION,
+                'message'        => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
+            )
+        );
     }
 
     public function submit_quiz_attempt( $request ) {
@@ -258,6 +298,35 @@ class TEQCIDB_Rest {
             'current_index' => $current_question_index,
             'answers'       => $answers,
         );
+    }
+
+    private function enforce_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
+        $user_id = absint( $user_id );
+
+        if ( $user_id <= 0 ) {
+            return new WP_Error( 'teqcidb_rest_rate_identity_missing', __( 'Unable to rate-limit this request.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $attempt_component = $attempt_id > 0 ? $attempt_id : ( $quiz_id . '_' . $class_id );
+        $bucket_key        = 'teqcidb_qp_rate_' . md5( $user_id . '_' . $attempt_component );
+        $last_request_time = (float) get_transient( $bucket_key );
+        $now               = microtime( true );
+        $minimum_gap       = 3;
+
+        if ( $last_request_time > 0 && ( $now - $last_request_time ) < $minimum_gap ) {
+            return new WP_Error(
+                'teqcidb_rest_rate_limited',
+                __( 'Please wait a few seconds before saving again.', 'teqcidb' ),
+                array(
+                    'status'      => 429,
+                    'retry_after' => $minimum_gap,
+                )
+            );
+        }
+
+        set_transient( $bucket_key, $now, 10 );
+
+        return true;
     }
 
 }
