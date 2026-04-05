@@ -25,7 +25,6 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_create_quiz_question', array( $this, 'create_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_reset_failed_quiz_attempt', array( $this, 'reset_failed_quiz_attempt' ) );
-        add_action( 'wp_ajax_teqcidb_save_quiz_progress', array( $this, 'save_quiz_progress' ) );
         add_action( 'wp_ajax_teqcidb_submit_quiz_attempt', array( $this, 'submit_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_studenthistory', array( $this, 'save_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_create_studenthistory', array( $this, 'create_studenthistory' ) );
@@ -398,7 +397,7 @@ class TEQCIDB_Ajax {
             } elseif ( 'refresher' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' );
             } else {
-                $quiz_intro = __( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' );
+                $quiz_intro = __( 'Answer each question and submit your quiz when complete.', 'teqcidb' );
             }
 
             echo '<p id="teqcidb-class-quiz-section-description" class="teqcidb-class-route__section-description">' . wp_kses( $quiz_intro, $allowed_feedback_html ) . '</p>';
@@ -731,18 +730,12 @@ class TEQCIDB_Ajax {
             'restNonce'    => wp_create_nonce( 'wp_rest' ),
             'useRestQuizApi'=> true,
             'i18n'    => array(
-                'validationAnswerRequired' => __( 'Please select an answer before continuing.', 'teqcidb' ),
-                'saveError'                => __( 'We could not save your latest answer. Please check your connection and try again.', 'teqcidb' ),
+                'validationAllAnswersRequired' => __( 'Please answer Question %1$s before submitting.', 'teqcidb' ),
                 'submitError'              => __( 'We could not submit your quiz. Please try again.', 'teqcidb' ),
-                'resumeNotice'             => __( 'We restored your previous progress from your latest save.', 'teqcidb' ),
-                'saving'                   => __( 'Saving…', 'teqcidb' ),
-                'saved'                    => __( 'Progress saved.', 'teqcidb' ),
                 'submitting'               => __( 'Submitting quiz…', 'teqcidb' ),
                 'passed'                   => __( 'Passed', 'teqcidb' ),
                 'failed'                   => __( 'Failed', 'teqcidb' ),
                 'questionOf'               => __( 'Question %1$s of %2$s', 'teqcidb' ),
-                'completedRemaining'       => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
-                'nextQuestion'             => __( 'Next Question', 'teqcidb' ),
                 'submitQuiz'               => __( 'Submit Quiz', 'teqcidb' ),
                 'scoreSummary'             => __( 'Score: %1$s% (Required: %2$s%)', 'teqcidb' ),
                 'questionsToReview'        => __( 'Questions to Review', 'teqcidb' ),
@@ -999,52 +992,6 @@ class TEQCIDB_Ajax {
         }
 
         return array_values( array_unique( $selected ) );
-    }
-
-    public function save_quiz_progress() {
-        check_ajax_referer( 'teqcidb_ajax_nonce' );
-
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => __( 'Please log in again and retry saving your quiz progress.', 'teqcidb' ) ) );
-        }
-
-        $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
-        $class_id      = isset( $_POST['class_id'] ) ? absint( wp_unslash( $_POST['class_id'] ) ) : 0;
-        $attempt_id    = isset( $_POST['attempt_id'] ) ? absint( wp_unslash( $_POST['attempt_id'] ) ) : 0;
-        $current_index = isset( $_POST['current_index'] ) ? absint( wp_unslash( $_POST['current_index'] ) ) : 0;
-        $answers_json  = isset( $_POST['answers_json'] ) ? wp_unslash( $_POST['answers_json'] ) : '';
-        $current_user  = get_current_user_id();
-
-        $answers_payload = json_decode( (string) $answers_json, true );
-
-        if ( ! is_array( $answers_payload ) ) {
-            $answers_payload = array();
-        }
-
-        $result = $this->process_quiz_attempt_request(
-            array(
-                'quiz_id'       => $quiz_id,
-                'class_id'      => $class_id,
-                'attempt_id'    => $attempt_id,
-                'current_index' => $current_index,
-                'answers'       => $answers_payload,
-            ),
-            $current_user,
-            false
-        );
-
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( array( 'message' => $result->get_error_message() ), $this->get_error_status_code( $result ) );
-        }
-
-
-        wp_send_json_success(
-            array(
-                'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
-                'attemptId' => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
-                'savedAt'   => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : '',
-            )
-        );
     }
 
     public function submit_quiz_attempt() {
