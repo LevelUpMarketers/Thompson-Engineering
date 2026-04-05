@@ -840,8 +840,9 @@
     function saveProgress(options){
         var saveOptions = options || {};
         var currentHash = getCurrentAnswersHash();
+        var ignoreSubmittingGuard = !!saveOptions.ignoreSubmittingGuard;
 
-        if (isSubmitted || isSubmitting) {
+        if (isSubmitted || (isSubmitting && !ignoreSubmittingGuard)) {
             return Promise.resolve();
         }
 
@@ -872,6 +873,60 @@
                 saveState.hasPending = false;
                 saveProgress({ reason: 'pending' });
             }
+        });
+    }
+
+    function waitForSaveToSettle(maxWaitMs, pollMs){
+        var maxWait = Math.max(0, parseInt(maxWaitMs, 10) || 1500);
+        var poll = Math.max(10, parseInt(pollMs, 10) || 50);
+
+        if (!saveState.isSaving) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(function(resolve){
+            var startedAt = Date.now();
+            var timer = setInterval(function(){
+                var elapsed = Date.now() - startedAt;
+
+                if (!saveState.isSaving) {
+                    clearInterval(timer);
+                    resolve(true);
+                    return;
+                }
+
+                if (elapsed >= maxWait) {
+                    clearInterval(timer);
+                    resolve(false);
+                }
+            }, poll);
+        });
+    }
+
+    function flushBeforeSubmit(){
+        var flushResult = {
+            settled: false,
+            attemptedFlush: false,
+            flushSucceeded: false
+        };
+
+        return waitForSaveToSettle(1500, 50).then(function(settled){
+            flushResult.settled = !!settled;
+
+            if (!isDirty) {
+                return flushResult;
+            }
+
+            flushResult.attemptedFlush = true;
+
+            return saveProgress({ reason: 'pre_submit_flush', ignoreSubmittingGuard: true }).then(function(){
+                flushResult.flushSucceeded = true;
+                return flushResult;
+            }).catch(function(){
+                return flushResult;
+            });
+        }).catch(function(){
+            return flushResult;
         });
     }
 
@@ -934,30 +989,32 @@
         isSubmitting = true;
         setSaveStatus(i18n.submitting || 'Submitting quiz…');
 
-        requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.').then(function(payload){
-            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            isSubmitted = true;
-            isDirty = false;
-            lastSavedHash = getCurrentAnswersHash();
-            if (periodicSaveTimer) {
-                clearInterval(periodicSaveTimer);
-                periodicSaveTimer = null;
-            }
-            render({
-                score: payload.score,
-                passThreshold: payload.passThreshold,
-                passed: payload.passed,
-                incorrectDetails: payload.incorrectDetails || []
+        flushBeforeSubmit().then(function(){
+            return requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.');
+        }).then(function(payload){
+                attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
+                isSubmitted = true;
+                isDirty = false;
+                lastSavedHash = getCurrentAnswersHash();
+                if (periodicSaveTimer) {
+                    clearInterval(periodicSaveTimer);
+                    periodicSaveTimer = null;
+                }
+                render({
+                    score: payload.score,
+                    passThreshold: payload.passThreshold,
+                    passed: payload.passed,
+                    incorrectDetails: payload.incorrectDetails || []
+                });
+            }).catch(function(err){
+                var errorEl = root.querySelector('#teqcidb-quiz-error');
+                if (errorEl) {
+                    errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
+                }
+                setSaveStatus('');
+            }).finally(function(){
+                isSubmitting = false;
             });
-        }).catch(function(err){
-            var errorEl = root.querySelector('#teqcidb-quiz-error');
-            if (errorEl) {
-                errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
-            }
-            setSaveStatus('');
-        }).finally(function(){
-            isSubmitting = false;
-        });
     }
 
     document.addEventListener('visibilitychange', function(){
