@@ -1942,7 +1942,7 @@
         const rightLines = [
             `${walletCardSettings.expirationLabel || 'Expiration Date'}: ${getWalletCardValue(data.expiration_date)}`,
             `${walletCardSettings.initialTrainingLabel || 'Initial Training'}: ${getWalletCardValue(data.initial_training_date)}`,
-            `${walletCardSettings.mostRecentLabel || 'Most Recent Annual Update'}:`,
+            `${walletCardSettings.mostRecentLabel || 'Most Recent Biennial Update'}:`,
             getWalletCardValue(data.last_refresher_date),
         ];
 

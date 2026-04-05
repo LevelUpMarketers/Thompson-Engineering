@@ -1430,7 +1430,7 @@ jQuery(document).ready(function($){
             [
                 (settings.expirationLabel || 'Expiration Date') + ': ' + getWalletCardValue(data.expiration_date),
                 (settings.initialTrainingLabel || 'Initial Training') + ': ' + getWalletCardValue(data.initial_training_date),
-                (settings.mostRecentLabel || 'Most Recent Annual Update') + ':',
+                (settings.mostRecentLabel || 'Most Recent Biennial Update') + ':',
                 getWalletCardValue(data.last_refresher_date)
             ].forEach(function(line, index){
                 doc.text(line, rightCenterX, baseY + index * lineHeight, { align: 'center' });
@@ -4651,6 +4651,12 @@ jQuery(document).ready(function($){
 
                 $(this).val(ui.item.value);
                 setHiddenStudentFields($(this), ui.item);
+
+                if ($(this).hasClass('teqcidb-template-preview-student-select')){
+                    $(this).data('selectedStudent', ui.item);
+                    $(this).trigger('teqcidb:preview-student-selected', [ui.item]);
+                }
+
                 return false;
             },
             focus: function(event, ui){
@@ -4672,6 +4678,10 @@ jQuery(document).ready(function($){
             $(this).find('.teqcidb-autocomplete-field').each(function(){
                 initStudentAutocomplete($(this));
             });
+        });
+
+        ($scope || $(document)).find('.teqcidb-template-preview-student-select').each(function(){
+            initStudentAutocomplete($(this));
         });
     }
 
@@ -4738,6 +4748,27 @@ jQuery(document).ready(function($){
                     $input.attr('placeholder', formatString(teqcidbAdmin.itemPlaceholder, index + 1));
                 }
             });
+        }
+    });
+
+    $(document).on('teqcidb:preview-student-selected', '.teqcidb-template-preview-student-select', function(event, selectedStudent){
+        var $input = $(this);
+        var $editor = $input.closest('.teqcidb-template-editor');
+
+        if (!$editor.length){
+            return;
+        }
+
+        updatePreviewStudentTokens($editor, selectedStudent);
+    });
+
+    $(document).on('input', '.teqcidb-template-preview-student-select', function(){
+        var $input = $(this);
+        var selectedStudent = $input.data('selectedStudent');
+
+        if (!selectedStudent || $input.val() !== selectedStudent.value){
+            $input.removeData('selectedStudent');
+            $input.trigger('teqcidb:preview-student-selected', [null]);
         }
     });
 
@@ -5111,8 +5142,9 @@ jQuery(document).ready(function($){
             return;
         }
 
+        var previewStudentTokens = $editor.data('previewStudentTokens') || {};
         var previewClassTokens = $editor.data('previewClassTokens') || {};
-        var previewTokenEntity = $.extend({}, previewEntity, previewClassTokens);
+        var previewTokenEntity = $.extend({}, previewEntity, previewStudentTokens, previewClassTokens);
         var hasPreviewEntity = Object.keys(previewTokenEntity).length > 0;
 
         if (!hasPreviewEntity){
@@ -5155,6 +5187,41 @@ jQuery(document).ready(function($){
 
             $content.addClass('is-visible');
         }
+    }
+
+    function updatePreviewStudentTokens($editor, selectedStudent){
+        if (!$editor || !$editor.length){
+            return;
+        }
+
+        if (!selectedStudent || (!selectedStudent.wpUserId && !selectedStudent.uniqueId)){
+            $editor.removeData('previewStudentTokens');
+            updateTemplatePreview($editor);
+            return;
+        }
+
+        $.ajax({
+            url: teqcidbAjax.ajaxurl,
+            method: 'GET',
+            dataType: 'json',
+            data: {
+                action: 'teqcidb_get_student_preview_tokens',
+                _ajax_nonce: teqcidbAjax.nonce,
+                wpuserid: selectedStudent.wpUserId || '',
+                uniquestudentid: selectedStudent.uniqueId || ''
+            }
+        }).done(function(response){
+            if (response && response.success && response.data && response.data.tokens){
+                $editor.data('previewStudentTokens', response.data.tokens);
+            } else {
+                $editor.removeData('previewStudentTokens');
+            }
+
+            updateTemplatePreview($editor);
+        }).fail(function(){
+            $editor.removeData('previewStudentTokens');
+            updateTemplatePreview($editor);
+        });
     }
 
 
@@ -5290,6 +5357,19 @@ jQuery(document).ready(function($){
             subject: $editor.find('[data-token-context="subject"]').first().val() || '',
             body: $editor.find('[data-token-context="body"]').first().val() || ''
         };
+        var selectedPreviewStudent = $editor.find('.teqcidb-template-preview-student-select').first().data('selectedStudent') || null;
+        var selectedClassTokens = $editor.data('previewClassTokens') || {};
+
+        if (selectedPreviewStudent && (selectedPreviewStudent.wpUserId || selectedPreviewStudent.uniqueId)){
+            payload.selected_student = {
+                wpuserid: selectedPreviewStudent.wpUserId || '',
+                uniquestudentid: selectedPreviewStudent.uniqueId || ''
+            };
+        }
+
+        if (selectedClassTokens && Object.keys(selectedClassTokens).length){
+            payload.class_tokens = selectedClassTokens;
+        }
 
         $.post(teqcidbAjax.ajaxurl, payload)
             .done(function(response){

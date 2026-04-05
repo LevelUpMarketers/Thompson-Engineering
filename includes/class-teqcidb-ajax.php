@@ -44,6 +44,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_clear_error_log', array( $this, 'clear_error_log' ) );
         add_action( 'wp_ajax_teqcidb_download_error_log', array( $this, 'download_error_log' ) );
         add_action( 'wp_ajax_teqcidb_search_students', array( $this, 'search_students' ) );
+        add_action( 'wp_ajax_teqcidb_get_student_preview_tokens', array( $this, 'get_student_preview_tokens' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
@@ -138,7 +139,7 @@ class TEQCIDB_Ajax {
         $class_url = $this->generate_class_page_relative_url( $route_token );
         $class_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, uniqueclassid, classtype, allallowedquiz, quizstudentsallowed, classresources FROM $table WHERE classurl = %s LIMIT 1",
+                "SELECT id, classname, uniqueclassid, classtype, allallowedquiz, quizstudentsallowed, classresources, teamslink FROM $table WHERE classurl = %s LIMIT 1",
                 $class_url
             ),
             ARRAY_A
@@ -155,6 +156,7 @@ class TEQCIDB_Ajax {
         header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
 
         $class_name            = isset( $class_row['classname'] ) ? sanitize_text_field( $class_row['classname'] ) : '';
+        $class_teams_link      = isset( $class_row['teamslink'] ) ? esc_url_raw( (string) $class_row['teamslink'] ) : '';
         $class_id              = isset( $class_row['id'] ) ? absint( $class_row['id'] ) : 0;
         $class_page_stylesheet = TEQCIDB_PLUGIN_URL . 'assets/css/shortcodes/class-page.css';
         $class_page_script     = TEQCIDB_PLUGIN_URL . 'assets/js/shortcodes/class-page.js';
@@ -171,6 +173,10 @@ class TEQCIDB_Ajax {
             echo '<h1 class="teqcidb-class-route__title">' . esc_html( sprintf( __( '%s Class Page', 'teqcidb' ), $class_name ) ) . '</h1>';
         } else {
             echo '<h1 class="teqcidb-class-route__title">' . esc_html__( 'Class Page', 'teqcidb' ) . '</h1>';
+        }
+
+        if ( '' !== $class_teams_link ) {
+            echo '<p class="teqcidb-class-route__teams-link"><a href="' . esc_url( $class_teams_link ) . '">' . esc_html__( 'Click here to join this class online via Microsoft Teams', 'teqcidb' ) . '</a></p>';
         }
 
         echo '</header>';
@@ -191,7 +197,13 @@ class TEQCIDB_Ajax {
             echo '</div>';
             echo '<div class="teqcidb-form-field">';
             echo '<label for="teqcidb-login-password">' . esc_html__( 'Password', 'teqcidb' ) . '</label>';
+            echo '<div class="teqcidb-password-input">';
             echo '<input type="password" id="teqcidb-login-password" name="pwd" autocomplete="current-password" placeholder="' . esc_attr__( 'Your password', 'teqcidb' ) . '" required />';
+            echo '<button class="teqcidb-password-toggle" type="button" data-teqcidb-toggle-target="teqcidb-login-password" aria-pressed="false" aria-label="' . esc_attr__( 'Show password', 'teqcidb' ) . '" title="' . esc_attr__( 'Show password', 'teqcidb' ) . '">';
+            echo '<span class="dashicons dashicons-visibility" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Show', 'teqcidb' ) . '</span>';
+            echo '</button>';
+            echo '</div>';
             echo '</div>';
             echo '<div class="teqcidb-form-field teqcidb-form-checkbox">';
             echo '<label for="teqcidb-login-remember">';
@@ -204,6 +216,7 @@ class TEQCIDB_Ajax {
             echo '<p><a class="teqcidb-auth-link" href="' . esc_url( $lost_password_url ) . '">' . esc_html__( 'Forgot your password? Reset it here!', 'teqcidb' ) . '</a></p>';
             echo '</form>';
             echo '</article>';
+            echo '<script src="' . esc_url( $class_page_script ) . '" defer></script>';
             echo '</main></body></html>';
             exit;
         }
@@ -4534,6 +4547,36 @@ class TEQCIDB_Ajax {
         );
     }
 
+    public function get_student_preview_tokens() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to preview student data.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $wpuserid        = isset( $_GET['wpuserid'] ) ? absint( wp_unslash( $_GET['wpuserid'] ) ) : 0;
+        $uniquestudentid = isset( $_GET['uniquestudentid'] ) ? sanitize_text_field( wp_unslash( $_GET['uniquestudentid'] ) ) : '';
+        $tokens          = TEQCIDB_Student_Helper::get_preview_data_for_student( $wpuserid, $uniquestudentid );
+
+        if ( empty( $tokens ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to find preview data for the selected student.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'tokens' => $tokens,
+            )
+        );
+    }
+
     public function save_general_settings() {
         $start = microtime( true );
         check_ajax_referer( 'teqcidb_ajax_nonce' );
@@ -5772,7 +5815,17 @@ class TEQCIDB_Ajax {
         $from_name  = TEQCIDB_Email_Template_Helper::resolve_from_name( $from_name );
         $from_email = TEQCIDB_Email_Template_Helper::resolve_from_email( $from_email );
 
-        $tokens = TEQCIDB_Student_Helper::get_latest_preview_data();
+        $tokens                  = TEQCIDB_Student_Helper::get_latest_preview_data();
+        $selected_student_tokens = isset( $_POST['selected_student'] ) ? $this->get_email_template_preview_student_tokens_from_request( wp_unslash( $_POST['selected_student'] ) ) : array();
+        $selected_class_tokens = isset( $_POST['class_tokens'] ) ? $this->sanitize_email_template_preview_class_tokens( wp_unslash( $_POST['class_tokens'] ) ) : array();
+
+        if ( ! empty( $selected_student_tokens ) ) {
+            $tokens = array_merge( $tokens, $selected_student_tokens );
+        }
+
+        if ( ! empty( $selected_class_tokens ) ) {
+            $tokens = array_merge( $tokens, $selected_class_tokens );
+        }
 
         if ( ! empty( $tokens ) ) {
             $subject = $this->replace_template_tokens( $subject, $tokens );
@@ -5848,6 +5901,69 @@ class TEQCIDB_Ajax {
                 'message' => __( 'Test email sent.', 'teqcidb' ),
             )
         );
+    }
+
+    /**
+     * Sanitize class-token overrides passed from the Email Templates preview selector.
+     *
+     * @param mixed $raw_tokens Raw class token payload.
+     * @return array<string, string>
+     */
+    private function sanitize_email_template_preview_class_tokens( $raw_tokens ) {
+        if ( ! is_array( $raw_tokens ) ) {
+            return array();
+        }
+
+        $allowed_keys = array(
+            'class_name'                        => 'text',
+            'class_type'                        => 'text',
+            'class_date'                        => 'text',
+            'class_time'                        => 'text',
+            'class_page'                        => 'url',
+            'class_team_link'                   => 'url',
+            'class_cost_total_transaction'      => 'text',
+            'class_cost_student_self'           => 'text',
+            'class_cost_student_representative' => 'text',
+        );
+        $sanitized    = array();
+
+        foreach ( $allowed_keys as $key => $type ) {
+            if ( ! array_key_exists( $key, $raw_tokens ) ) {
+                continue;
+            }
+
+            $value = (string) $raw_tokens[ $key ];
+
+            if ( 'url' === $type ) {
+                $sanitized[ $key ] = esc_url_raw( $value );
+                continue;
+            }
+
+            $sanitized[ $key ] = sanitize_text_field( $value );
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Resolve selected student preview tokens from the test-email request.
+     *
+     * @param mixed $selected_student Raw selected student payload.
+     * @return array<string, string>
+     */
+    private function get_email_template_preview_student_tokens_from_request( $selected_student ) {
+        if ( ! is_array( $selected_student ) ) {
+            return array();
+        }
+
+        $wpuserid        = isset( $selected_student['wpuserid'] ) ? absint( $selected_student['wpuserid'] ) : 0;
+        $uniquestudentid = isset( $selected_student['uniquestudentid'] ) ? sanitize_text_field( (string) $selected_student['uniquestudentid'] ) : '';
+
+        if ( $wpuserid <= 0 && '' === $uniquestudentid ) {
+            return array();
+        }
+
+        return TEQCIDB_Student_Helper::get_preview_data_for_student( $wpuserid, $uniquestudentid );
     }
 
     /**

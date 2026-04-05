@@ -1,6 +1,61 @@
 (function(){
     'use strict';
 
+    var toggleLabels = {
+        showText: 'Show',
+        hideText: 'Hide',
+        showAria: 'Show password',
+        hideAria: 'Hide password'
+    };
+
+    function handlePasswordToggle(button){
+        if (!button) {
+            return;
+        }
+
+        var targetId = button.getAttribute('data-teqcidb-toggle-target');
+
+        if (!targetId) {
+            return;
+        }
+
+        var input = document.getElementById(targetId);
+
+        if (!input) {
+            return;
+        }
+
+        var isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+
+        var screenReaderText = button.querySelector('.screen-reader-text');
+
+        if (screenReaderText) {
+            screenReaderText.textContent = isPassword ? toggleLabels.hideText : toggleLabels.showText;
+        }
+
+        button.setAttribute('aria-label', isPassword ? toggleLabels.hideAria : toggleLabels.showAria);
+        button.setAttribute('title', isPassword ? toggleLabels.hideAria : toggleLabels.showAria);
+        button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+
+        var icon = button.querySelector('.dashicons');
+
+        if (icon) {
+            icon.classList.toggle('dashicons-visibility', !isPassword);
+            icon.classList.toggle('dashicons-hidden', isPassword);
+        }
+    }
+
+    document.addEventListener('click', function(event){
+        var button = event.target.closest('.teqcidb-password-toggle');
+
+        if (!button) {
+            return;
+        }
+
+        handlePasswordToggle(button);
+    });
+
     var root = document.getElementById('teqcidb-class-quiz-app');
 
     if (!root) {

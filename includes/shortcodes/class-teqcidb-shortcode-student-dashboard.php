@@ -49,7 +49,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'label' => esc_html_x( 'Profile Info', 'Student dashboard tab label', 'teqcidb' ),
                 ),
                 'class-history' => array(
-                    'label' => esc_html_x( 'Class History', 'Student dashboard tab label', 'teqcidb' ),
+                    'label' => esc_html_x( 'Your Classes', 'Student dashboard tab label', 'teqcidb' ),
                 ),
                 'certificates-dates' => array(
                     'label' => esc_html_x( 'Certificates & Important Dates', 'Student dashboard tab label', 'teqcidb' ),
@@ -100,6 +100,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
             $qci_number = isset( $student_row['qcinumber'] ) ? sanitize_text_field( (string) $student_row['qcinumber'] ) : '';
             $association_options = array( 'AAPA', 'ARBA', 'AGC', 'ABC', 'AUCA' );
             $student_history_entries = $this->get_student_history_entries( $current_user->ID );
+            $has_passed_refresher_class = $this->student_has_passed_refresher_class( $current_user->ID );
             $payment_history_entries = $this->get_payment_history_entries( $current_user->ID );
             $assigned_students_for_registration = $is_representative ? $this->get_assigned_students_for_dashboard() : array();
             $available_classes_for_registration = $is_representative ? $this->get_visible_classes_for_registration() : array();
@@ -654,14 +655,16 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                             <?php echo esc_html_x( 'Download Initial Certificate', 'Student dashboard initial certificate download button label', 'teqcidb' ); ?>
                                                         </button>
                                                     </div>
-                                                    <div class="teqcidb-wallet-card-actions" role="group" aria-label="<?php echo esc_attr_x( 'Refresher certificate actions', 'Student dashboard refresher certificate actions label', 'teqcidb' ); ?>">
-                                                        <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-refresher-certificate-action="print">
-                                                            <?php echo esc_html_x( 'Print Refresher Certificate', 'Student dashboard refresher certificate print button label', 'teqcidb' ); ?>
-                                                        </button>
-                                                        <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-refresher-certificate-action="download">
-                                                            <?php echo esc_html_x( 'Download Refresher Certificate', 'Student dashboard refresher certificate download button label', 'teqcidb' ); ?>
-                                                        </button>
-                                                    </div>
+                                                    <?php if ( $has_passed_refresher_class ) : ?>
+                                                        <div class="teqcidb-wallet-card-actions" role="group" aria-label="<?php echo esc_attr_x( 'Refresher certificate actions', 'Student dashboard refresher certificate actions label', 'teqcidb' ); ?>">
+                                                            <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-refresher-certificate-action="print">
+                                                                <?php echo esc_html_x( 'Print Refresher Certificate', 'Student dashboard refresher certificate print button label', 'teqcidb' ); ?>
+                                                            </button>
+                                                            <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-refresher-certificate-action="download">
+                                                                <?php echo esc_html_x( 'Download Refresher Certificate', 'Student dashboard refresher certificate download button label', 'teqcidb' ); ?>
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             <?php else : ?>
                                                 <div class="teqcidb-countdown">
@@ -694,7 +697,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                 <h2 class="teqcidb-dashboard-section-title">
                                                     <?php
                                                     echo esc_html_x(
-                                                        'Your Class History',
+                                                        'Your QCI Classes',
                                                         'Student dashboard class history heading',
                                                         'teqcidb'
                                                     );
@@ -843,6 +846,19 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         echo esc_html_x(
                                                                             'Click here to visit the Class Page',
                                                                             'Student dashboard class history class page link label',
+                                                                            'teqcidb'
+                                                                        );
+                                                                        ?>
+                                                                    </a>
+                                                                </p>
+                                                            <?php endif; ?>
+                                                            <?php if ( ! empty( $history_entry['class_team_link'] ) ) : ?>
+                                                                <p class="teqcidb-class-history-link-wrap">
+                                                                    <a class="teqcidb-class-history-link" href="<?php echo esc_url( $history_entry['class_team_link'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                                                        <?php
+                                                                        echo esc_html_x(
+                                                                            'Click here to join this class online via Microsoft Teams',
+                                                                            'Student dashboard class history Teams link label',
                                                                             'teqcidb'
                                                                         );
                                                                         ?>
@@ -1304,13 +1320,28 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                 );
                                 ?>
                             </label>
-                            <input
-                                type="password"
-                                id="teqcidb-login-password"
-                                name="teqcidb_login_password"
-                                autocomplete="current-password"
-                                placeholder="<?php echo esc_attr_x( 'Your password', 'Login form field placeholder', 'teqcidb' ); ?>"
-                            />
+                            <div class="teqcidb-password-input">
+                                <input
+                                    type="password"
+                                    id="teqcidb-login-password"
+                                    name="teqcidb_login_password"
+                                    autocomplete="current-password"
+                                    placeholder="<?php echo esc_attr_x( 'Your password', 'Login form field placeholder', 'teqcidb' ); ?>"
+                                />
+                                <button
+                                    class="teqcidb-password-toggle"
+                                    type="button"
+                                    data-teqcidb-toggle-target="teqcidb-login-password"
+                                    aria-pressed="false"
+                                    aria-label="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                    title="<?php echo esc_attr_x( 'Show password', 'Password field toggle button label', 'teqcidb' ); ?>"
+                                >
+                                    <span class="dashicons dashicons-visibility" aria-hidden="true"></span>
+                                    <span class="screen-reader-text">
+                                        <?php echo esc_html_x( 'Show', 'Password field toggle button text', 'teqcidb' ); ?>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="teqcidb-form-field teqcidb-form-checkbox">
@@ -2172,11 +2203,11 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         'qciNumberLabel' => esc_html_x( 'QCI No.', 'Wallet card QCI number label', 'teqcidb' ),
                         'expirationLabel' => esc_html_x( 'Expiration Date', 'Wallet card expiration label', 'teqcidb' ),
                         'initialTrainingLabel' => esc_html_x( 'Initial Training', 'Wallet card initial training label', 'teqcidb' ),
-                        'mostRecentLabel' => esc_html_x( 'Most Recent Annual Update', 'Wallet card most recent update label', 'teqcidb' ),
+                        'mostRecentLabel' => esc_html_x( 'Most Recent Biennial Update', 'Wallet card most recent update label', 'teqcidb' ),
                         'backTitle' => esc_html_x( 'QCI Important Information', 'Wallet card back title', 'teqcidb' ),
                         'backBullets' => array(
                             esc_html_x(
-                                'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.',
+                                'Initial training and biennial refresher training must be obtained from the same training provider or a recognized reciprocal partner.',
                                 'Wallet card back bullet',
                                 'teqcidb'
                             ),
@@ -2401,7 +2432,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl
+                "SELECT history.classname, history.registered, history.attended, history.outcome, history.paymentstatus, history.amountpaid, history.enrollmentdate, history.registeredby, history.courseinprogress, history.quizinprogress, history.id, history.uniqueclassid, class.classurl, class.teamslink
                 FROM $table_name AS history
                 LEFT JOIN $class_table AS class ON class.uniqueclassid = history.uniqueclassid
                 WHERE history.wpuserid = %d
@@ -2448,10 +2479,93 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'courseinprogress' => isset( $entry['courseinprogress'] ) ? sanitize_text_field( (string) $entry['courseinprogress'] ) : '',
                 'quizinprogress' => isset( $entry['quizinprogress'] ) ? sanitize_text_field( (string) $entry['quizinprogress'] ) : '',
                 'classurl' => $this->normalize_class_history_url( isset( $entry['classurl'] ) ? $entry['classurl'] : '' ),
+                'class_team_link' => isset( $entry['teamslink'] ) ? esc_url_raw( (string) $entry['teamslink'] ) : '',
             );
         }
 
         return $prepared;
+    }
+
+    /**
+     * Determine whether a student has a passed refresher class in their history.
+     *
+     * @param int $user_id WordPress user ID.
+     * @return bool
+     */
+    private function student_has_passed_refresher_class( $user_id ) {
+        $user_id = (int) $user_id;
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        global $wpdb;
+
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $class_table   = $wpdb->prefix . 'teqcidb_classes';
+        $history_like  = $wpdb->esc_like( $history_table );
+        $history_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $history_like ) );
+
+        if ( $history_found !== $history_table ) {
+            return false;
+        }
+
+        $class_like  = $wpdb->esc_like( $class_table );
+        $class_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $class_like ) );
+
+        if ( $class_found !== $class_table ) {
+            return false;
+        }
+
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT history.outcome, class.classtype
+                FROM $history_table AS history
+                LEFT JOIN $class_table AS class ON class.uniqueclassid = history.uniqueclassid
+                WHERE history.wpuserid = %d",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $results ) || empty( $results ) ) {
+            return false;
+        }
+
+        foreach ( $results as $result ) {
+            $class_type = isset( $result['classtype'] ) ? strtolower( trim( (string) $result['classtype'] ) ) : '';
+            $outcome    = isset( $result['outcome'] ) ? strtolower( trim( (string) $result['outcome'] ) ) : '';
+
+            if ( 'refresher' !== $class_type ) {
+                continue;
+            }
+
+            if ( $this->is_passing_history_outcome( $outcome ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize class-history outcome values and determine if outcome is passing.
+     *
+     * @param string $outcome Outcome text.
+     * @return bool
+     */
+    private function is_passing_history_outcome( $outcome ) {
+        $normalized = strtolower( trim( (string) $outcome ) );
+
+        if ( '' === $normalized ) {
+            return false;
+        }
+
+        if ( false !== strpos( $normalized, 'fail' ) ) {
+            return false;
+        }
+
+        return false !== strpos( $normalized, 'pass' );
     }
 
     private function get_payment_history_entries( $user_id ) {

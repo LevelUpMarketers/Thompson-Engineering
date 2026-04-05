@@ -405,6 +405,11 @@ class TEQCIDB_Admin {
             esc_attr( $preview_class_select_id ),
             esc_html__( 'Preview with...', 'teqcidb' )
         );
+        printf(
+            '<label class="screen-reader-text" for="%1$s">%2$s</label><input type="text" id="%1$s" class="regular-text teqcidb-autocomplete-field teqcidb-template-preview-student-select" data-autocomplete="student" placeholder="%2$s" autocomplete="off">',
+            esc_attr( $field_prefix . '-preview-student' ),
+            esc_attr__( 'Start typing a student name or email...', 'teqcidb' )
+        );
         printf( '<select id="%1$s" class="teqcidb-template-preview-class-select">', esc_attr( $preview_class_select_id ) );
         echo '<option value="" selected="selected" disabled="disabled">' . esc_html__( 'Select a Class...', 'teqcidb' ) . '</option>';
 
@@ -1425,10 +1430,10 @@ class TEQCIDB_Admin {
                 'qciNumberLabel' => __( 'QCI No.', 'teqcidb' ),
                 'expirationLabel' => __( 'Expiration Date', 'teqcidb' ),
                 'initialTrainingLabel' => __( 'Initial Training', 'teqcidb' ),
-                'mostRecentLabel' => __( 'Most Recent Annual Update', 'teqcidb' ),
+                'mostRecentLabel' => __( 'Most Recent Biennial Update', 'teqcidb' ),
                 'backTitle' => __( 'QCI Important Information', 'teqcidb' ),
                 'backBullets' => array(
-                    __( 'Initial training and annual refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
+                    __( 'Initial training and biennial refresher training must be obtained from the same training provider or a recognized reciprocal partner.', 'teqcidb' ),
                     __( 'QCIs must recertify if they change employers or if their training provider is no longer certified.', 'teqcidb' ),
                     __( 'For more information about QCI training, including class dates and locations, call 251.666.2443 or visit training.thompsonengineering.com.', 'teqcidb' ),
                 ),
