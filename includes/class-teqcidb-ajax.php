@@ -13,6 +13,9 @@ class TEQCIDB_Ajax {
     const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
     const QUIZ_ATTEMPT_META_CACHE_GROUP       = 'teqcidb_quiz_attempt_meta';
     const QUIZ_ATTEMPT_META_CACHE_TTL         = 300;
+    const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 3;
+    const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 10;
+    const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -733,6 +736,7 @@ class TEQCIDB_Ajax {
             'i18n'    => array(
                 'validationAllAnswersRequired' => __( 'Please answer Question %1$s before submitting.', 'teqcidb' ),
                 'saveError'                => __( 'We could not save your latest answers. Please check your connection and try again.', 'teqcidb' ),
+                'saveRateLimited'          => __( 'Please wait a few seconds before saving again.', 'teqcidb' ),
                 'submitError'              => __( 'We could not submit your quiz. Please try again.', 'teqcidb' ),
                 'saving'                   => __( 'Saving…', 'teqcidb' ),
                 'saved'                    => __( 'Progress saved.', 'teqcidb' ),
@@ -1388,7 +1392,7 @@ class TEQCIDB_Ajax {
         return 400;
     }
 
-    private function enforce_quiz_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
+    public function enforce_quiz_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
         $user_id = absint( $user_id );
 
         if ( $user_id <= 0 ) {
@@ -1396,10 +1400,10 @@ class TEQCIDB_Ajax {
         }
 
         $attempt_component = $attempt_id > 0 ? $attempt_id : ( absint( $quiz_id ) . '_' . absint( $class_id ) );
-        $bucket_key        = 'teqcidb_qp_ajax_rate_' . md5( $user_id . '_' . $attempt_component );
+        $bucket_key        = self::QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX . md5( $user_id . '_' . $attempt_component );
         $last_request_time = (float) get_transient( $bucket_key );
         $now               = microtime( true );
-        $minimum_gap       = 3;
+        $minimum_gap       = self::QUIZ_PROGRESS_RATE_LIMIT_GAP;
 
         if ( $last_request_time > 0 && ( $now - $last_request_time ) < $minimum_gap ) {
             return new WP_Error(
@@ -1412,7 +1416,7 @@ class TEQCIDB_Ajax {
             );
         }
 
-        set_transient( $bucket_key, $now, 10 );
+        set_transient( $bucket_key, $now, self::QUIZ_PROGRESS_RATE_LIMIT_TTL );
 
         return true;
     }

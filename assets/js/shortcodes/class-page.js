@@ -572,94 +572,95 @@
 
     function parseAjaxResponse(payload){
         if (!payload || !payload.success) {
-            throw new Error((payload && payload.data && payload.data.message) || (i18n.saveError || i18n.submitError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.saveError || i18n.submitError || 'Request failed.'));
         }
         return payload.data || {};
     }
 
     function parseRestResponse(payload){
         if (!payload || payload.ok !== true) {
-            throw new Error((payload && payload.message) || (i18n.saveError || i18n.submitError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.saveError || i18n.submitError || 'Request failed.'));
         }
         return payload;
     }
 
-    function requestQuizSubmitEndpoint(failureMessage){
-        var payload = {
+    function getRequestErrorMessage(payload, fallbackMessage){
+        var payloadStatus = payload && payload.data && payload.data.status ? parseInt(payload.data.status, 10) : 0;
+        var payloadCode = payload && payload.code ? String(payload.code) : '';
+
+        if (payloadStatus === 429 || payloadCode.indexOf('rate_limited') !== -1) {
+            return i18n.saveRateLimited || 'Please wait a few seconds before saving again.';
+        }
+
+        if (payload && payload.data && typeof payload.data.message === 'string' && payload.data.message.length) {
+            return payload.data.message;
+        }
+
+        if (payload && typeof payload.message === 'string' && payload.message.length) {
+            return payload.message;
+        }
+
+        return fallbackMessage;
+    }
+
+    function buildQuizRequestPayload(){
+        return {
             quiz_id: runtime.quiz.id,
             class_id: runtime.quiz.classId,
             attempt_id: attemptId,
             answers: answers
         };
-
-        if (useRestQuizApi && runtime.restUrl) {
-            return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/quiz/submit', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': runtime.restNonce || ''
-                },
-                body: JSON.stringify(payload)
-            }).then(function(resp){
-                return resp.json().then(function(payload){
-                    if (!resp.ok) {
-                        throw new Error((payload && payload.message) || failureMessage);
-                    }
-                    return parseRestResponse(payload);
-                });
-            }).catch(function(err){
-                if (!useRestQuizApi || !runtime.ajaxUrl) {
-                    throw err;
-                }
-                return requestQuizSubmitEndpointFallback(failureMessage);
-            });
-        }
-
-        return requestQuizSubmitEndpointFallback(failureMessage);
     }
 
-    function requestQuizSubmitEndpointFallback(failureMessage){
+    function buildQuizAjaxFormData(action){
         var formData = new FormData();
-        formData.append('action', 'teqcidb_submit_quiz_attempt');
+        formData.append('action', action);
         formData.append('_ajax_nonce', runtime.nonce || '');
         formData.append('quiz_id', runtime.quiz.id);
         formData.append('class_id', runtime.quiz.classId);
         formData.append('attempt_id', String(attemptId || 0));
         formData.append('current_index', '0');
         formData.append('answers_json', JSON.stringify(answers || {}));
-
-        return fetch(runtime.ajaxUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData
-        }).then(function(resp){
-            return resp.json();
-        }).then(function(payload){
-            var data = parseAjaxResponse(payload);
-            return {
-                ok: true,
-                attempt_id: data.attemptId || attemptId || 0,
-                saved_at: data.savedAt || '',
-                message: data.message || failureMessage,
-                score: data.score,
-                passThreshold: data.passThreshold,
-                passed: data.passed,
-                incorrectDetails: data.incorrectDetails
-            };
-        });
+        return formData;
     }
 
-    function requestQuizProgressEndpoint(failureMessage){
-        var payload = {
-            quiz_id: runtime.quiz.id,
-            class_id: runtime.quiz.classId,
-            attempt_id: attemptId,
-            answers: answers
+    function buildQuizProgressBeaconBody(){
+        var body = new URLSearchParams();
+        body.append('action', 'teqcidb_save_quiz_progress');
+        body.append('_ajax_nonce', runtime.nonce || '');
+        body.append('quiz_id', runtime.quiz.id);
+        body.append('class_id', runtime.quiz.classId);
+        body.append('attempt_id', String(attemptId || 0));
+        body.append('current_index', '0');
+        body.append('answers_json', JSON.stringify(answers || {}));
+        return body;
+    }
+
+    function mapAjaxQuizResponse(ajaxAction, data, failureMessage){
+        var base = {
+            ok: true,
+            attempt_id: data.attemptId || attemptId || 0,
+            saved_at: data.savedAt || '',
+            message: data.message || failureMessage
         };
 
+        if (ajaxAction === 'teqcidb_submit_quiz_attempt') {
+            base.score = data.score;
+            base.passThreshold = data.passThreshold;
+            base.passed = data.passed;
+            base.incorrectDetails = data.incorrectDetails;
+        }
+
+        return base;
+    }
+
+    function requestQuizEndpoint(options){
+        var requestOptions = options || {};
+        var failureMessage = requestOptions.failureMessage || (i18n.saveError || i18n.submitError || 'Request failed.');
+        var payload = buildQuizRequestPayload();
+
         if (useRestQuizApi && runtime.restUrl) {
-            return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/quiz/progress', {
+            return fetch(String(runtime.restUrl).replace(/\/$/, '') + requestOptions.restPath, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -670,7 +671,7 @@
             }).then(function(resp){
                 return resp.json().then(function(responsePayload){
                     if (!resp.ok) {
-                        throw new Error((responsePayload && responsePayload.message) || failureMessage);
+                        throw new Error(getRequestErrorMessage(responsePayload, failureMessage));
                     }
                     return parseRestResponse(responsePayload);
                 });
@@ -678,37 +679,39 @@
                 if (!useRestQuizApi || !runtime.ajaxUrl) {
                     throw err;
                 }
-                return requestQuizProgressEndpointFallback(failureMessage);
+                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
             });
         }
 
-        return requestQuizProgressEndpointFallback(failureMessage);
+        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
     }
 
-    function requestQuizProgressEndpointFallback(failureMessage){
-        var formData = new FormData();
-        formData.append('action', 'teqcidb_save_quiz_progress');
-        formData.append('_ajax_nonce', runtime.nonce || '');
-        formData.append('quiz_id', runtime.quiz.id);
-        formData.append('class_id', runtime.quiz.classId);
-        formData.append('attempt_id', String(attemptId || 0));
-        formData.append('current_index', '0');
-        formData.append('answers_json', JSON.stringify(answers || {}));
-
+    function requestQuizEndpointFallback(ajaxAction, failureMessage){
         return fetch(runtime.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            body: formData
+            body: buildQuizAjaxFormData(ajaxAction)
         }).then(function(resp){
             return resp.json();
         }).then(function(payload){
             var data = parseAjaxResponse(payload);
-            return {
-                ok: true,
-                attempt_id: data.attemptId || attemptId || 0,
-                saved_at: data.savedAt || '',
-                message: data.message || failureMessage
-            };
+            return mapAjaxQuizResponse(ajaxAction, data, failureMessage);
+        });
+    }
+
+    function requestQuizSubmitEndpoint(failureMessage){
+        return requestQuizEndpoint({
+            restPath: '/quiz/submit',
+            ajaxAction: 'teqcidb_submit_quiz_attempt',
+            failureMessage: failureMessage
+        });
+    }
+
+    function requestQuizProgressEndpoint(failureMessage){
+        return requestQuizEndpoint({
+            restPath: '/quiz/progress',
+            ajaxAction: 'teqcidb_save_quiz_progress',
+            failureMessage: failureMessage
         });
     }
 
@@ -1032,17 +1035,8 @@
 
     window.addEventListener('beforeunload', function(){
         if (!isSubmitted && runtime.ajaxUrl && isDirty && getCurrentAnswersHash() !== lastSavedHash) {
-            var body = new URLSearchParams();
-            body.append('action', 'teqcidb_save_quiz_progress');
-            body.append('_ajax_nonce', runtime.nonce || '');
-            body.append('quiz_id', runtime.quiz.id);
-            body.append('class_id', runtime.quiz.classId);
-            body.append('attempt_id', String(attemptId || 0));
-            body.append('current_index', '0');
-            body.append('answers_json', JSON.stringify(answers || {}));
-
             if (navigator.sendBeacon) {
-                navigator.sendBeacon(runtime.ajaxUrl, body);
+                navigator.sendBeacon(runtime.ajaxUrl, buildQuizProgressBeaconBody());
             }
         }
 
