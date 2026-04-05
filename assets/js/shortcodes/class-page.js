@@ -105,6 +105,7 @@
     var autosaveIntervalMs = 12000;
     var fullSnapshotEveryAutosaves = 5;
     var autosaveProgressSaves = 0;
+    var isSubmitting = false;
     var isDirty = false;
     var lastSavedHash = '';
     var dirtyAnswerQuestionIds = {};
@@ -890,7 +891,7 @@
     }
 
     function queueAutosave(immediate){
-        if (isSubmitted) {
+        if (isSubmitted || isSubmitting) {
             return;
         }
 
@@ -918,19 +919,19 @@
         var payloadHash = getProgressPayloadHash();
         var shouldSendFullSnapshot = !!saveOptions.forceFullSnapshot;
 
-        if (isSubmitted) {
-            return;
+        if (isSubmitted || isSubmitting) {
+            return Promise.resolve({ skipped: 'submitted_or_submitting' });
         }
 
         if (!isDirty || payloadHash === lastSavedHash) {
             metrics.skippedNoop += 1;
             recordMetric('quiz_save_noop', { reason: saveOptions.reason || 'unspecified' });
-            return;
+            return Promise.resolve({ skipped: 'noop' });
         }
 
         if (saveState.isSaving) {
             saveState.hasPending = true;
-            return;
+            return Promise.resolve({ skipped: 'in_flight' });
         }
 
         if (!shouldSendFullSnapshot) {
@@ -944,7 +945,7 @@
         metrics.saveAttempts += 1;
         recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
 
-        requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.', { fullSnapshot: shouldSendFullSnapshot }).then(function(payload){
+        return requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.', { fullSnapshot: shouldSendFullSnapshot }).then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             lastSavedHash = payloadHash;
             isDirty = false;
@@ -966,13 +967,75 @@
         });
     }
 
-    function submitQuiz(){
+    function waitForSaveToSettle(maxWaitMs, pollMs){
+        var maxWait = parseInt(maxWaitMs, 10);
+        var intervalMs = parseInt(pollMs, 10);
+        var timeoutMs = isNaN(maxWait) ? 1500 : Math.max(0, maxWait);
+        var waitStepMs = isNaN(intervalMs) ? 50 : Math.max(10, intervalMs);
+        var startedAt = Date.now();
+
+        if (!saveState.isSaving) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(function(resolve){
+            function poll(){
+                if (!saveState.isSaving) {
+                    resolve(true);
+                    return;
+                }
+
+                if ((Date.now() - startedAt) >= timeoutMs) {
+                    resolve(false);
+                    return;
+                }
+
+                window.setTimeout(poll, waitStepMs);
+            }
+
+            poll();
+        }).catch(function(){
+            return false;
+        });
+    }
+
+    async function flushBeforeSubmit(){
+        var result = {
+            settled: false,
+            attemptedFlush: false,
+            flushed: false
+        };
+
+        try {
+            result.settled = await waitForSaveToSettle(1500, 50);
+
+            if (isDirty) {
+                result.attemptedFlush = true;
+                await saveProgress({ reason: 'pre_submit_flush' });
+                result.flushed = true;
+            }
+        } catch (e) {
+            // Swallow save/throttle/network errors to avoid blocking final submission.
+        }
+
+        return result;
+    }
+
+    async function submitQuiz(){
+        if (isSubmitting || isSubmitted) {
+            return;
+        }
+
+        isSubmitting = true;
+        updateSaveStatus(i18n.submitting || 'Submitting quiz…');
+
         if (saveTimer) {
             clearTimeout(saveTimer);
             saveTimer = null;
         }
 
         markDirty();
+        await flushBeforeSubmit();
 
         requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.', { fullSnapshot: true }).then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
@@ -987,6 +1050,8 @@
                 incorrectDetails: payload.incorrectDetails || []
             });
         }).catch(function(err){
+            isSubmitting = false;
+            clearSaveStatus();
             var errorEl = root.querySelector('#teqcidb-quiz-error');
             if (errorEl) {
                 errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
