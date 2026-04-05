@@ -84,7 +84,6 @@
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
     var saveTimer = null;
-    var saveMessageTimer = null;
     var periodicSaveTimer = null;
     var periodicSaveIntervalMs = (90000 + Math.floor(Math.random() * 60001));
     var saveState = { isSaving: false, hasPending: false };
@@ -561,7 +560,6 @@
             questionBlocks +
             '<div class="teqcidb-class-quiz__actions">' +
                 '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-submit">' + esc(t('submitQuiz', 'Submit Quiz')) + '</button>' +
-                '<span class="teqcidb-class-quiz__save-state" id="teqcidb-quiz-save-state" aria-live="polite"></span>' +
             '</div>' +
             '<div class="teqcidb-class-quiz__error" id="teqcidb-quiz-error" aria-live="polite"></div>' +
         '</div>';
@@ -572,14 +570,14 @@
 
     function parseAjaxResponse(payload){
         if (!payload || !payload.success) {
-            throw new Error(getRequestErrorMessage(payload, i18n.saveError || i18n.submitError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.submitError || 'Request failed.'));
         }
         return payload.data || {};
     }
 
     function parseRestResponse(payload){
         if (!payload || payload.ok !== true) {
-            throw new Error(getRequestErrorMessage(payload, i18n.saveError || i18n.submitError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.submitError || 'Request failed.'));
         }
         return payload;
     }
@@ -589,7 +587,7 @@
         var payloadCode = payload && payload.code ? String(payload.code) : '';
 
         if (payloadStatus === 429 || payloadCode.indexOf('rate_limited') !== -1) {
-            return i18n.saveRateLimited || 'Please wait a few seconds before saving again.';
+            return 'Please wait a few seconds before saving again.';
         }
 
         if (payload && payload.data && typeof payload.data.message === 'string' && payload.data.message.length) {
@@ -656,7 +654,7 @@
 
     function requestQuizEndpoint(options){
         var requestOptions = options || {};
-        var failureMessage = requestOptions.failureMessage || (i18n.saveError || i18n.submitError || 'Request failed.');
+        var failureMessage = requestOptions.failureMessage || (i18n.submitError || 'Request failed.');
         var payload = buildQuizRequestPayload();
 
         if (useRestQuizApi && runtime.restUrl) {
@@ -787,31 +785,6 @@
         isDirty = true;
     }
 
-    function setSaveStatus(message){
-        var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-
-        if (!stateEl) {
-            return;
-        }
-
-        stateEl.textContent = message || '';
-    }
-
-    function clearSaveStatusLater(delayMs){
-        if (saveMessageTimer) {
-            clearTimeout(saveMessageTimer);
-            saveMessageTimer = null;
-        }
-
-        saveMessageTimer = setTimeout(function(){
-            var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-            if (stateEl && stateEl.textContent === (i18n.saved || 'Progress saved.')) {
-                stateEl.textContent = '';
-            }
-            saveMessageTimer = null;
-        }, delayMs);
-    }
-
     function queueAutosave(options){
         var queueOptions = options || {};
 
@@ -859,17 +832,13 @@
         }
 
         saveState.isSaving = true;
-        setSaveStatus(i18n.saving || 'Saving…');
 
-        return requestQuizProgressEndpoint(i18n.saveError || 'Save failed.').then(function(payload){
+        return requestQuizProgressEndpoint('Save failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
             lastSavedHash = currentHash;
             isDirty = false;
-            setSaveStatus(i18n.saved || 'Progress saved.');
-            clearSaveStatusLater(3000);
-        }).catch(function(err){
-            setSaveStatus(err && err.message ? err.message : (i18n.saveError || 'Save failed.'));
-            clearSaveStatusLater(4000);
+        }).catch(function(){
+            // Intentionally suppress autosave errors in student-facing UI.
         }).finally(function(){
             saveState.isSaving = false;
             if (saveState.hasPending) {
@@ -990,7 +959,6 @@
 
         markQuizDirty();
         isSubmitting = true;
-        setSaveStatus(i18n.submitting || 'Submitting quiz…');
 
         flushBeforeSubmit().then(function(){
             return requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.');
@@ -1014,7 +982,6 @@
                 if (errorEl) {
                     errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
                 }
-                setSaveStatus('');
             }).finally(function(){
                 isSubmitting = false;
             });

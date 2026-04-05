@@ -319,12 +319,6 @@
     flex-direction: column;
 }
 
-.teqcidb-class-quiz__save-state {
-    color: #585858;
-    font-size: 0.78rem;
-    min-height: 18px;
-}
-
 .teqcidb-class-quiz__error {
     margin-top: 10px;
     color: #8f0000;

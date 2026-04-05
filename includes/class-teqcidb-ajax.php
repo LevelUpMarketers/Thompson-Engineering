@@ -735,12 +735,7 @@ class TEQCIDB_Ajax {
             'useRestQuizApi'=> true,
             'i18n'    => array(
                 'validationAllAnswersRequired' => __( 'Please answer Question %1$s before submitting.', 'teqcidb' ),
-                'saveError'                => __( 'We could not save your latest answers. Please check your connection and try again.', 'teqcidb' ),
-                'saveRateLimited'          => __( 'Please wait a few seconds before saving again.', 'teqcidb' ),
                 'submitError'              => __( 'We could not submit your quiz. Please try again.', 'teqcidb' ),
-                'saving'                   => __( 'Saving…', 'teqcidb' ),
-                'saved'                    => __( 'Progress saved.', 'teqcidb' ),
-                'submitting'               => __( 'Submitting quiz…', 'teqcidb' ),
                 'passed'                   => __( 'Passed', 'teqcidb' ),
                 'failed'                   => __( 'Failed', 'teqcidb' ),
                 'questionOf'               => __( 'Question %1$s of %2$s', 'teqcidb' ),
