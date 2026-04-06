@@ -952,8 +952,20 @@
             }
 
             err.textContent = '';
+            btn.disabled = true;
             submitQuiz();
         });
+    }
+
+    function scrollToQuizTop(){
+        var scrollTarget = Math.max(0, (root && root.offsetTop ? root.offsetTop : 0) - 24);
+
+        if (window && typeof window.scrollTo === 'function') {
+            window.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
+        }
     }
 
     function submitQuiz(){
@@ -983,10 +995,15 @@
                     passed: payload.passed,
                     incorrectDetails: payload.incorrectDetails || []
                 });
+                scrollToQuizTop();
             }).catch(function(err){
                 var errorEl = root.querySelector('#teqcidb-quiz-error');
                 if (errorEl) {
                     errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
+                }
+                var submitButton = root.querySelector('#teqcidb-quiz-submit');
+                if (submitButton) {
+                    submitButton.disabled = false;
                 }
             }).finally(function(){
                 isSubmitting = false;
