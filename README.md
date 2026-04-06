@@ -40,22 +40,15 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.2 (current)
+### 1.0.3 (current)
 
-Changes in **1.0.2** compared with **1.0.1** (this branch/day of work):
+Changes in **1.0.3** compared with **1.0.2**:
 
-- Email Templates now support selecting a specific student in the preview controls, with live preview token hydration via autocomplete + AJAX and matching student/class context in **Send Test Email** rendering.
-- Added a dedicated admin AJAX endpoint to resolve selected-student preview tokens and server-side sanitization/merge handling for selected preview class token overrides used during test sends.
-- Class-page unauthenticated login now supports password show/hide toggles (with lightweight Dashicons + accessibility helper styling) and loads the toggle script in unauthenticated responses.
-- Class pages now show a conditional Teams link directly under the class title when a Teams URL exists.
-- Dashboard **Class History** tab label/heading updates:
-  - tab label changed from **Class History** to **Your Classes**
-  - section heading changed from **Your Class History** to **Your QCI Classes**
-- Dashboard class-history cards now show a conditional Teams link under the existing class-page link when that class has a Teams URL.
-- Dashboard **Certificates & Important Dates** now only shows refresher certificate actions when the student has a passed refresher class-history entry.
-- Wallet-card wording updates:
-  - **Most Recent Annual Update** → **Most Recent Biennial Update**
-  - **annual refresher training** policy copy → **biennial refresher training** policy copy
+- Class-page quiz runtime now renders all questions at once in sequential cards and uses a single **Submit Quiz** action instead of a one-question-at-a-time flow.
+- Added lightweight hybrid quiz autosave protection (debounced answer-change saves, jittered periodic safety saves, lifecycle/beacon saves, and pre-submit flush/wait sequencing) while keeping final submit grading behavior intact.
+- Consolidated quiz progress/submit request plumbing so REST and AJAX fallbacks share payload builders and response mapping, and server-side progress-save throttling is now centralized through one reusable rate-limit helper/constants set.
+- Removed student-facing autosave status messaging to keep the quiz experience quieter while preserving background save behavior.
+- Post-submit quiz UX now keeps questions visible in a read-only disabled state (subtly faded), and submit UX now disables the button on click plus auto-scrolls students to the result area.
 
 ## Legacy Migration Note (Student Email Placeholders)
 
