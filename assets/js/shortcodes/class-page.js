@@ -264,7 +264,9 @@
         return list;
     }
 
-    function buildChoicesHtml(question){
+    function buildChoicesHtml(question, options){
+        var renderOptions = options || {};
+        var isDisabled = !!renderOptions.disabled;
         var selected = getCurrentSelection(question.id);
         var type = question.type === 'multi_select' ? 'checkbox' : 'radio';
 
@@ -273,7 +275,7 @@
             var isChecked = selected.indexOf(value) !== -1;
             var inputName = 'teqcidb-question-' + question.id + (type === 'checkbox' ? '[]' : '');
             return '<label class="teqcidb-class-quiz__choice">' +
-                '<input type="' + type + '" name="' + esc(inputName) + '" value="' + esc(value) + '" ' + (isChecked ? 'checked' : '') + ' />' +
+                '<input type="' + type + '" name="' + esc(inputName) + '" value="' + esc(value) + '" ' + (isChecked ? 'checked' : '') + ' ' + (isDisabled ? 'disabled' : '') + ' />' +
                 '<span>' + esc(choice.label || (t('optionLabel', 'Option %s').replace('%s', String(idx + 1)))) + '</span>' +
             '</label>';
         }).join('');
@@ -526,6 +528,14 @@
             };
         }
 
+        var questionBlocks = questions.map(function(question, index){
+            return '<article class="teqcidb-class-quiz__question" data-question-id="' + esc(String(question.id)) + '">' +
+                '<h3 class="teqcidb-class-quiz__question-title">' + esc(format(t('questionOf', 'Question %1$s of %2$s'), String(index + 1), String(totalQuestions))) + '</h3>' +
+                '<div class="teqcidb-class-quiz__prompt">' + (question.prompt || '') + '</div>' +
+                '<div class="teqcidb-class-quiz__choices">' + buildChoicesHtml(question, { disabled: !!isSubmitted }) + '</div>' +
+            '</article>';
+        }).join('');
+
         if (isSubmitted && resultData) {
             var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
             var hideIncorrectDetails = !resultData.passed;
@@ -540,21 +550,17 @@
                 '</p>';
             }
 
-            root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
-                '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
-                passedMessage +
-                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
-                (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
+            root.innerHTML = '<div class="teqcidb-class-quiz is-submitted">' +
+                '<div class="teqcidb-class-quiz__result">' +
+                    '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
+                    passedMessage +
+                    '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
+                    (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
+                '</div>' +
+                '<div class="teqcidb-class-quiz__submitted-questions">' + questionBlocks + '</div>' +
             '</div>';
             return;
         }
-        var questionBlocks = questions.map(function(question, index){
-            return '<article class="teqcidb-class-quiz__question" data-question-id="' + esc(String(question.id)) + '">' +
-                '<h3 class="teqcidb-class-quiz__question-title">' + esc(format(t('questionOf', 'Question %1$s of %2$s'), String(index + 1), String(totalQuestions))) + '</h3>' +
-                '<div class="teqcidb-class-quiz__prompt">' + (question.prompt || '') + '</div>' +
-                '<div class="teqcidb-class-quiz__choices">' + buildChoicesHtml(question) + '</div>' +
-            '</article>';
-        }).join('');
 
         root.innerHTML = '<div class="teqcidb-class-quiz">' +
             questionBlocks +

@@ -292,6 +292,18 @@
     margin-bottom: 16px;
 }
 
+.teqcidb-class-quiz.is-submitted .teqcidb-class-quiz__question {
+    opacity: 0.75;
+}
+
+.teqcidb-class-quiz.is-submitted .teqcidb-class-quiz__question .teqcidb-class-quiz__choice {
+    cursor: default;
+}
+
+.teqcidb-class-quiz__submitted-questions {
+    margin-top: 14px;
+}
+
 .teqcidb-class-quiz__question-title {
     margin: 0 0 10px;
     font-size: 1.05rem;
