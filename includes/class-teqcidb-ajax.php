@@ -13,6 +13,8 @@ class TEQCIDB_Ajax {
     const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
     const QUIZ_ATTEMPT_META_CACHE_GROUP       = 'teqcidb_quiz_attempt_meta';
     const QUIZ_ATTEMPT_META_CACHE_TTL         = 300;
+    const QUIZ_QUESTION_IDS_CACHE_GROUP       = 'teqcidb_quiz_question_ids';
+    const QUIZ_QUESTION_IDS_CACHE_TTL         = 600;
     const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 3;
     const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 10;
     const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
@@ -1756,8 +1758,55 @@ class TEQCIDB_Ajax {
         );
     }
 
+    private function get_quiz_question_ids_cache_key( $quiz_id ) {
+        $quiz_id = absint( $quiz_id );
+
+        if ( $quiz_id <= 0 ) {
+            return '';
+        }
+
+        return 'teqcidb_quiz_question_ids_' . $quiz_id;
+    }
+
+    private function delete_quiz_question_ids_cache( $quiz_id ) {
+        $cache_key = $this->get_quiz_question_ids_cache_key( $quiz_id );
+
+        if ( '' === $cache_key ) {
+            return;
+        }
+
+        wp_cache_delete( $cache_key, self::QUIZ_QUESTION_IDS_CACHE_GROUP );
+        delete_transient( $cache_key );
+    }
+
     private function get_quiz_question_ids_for_persistence( $quiz_id ) {
         global $wpdb;
+
+        $quiz_id = absint( $quiz_id );
+
+        if ( $quiz_id <= 0 ) {
+            return array();
+        }
+
+        $cache_key = $this->get_quiz_question_ids_cache_key( $quiz_id );
+
+        if ( '' === $cache_key ) {
+            return array();
+        }
+
+        $cached_question_ids = wp_cache_get( $cache_key, self::QUIZ_QUESTION_IDS_CACHE_GROUP );
+
+        if ( is_array( $cached_question_ids ) ) {
+            return array_values( array_filter( array_map( 'absint', $cached_question_ids ) ) );
+        }
+
+        $transient_question_ids = get_transient( $cache_key );
+
+        if ( is_array( $transient_question_ids ) ) {
+            $transient_question_ids = array_values( array_filter( array_map( 'absint', $transient_question_ids ) ) );
+            wp_cache_set( $cache_key, $transient_question_ids, self::QUIZ_QUESTION_IDS_CACHE_GROUP, self::QUIZ_QUESTION_IDS_CACHE_TTL );
+            return $transient_question_ids;
+        }
 
         $questions_table = $wpdb->prefix . 'teqcidb_quiz_questions';
         $question_ids    = $wpdb->get_col(
@@ -1772,6 +1821,9 @@ class TEQCIDB_Ajax {
         }
 
         $question_ids = array_values( array_filter( array_map( 'absint', $question_ids ) ) );
+
+        wp_cache_set( $cache_key, $question_ids, self::QUIZ_QUESTION_IDS_CACHE_GROUP, self::QUIZ_QUESTION_IDS_CACHE_TTL );
+        set_transient( $cache_key, $question_ids, self::QUIZ_QUESTION_IDS_CACHE_TTL );
 
         return empty( $question_ids ) ? array() : $question_ids;
     }
@@ -4271,6 +4323,8 @@ class TEQCIDB_Ajax {
             );
         }
 
+        $this->delete_quiz_question_ids_cache( $quiz_id );
+
         wp_send_json_success(
             array(
                 'message' => __( 'Question saved.', 'teqcidb' ),
@@ -4436,6 +4490,8 @@ class TEQCIDB_Ajax {
                 )
             );
         }
+
+        $this->delete_quiz_question_ids_cache( $quiz_id );
 
         wp_send_json_success(
             array(
@@ -4610,6 +4666,8 @@ class TEQCIDB_Ajax {
         }
 
         $question_id = absint( $wpdb->insert_id );
+
+        $this->delete_quiz_question_ids_cache( $quiz_id );
 
         wp_send_json_success(
             array(
