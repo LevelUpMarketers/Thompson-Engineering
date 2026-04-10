@@ -248,9 +248,14 @@ class TEQCIDB_Rest {
         $attempt_id             = absint( $request->get_param( 'attempt_id' ) );
         $current_question_index = absint( $request->get_param( 'current_question_index' ) );
         $answers_raw            = $request->get_param( 'answers' );
+        $changed_answers_raw    = $request->get_param( 'changed_answers' );
 
         if ( $quiz_id <= 0 || $class_id <= 0 ) {
             return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID and class ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( null === $answers_raw && null !== $changed_answers_raw ) {
+            $answers_raw = $changed_answers_raw;
         }
 
         if ( null === $answers_raw ) {
