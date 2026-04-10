@@ -90,6 +90,7 @@
     var isDirty = false;
     var hasQueuedSaveAfterChange = false;
     var lastSavedHash = JSON.stringify(answers || {});
+    var dirtyAnswerMap = {};
     var isSubmitting = false;
     var slideIndex = 0;
     var slideViewedMap = {};
@@ -607,16 +608,81 @@
         return fallbackMessage;
     }
 
-    function buildQuizRequestPayload(){
-        return {
-            quiz_id: runtime.quiz.id,
-            class_id: runtime.quiz.classId,
-            attempt_id: attemptId,
-            answers: answers
-        };
+    function cloneAnswerMap(answerMap){
+        var clone = {};
+
+        if (!answerMap || typeof answerMap !== 'object') {
+            return clone;
+        }
+
+        Object.keys(answerMap).forEach(function(questionKey){
+            var selectedValues = answerMap[questionKey];
+            clone[questionKey] = Array.isArray(selectedValues) ? selectedValues.slice() : [];
+        });
+
+        return clone;
     }
 
-    function buildQuizAjaxFormData(action){
+    function getDirtyAnswerSnapshot(){
+        return cloneAnswerMap(dirtyAnswerMap);
+    }
+
+    function hasDirtyAnswers(){
+        return Object.keys(dirtyAnswerMap).length > 0;
+    }
+
+    function clearSavedDirtyAnswers(savedSnapshot){
+        Object.keys(savedSnapshot || {}).forEach(function(questionKey){
+            if (!Object.prototype.hasOwnProperty.call(dirtyAnswerMap, questionKey)) {
+                return;
+            }
+
+            var currentValue = JSON.stringify(dirtyAnswerMap[questionKey] || []);
+            var savedValue = JSON.stringify(savedSnapshot[questionKey] || []);
+
+            if (currentValue === savedValue) {
+                delete dirtyAnswerMap[questionKey];
+            }
+        });
+    }
+
+    function markQuestionDirty(questionId){
+        var questionKey = String(questionId || '');
+
+        if (!questionKey) {
+            return;
+        }
+
+        dirtyAnswerMap[questionKey] = Array.isArray(answers[questionKey]) ? answers[questionKey].slice() : [];
+    }
+
+    function buildQuizRequestPayload(options){
+        var requestOptions = options || {};
+        var payload = {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            attempt_id: attemptId
+        };
+
+        if (requestOptions.isProgress) {
+            var changedAnswers = requestOptions.changedAnswers && typeof requestOptions.changedAnswers === 'object'
+                ? requestOptions.changedAnswers
+                : {};
+
+            if (Object.keys(changedAnswers).length > 0) {
+                payload.changed_answers = changedAnswers;
+            } else {
+                payload.answers = answers;
+            }
+        } else {
+            payload.answers = answers;
+        }
+
+        return payload;
+    }
+
+    function buildQuizAjaxFormData(action, options){
+        var requestOptions = options || {};
         var formData = new FormData();
         formData.append('action', action);
         formData.append('_ajax_nonce', runtime.nonce || '');
@@ -624,11 +690,26 @@
         formData.append('class_id', runtime.quiz.classId);
         formData.append('attempt_id', String(attemptId || 0));
         formData.append('current_index', '0');
-        formData.append('answers_json', JSON.stringify(answers || {}));
+
+        if (requestOptions.isProgress) {
+            var changedAnswers = requestOptions.changedAnswers && typeof requestOptions.changedAnswers === 'object'
+                ? requestOptions.changedAnswers
+                : {};
+
+            if (Object.keys(changedAnswers).length > 0) {
+                formData.append('changed_answers_json', JSON.stringify(changedAnswers));
+            } else {
+                formData.append('answers_json', JSON.stringify(answers || {}));
+            }
+        } else {
+            formData.append('answers_json', JSON.stringify(answers || {}));
+        }
+
         return formData;
     }
 
-    function buildQuizProgressBeaconBody(){
+    function buildQuizProgressBeaconBody(options){
+        var requestOptions = options || {};
         var body = new URLSearchParams();
         body.append('action', 'teqcidb_save_quiz_progress');
         body.append('_ajax_nonce', runtime.nonce || '');
@@ -636,7 +717,17 @@
         body.append('class_id', runtime.quiz.classId);
         body.append('attempt_id', String(attemptId || 0));
         body.append('current_index', '0');
-        body.append('answers_json', JSON.stringify(answers || {}));
+
+        var changedAnswers = requestOptions.changedAnswers && typeof requestOptions.changedAnswers === 'object'
+            ? requestOptions.changedAnswers
+            : {};
+
+        if (Object.keys(changedAnswers).length > 0) {
+            body.append('changed_answers_json', JSON.stringify(changedAnswers));
+        } else {
+            body.append('answers_json', JSON.stringify(answers || {}));
+        }
+
         return body;
     }
 
@@ -661,7 +752,7 @@
     function requestQuizEndpoint(options){
         var requestOptions = options || {};
         var failureMessage = requestOptions.failureMessage || (i18n.submitError || 'Request failed.');
-        var payload = buildQuizRequestPayload();
+        var payload = buildQuizRequestPayload(requestOptions);
 
         if (useRestQuizApi && runtime.restUrl) {
             return fetch(String(runtime.restUrl).replace(/\/$/, '') + requestOptions.restPath, {
@@ -683,18 +774,18 @@
                 if (!useRestQuizApi || !runtime.ajaxUrl) {
                     throw err;
                 }
-                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
+                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage, requestOptions);
             });
         }
 
-        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
+        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage, requestOptions);
     }
 
-    function requestQuizEndpointFallback(ajaxAction, failureMessage){
+    function requestQuizEndpointFallback(ajaxAction, failureMessage, requestOptions){
         return fetch(runtime.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            body: buildQuizAjaxFormData(ajaxAction)
+            body: buildQuizAjaxFormData(ajaxAction, requestOptions)
         }).then(function(resp){
             return resp.json();
         }).then(function(payload){
@@ -711,11 +802,13 @@
         });
     }
 
-    function requestQuizProgressEndpoint(failureMessage){
+    function requestQuizProgressEndpoint(failureMessage, changedAnswers){
         return requestQuizEndpoint({
             restPath: '/quiz/progress',
             ajaxAction: 'teqcidb_save_quiz_progress',
-            failureMessage: failureMessage
+            failureMessage: failureMessage,
+            isProgress: true,
+            changedAnswers: changedAnswers
         });
     }
 
@@ -777,6 +870,7 @@
                     });
                     setCurrentSelection(question.id, normalizeSelected(question, selected));
                     markQuizDirty();
+                    markQuestionDirty(question.id);
                     queueAutosave({ reason: 'answer_change' });
                 });
             });
@@ -838,10 +932,18 @@
         }
 
         saveState.isSaving = true;
+        var dirtySnapshot = getDirtyAnswerSnapshot();
 
-        return requestQuizProgressEndpoint('Save failed.').then(function(payload){
+        return requestQuizProgressEndpoint('Save failed.', dirtySnapshot).then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            lastSavedHash = currentHash;
+            clearSavedDirtyAnswers(dirtySnapshot);
+
+            if (hasDirtyAnswers()) {
+                isDirty = true;
+                return;
+            }
+
+            lastSavedHash = getCurrentAnswersHash();
             isDirty = false;
         }).catch(function(){
             // Intentionally suppress autosave errors in student-facing UI.
@@ -1026,7 +1128,7 @@
     window.addEventListener('beforeunload', function(){
         if (!isSubmitted && runtime.ajaxUrl && isDirty && getCurrentAnswersHash() !== lastSavedHash) {
             if (navigator.sendBeacon) {
-                navigator.sendBeacon(runtime.ajaxUrl, buildQuizProgressBeaconBody());
+                navigator.sendBeacon(runtime.ajaxUrl, buildQuizProgressBeaconBody({ changedAnswers: getDirtyAnswerSnapshot() }));
             }
         }
 
