@@ -13,9 +13,6 @@ class TEQCIDB_Ajax {
     const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
     const QUIZ_ATTEMPT_META_CACHE_GROUP       = 'teqcidb_quiz_attempt_meta';
     const QUIZ_ATTEMPT_META_CACHE_TTL         = 300;
-    const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 3;
-    const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 10;
-    const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -1011,12 +1008,6 @@ class TEQCIDB_Ajax {
         $selected_json = isset( $_POST['selected_json'] ) ? wp_unslash( $_POST['selected_json'] ) : '';
         $current_user  = get_current_user_id();
 
-        $throttle_error = $this->enforce_quiz_progress_rate_limit( $current_user, $attempt_id, $quiz_id, $class_id );
-
-        if ( is_wp_error( $throttle_error ) ) {
-            wp_send_json_error( array( 'message' => $throttle_error->get_error_message() ), $this->get_error_status_code( $throttle_error ) );
-        }
-
         $selected_payload = json_decode( (string) $selected_json, true );
 
         if ( ! is_array( $selected_payload ) ) {
@@ -1434,35 +1425,6 @@ class TEQCIDB_Ajax {
         }
 
         return 400;
-    }
-
-    public function enforce_quiz_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
-        $user_id = absint( $user_id );
-
-        if ( $user_id <= 0 ) {
-            return new WP_Error( 'teqcidb_ajax_rate_identity_missing', __( 'Unable to rate-limit this request.', 'teqcidb' ), array( 'status' => 400 ) );
-        }
-
-        $attempt_component = $attempt_id > 0 ? $attempt_id : ( absint( $quiz_id ) . '_' . absint( $class_id ) );
-        $bucket_key        = self::QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX . md5( $user_id . '_' . $attempt_component );
-        $last_request_time = (float) get_transient( $bucket_key );
-        $now               = microtime( true );
-        $minimum_gap       = self::QUIZ_PROGRESS_RATE_LIMIT_GAP;
-
-        if ( $last_request_time > 0 && ( $now - $last_request_time ) < $minimum_gap ) {
-            return new WP_Error(
-                'teqcidb_ajax_rate_limited',
-                __( 'Please wait a few seconds before saving again.', 'teqcidb' ),
-                array(
-                    'status'      => 429,
-                    'retry_after' => $minimum_gap,
-                )
-            );
-        }
-
-        set_transient( $bucket_key, $now, self::QUIZ_PROGRESS_RATE_LIMIT_TTL );
-
-        return true;
     }
 
     private function persist_quiz_progress_answer_item( $quiz_id, $class_id, $user_id, $question_id, $selected_payload, $attempt_id = 0, $attempt_metadata = null ) {

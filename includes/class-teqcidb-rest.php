@@ -81,12 +81,6 @@ class TEQCIDB_Rest {
             return $validated;
         }
 
-        $throttle_error = $this->ajax->enforce_quiz_progress_rate_limit( get_current_user_id(), $validated['attempt_id'], $validated['quiz_id'], $validated['class_id'] );
-
-        if ( is_wp_error( $throttle_error ) ) {
-            return $throttle_error;
-        }
-
         $result = $this->ajax->process_quiz_progress_event_request( $validated, get_current_user_id() );
 
         if ( is_wp_error( $result ) ) {

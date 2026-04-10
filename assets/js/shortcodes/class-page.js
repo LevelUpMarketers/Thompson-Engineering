@@ -83,8 +83,6 @@
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
-    var saveState = { isSaving: false, hasPending: false };
-    var pendingProgressPayload = null;
     var isSubmitting = false;
     var slideIndex = 0;
     var slideViewedMap = {};
@@ -780,7 +778,7 @@
             return Promise.resolve();
         }
 
-        pendingProgressPayload = {
+        var progressPayload = {
             quiz_id: runtime.quiz.id,
             class_id: runtime.quiz.classId,
             attempt_id: attemptId,
@@ -788,53 +786,10 @@
             selected: selectedValues
         };
 
-        if (saveState.isSaving) {
-            saveState.hasPending = true;
-            return Promise.resolve();
-        }
-
-        saveState.isSaving = true;
-
-        return requestQuizProgressEndpoint(pendingProgressPayload, 'Save failed.').then(function(payload){
+        return requestQuizProgressEndpoint(progressPayload, 'Save failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            if (pendingProgressPayload) {
-                pendingProgressPayload.attempt_id = attemptId;
-            }
         }).catch(function(){
             // Intentionally suppress save errors in student-facing UI.
-        }).finally(function(){
-            saveState.isSaving = false;
-            if (saveState.hasPending && pendingProgressPayload) {
-                saveState.hasPending = false;
-                saveAnswerProgress(pendingProgressPayload.question_id, pendingProgressPayload.selected);
-            }
-        });
-    }
-
-    function waitForSaveToSettle(maxWaitMs, pollMs){
-        var maxWait = Math.max(0, parseInt(maxWaitMs, 10) || 1500);
-        var poll = Math.max(10, parseInt(pollMs, 10) || 50);
-
-        if (!saveState.isSaving) {
-            return Promise.resolve(true);
-        }
-
-        return new Promise(function(resolve){
-            var startedAt = Date.now();
-            var timer = setInterval(function(){
-                var elapsed = Date.now() - startedAt;
-
-                if (!saveState.isSaving) {
-                    clearInterval(timer);
-                    resolve(true);
-                    return;
-                }
-
-                if (elapsed >= maxWait) {
-                    clearInterval(timer);
-                    resolve(false);
-                }
-            }, poll);
         });
     }
 
@@ -888,9 +843,7 @@
     function submitQuiz(){
         isSubmitting = true;
 
-        waitForSaveToSettle(1500, 50).then(function(){
-            return requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.');
-        }).then(function(payload){
+        requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.').then(function(payload){
                 attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
                 isSubmitted = true;
                 render({
