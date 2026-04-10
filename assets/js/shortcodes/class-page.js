@@ -80,34 +80,17 @@
     var slides = Array.isArray(runtime.slides) ? runtime.slides : [];
     var totalQuestions = questions.length;
     var answers = Object.assign({}, (runtime.attempt && runtime.attempt.answers) || {});
-    var currentIndex = Math.max(0, parseInt((runtime.attempt && runtime.attempt.currentIndex) || 0, 10) || 0);
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
-    var saveTimer = null;
-    var saveMessageTimer = null;
-    var saveState = {
-        isSaving: false,
-        hasPending: false
-    };
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
-    var hasShownResumeNotice = false;
-    var hadRestoredQuizProgress = !!(
-        runtime.attempt &&
-        runtime.attempt.status === 2 &&
-        (
-            (runtime.attempt.currentIndex && parseInt(runtime.attempt.currentIndex, 10) > 0) ||
-            (runtime.attempt.answers && Object.keys(runtime.attempt.answers).some(function(questionId){
-                var savedSelection = runtime.attempt.answers[questionId];
-                return Array.isArray(savedSelection) && savedSelection.length > 0;
-            }))
-        )
-    );
-    var autosaveIntervalMs = 12000;
-    var fullSnapshotEveryAutosaves = 5;
-    var autosaveProgressSaves = 0;
+    var saveTimer = null;
+    var periodicSaveTimer = null;
+    var periodicSaveIntervalMs = (90000 + Math.floor(Math.random() * 60001));
+    var saveState = { isSaving: false, hasPending: false };
     var isDirty = false;
-    var lastSavedHash = '';
-    var dirtyAnswerQuestionIds = {};
+    var hasQueuedSaveAfterChange = false;
+    var lastSavedHash = JSON.stringify(answers || {});
+    var isSubmitting = false;
     var slideIndex = 0;
     var slideViewedMap = {};
     var initialSlideProgress = runtime.slideProgress || {};
@@ -123,12 +106,6 @@
     var slideCooldownUnlockByIndex = {};
     var preloadedSlideUrls = {};
     var preloadInFlight = {};
-    var metrics = {
-        saveAttempts: 0,
-        saveSuccess: 0,
-        saveFailures: 0,
-        skippedNoop: 0
-    };
 
     function esc(text){
         return String(text || '').replace(/[&<>"]+/g, function(char){
@@ -205,64 +182,14 @@
         }
     }
 
-    function getQuestionByIndex(index){
-        return questions[Math.max(0, Math.min(index, totalQuestions - 1))];
-    }
-
     function getCurrentSelection(questionId){
         var selected = answers[String(questionId)];
         return Array.isArray(selected) ? selected : [];
     }
 
-    function markQuestionAnswerDirty(questionId){
-        var normalizedQuestionId = parseInt(questionId, 10);
-
-        if (isNaN(normalizedQuestionId) || normalizedQuestionId <= 0) {
-            return;
-        }
-
-        dirtyAnswerQuestionIds[String(normalizedQuestionId)] = true;
-    }
-
-    function buildPartialAnswerPayload(){
-        var partialAnswers = {};
-
-        Object.keys(dirtyAnswerQuestionIds).forEach(function(questionId){
-            if (!Object.prototype.hasOwnProperty.call(answers, questionId)) {
-                return;
-            }
-
-            partialAnswers[questionId] = answers[questionId];
-        });
-
-        return partialAnswers;
-    }
-
     function setCurrentSelection(questionId, selected){
         var normalizedQuestionId = String(questionId);
         answers[normalizedQuestionId] = selected;
-        markQuestionAnswerDirty(normalizedQuestionId);
-    }
-
-    function buildProgressPayload(options){
-        var payloadOptions = options || {};
-        var fullSnapshot = !!payloadOptions.fullSnapshot;
-
-        return {
-            quiz_id: runtime.quiz.id,
-            class_id: runtime.quiz.classId,
-            attempt_id: attemptId,
-            current_question_index: currentIndex,
-            answers: fullSnapshot ? answers : buildPartialAnswerPayload()
-        };
-    }
-
-    function getProgressPayloadHash(){
-        return JSON.stringify(buildProgressPayload({ fullSnapshot: true }));
-    }
-
-    function markDirty(){
-        isDirty = true;
     }
 
     function buildSlideProgressPayload(){
@@ -314,18 +241,6 @@
         }
     }
 
-    function progressPercent(){
-        return Math.round((completedCount() / totalQuestions) * 100);
-    }
-
-    function questionPositionLabel(){
-        return format(t('questionOf', 'Question %1$s of %2$s'), String(currentIndex + 1), String(totalQuestions));
-    }
-
-    function statusLine(){
-        return format(t('completedRemaining', '%1$s completed / %2$s remaining'), String(completedCount()), String(totalQuestions - completedCount()));
-    }
-
     function normalizeSelected(question, selectedValues){
         if (!Array.isArray(selectedValues)) {
             return [];
@@ -349,7 +264,9 @@
         return list;
     }
 
-    function buildChoicesHtml(question){
+    function buildChoicesHtml(question, options){
+        var renderOptions = options || {};
+        var isDisabled = !!renderOptions.disabled;
         var selected = getCurrentSelection(question.id);
         var type = question.type === 'multi_select' ? 'checkbox' : 'radio';
 
@@ -358,7 +275,7 @@
             var isChecked = selected.indexOf(value) !== -1;
             var inputName = 'teqcidb-question-' + question.id + (type === 'checkbox' ? '[]' : '');
             return '<label class="teqcidb-class-quiz__choice">' +
-                '<input type="' + type + '" name="' + esc(inputName) + '" value="' + esc(value) + '" ' + (isChecked ? 'checked' : '') + ' />' +
+                '<input type="' + type + '" name="' + esc(inputName) + '" value="' + esc(value) + '" ' + (isChecked ? 'checked' : '') + ' ' + (isDisabled ? 'disabled' : '') + ' />' +
                 '<span>' + esc(choice.label || (t('optionLabel', 'Option %s').replace('%s', String(idx + 1)))) + '</span>' +
             '</label>';
         }).join('');
@@ -611,11 +528,13 @@
             };
         }
 
-        var question = getQuestionByIndex(currentIndex);
-        var completed = completedCount();
-        var percent = progressPercent();
-        var shouldShowResumeNotice = !hasShownResumeNotice && hadRestoredQuizProgress;
-        var notice = shouldShowResumeNotice ? ('<div class="teqcidb-class-quiz__notice">' + esc(i18n.resumeNotice || '') + '</div>') : '';
+        var questionBlocks = questions.map(function(question, index){
+            return '<article class="teqcidb-class-quiz__question" data-question-id="' + esc(String(question.id)) + '">' +
+                '<h3 class="teqcidb-class-quiz__question-title">' + esc(format(t('questionOf', 'Question %1$s of %2$s'), String(index + 1), String(totalQuestions))) + '</h3>' +
+                '<div class="teqcidb-class-quiz__prompt">' + (question.prompt || '') + '</div>' +
+                '<div class="teqcidb-class-quiz__choices">' + buildChoicesHtml(question, { disabled: !!isSubmitted }) + '</div>' +
+            '</article>';
+        }).join('');
 
         if (isSubmitted && resultData) {
             var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
@@ -631,124 +550,172 @@
                 '</p>';
             }
 
-            root.innerHTML = '<div class="teqcidb-class-quiz__result">' +
-                '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
-                passedMessage +
-                '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
-                (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
+            root.innerHTML = '<div class="teqcidb-class-quiz is-submitted">' +
+                '<div class="teqcidb-class-quiz__result">' +
+                    '<h3>' + esc(resultData.passed ? (i18n.passed || 'Passed') : (i18n.failed || 'Failed')) + '</h3>' +
+                    passedMessage +
+                    '<p>' + esc(format(t('scoreSummary', 'Score: %1$s% (Required: %2$s%)'), String(resultData.score), String(resultData.passThreshold))) + '</p>' +
+                    (hideIncorrectDetails ? '' : buildIncorrectHtml(resultData.incorrectDetails || [])) +
+                '</div>' +
+                '<div class="teqcidb-class-quiz__submitted-questions">' + questionBlocks + '</div>' +
             '</div>';
             return;
         }
 
-        var atEnd = currentIndex >= (totalQuestions - 1);
-
         root.innerHTML = '<div class="teqcidb-class-quiz">' +
-            notice +
-            '<div class="teqcidb-class-quiz__meta">' +
-                '<strong>' + esc(questionPositionLabel()) + '</strong>' +
-                '<span>' + esc(statusLine()) + '</span>' +
-            '</div>' +
-            '<div class="teqcidb-class-quiz__progress"><span style="width:' + percent + '%"></span></div>' +
-            '<div class="teqcidb-class-quiz__prompt">' + (question.prompt || '') + '</div>' +
-            '<div class="teqcidb-class-quiz__choices">' + buildChoicesHtml(question) + '</div>' +
+            questionBlocks +
             '<div class="teqcidb-class-quiz__actions">' +
-                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-next">' + esc(atEnd ? t('submitQuiz', 'Submit Quiz') : t('nextQuestion', 'Next Question')) + '</button>' +
-                '<span class="teqcidb-class-quiz__save-state" id="teqcidb-quiz-save-state"></span>' +
+                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-submit">' + esc(t('submitQuiz', 'Submit Quiz')) + '</button>' +
             '</div>' +
             '<div class="teqcidb-class-quiz__error" id="teqcidb-quiz-error" aria-live="polite"></div>' +
         '</div>';
 
-        bindChoiceEvents(question);
-        bindNextButton(question, atEnd);
-
-        var noticeEl = root.querySelector('.teqcidb-class-quiz__notice');
-        if (noticeEl) {
-            hasShownResumeNotice = true;
-            window.setTimeout(function(){
-                noticeEl.classList.add('is-fading-out');
-            }, 10000);
-        }
-    }
-
-
-    function toQueryPayload(options){
-        return buildProgressPayload(options);
+        bindChoiceEvents();
+        bindSubmitButton();
     }
 
     function parseAjaxResponse(payload){
         if (!payload || !payload.success) {
-            throw new Error((payload && payload.data && payload.data.message) || (i18n.saveError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.submitError || 'Request failed.'));
         }
         return payload.data || {};
     }
 
     function parseRestResponse(payload){
         if (!payload || payload.ok !== true) {
-            throw new Error((payload && payload.message) || (i18n.saveError || 'Request failed.'));
+            throw new Error(getRequestErrorMessage(payload, i18n.submitError || 'Request failed.'));
         }
         return payload;
     }
 
-    function requestQuizEndpoint(restPath, ajaxAction, failureMessage, requestOptions){
-        var endpointOptions = requestOptions || {};
+    function getRequestErrorMessage(payload, fallbackMessage){
+        var payloadStatus = payload && payload.data && payload.data.status ? parseInt(payload.data.status, 10) : 0;
+        var payloadCode = payload && payload.code ? String(payload.code) : '';
+
+        if (payloadStatus === 429 || payloadCode.indexOf('rate_limited') !== -1) {
+            return 'Please wait a few seconds before saving again.';
+        }
+
+        if (payload && payload.data && typeof payload.data.message === 'string' && payload.data.message.length) {
+            return payload.data.message;
+        }
+
+        if (payload && typeof payload.message === 'string' && payload.message.length) {
+            return payload.message;
+        }
+
+        return fallbackMessage;
+    }
+
+    function buildQuizRequestPayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            attempt_id: attemptId,
+            answers: answers
+        };
+    }
+
+    function buildQuizAjaxFormData(action){
+        var formData = new FormData();
+        formData.append('action', action);
+        formData.append('_ajax_nonce', runtime.nonce || '');
+        formData.append('quiz_id', runtime.quiz.id);
+        formData.append('class_id', runtime.quiz.classId);
+        formData.append('attempt_id', String(attemptId || 0));
+        formData.append('current_index', '0');
+        formData.append('answers_json', JSON.stringify(answers || {}));
+        return formData;
+    }
+
+    function buildQuizProgressBeaconBody(){
+        var body = new URLSearchParams();
+        body.append('action', 'teqcidb_save_quiz_progress');
+        body.append('_ajax_nonce', runtime.nonce || '');
+        body.append('quiz_id', runtime.quiz.id);
+        body.append('class_id', runtime.quiz.classId);
+        body.append('attempt_id', String(attemptId || 0));
+        body.append('current_index', '0');
+        body.append('answers_json', JSON.stringify(answers || {}));
+        return body;
+    }
+
+    function mapAjaxQuizResponse(ajaxAction, data, failureMessage){
+        var base = {
+            ok: true,
+            attempt_id: data.attemptId || attemptId || 0,
+            saved_at: data.savedAt || '',
+            message: data.message || failureMessage
+        };
+
+        if (ajaxAction === 'teqcidb_submit_quiz_attempt') {
+            base.score = data.score;
+            base.passThreshold = data.passThreshold;
+            base.passed = data.passed;
+            base.incorrectDetails = data.incorrectDetails;
+        }
+
+        return base;
+    }
+
+    function requestQuizEndpoint(options){
+        var requestOptions = options || {};
+        var failureMessage = requestOptions.failureMessage || (i18n.submitError || 'Request failed.');
+        var payload = buildQuizRequestPayload();
 
         if (useRestQuizApi && runtime.restUrl) {
-            return fetch(String(runtime.restUrl).replace(/\/$/, '') + restPath, {
+            return fetch(String(runtime.restUrl).replace(/\/$/, '') + requestOptions.restPath, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-WP-Nonce': runtime.restNonce || ''
                 },
-                body: JSON.stringify(toQueryPayload({ fullSnapshot: !!endpointOptions.fullSnapshot }))
+                body: JSON.stringify(payload)
             }).then(function(resp){
-                return resp.json().then(function(payload){
+                return resp.json().then(function(responsePayload){
                     if (!resp.ok) {
-                        throw new Error((payload && payload.message) || failureMessage);
+                        throw new Error(getRequestErrorMessage(responsePayload, failureMessage));
                     }
-                    return parseRestResponse(payload);
+                    return parseRestResponse(responsePayload);
                 });
             }).catch(function(err){
                 if (!useRestQuizApi || !runtime.ajaxUrl) {
                     throw err;
                 }
-                return requestQuizEndpointFallback(ajaxAction, failureMessage, endpointOptions);
+                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
             });
         }
 
-        return requestQuizEndpointFallback(ajaxAction, failureMessage, endpointOptions);
+        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
     }
 
-    function requestQuizEndpointFallback(ajaxAction, failureMessage, requestOptions){
-        var endpointOptions = requestOptions || {};
-        var progressPayload = toQueryPayload({ fullSnapshot: !!endpointOptions.fullSnapshot });
-        var formData = new FormData();
-        formData.append('action', ajaxAction);
-        formData.append('_ajax_nonce', runtime.nonce || '');
-        formData.append('quiz_id', runtime.quiz.id);
-        formData.append('class_id', runtime.quiz.classId);
-        formData.append('attempt_id', String(attemptId || 0));
-        formData.append('current_index', String(currentIndex));
-        formData.append('answers_json', JSON.stringify(progressPayload.answers || {}));
-
+    function requestQuizEndpointFallback(ajaxAction, failureMessage){
         return fetch(runtime.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            body: formData
+            body: buildQuizAjaxFormData(ajaxAction)
         }).then(function(resp){
             return resp.json();
         }).then(function(payload){
             var data = parseAjaxResponse(payload);
-            return {
-                ok: true,
-                attempt_id: data.attemptId || attemptId || 0,
-                saved_at: data.savedAt || '',
-                message: data.message || failureMessage,
-                score: data.score,
-                passThreshold: data.passThreshold,
-                passed: data.passed,
-                incorrectDetails: data.incorrectDetails
-            };
+            return mapAjaxQuizResponse(ajaxAction, data, failureMessage);
+        });
+    }
+
+    function requestQuizSubmitEndpoint(failureMessage){
+        return requestQuizEndpoint({
+            restPath: '/quiz/submit',
+            ajaxAction: 'teqcidb_submit_quiz_attempt',
+            failureMessage: failureMessage
+        });
+    }
+
+    function requestQuizProgressEndpoint(failureMessage){
+        return requestQuizEndpoint({
+            restPath: '/quiz/progress',
+            ajaxAction: 'teqcidb_save_quiz_progress',
+            failureMessage: failureMessage
         });
     }
 
@@ -796,167 +763,88 @@
         return '<div class="teqcidb-class-quiz__incorrect"><h4>' + esc(t('questionsToReview', 'Questions to Review')) + '</h4>' + rows + '</div>';
     }
 
-    function bindChoiceEvents(question){
-        var choiceInputs = root.querySelectorAll('.teqcidb-class-quiz__choice input');
+    function bindChoiceEvents(){
+        questions.forEach(function(question){
+            var choiceInputs = root.querySelectorAll('[name="teqcidb-question-' + String(question.id) + '"], [name="teqcidb-question-' + String(question.id) + '[]"]');
 
-        choiceInputs.forEach(function(input){
-            input.addEventListener('change', function(){
-                var selected = [];
-                var allInputs = root.querySelectorAll('.teqcidb-class-quiz__choice input');
-                allInputs.forEach(function(el){
-                    if (el.checked) {
-                        selected.push(el.value);
-                    }
+            choiceInputs.forEach(function(input){
+                input.addEventListener('change', function(){
+                    var selected = [];
+                    choiceInputs.forEach(function(el){
+                        if (el.checked) {
+                            selected.push(el.value);
+                        }
+                    });
+                    setCurrentSelection(question.id, normalizeSelected(question, selected));
+                    markQuizDirty();
+                    queueAutosave({ reason: 'answer_change' });
                 });
-                setCurrentSelection(question.id, normalizeSelected(question, selected));
-                markDirty();
-                queueAutosave();
             });
         });
     }
 
-    function bindNextButton(question, atEnd){
-        var btn = root.querySelector('#teqcidb-quiz-next');
-        var err = root.querySelector('#teqcidb-quiz-error');
+    function getCurrentAnswersHash(){
+        return JSON.stringify(answers || {});
+    }
 
-        if (!btn) {
+    function markQuizDirty(){
+        isDirty = true;
+    }
+
+    function queueAutosave(options){
+        var queueOptions = options || {};
+
+        if (isSubmitted || isSubmitting) {
             return;
         }
 
-        btn.addEventListener('click', function(){
-            var selected = getCurrentSelection(question.id);
-
-            if (!Array.isArray(selected) || selected.length === 0) {
-                err.textContent = i18n.validationAnswerRequired || 'Please select an answer before continuing.';
-                return;
-            }
-
-            err.textContent = '';
-
-            if (atEnd) {
-                submitQuiz();
-                return;
-            }
-
-            currentIndex += 1;
-            markDirty();
-            queueAutosave(true);
-            render();
-        });
-    }
-
-    function updateSaveStatus(message){
-        var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-
-        if (!stateEl) {
-            return;
-        }
-
-        stateEl.textContent = message || '';
-        stateEl.classList.remove('is-fading-out');
-    }
-
-    function clearSaveStatus(){
-        var stateEl = root.querySelector('#teqcidb-quiz-save-state');
-
-        if (!stateEl) {
-            return;
-        }
-
-        stateEl.classList.add('is-fading-out');
-
-        window.setTimeout(function(){
-            var refreshedEl = root.querySelector('#teqcidb-quiz-save-state');
-
-            if (refreshedEl) {
-                refreshedEl.textContent = '';
-                refreshedEl.classList.remove('is-fading-out');
-            }
-        }, 350);
-    }
-
-    function showProgressSavedStatus(){
-        if (saveMessageTimer) {
-            clearTimeout(saveMessageTimer);
-            saveMessageTimer = null;
-        }
-
-        updateSaveStatus(i18n.saved || 'Progress saved.');
-
-        saveMessageTimer = setTimeout(function(){
-            clearSaveStatus();
-            saveMessageTimer = null;
-        }, 3000);
-    }
-
-    function queueAutosave(immediate){
-        if (isSubmitted) {
-            return;
-        }
-
-        if (immediate) {
+        if (queueOptions.immediate) {
             if (saveTimer) {
                 clearTimeout(saveTimer);
                 saveTimer = null;
             }
-            saveProgress({ reason: 'boundary' });
+            saveProgress({ reason: queueOptions.reason || 'immediate' });
             return;
         }
 
         if (saveTimer) {
-            return;
+            clearTimeout(saveTimer);
         }
 
+        hasQueuedSaveAfterChange = true;
         saveTimer = setTimeout(function(){
             saveTimer = null;
-            saveProgress({ reason: 'interval' });
-        }, autosaveIntervalMs);
+            hasQueuedSaveAfterChange = false;
+            saveProgress({ reason: queueOptions.reason || 'debounce' });
+        }, 10000);
     }
 
     function saveProgress(options){
         var saveOptions = options || {};
-        var payloadHash = getProgressPayloadHash();
-        var shouldSendFullSnapshot = !!saveOptions.forceFullSnapshot;
+        var currentHash = getCurrentAnswersHash();
+        var ignoreSubmittingGuard = !!saveOptions.ignoreSubmittingGuard;
 
-        if (isSubmitted) {
-            return;
+        if (isSubmitted || (isSubmitting && !ignoreSubmittingGuard)) {
+            return Promise.resolve();
         }
 
-        if (!isDirty || payloadHash === lastSavedHash) {
-            metrics.skippedNoop += 1;
-            recordMetric('quiz_save_noop', { reason: saveOptions.reason || 'unspecified' });
-            return;
+        if (!isDirty || currentHash === lastSavedHash) {
+            return Promise.resolve();
         }
 
         if (saveState.isSaving) {
             saveState.hasPending = true;
-            return;
-        }
-
-        if (!shouldSendFullSnapshot) {
-            autosaveProgressSaves += 1;
-            if (autosaveProgressSaves % fullSnapshotEveryAutosaves === 0) {
-                shouldSendFullSnapshot = true;
-            }
+            return Promise.resolve();
         }
 
         saveState.isSaving = true;
-        metrics.saveAttempts += 1;
-        recordMetric('quiz_save_attempt', { reason: saveOptions.reason || 'unspecified' });
 
-        requestQuizEndpoint('/quiz/progress', 'teqcidb_save_quiz_progress', i18n.saveError || 'Save failed.', { fullSnapshot: shouldSendFullSnapshot }).then(function(payload){
+        return requestQuizProgressEndpoint('Save failed.').then(function(payload){
             attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            lastSavedHash = payloadHash;
+            lastSavedHash = currentHash;
             isDirty = false;
-            dirtyAnswerQuestionIds = {};
-            metrics.saveSuccess += 1;
-            recordMetric('quiz_save_success', { reason: saveOptions.reason || 'unspecified' });
-            if (saveOptions.reason === 'boundary') {
-                showProgressSavedStatus();
-            }
-        }).catch(function(err){
-            metrics.saveFailures += 1;
-            recordMetric('quiz_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
+        }).catch(function(){
+            // Intentionally suppress autosave errors in student-facing UI.
         }).finally(function(){
             saveState.isSaving = false;
             if (saveState.hasPending) {
@@ -966,60 +854,179 @@
         });
     }
 
+    function waitForSaveToSettle(maxWaitMs, pollMs){
+        var maxWait = Math.max(0, parseInt(maxWaitMs, 10) || 1500);
+        var poll = Math.max(10, parseInt(pollMs, 10) || 50);
+
+        if (!saveState.isSaving) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(function(resolve){
+            var startedAt = Date.now();
+            var timer = setInterval(function(){
+                var elapsed = Date.now() - startedAt;
+
+                if (!saveState.isSaving) {
+                    clearInterval(timer);
+                    resolve(true);
+                    return;
+                }
+
+                if (elapsed >= maxWait) {
+                    clearInterval(timer);
+                    resolve(false);
+                }
+            }, poll);
+        });
+    }
+
+    function flushBeforeSubmit(){
+        var flushResult = {
+            settled: false,
+            attemptedFlush: false,
+            flushSucceeded: false
+        };
+
+        return waitForSaveToSettle(1500, 50).then(function(settled){
+            flushResult.settled = !!settled;
+
+            if (!isDirty) {
+                return flushResult;
+            }
+
+            flushResult.attemptedFlush = true;
+
+            return saveProgress({ reason: 'pre_submit_flush', ignoreSubmittingGuard: true }).then(function(){
+                flushResult.flushSucceeded = true;
+                return flushResult;
+            }).catch(function(){
+                return flushResult;
+            });
+        }).catch(function(){
+            return flushResult;
+        });
+    }
+
+    function startPeriodicAutosave(){
+        if (periodicSaveTimer || isSubmitted) {
+            return;
+        }
+
+        periodicSaveTimer = setInterval(function(){
+            if (hasQueuedSaveAfterChange || isSubmitting || isSubmitted) {
+                return;
+            }
+            saveProgress({ reason: 'periodic' });
+        }, periodicSaveIntervalMs);
+    }
+
+    function getFirstUnansweredQuestionNumber(){
+        for (var i = 0; i < questions.length; i += 1) {
+            var selected = getCurrentSelection(questions[i].id);
+            if (!Array.isArray(selected) || selected.length === 0) {
+                return i + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    function bindSubmitButton(){
+        var btn = root.querySelector('#teqcidb-quiz-submit');
+        var err = root.querySelector('#teqcidb-quiz-error');
+
+        if (!btn) {
+            return;
+        }
+
+        btn.addEventListener('click', function(){
+            if (isSubmitting) {
+                return;
+            }
+
+            var firstUnansweredQuestion = getFirstUnansweredQuestionNumber();
+            if (firstUnansweredQuestion > 0) {
+                err.textContent = format(i18n.validationAllAnswersRequired || 'Please answer Question %1$s before submitting.', String(firstUnansweredQuestion));
+                return;
+            }
+
+            err.textContent = '';
+            btn.disabled = true;
+            submitQuiz();
+        });
+    }
+
+    function scrollToQuizTop(){
+        var scrollTarget = Math.max(0, (root && root.offsetTop ? root.offsetTop : 0) - 24);
+
+        if (window && typeof window.scrollTo === 'function') {
+            window.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
+        }
+    }
+
     function submitQuiz(){
         if (saveTimer) {
             clearTimeout(saveTimer);
             saveTimer = null;
+            hasQueuedSaveAfterChange = false;
         }
 
-        markDirty();
+        markQuizDirty();
+        isSubmitting = true;
 
-        requestQuizEndpoint('/quiz/submit', 'teqcidb_submit_quiz_attempt', i18n.submitError || 'Submit failed.', { fullSnapshot: true }).then(function(payload){
-            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            isSubmitted = true;
-            isDirty = false;
-            dirtyAnswerQuestionIds = {};
-            lastSavedHash = getProgressPayloadHash();
-            render({
-                score: payload.score,
-                passThreshold: payload.passThreshold,
-                passed: payload.passed,
-                incorrectDetails: payload.incorrectDetails || []
+        flushBeforeSubmit().then(function(){
+            return requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.');
+        }).then(function(payload){
+                attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
+                isSubmitted = true;
+                isDirty = false;
+                lastSavedHash = getCurrentAnswersHash();
+                if (periodicSaveTimer) {
+                    clearInterval(periodicSaveTimer);
+                    periodicSaveTimer = null;
+                }
+                render({
+                    score: payload.score,
+                    passThreshold: payload.passThreshold,
+                    passed: payload.passed,
+                    incorrectDetails: payload.incorrectDetails || []
+                });
+                scrollToQuizTop();
+            }).catch(function(err){
+                var errorEl = root.querySelector('#teqcidb-quiz-error');
+                if (errorEl) {
+                    errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
+                }
+                var submitButton = root.querySelector('#teqcidb-quiz-submit');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            }).finally(function(){
+                isSubmitting = false;
             });
-        }).catch(function(err){
-            var errorEl = root.querySelector('#teqcidb-quiz-error');
-            if (errorEl) {
-                errorEl.textContent = err.message || (i18n.submitError || 'Submit failed.');
-            }
-        });
     }
 
     document.addEventListener('visibilitychange', function(){
         if (document.visibilityState === 'hidden') {
-            if (!isSubmitted) {
-                saveProgress({ reason: 'visibility_hidden' });
-            }
+            queueAutosave({ immediate: true, reason: 'visibility_hidden' });
             if (requiresSlidesFirst) {
                 saveSlideProgress({ reason: 'visibility_hidden' });
             }
         }
     });
 
+    window.addEventListener('pagehide', function(){
+        queueAutosave({ immediate: true, reason: 'pagehide' });
+    });
+
     window.addEventListener('beforeunload', function(){
-        if (runtime.ajaxUrl && !isSubmitted && isDirty && getProgressPayloadHash() !== lastSavedHash) {
-            recordMetric('quiz_beacon_attempt', { reason: 'beforeunload' });
-
-            var body = new URLSearchParams();
-            body.append('action', 'teqcidb_save_quiz_progress');
-            body.append('_ajax_nonce', runtime.nonce || '');
-            body.append('quiz_id', runtime.quiz.id);
-            body.append('class_id', runtime.quiz.classId);
-            body.append('attempt_id', String(attemptId || 0));
-            body.append('current_index', String(currentIndex));
-            body.append('answers_json', JSON.stringify(answers));
-
+        if (!isSubmitted && runtime.ajaxUrl && isDirty && getCurrentAnswersHash() !== lastSavedHash) {
             if (navigator.sendBeacon) {
-                navigator.sendBeacon(runtime.ajaxUrl, body);
+                navigator.sendBeacon(runtime.ajaxUrl, buildQuizProgressBeaconBody());
             }
         }
 
@@ -1037,18 +1044,6 @@
             });
         }
     });
-
-    window.addEventListener('blur', function(){
-        if (!isSubmitted) {
-            saveProgress({ reason: 'window_blur', forceFullSnapshot: true });
-        }
-    });
-
-    if (completedCount() >= totalQuestions) {
-        currentIndex = totalQuestions - 1;
-    }
-
-    lastSavedHash = getProgressPayloadHash();
 
     if (requiresSlidesFirst) {
         var restoredSlideProgress = initialSlideProgress;
@@ -1075,5 +1070,6 @@
         return;
     }
 
+    startPeriodicAutosave();
     render();
 })();

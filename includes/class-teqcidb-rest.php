@@ -81,7 +81,7 @@ class TEQCIDB_Rest {
             return $validated;
         }
 
-        $throttle_error = $this->enforce_progress_rate_limit( get_current_user_id(), $validated['attempt_id'], $validated['quiz_id'], $validated['class_id'] );
+        $throttle_error = $this->ajax->enforce_quiz_progress_rate_limit( get_current_user_id(), $validated['attempt_id'], $validated['quiz_id'], $validated['class_id'] );
 
         if ( is_wp_error( $throttle_error ) ) {
             return $throttle_error;
@@ -300,31 +300,4 @@ class TEQCIDB_Rest {
         );
     }
 
-    private function enforce_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
-        $user_id = absint( $user_id );
-
-        if ( $user_id <= 0 ) {
-            return new WP_Error( 'teqcidb_rest_rate_identity_missing', __( 'Unable to rate-limit this request.', 'teqcidb' ), array( 'status' => 400 ) );
-        }
-
-        $attempt_component = $attempt_id > 0 ? $attempt_id : ( $quiz_id . '_' . $class_id );
-        $bucket_key        = 'teqcidb_qp_rate_' . md5( $user_id . '_' . $attempt_component );
-        $last_request_time = (float) get_transient( $bucket_key );
-        $now               = microtime( true );
-
-        if ( $last_request_time > 0 && ( $now - $last_request_time ) < 0.8 ) {
-            return new WP_Error(
-                'teqcidb_rest_rate_limited',
-                __( 'Too many autosave requests. Please retry shortly.', 'teqcidb' ),
-                array(
-                    'status'      => 429,
-                    'retry_after' => 1,
-                )
-            );
-        }
-
-        set_transient( $bucket_key, $now, 10 );
-
-        return true;
-    }
 }

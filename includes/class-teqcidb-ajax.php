@@ -13,6 +13,9 @@ class TEQCIDB_Ajax {
     const CLASS_PAGE_PATH_PREFIX              = 'teqcidb-class';
     const QUIZ_ATTEMPT_META_CACHE_GROUP       = 'teqcidb_quiz_attempt_meta';
     const QUIZ_ATTEMPT_META_CACHE_TTL         = 300;
+    const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 3;
+    const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 10;
+    const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -398,7 +401,7 @@ class TEQCIDB_Ajax {
             } elseif ( 'refresher' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' );
             } else {
-                $quiz_intro = __( 'Answer each question and continue through the quiz. Your progress is auto-saved frequently.', 'teqcidb' );
+                $quiz_intro = __( 'Answer each question and submit your quiz when complete.', 'teqcidb' );
             }
 
             echo '<p id="teqcidb-class-quiz-section-description" class="teqcidb-class-route__section-description">' . wp_kses( $quiz_intro, $allowed_feedback_html ) . '</p>';
@@ -731,18 +734,11 @@ class TEQCIDB_Ajax {
             'restNonce'    => wp_create_nonce( 'wp_rest' ),
             'useRestQuizApi'=> true,
             'i18n'    => array(
-                'validationAnswerRequired' => __( 'Please select an answer before continuing.', 'teqcidb' ),
-                'saveError'                => __( 'We could not save your latest answer. Please check your connection and try again.', 'teqcidb' ),
+                'validationAllAnswersRequired' => __( 'Please answer Question %1$s before submitting.', 'teqcidb' ),
                 'submitError'              => __( 'We could not submit your quiz. Please try again.', 'teqcidb' ),
-                'resumeNotice'             => __( 'We restored your previous progress from your latest save.', 'teqcidb' ),
-                'saving'                   => __( 'Saving…', 'teqcidb' ),
-                'saved'                    => __( 'Progress saved.', 'teqcidb' ),
-                'submitting'               => __( 'Submitting quiz…', 'teqcidb' ),
                 'passed'                   => __( 'Passed', 'teqcidb' ),
                 'failed'                   => __( 'Failed', 'teqcidb' ),
                 'questionOf'               => __( 'Question %1$s of %2$s', 'teqcidb' ),
-                'completedRemaining'       => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
-                'nextQuestion'             => __( 'Next Question', 'teqcidb' ),
                 'submitQuiz'               => __( 'Submit Quiz', 'teqcidb' ),
                 'scoreSummary'             => __( 'Score: %1$s% (Required: %2$s%)', 'teqcidb' ),
                 'questionsToReview'        => __( 'Questions to Review', 'teqcidb' ),
@@ -1015,6 +1011,12 @@ class TEQCIDB_Ajax {
         $answers_json  = isset( $_POST['answers_json'] ) ? wp_unslash( $_POST['answers_json'] ) : '';
         $current_user  = get_current_user_id();
 
+        $throttle_error = $this->enforce_quiz_progress_rate_limit( $current_user, $attempt_id, $quiz_id, $class_id );
+
+        if ( is_wp_error( $throttle_error ) ) {
+            wp_send_json_error( array( 'message' => $throttle_error->get_error_message() ), $this->get_error_status_code( $throttle_error ) );
+        }
+
         $answers_payload = json_decode( (string) $answers_json, true );
 
         if ( ! is_array( $answers_payload ) ) {
@@ -1036,7 +1038,6 @@ class TEQCIDB_Ajax {
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ), $this->get_error_status_code( $result ) );
         }
-
 
         wp_send_json_success(
             array(
@@ -1384,6 +1385,35 @@ class TEQCIDB_Ajax {
         }
 
         return 400;
+    }
+
+    public function enforce_quiz_progress_rate_limit( $user_id, $attempt_id, $quiz_id, $class_id ) {
+        $user_id = absint( $user_id );
+
+        if ( $user_id <= 0 ) {
+            return new WP_Error( 'teqcidb_ajax_rate_identity_missing', __( 'Unable to rate-limit this request.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $attempt_component = $attempt_id > 0 ? $attempt_id : ( absint( $quiz_id ) . '_' . absint( $class_id ) );
+        $bucket_key        = self::QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX . md5( $user_id . '_' . $attempt_component );
+        $last_request_time = (float) get_transient( $bucket_key );
+        $now               = microtime( true );
+        $minimum_gap       = self::QUIZ_PROGRESS_RATE_LIMIT_GAP;
+
+        if ( $last_request_time > 0 && ( $now - $last_request_time ) < $minimum_gap ) {
+            return new WP_Error(
+                'teqcidb_ajax_rate_limited',
+                __( 'Please wait a few seconds before saving again.', 'teqcidb' ),
+                array(
+                    'status'      => 429,
+                    'retry_after' => $minimum_gap,
+                )
+            );
+        }
+
+        set_transient( $bucket_key, $now, self::QUIZ_PROGRESS_RATE_LIMIT_TTL );
+
+        return true;
     }
 
     private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $current_index, $is_final_submission, $attempt_id = 0, $attempt_metadata = null ) {
