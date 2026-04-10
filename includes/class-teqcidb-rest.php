@@ -75,7 +75,7 @@ class TEQCIDB_Rest {
     }
 
     public function save_quiz_progress( $request ) {
-        $validated = $this->validate_request_payload( $request );
+        $validated = $this->validate_progress_request_payload( $request );
 
         if ( is_wp_error( $validated ) ) {
             return $validated;
@@ -87,7 +87,7 @@ class TEQCIDB_Rest {
             return $throttle_error;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false );
+        $result = $this->ajax->process_quiz_progress_event_request( $validated, get_current_user_id() );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -105,7 +105,7 @@ class TEQCIDB_Rest {
     }
 
     public function submit_quiz_attempt( $request ) {
-        $validated = $this->validate_request_payload( $request );
+        $validated = $this->validate_submit_request_payload( $request );
 
         if ( is_wp_error( $validated ) ) {
             return $validated;
@@ -242,7 +242,49 @@ class TEQCIDB_Rest {
         );
     }
 
-    private function validate_request_payload( $request ) {
+    private function validate_progress_request_payload( $request ) {
+        $quiz_id     = absint( $request->get_param( 'quiz_id' ) );
+        $class_id    = absint( $request->get_param( 'class_id' ) );
+        $attempt_id  = absint( $request->get_param( 'attempt_id' ) );
+        $question_id = absint( $request->get_param( 'question_id' ) );
+        $selected    = $request->get_param( 'selected' );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $question_id <= 0 ) {
+            return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID, class ID, and question ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( null === $selected ) {
+            $selected = array();
+        }
+
+        if ( ! is_array( $selected ) ) {
+            $selected = array( $selected );
+        }
+
+        $clean_values = array();
+
+        foreach ( $selected as $selected_value ) {
+            if ( ! is_scalar( $selected_value ) ) {
+                continue;
+            }
+
+            $normalized = sanitize_key( (string) $selected_value );
+
+            if ( '' !== $normalized ) {
+                $clean_values[] = $normalized;
+            }
+        }
+
+        return array(
+            'quiz_id'     => $quiz_id,
+            'class_id'    => $class_id,
+            'attempt_id'  => $attempt_id,
+            'question_id' => $question_id,
+            'selected'    => array_values( array_unique( $clean_values ) ),
+        );
+    }
+
+    private function validate_submit_request_payload( $request ) {
         $quiz_id                = absint( $request->get_param( 'quiz_id' ) );
         $class_id               = absint( $request->get_param( 'class_id' ) );
         $attempt_id             = absint( $request->get_param( 'attempt_id' ) );
