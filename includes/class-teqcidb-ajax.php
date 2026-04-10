@@ -1805,12 +1805,17 @@ class TEQCIDB_Ajax {
             return;
         }
 
+        $changed_question_ids = array_values( array_filter( array_unique( array_map( 'absint', array_keys( $sanitized_answers ) ) ) ) );
+
+        if ( empty( $changed_question_ids ) ) {
+            return;
+        }
+
         $answer_items_table = $wpdb->prefix . 'teqcidb_quiz_answer_items';
+        $placeholders       = implode( ',', array_fill( 0, count( $changed_question_ids ), '%d' ) );
+        $query_args         = array_merge( array( $attempt_id ), $changed_question_ids );
         $existing_item_rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT question_id, selected_json FROM $answer_items_table WHERE attempt_id = %d",
-                $attempt_id
-            ),
+            $wpdb->prepare( "SELECT question_id, selected_json FROM $answer_items_table WHERE attempt_id = %d AND question_id IN ($placeholders)", $query_args ),
             ARRAY_A
         );
 
