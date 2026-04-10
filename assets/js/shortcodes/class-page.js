@@ -83,13 +83,6 @@
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
-    var saveTimer = null;
-    var periodicSaveTimer = null;
-    var periodicSaveIntervalMs = (90000 + Math.floor(Math.random() * 60001));
-    var saveState = { isSaving: false, hasPending: false };
-    var isDirty = false;
-    var hasQueuedSaveAfterChange = false;
-    var lastSavedHash = JSON.stringify(answers || {});
     var isSubmitting = false;
     var slideIndex = 0;
     var slideViewedMap = {};
@@ -616,28 +609,23 @@
         };
     }
 
-    function buildQuizAjaxFormData(action){
+    function buildQuizAjaxFormData(action, payload){
+        var requestPayload = payload || {};
         var formData = new FormData();
         formData.append('action', action);
         formData.append('_ajax_nonce', runtime.nonce || '');
-        formData.append('quiz_id', runtime.quiz.id);
-        formData.append('class_id', runtime.quiz.classId);
-        formData.append('attempt_id', String(attemptId || 0));
-        formData.append('current_index', '0');
-        formData.append('answers_json', JSON.stringify(answers || {}));
+        formData.append('quiz_id', requestPayload.quiz_id || runtime.quiz.id);
+        formData.append('class_id', requestPayload.class_id || runtime.quiz.classId);
+        formData.append('attempt_id', String(requestPayload.attempt_id || attemptId || 0));
+        formData.append('current_index', String(requestPayload.current_question_index || 0));
+        formData.append('answers_json', JSON.stringify(requestPayload.answers || {}));
+        if (requestPayload.question_id) {
+            formData.append('question_id', String(requestPayload.question_id));
+        }
+        if (requestPayload.selected) {
+            formData.append('selected_json', JSON.stringify(requestPayload.selected));
+        }
         return formData;
-    }
-
-    function buildQuizProgressBeaconBody(){
-        var body = new URLSearchParams();
-        body.append('action', 'teqcidb_save_quiz_progress');
-        body.append('_ajax_nonce', runtime.nonce || '');
-        body.append('quiz_id', runtime.quiz.id);
-        body.append('class_id', runtime.quiz.classId);
-        body.append('attempt_id', String(attemptId || 0));
-        body.append('current_index', '0');
-        body.append('answers_json', JSON.stringify(answers || {}));
-        return body;
     }
 
     function mapAjaxQuizResponse(ajaxAction, data, failureMessage){
@@ -661,7 +649,7 @@
     function requestQuizEndpoint(options){
         var requestOptions = options || {};
         var failureMessage = requestOptions.failureMessage || (i18n.submitError || 'Request failed.');
-        var payload = buildQuizRequestPayload();
+        var payload = requestOptions.payload || buildQuizRequestPayload();
 
         if (useRestQuizApi && runtime.restUrl) {
             return fetch(String(runtime.restUrl).replace(/\/$/, '') + requestOptions.restPath, {
@@ -683,18 +671,18 @@
                 if (!useRestQuizApi || !runtime.ajaxUrl) {
                     throw err;
                 }
-                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
+                return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage, payload);
             });
         }
 
-        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage);
+        return requestQuizEndpointFallback(requestOptions.ajaxAction, failureMessage, payload);
     }
 
-    function requestQuizEndpointFallback(ajaxAction, failureMessage){
+    function requestQuizEndpointFallback(ajaxAction, failureMessage, payload){
         return fetch(runtime.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
-            body: buildQuizAjaxFormData(ajaxAction)
+            body: buildQuizAjaxFormData(ajaxAction, payload)
         }).then(function(resp){
             return resp.json();
         }).then(function(payload){
@@ -707,15 +695,17 @@
         return requestQuizEndpoint({
             restPath: '/quiz/submit',
             ajaxAction: 'teqcidb_submit_quiz_attempt',
-            failureMessage: failureMessage
+            failureMessage: failureMessage,
+            payload: buildQuizRequestPayload()
         });
     }
 
-    function requestQuizProgressEndpoint(failureMessage){
+    function requestQuizProgressEndpoint(payload, failureMessage){
         return requestQuizEndpoint({
             restPath: '/quiz/progress',
             ajaxAction: 'teqcidb_save_quiz_progress',
-            failureMessage: failureMessage
+            failureMessage: failureMessage,
+            payload: payload
         });
     }
 
@@ -775,150 +765,32 @@
                             selected.push(el.value);
                         }
                     });
-                    setCurrentSelection(question.id, normalizeSelected(question, selected));
-                    markQuizDirty();
-                    queueAutosave({ reason: 'answer_change' });
+                    var normalizedSelected = normalizeSelected(question, selected);
+                    setCurrentSelection(question.id, normalizedSelected);
+                    saveAnswerProgress(question.id, normalizedSelected);
                 });
             });
         });
     }
 
-    function getCurrentAnswersHash(){
-        return JSON.stringify(answers || {});
-    }
-
-    function markQuizDirty(){
-        isDirty = true;
-    }
-
-    function queueAutosave(options){
-        var queueOptions = options || {};
-
+    function saveAnswerProgress(questionId, selectedValues){
         if (isSubmitted || isSubmitting) {
-            return;
-        }
-
-        if (queueOptions.immediate) {
-            if (saveTimer) {
-                clearTimeout(saveTimer);
-                saveTimer = null;
-            }
-            saveProgress({ reason: queueOptions.reason || 'immediate' });
-            return;
-        }
-
-        if (saveTimer) {
-            clearTimeout(saveTimer);
-        }
-
-        hasQueuedSaveAfterChange = true;
-        saveTimer = setTimeout(function(){
-            saveTimer = null;
-            hasQueuedSaveAfterChange = false;
-            saveProgress({ reason: queueOptions.reason || 'debounce' });
-        }, 10000);
-    }
-
-    function saveProgress(options){
-        var saveOptions = options || {};
-        var currentHash = getCurrentAnswersHash();
-        var ignoreSubmittingGuard = !!saveOptions.ignoreSubmittingGuard;
-
-        if (isSubmitted || (isSubmitting && !ignoreSubmittingGuard)) {
             return Promise.resolve();
         }
 
-        if (!isDirty || currentHash === lastSavedHash) {
-            return Promise.resolve();
-        }
-
-        if (saveState.isSaving) {
-            saveState.hasPending = true;
-            return Promise.resolve();
-        }
-
-        saveState.isSaving = true;
-
-        return requestQuizProgressEndpoint('Save failed.').then(function(payload){
-            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
-            lastSavedHash = currentHash;
-            isDirty = false;
-        }).catch(function(){
-            // Intentionally suppress autosave errors in student-facing UI.
-        }).finally(function(){
-            saveState.isSaving = false;
-            if (saveState.hasPending) {
-                saveState.hasPending = false;
-                saveProgress({ reason: 'pending' });
-            }
-        });
-    }
-
-    function waitForSaveToSettle(maxWaitMs, pollMs){
-        var maxWait = Math.max(0, parseInt(maxWaitMs, 10) || 1500);
-        var poll = Math.max(10, parseInt(pollMs, 10) || 50);
-
-        if (!saveState.isSaving) {
-            return Promise.resolve(true);
-        }
-
-        return new Promise(function(resolve){
-            var startedAt = Date.now();
-            var timer = setInterval(function(){
-                var elapsed = Date.now() - startedAt;
-
-                if (!saveState.isSaving) {
-                    clearInterval(timer);
-                    resolve(true);
-                    return;
-                }
-
-                if (elapsed >= maxWait) {
-                    clearInterval(timer);
-                    resolve(false);
-                }
-            }, poll);
-        });
-    }
-
-    function flushBeforeSubmit(){
-        var flushResult = {
-            settled: false,
-            attemptedFlush: false,
-            flushSucceeded: false
+        var progressPayload = {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            attempt_id: attemptId,
+            question_id: questionId,
+            selected: selectedValues
         };
 
-        return waitForSaveToSettle(1500, 50).then(function(settled){
-            flushResult.settled = !!settled;
-
-            if (!isDirty) {
-                return flushResult;
-            }
-
-            flushResult.attemptedFlush = true;
-
-            return saveProgress({ reason: 'pre_submit_flush', ignoreSubmittingGuard: true }).then(function(){
-                flushResult.flushSucceeded = true;
-                return flushResult;
-            }).catch(function(){
-                return flushResult;
-            });
+        return requestQuizProgressEndpoint(progressPayload, 'Save failed.').then(function(payload){
+            attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
         }).catch(function(){
-            return flushResult;
+            // Intentionally suppress save errors in student-facing UI.
         });
-    }
-
-    function startPeriodicAutosave(){
-        if (periodicSaveTimer || isSubmitted) {
-            return;
-        }
-
-        periodicSaveTimer = setInterval(function(){
-            if (hasQueuedSaveAfterChange || isSubmitting || isSubmitted) {
-                return;
-            }
-            saveProgress({ reason: 'periodic' });
-        }, periodicSaveIntervalMs);
     }
 
     function getFirstUnansweredQuestionNumber(){
@@ -969,26 +841,11 @@
     }
 
     function submitQuiz(){
-        if (saveTimer) {
-            clearTimeout(saveTimer);
-            saveTimer = null;
-            hasQueuedSaveAfterChange = false;
-        }
-
-        markQuizDirty();
         isSubmitting = true;
 
-        flushBeforeSubmit().then(function(){
-            return requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.');
-        }).then(function(payload){
+        requestQuizSubmitEndpoint(i18n.submitError || 'Submit failed.').then(function(payload){
                 attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
                 isSubmitted = true;
-                isDirty = false;
-                lastSavedHash = getCurrentAnswersHash();
-                if (periodicSaveTimer) {
-                    clearInterval(periodicSaveTimer);
-                    periodicSaveTimer = null;
-                }
                 render({
                     score: payload.score,
                     passThreshold: payload.passThreshold,
@@ -1011,25 +868,12 @@
     }
 
     document.addEventListener('visibilitychange', function(){
-        if (document.visibilityState === 'hidden') {
-            queueAutosave({ immediate: true, reason: 'visibility_hidden' });
-            if (requiresSlidesFirst) {
-                saveSlideProgress({ reason: 'visibility_hidden' });
-            }
+        if (document.visibilityState === 'hidden' && requiresSlidesFirst) {
+            saveSlideProgress({ reason: 'visibility_hidden' });
         }
-    });
-
-    window.addEventListener('pagehide', function(){
-        queueAutosave({ immediate: true, reason: 'pagehide' });
     });
 
     window.addEventListener('beforeunload', function(){
-        if (!isSubmitted && runtime.ajaxUrl && isDirty && getCurrentAnswersHash() !== lastSavedHash) {
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(runtime.ajaxUrl, buildQuizProgressBeaconBody());
-            }
-        }
-
         if (requiresSlidesFirst && slideProgressDirty && runtime.restUrl) {
             var slidePayload = buildSlideProgressPayload();
             fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
@@ -1070,6 +914,5 @@
         return;
     }
 
-    startPeriodicAutosave();
     render();
 })();
