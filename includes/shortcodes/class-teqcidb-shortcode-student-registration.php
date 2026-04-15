@@ -392,22 +392,24 @@ class TEQCIDB_Shortcode_Student_Registration {
             return false;
         }
 
-        $current_user   = wp_get_current_user();
-        $current_email  = $current_user instanceof WP_User ? sanitize_email( (string) $current_user->user_email ) : '';
-        $query          = "SELECT qcinumber FROM $students_table WHERE wpuserid = %d";
-        $query_args     = array( $user_id );
+        $qci_numbers = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d",
+                $user_id
+            )
+        );
 
-        if ( '' !== $current_email ) {
-            $query      .= ' ORDER BY CASE WHEN LOWER(COALESCE(email, \'\')) = LOWER(%s) THEN 0 ELSE 1 END, id DESC LIMIT 1';
-            $query_args[] = $current_email;
-        } else {
-            $query .= ' ORDER BY id DESC LIMIT 1';
+        if ( ! is_array( $qci_numbers ) || empty( $qci_numbers ) ) {
+            return false;
         }
 
-        $prepared_query = $wpdb->prepare( $query, $query_args );
-        $qci_number     = is_string( $prepared_query ) ? $wpdb->get_var( $prepared_query ) : null;
+        foreach ( $qci_numbers as $value ) {
+            if ( '' === trim( (string) $value ) ) {
+                return false;
+            }
+        }
 
-        return '' !== trim( (string) $qci_number );
+        return true;
     }
 
     /**
