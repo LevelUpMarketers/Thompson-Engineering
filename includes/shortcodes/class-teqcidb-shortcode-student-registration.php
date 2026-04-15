@@ -281,6 +281,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $today = wp_date( 'Y-m-d' );
+        $exclude_refresher_classes = $this->current_user_should_hide_refresher_classes();
 
         $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
         $history_like  = $wpdb->esc_like( $history_table );
@@ -328,12 +329,17 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
+            $is_refresher     = 'refresher' === strtolower( sanitize_text_field( (string) ( isset( $row['classtype'] ) ? $row['classtype'] : '' ) ) );
 
             if ( $is_full || $is_past ) {
                 if ( $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
 
+                continue;
+            }
+
+            if ( $exclude_refresher_classes && $is_refresher ) {
                 continue;
             }
 
@@ -361,6 +367,42 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine if the logged-in user should be blocked from refresher registrations.
+     *
+     * @return bool
+     */
+    private function current_user_should_hide_refresher_classes() {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return false;
+        }
+
+        $qci_number = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id ASC LIMIT 1",
+                $user_id
+            )
+        );
+
+        if ( null === $qci_number ) {
+            return false;
+        }
+
+        return '' === trim( (string) $qci_number );
     }
 
     /**
