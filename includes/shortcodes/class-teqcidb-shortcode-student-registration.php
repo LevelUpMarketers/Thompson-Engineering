@@ -60,6 +60,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $classes = $this->get_visible_classes_for_registration();
+        $can_view_refresher_classes = $this->current_user_can_view_refresher_classes();
         $authorize_settings = $this->authorizenet_service->get_payment_gateway_settings();
         $authorize_environment = isset( $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ] )
             ? $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ]
@@ -76,10 +77,17 @@ class TEQCIDB_Shortcode_Student_Registration {
             data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
             data-authorizenet-hosted-post-url="<?php echo esc_url( $authorize_hosted_post_url ); ?>"
         >
+            <p class="teqcidb-registration-diagnostic-test">
+                <?php echo esc_html__( 'THIS IS A TEST!', 'teqcidb' ); ?>
+            </p>
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
                         <?php
+                        if ( ! $can_view_refresher_classes && $this->is_refresher_class_type( isset( $class['classtype'] ) ? $class['classtype'] : '' ) ) {
+                            continue;
+                        }
+
                         $accordion_id = 'teqcidb-registration-class-' . $index;
                         $panel_id     = $accordion_id . '-panel';
                         ?>
