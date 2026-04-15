@@ -332,11 +332,15 @@ class TEQCIDB_Shortcode_Student_Registration {
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
             $is_refresher     = 'refresher' === $class_type;
 
-            if ( $is_full || $is_past || ( $hide_refresher_classes_for_student && $is_refresher ) ) {
+            if ( $is_full || $is_past ) {
                 if ( $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
 
+                continue;
+            }
+
+            if ( $hide_refresher_classes_for_student && $is_refresher ) {
                 continue;
             }
 
@@ -388,12 +392,20 @@ class TEQCIDB_Shortcode_Student_Registration {
             return false;
         }
 
-        $qci_number = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
-                $user_id
-            )
-        );
+        $current_user   = wp_get_current_user();
+        $current_email  = $current_user instanceof WP_User ? sanitize_email( (string) $current_user->user_email ) : '';
+        $query          = "SELECT qcinumber FROM $students_table WHERE wpuserid = %d";
+        $query_args     = array( $user_id );
+
+        if ( '' !== $current_email ) {
+            $query      .= ' ORDER BY CASE WHEN LOWER(COALESCE(email, \'\')) = LOWER(%s) THEN 0 ELSE 1 END, id DESC LIMIT 1';
+            $query_args[] = $current_email;
+        } else {
+            $query .= ' ORDER BY id DESC LIMIT 1';
+        }
+
+        $prepared_query = $wpdb->prepare( $query, $query_args );
+        $qci_number     = is_string( $prepared_query ) ? $wpdb->get_var( $prepared_query ) : null;
 
         return '' !== trim( (string) $qci_number );
     }
