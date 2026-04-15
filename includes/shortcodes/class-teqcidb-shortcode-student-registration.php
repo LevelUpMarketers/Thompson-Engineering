@@ -281,6 +281,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $today = wp_date( 'Y-m-d' );
+        $hide_refresher_classes_for_student = ! $this->logged_in_student_has_qci_number();
 
         $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
         $history_like  = $wpdb->esc_like( $history_table );
@@ -326,10 +327,12 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_size       = isset( $row['classsize'] ) ? absint( $row['classsize'] ) : 0;
             $registered_total = isset( $row['registered_total'] ) ? absint( $row['registered_total'] ) : 0;
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+            $class_type       = isset( $row['classtype'] ) ? sanitize_key( (string) $row['classtype'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
+            $is_refresher     = 'refresher' === $class_type;
 
-            if ( $is_full || $is_past ) {
+            if ( $is_full || $is_past || ( $hide_refresher_classes_for_student && $is_refresher ) ) {
                 if ( $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
@@ -361,6 +364,38 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine if the logged-in student record has a non-empty QCI number.
+     *
+     * @return bool
+     */
+    private function logged_in_student_has_qci_number() {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return false;
+        }
+
+        $qci_number = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            )
+        );
+
+        return '' !== trim( (string) $qci_number );
     }
 
     /**
