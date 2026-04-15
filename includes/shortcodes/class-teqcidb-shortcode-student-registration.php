@@ -281,7 +281,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $today = wp_date( 'Y-m-d' );
-        $exclude_refresher_classes = $this->current_user_should_hide_refresher_classes();
+        $can_view_refresher_classes = $this->current_user_can_view_refresher_classes();
 
         $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
         $history_like  = $wpdb->esc_like( $history_table );
@@ -339,7 +339,7 @@ class TEQCIDB_Shortcode_Student_Registration {
                 continue;
             }
 
-            if ( $exclude_refresher_classes && $is_refresher ) {
+            if ( ! $can_view_refresher_classes && $is_refresher ) {
                 continue;
             }
 
@@ -370,11 +370,11 @@ class TEQCIDB_Shortcode_Student_Registration {
     }
 
     /**
-     * Determine if the logged-in user should be blocked from refresher registrations.
+     * Determine if the logged-in user can view refresher registrations.
      *
      * @return bool
      */
-    private function current_user_should_hide_refresher_classes() {
+    private function current_user_can_view_refresher_classes() {
         global $wpdb;
 
         $user_id = get_current_user_id();
@@ -391,10 +391,24 @@ class TEQCIDB_Shortcode_Student_Registration {
             return false;
         }
 
+        $user       = wp_get_current_user();
+        $user_email = $user instanceof WP_User ? sanitize_email( (string) $user->user_email ) : '';
+
         $qci_number = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id ASC LIMIT 1",
-                $user_id
+                "SELECT qcinumber
+                FROM $students_table
+                WHERE wpuserid = %d
+                    OR wpuserid = %s
+                    OR ( %s <> '' AND email = %s )
+                ORDER BY CASE WHEN wpuserid = %d OR wpuserid = %s THEN 0 ELSE 1 END ASC, id ASC
+                LIMIT 1",
+                $user_id,
+                (string) $user_id,
+                $user_email,
+                $user_email,
+                $user_id,
+                (string) $user_id
             )
         );
 
@@ -402,7 +416,7 @@ class TEQCIDB_Shortcode_Student_Registration {
             return false;
         }
 
-        return '' === trim( (string) $qci_number );
+        return '' !== trim( (string) $qci_number );
     }
 
     /**
