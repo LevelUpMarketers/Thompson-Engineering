@@ -60,6 +60,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $classes = $this->get_visible_classes_for_registration();
+        $can_view_refresher_classes = $this->current_user_can_view_refresher_classes();
         $authorize_settings = $this->authorizenet_service->get_payment_gateway_settings();
         $authorize_environment = isset( $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ] )
             ? $authorize_settings[ TEQCIDB_AuthorizeNet_Service::FIELD_ENVIRONMENT ]
@@ -76,10 +77,17 @@ class TEQCIDB_Shortcode_Student_Registration {
             data-authorizenet-has-credentials="<?php echo esc_attr( $authorize_has_credentials ); ?>"
             data-authorizenet-hosted-post-url="<?php echo esc_url( $authorize_hosted_post_url ); ?>"
         >
+            <p class="teqcidb-registration-diagnostic-test">
+                <?php echo esc_html__( 'THIS IS A TEST!', 'teqcidb' ); ?>
+            </p>
             <?php if ( ! empty( $classes ) ) : ?>
                 <div class="teqcidb-registration-class-list" role="list">
                     <?php foreach ( $classes as $index => $class ) : ?>
                         <?php
+                        if ( ! $can_view_refresher_classes && $this->is_refresher_class_type( isset( $class['classtype'] ) ? $class['classtype'] : '' ) ) {
+                            continue;
+                        }
+
                         $accordion_id = 'teqcidb-registration-class-' . $index;
                         $panel_id     = $accordion_id . '-panel';
                         ?>
@@ -281,6 +289,7 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $today = wp_date( 'Y-m-d' );
+        $can_view_refresher_classes = $this->current_user_can_view_refresher_classes();
 
         $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
         $history_like  = $wpdb->esc_like( $history_table );
@@ -328,12 +337,17 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
+            $is_refresher     = $this->is_refresher_class_type( isset( $row['classtype'] ) ? $row['classtype'] : '' );
 
             if ( $is_full || $is_past ) {
                 if ( $class_id > 0 ) {
                     $hide_ids[] = $class_id;
                 }
 
+                continue;
+            }
+
+            if ( ! $can_view_refresher_classes && $is_refresher ) {
                 continue;
             }
 
@@ -361,6 +375,71 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine if the logged-in user can view refresher registrations.
+     *
+     * @return bool
+     */
+    private function current_user_can_view_refresher_classes() {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return false;
+        }
+
+        $user       = wp_get_current_user();
+        $user_email = $user instanceof WP_User ? sanitize_email( (string) $user->user_email ) : '';
+
+        $qci_number = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT qcinumber
+                FROM $students_table
+                WHERE wpuserid = %d
+                    OR wpuserid = %s
+                    OR ( %s <> '' AND email = %s )
+                ORDER BY CASE WHEN wpuserid = %d OR wpuserid = %s THEN 0 ELSE 1 END ASC, id ASC
+                LIMIT 1",
+                $user_id,
+                (string) $user_id,
+                $user_email,
+                $user_email,
+                $user_id,
+                (string) $user_id
+            )
+        );
+
+        if ( null === $qci_number ) {
+            return false;
+        }
+
+        return '' !== trim( (string) $qci_number );
+    }
+
+    /**
+     * Determine whether a class type value represents a refresher class.
+     *
+     * @param string $class_type Raw class type value.
+     *
+     * @return bool
+     */
+    private function is_refresher_class_type( $class_type ) {
+        $normalized = strtolower( sanitize_text_field( (string) $class_type ) );
+        $normalized = str_replace( array( '_', '-' ), ' ', $normalized );
+        $normalized = trim( preg_replace( '/\s+/', ' ', $normalized ) );
+
+        return false !== strpos( $normalized, 'refresher' );
     }
 
     /**
