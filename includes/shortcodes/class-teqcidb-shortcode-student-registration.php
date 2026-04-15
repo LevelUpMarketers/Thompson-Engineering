@@ -329,7 +329,7 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
-            $is_refresher     = 'refresher' === strtolower( sanitize_text_field( (string) ( isset( $row['classtype'] ) ? $row['classtype'] : '' ) ) );
+            $is_refresher     = $this->is_refresher_class_type( isset( $row['classtype'] ) ? $row['classtype'] : '' );
 
             if ( $is_full || $is_past ) {
                 if ( $class_id > 0 ) {
@@ -403,6 +403,21 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return '' === trim( (string) $qci_number );
+    }
+
+    /**
+     * Determine whether a class type value represents a refresher class.
+     *
+     * @param string $class_type Raw class type value.
+     *
+     * @return bool
+     */
+    private function is_refresher_class_type( $class_type ) {
+        $normalized = strtolower( sanitize_text_field( (string) $class_type ) );
+        $normalized = str_replace( array( '_', '-' ), ' ', $normalized );
+        $normalized = trim( preg_replace( '/\s+/', ' ', $normalized ) );
+
+        return false !== strpos( $normalized, 'refresher' );
     }
 
     /**
