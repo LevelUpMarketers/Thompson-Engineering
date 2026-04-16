@@ -2463,13 +2463,16 @@ class TEQCIDB_Ajax {
             return false;
         }
 
-        $today = $this->parse_student_date_value( wp_date( 'Y-m-d' ) );
+        $timezone = wp_timezone();
 
-        if ( ! $today instanceof DateTimeImmutable ) {
+        try {
+            $expiration_end = new DateTimeImmutable( $expiration->format( 'Y-m-d' ) . ' 23:59:59', $timezone );
+            $now            = new DateTimeImmutable( 'now', $timezone );
+        } catch ( Exception $exception ) {
             return false;
         }
 
-        return $expiration <= $today;
+        return $now > $expiration_end;
     }
 
 

@@ -447,7 +447,16 @@ class TEQCIDB_Shortcode_Student_Registration {
             return false;
         }
 
-        return $expiration->format( 'Y-m-d' ) <= wp_date( 'Y-m-d' );
+        $timezone = wp_timezone();
+
+        try {
+            $expiration_end = new DateTimeImmutable( $expiration->format( 'Y-m-d' ) . ' 23:59:59', $timezone );
+            $now            = new DateTimeImmutable( 'now', $timezone );
+        } catch ( Exception $exception ) {
+            return false;
+        }
+
+        return $now > $expiration_end;
     }
 
     /**

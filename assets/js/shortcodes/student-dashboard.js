@@ -2212,16 +2212,12 @@
             return false;
         }
 
-        const parsedDate = new Date(`${rawValue}T00:00:00`);
-        if (Number.isNaN(parsedDate.getTime())) {
+        const expirationEnd = new Date(`${rawValue}T23:59:59`);
+        if (Number.isNaN(expirationEnd.getTime())) {
             return false;
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        parsedDate.setHours(0, 0, 0, 0);
-
-        return parsedDate <= today;
+        return Date.now() > expirationEnd.getTime();
     };
 
     const initRepresentativeRegistrationSelection = () => {
