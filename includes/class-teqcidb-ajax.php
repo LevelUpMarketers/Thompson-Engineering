@@ -16,6 +16,7 @@ class TEQCIDB_Ajax {
     const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 3;
     const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 10;
     const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
+    const INITIAL_EXAM_PASS_EMAIL_HOOK        = 'teqcidb_send_initial_exam_pass_email';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -50,6 +51,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_get_student_preview_tokens', array( $this, 'get_student_preview_tokens' ) );
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
+        add_action( self::INITIAL_EXAM_PASS_EMAIL_HOOK, array( $this, 'send_initial_exam_pass_email' ), 10, 3 );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
         add_action( 'init', array( __CLASS__, 'register_class_page_rewrite' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
@@ -1725,6 +1727,13 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $existing_attempt_status = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT status FROM $attempts_table WHERE id = %d LIMIT 1",
+                $attempt_id
+            )
+        );
+
         $wpdb->update(
             $attempts_table,
             array(
@@ -1745,6 +1754,10 @@ class TEQCIDB_Ajax {
 
             if ( in_array( $normalized_class_type, array( 'initial', 'refresher' ), true ) ) {
                 $this->apply_quiz_pass_updates( $user_id, $class_id, $normalized_class_type );
+            }
+
+            if ( 'initial' === $normalized_class_type && 0 !== $existing_attempt_status ) {
+                $this->maybe_queue_initial_exam_pass_email( $user_id, $class_id, $attempt_id );
             }
         }
 
@@ -1932,6 +1945,138 @@ class TEQCIDB_Ajax {
         }
 
         return null;
+    }
+
+    private function maybe_queue_initial_exam_pass_email( $user_id, $class_id, $attempt_id ) {
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 || $attempt_id <= 0 ) {
+            return;
+        }
+
+        $args = array( $user_id, $class_id, $attempt_id );
+
+        if ( wp_next_scheduled( self::INITIAL_EXAM_PASS_EMAIL_HOOK, $args ) ) {
+            return;
+        }
+
+        wp_schedule_single_event( current_time( 'timestamp' ) + 5, self::INITIAL_EXAM_PASS_EMAIL_HOOK, $args );
+    }
+
+    public function send_initial_exam_pass_email( $user_id, $class_id, $attempt_id = 0 ) {
+        global $wpdb;
+
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table  = $wpdb->prefix . 'teqcidb_classes';
+        $template_id    = 'teqcidb-email-student-initial-exam-passed';
+
+        $student = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student ) ) {
+            return;
+        }
+
+        $recipient = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $class = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class ) ) {
+            return;
+        }
+
+        $class_type = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+
+        if ( 'initial' !== $class_type ) {
+            return;
+        }
+
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens  = $this->build_registration_email_tokens( $student, $class, '0.00' );
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => TEQCIDB_Email_Template_Helper::get_template_label( $template_id ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic Initial Exam pass email', 'teqcidb' ),
+                'triggered_by'   => sprintf(
+                    /* translators: %d: Quiz attempt database ID. */
+                    __( 'Initial Exam passed (Attempt #%d)', 'teqcidb' ),
+                    $attempt_id
+                ),
+            )
+        );
     }
 
 

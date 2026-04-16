@@ -1161,6 +1161,17 @@ class TEQCIDB_Admin {
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
+            array(
+                'id'      => 'teqcidb-email-student-initial-exam-passed',
+                'title'   => __( 'Student Initial Exam Passed', 'teqcidb' ),
+                'tooltip' => __( 'Sent automatically to the logged-in student after they pass an Initial Exam quiz attempt.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Quiz submission success | Student pass result | Class Type: Initial', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Exam & Quiz Outcomes', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
 
             array(
                 'id'      => 'teqcidb-email-student-self-refresher-in-person',
