@@ -1781,17 +1781,20 @@ class TEQCIDB_Admin {
         echo '<h2 class="nav-tab-wrapper">';
         echo '<a href="?page=teqcidb-student&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Student', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Students', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-student&tab=newest" class="nav-tab ' . ( 'newest' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Newest Students', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=student_forms" class="nav-tab ' . ( 'student_forms' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Student Forms', 'teqcidb' ) . '</a>';
         echo '</h2>';
         $tab_titles = array(
             'create'        => __( 'Create a Student', 'teqcidb' ),
             'edit'          => __( 'Edit Students', 'teqcidb' ),
+            'newest'        => __( 'Newest Students', 'teqcidb' ),
             'student_forms' => __( 'Student Forms', 'teqcidb' ),
         );
 
         $tab_descriptions = array(
             'create'        => __( 'Capture the student\'s profile, contact, and certification details before saving.', 'teqcidb' ),
             'edit'          => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
+            'newest'        => __( 'Review the 20 most recently created student records in a read-only accordion list.', 'teqcidb' ),
             'student_forms' => __( 'Find students and review their saved data before generating wallet cards and certificates.', 'teqcidb' ),
         );
 
@@ -1806,6 +1809,8 @@ class TEQCIDB_Admin {
 
         if ( 'edit' === $active_tab ) {
             $this->render_edit_tab();
+        } elseif ( 'newest' === $active_tab ) {
+            $this->render_newest_students_tab();
         } elseif ( 'student_forms' === $active_tab ) {
             $this->render_student_forms_tab();
         } else {
@@ -4501,6 +4506,40 @@ class TEQCIDB_Admin {
         echo '</table>';
         echo '</div>';
         echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function render_newest_students_tab() {
+        $per_page     = 20;
+        $column_count = 6;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--students">';
+        echo '<p class="description">' . esc_html__( 'Showing the 20 most recent student records.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="newest-students">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+
+        for ( $i = 1; $i <= 5; $i++ ) {
+            printf(
+                '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-%1$d">%2$s</th>',
+                absint( $i ),
+                esc_html( $this->get_placeholder_label( $i ) )
+            );
+        }
+
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+
+        printf(
+            '<tbody id="teqcidb-entity-list" data-per-page="%1$d" data-column-count="%2$d" data-read-only="1" data-list-mode="newest">',
+            absint( $per_page ),
+            absint( $column_count )
+        );
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
         echo '</div>';
         echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }

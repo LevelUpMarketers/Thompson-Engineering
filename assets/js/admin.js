@@ -371,6 +371,7 @@ jQuery(document).ready(function($){
         var placeholderList = Array.isArray(teqcidbAdmin.placeholders) ? teqcidbAdmin.placeholders : [];
         var entityFields = Array.isArray(teqcidbAdmin.entityFields) ? teqcidbAdmin.entityFields : [];
         var readOnlyMode = String($entityTableBody.data('read-only') || '') === '1';
+        var listMode = String($entityTableBody.data('list-mode') || '').toLowerCase();
         var pendingFeedbackMessage = '';
         var currentPage = 1;
         var emptyValue = 'N/A';
@@ -2460,6 +2461,7 @@ jQuery(document).ready(function($){
                 _ajax_nonce: teqcidbAjax.nonce,
                 page: targetPage,
                 per_page: perPage,
+                list_mode: listMode,
                 search: {
                     placeholder_1: currentFilters.placeholder_1,
                     placeholder_2: currentFilters.placeholder_2,
@@ -2496,6 +2498,15 @@ jQuery(document).ready(function($){
 
         restoreState = getRestoreState();
 
+        if (listMode === 'newest'){
+            restoreState = null;
+            currentFilters = {
+                placeholder_1: '',
+                placeholder_2: '',
+                placeholder_3: ''
+            };
+        }
+
         if (restoreState && restoreState.filters){
             currentFilters = {
                 placeholder_1: restoreState.filters.placeholder_1 || '',
@@ -2511,6 +2522,11 @@ jQuery(document).ready(function($){
         }
 
         var initialPage = restoreState && restoreState.page ? restoreState.page : 1;
+
+        if (listMode === 'newest'){
+            initialPage = 1;
+        }
+
         fetchEntities(initialPage);
 
         if ($pagination.length){

@@ -5805,6 +5805,8 @@ class TEQCIDB_Ajax {
         $table    = $wpdb->prefix . 'teqcidb_students';
         $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
         $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 20;
+        $list_mode = isset( $_POST['list_mode'] ) ? sanitize_key( wp_unslash( (string) $_POST['list_mode'] ) ) : '';
+        $newest_mode = ( 'newest' === $list_mode );
 
         if ( $per_page <= 0 ) {
             $per_page = 20;
@@ -5820,12 +5822,14 @@ class TEQCIDB_Ajax {
 
         $search_terms = array();
 
-        foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
-            if ( isset( $raw_search[ $column ] ) ) {
-                $value = sanitize_text_field( $raw_search[ $column ] );
+        if ( ! $newest_mode ) {
+            foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
+                if ( isset( $raw_search[ $column ] ) ) {
+                    $value = sanitize_text_field( $raw_search[ $column ] );
 
-                if ( '' !== $value ) {
-                    $search_terms[ $column ] = $value;
+                    if ( '' !== $value ) {
+                        $search_terms[ $column ] = $value;
+                    }
                 }
             }
         }
@@ -5873,6 +5877,11 @@ class TEQCIDB_Ajax {
         }
         $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
 
+        if ( $newest_mode ) {
+            $total_pages = 1;
+            $page        = 1;
+        }
+
         if ( $total_pages < 1 ) {
             $total_pages = 1;
         }
@@ -5896,7 +5905,11 @@ class TEQCIDB_Ajax {
                 $select_query .= ' ' . $where_sql;
             }
 
-            $select_query .= ' ORDER BY first_name ASC, last_name ASC, id ASC LIMIT %d OFFSET %d';
+            if ( $newest_mode ) {
+                $select_query .= ' ORDER BY id DESC LIMIT %d OFFSET %d';
+            } else {
+                $select_query .= ' ORDER BY first_name ASC, last_name ASC, id ASC LIMIT %d OFFSET %d';
+            }
 
             $select_params   = $where_params;
             $select_params[] = $per_page;
