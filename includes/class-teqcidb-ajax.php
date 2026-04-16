@@ -374,6 +374,56 @@ class TEQCIDB_Ajax {
         echo '<div class="teqcidb-class-route__feedback">' . wp_kses( $feedback_message, $allowed_feedback_html ) . '</div>';
         echo '</section>';
 
+        $class_resources = $this->parse_class_resources_for_route( isset( $class_row['classresources'] ) ? $class_row['classresources'] : '' );
+        $resource_rows   = array();
+
+        foreach ( $class_resources as $resource ) {
+            $resource_name = isset( $resource['name'] ) ? sanitize_text_field( (string) $resource['name'] ) : '';
+            $resource_type = isset( $resource['type'] ) ? sanitize_key( (string) $resource['type'] ) : '';
+            $resource_url  = isset( $resource['url'] ) ? esc_url( (string) $resource['url'] ) : '';
+
+            if ( '' === $resource_name && '' === $resource_url ) {
+                continue;
+            }
+
+            $resource_rows[] = array(
+                'name' => $resource_name,
+                'type' => $resource_type,
+                'url'  => $resource_url,
+            );
+        }
+
+        echo '<section class="teqcidb-class-route__resources">';
+        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Resources', 'teqcidb' ) . '</h2>';
+
+        if ( empty( $resource_rows ) ) {
+            echo '<ul class="teqcidb-class-route__resource-list"><li class="teqcidb-class-route__resource-item">' . esc_html__( 'No resources have been added for this class yet!', 'teqcidb' ) . '</li></ul>';
+        } else {
+            echo '<ul class="teqcidb-class-route__resource-list">';
+
+            foreach ( $resource_rows as $resource ) {
+                $resource_name = $resource['name'];
+                $resource_type = $resource['type'];
+                $resource_url  = $resource['url'];
+
+                $resource_type_label = $this->get_class_resource_type_label( $resource_type );
+                $resource_title       = '' !== $resource_type_label ? sprintf( '%1$s (%2$s)', $resource_name, $resource_type_label ) : $resource_name;
+
+                echo '<li class="teqcidb-class-route__resource-item">';
+                echo '<strong class="teqcidb-class-route__resource-title">' . esc_html( $resource_title ) . '</strong>';
+
+                if ( '' !== $resource_url ) {
+                    echo '<p class="teqcidb-class-route__resource-link-wrap"><a href="' . esc_url( $resource_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $resource_url ) . '</a></p>';
+                }
+
+                echo '</li>';
+            }
+
+            echo '</ul>';
+        }
+
+        echo '</section>';
+
         $quiz_section_title = __( 'Class Quiz', 'teqcidb' );
 
         if ( 'initial' === $class_type ) {
@@ -425,55 +475,6 @@ class TEQCIDB_Ajax {
 
         echo '</section>';
 
-        $class_resources = $this->parse_class_resources_for_route( isset( $class_row['classresources'] ) ? $class_row['classresources'] : '' );
-        $resource_rows   = array();
-
-        foreach ( $class_resources as $resource ) {
-            $resource_name = isset( $resource['name'] ) ? sanitize_text_field( (string) $resource['name'] ) : '';
-            $resource_type = isset( $resource['type'] ) ? sanitize_key( (string) $resource['type'] ) : '';
-            $resource_url  = isset( $resource['url'] ) ? esc_url( (string) $resource['url'] ) : '';
-
-            if ( '' === $resource_name && '' === $resource_url ) {
-                continue;
-            }
-
-            $resource_rows[] = array(
-                'name' => $resource_name,
-                'type' => $resource_type,
-                'url'  => $resource_url,
-            );
-        }
-
-        echo '<section class="teqcidb-class-route__resources">';
-        echo '<h2 class="teqcidb-class-route__section-title">' . esc_html__( 'Class Resources', 'teqcidb' ) . '</h2>';
-
-        if ( empty( $resource_rows ) ) {
-            echo '<ul class="teqcidb-class-route__resource-list"><li class="teqcidb-class-route__resource-item">' . esc_html__( 'No resources have been added for this class yet!', 'teqcidb' ) . '</li></ul>';
-        } else {
-            echo '<ul class="teqcidb-class-route__resource-list">';
-
-            foreach ( $resource_rows as $resource ) {
-                $resource_name = $resource['name'];
-                $resource_type = $resource['type'];
-                $resource_url  = $resource['url'];
-
-                $resource_type_label = $this->get_class_resource_type_label( $resource_type );
-                $resource_title       = '' !== $resource_type_label ? sprintf( '%1$s (%2$s)', $resource_name, $resource_type_label ) : $resource_name;
-
-                echo '<li class="teqcidb-class-route__resource-item">';
-                echo '<strong class="teqcidb-class-route__resource-title">' . esc_html( $resource_title ) . '</strong>';
-
-                if ( '' !== $resource_url ) {
-                    echo '<p class="teqcidb-class-route__resource-link-wrap"><a href="' . esc_url( $resource_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $resource_url ) . '</a></p>';
-                }
-
-                echo '</li>';
-            }
-
-            echo '</ul>';
-        }
-
-        echo '</section>';
         echo '</main></body></html>';
         exit;
     }
