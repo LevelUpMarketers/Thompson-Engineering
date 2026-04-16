@@ -2015,6 +2015,7 @@ class TEQCIDB_Ajax {
 
         $class_id = isset( $_POST['class_id'] ) ? absint( $_POST['class_id'] ) : 0;
         $multiple_raw = isset( $_POST['multiple_students'] ) ? wp_unslash( (string) $_POST['multiple_students'] ) : '';
+        $client_timezone_offset = isset( $_POST['client_timezone_offset'] ) ? intval( wp_unslash( (string) $_POST['client_timezone_offset'] ) ) : null;
 
         if ( $class_id <= 0 ) {
             wp_send_json_error(
@@ -2060,7 +2061,7 @@ class TEQCIDB_Ajax {
             $selected_count    = 1;
         }
 
-        $eligibility_error = $this->validate_refresher_student_eligibility_for_checkout( $class_type, $selected_students, get_current_user_id() );
+        $eligibility_error = $this->validate_refresher_student_eligibility_for_checkout( $class_type, $selected_students, get_current_user_id(), $client_timezone_offset );
 
         if ( is_wp_error( $eligibility_error ) ) {
             wp_send_json_error(
@@ -2309,7 +2310,7 @@ class TEQCIDB_Ajax {
      *
      * @return WP_Error|null
      */
-    private function validate_refresher_student_eligibility_for_checkout( $class_type, array $selected_students, $fallback_user_id = 0 ) {
+    private function validate_refresher_student_eligibility_for_checkout( $class_type, array $selected_students, $fallback_user_id = 0, $client_timezone_offset = null ) {
         $normalized_class_type = strtolower( trim( sanitize_key( (string) $class_type ) ) );
 
         if ( 'refresher' !== $normalized_class_type ) {
@@ -2366,7 +2367,7 @@ class TEQCIDB_Ajax {
                 $missing_qci_students[] = $student_label;
             }
 
-            if ( $this->is_student_expired_for_refresher_registration( $expiration_date ) ) {
+            if ( $this->is_student_expired_for_refresher_registration( $expiration_date, $client_timezone_offset ) ) {
                 $expired_students[] = $student_label;
             }
         }
@@ -2450,7 +2451,7 @@ class TEQCIDB_Ajax {
      * @param string $expiration_date Stored expiration date.
      * @return bool
      */
-    private function is_student_expired_for_refresher_registration( $expiration_date ) {
+    private function is_student_expired_for_refresher_registration( $expiration_date, $client_timezone_offset = null ) {
         $expiration_date = trim( (string) $expiration_date );
 
         if ( '' === $expiration_date || '0000-00-00' === $expiration_date ) {
@@ -2463,7 +2464,7 @@ class TEQCIDB_Ajax {
             return false;
         }
 
-        $timezone = wp_timezone();
+        $timezone = $this->resolve_checkout_timezone( $client_timezone_offset );
 
         try {
             $expiration_end = new DateTimeImmutable( $expiration->format( 'Y-m-d' ) . ' 23:59:59', $timezone );
@@ -2473,6 +2474,34 @@ class TEQCIDB_Ajax {
         }
 
         return $now > $expiration_end;
+    }
+
+    /**
+     * Resolve checkout timezone from optional client offset, with site-timezone fallback.
+     *
+     * @param int|null $client_timezone_offset Browser-provided minutes offset from UTC.
+     * @return DateTimeZone
+     */
+    private function resolve_checkout_timezone( $client_timezone_offset ) {
+        if ( is_numeric( $client_timezone_offset ) ) {
+            $offset = (int) $client_timezone_offset;
+
+            if ( $offset >= -840 && $offset <= 840 ) {
+                $minutes = abs( $offset );
+                $hours   = floor( $minutes / 60 );
+                $mins    = $minutes % 60;
+                $sign    = $offset > 0 ? '-' : '+';
+                $tz_name = sprintf( '%s%02d:%02d', $sign, $hours, $mins );
+
+                try {
+                    return new DateTimeZone( $tz_name );
+                } catch ( Exception $exception ) {
+                    // Fall back to WordPress timezone below.
+                }
+            }
+        }
+
+        return wp_timezone();
     }
 
 
@@ -2586,6 +2615,7 @@ class TEQCIDB_Ajax {
         $invoice_number = isset( $_POST['invoice_number'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['invoice_number'] ) ) : '';
         $gateway_time   = isset( $_POST['gateway_datetime'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['gateway_datetime'] ) ) : '';
         $multiple_raw   = isset( $_POST['multiple_students'] ) ? wp_unslash( (string) $_POST['multiple_students'] ) : '';
+        $client_timezone_offset = isset( $_POST['client_timezone_offset'] ) ? intval( wp_unslash( (string) $_POST['client_timezone_offset'] ) ) : null;
 
         global $wpdb;
 
@@ -2660,7 +2690,7 @@ class TEQCIDB_Ajax {
         }
 
         $class_type_for_validation = is_array( $class_row ) && isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '';
-        $eligibility_error         = $this->validate_refresher_student_eligibility_for_checkout( $class_type_for_validation, $selected_students, $user_id );
+        $eligibility_error         = $this->validate_refresher_student_eligibility_for_checkout( $class_type_for_validation, $selected_students, $user_id, $client_timezone_offset );
 
         if ( is_wp_error( $eligibility_error ) ) {
             wp_send_json_error(

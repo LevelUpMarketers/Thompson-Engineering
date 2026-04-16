@@ -2469,6 +2469,7 @@
         formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
         formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
         formData.append('multiple_students', checkout && checkout.selectedStudents ? String(checkout.selectedStudents) : '');
+        formData.append('client_timezone_offset', String(new Date().getTimezoneOffset()));
 
         return fetch(settings.ajaxUrl, {
             method: 'POST',
@@ -2783,6 +2784,7 @@
             formData.append('_ajax_nonce', settings.ajaxNonce || '');
             formData.append('class_id', classId);
             formData.append('multiple_students', selectedStudents || '');
+            formData.append('client_timezone_offset', String(new Date().getTimezoneOffset()));
 
             return fetch(settings.ajaxUrl, {
                 method: 'POST',
