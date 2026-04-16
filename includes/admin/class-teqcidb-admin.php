@@ -2656,6 +2656,32 @@ class TEQCIDB_Admin {
         return '' !== $sanitized_value ? $sanitized_value : __( 'Not provided', 'teqcidb' );
     }
 
+    private function get_student_date_detail_value( $value, $empty_label = '' ) {
+        $sanitized_value = sanitize_text_field( (string) $value );
+
+        if ( '' === $empty_label ) {
+            $empty_label = __( 'Not provided', 'teqcidb' );
+        }
+
+        if ( '' === $sanitized_value || '0000-00-00' === $sanitized_value ) {
+            return $empty_label;
+        }
+
+        $date_parts = explode( '-', $sanitized_value );
+
+        if ( 3 === count( $date_parts ) ) {
+            $year  = absint( $date_parts[0] );
+            $month = absint( $date_parts[1] );
+            $day   = absint( $date_parts[2] );
+
+            if ( $year > 0 && $month > 0 && $day > 0 && checkdate( $month, $day, $year ) ) {
+                return sprintf( '%02d-%02d-%04d', $month, $day, $year );
+            }
+        }
+
+        return $sanitized_value;
+    }
+
     private function get_failed_attempt_answer_items( array $attempt_ids ) {
         global $wpdb;
 
@@ -3980,6 +4006,10 @@ class TEQCIDB_Admin {
                 $last_name  = isset( $failed_attempt['last_name'] ) ? sanitize_text_field( (string) $failed_attempt['last_name'] ) : '';
                 $email      = isset( $failed_attempt['email'] ) ? sanitize_email( (string) $failed_attempt['email'] ) : '';
                 $company    = isset( $failed_attempt['company'] ) ? sanitize_text_field( (string) $failed_attempt['company'] ) : '';
+                $qci_number = isset( $failed_attempt['qcinumber'] ) ? $this->get_student_detail_value( $failed_attempt['qcinumber'] ) : __( 'Not provided', 'teqcidb' );
+                $initial_training_date = isset( $failed_attempt['initial_training_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['initial_training_date'] ) : __( 'Not provided', 'teqcidb' );
+                $last_refresher_date   = isset( $failed_attempt['last_refresher_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['last_refresher_date'], __( 'N/A', 'teqcidb' ) ) : __( 'N/A', 'teqcidb' );
+                $expiration_date       = isset( $failed_attempt['expiration_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['expiration_date'] ) : __( 'Not provided', 'teqcidb' );
 
                 if ( $attempt_id <= 0 ) {
                     continue;
@@ -4018,6 +4048,10 @@ class TEQCIDB_Admin {
                 echo '<p><strong>' . esc_html__( 'Student Name:', 'teqcidb' ) . '</strong> ' . esc_html( $student_name ) . '</p>';
                 echo '<p><strong>' . esc_html__( 'Email Address:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $email ? $email : __( 'Not provided', 'teqcidb' ) ) . '</p>';
                 echo '<p><strong>' . esc_html__( 'Company Name:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $company ? $company : __( 'Not provided', 'teqcidb' ) ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'QCI Number:', 'teqcidb' ) . '</strong> ' . esc_html( $qci_number ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Initial Training Date:', 'teqcidb' ) . '</strong> ' . esc_html( $initial_training_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Last Refresher Date:', 'teqcidb' ) . '</strong> ' . esc_html( $last_refresher_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Expiration Date:', 'teqcidb' ) . '</strong> ' . esc_html( $expiration_date ) . '</p>';
 
                 echo '<h4>' . esc_html__( 'Question Review', 'teqcidb' ) . '</h4>';
 
@@ -4123,9 +4157,9 @@ class TEQCIDB_Admin {
                 $email      = isset( $passed_attempt['email'] ) ? sanitize_email( (string) $passed_attempt['email'] ) : '';
                 $company    = isset( $passed_attempt['company'] ) ? sanitize_text_field( (string) $passed_attempt['company'] ) : '';
                 $qci_number = isset( $passed_attempt['qcinumber'] ) ? $this->get_student_detail_value( $passed_attempt['qcinumber'] ) : __( 'Not provided', 'teqcidb' );
-                $initial_training_date = isset( $passed_attempt['initial_training_date'] ) ? $this->get_student_detail_value( $passed_attempt['initial_training_date'] ) : __( 'Not provided', 'teqcidb' );
-                $last_refresher_date   = isset( $passed_attempt['last_refresher_date'] ) ? $this->get_student_detail_value( $passed_attempt['last_refresher_date'] ) : __( 'Not provided', 'teqcidb' );
-                $expiration_date       = isset( $passed_attempt['expiration_date'] ) ? $this->get_student_detail_value( $passed_attempt['expiration_date'] ) : __( 'Not provided', 'teqcidb' );
+                $initial_training_date = isset( $passed_attempt['initial_training_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['initial_training_date'] ) : __( 'Not provided', 'teqcidb' );
+                $last_refresher_date   = isset( $passed_attempt['last_refresher_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['last_refresher_date'], __( 'N/A', 'teqcidb' ) ) : __( 'N/A', 'teqcidb' );
+                $expiration_date       = isset( $passed_attempt['expiration_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['expiration_date'] ) : __( 'Not provided', 'teqcidb' );
 
                 if ( $attempt_id <= 0 ) {
                     continue;
