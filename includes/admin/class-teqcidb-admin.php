@@ -594,6 +594,11 @@ class TEQCIDB_Admin {
         );
 
         $token_group['tokens'][] = array(
+            'value' => '{student_qci_number}',
+            'label' => __( 'Student QCI Number', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
             'value' => '{student_username}',
             'label' => __( 'Student Username', 'teqcidb' ),
         );

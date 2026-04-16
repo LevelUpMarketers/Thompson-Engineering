@@ -3602,6 +3602,7 @@ class TEQCIDB_Ajax {
         $tokens['student_email']      = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
+        $tokens['student_qci_number'] = isset( $student['qcinumber'] ) ? sanitize_text_field( (string) $student['qcinumber'] ) : ( isset( $tokens['student_qci_number'] ) ? $tokens['student_qci_number'] : '' );
         $tokens['student_representative'] = isset( $student['their_representative'] ) ? sanitize_text_field( (string) $student['their_representative'] ) : ( isset( $tokens['student_representative'] ) ? $tokens['student_representative'] : '' );
 
         $representative = $this->decode_representative_contact_field( isset( $student['their_representative'] ) ? $student['their_representative'] : '' );
@@ -7338,6 +7339,7 @@ class TEQCIDB_Ajax {
         $tokens['student_email']           = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : ( isset( $tokens['student_email'] ) ? $tokens['student_email'] : '' );
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
+        $tokens['student_qci_number'] = isset( $student['qcinumber'] ) ? sanitize_text_field( (string) $student['qcinumber'] ) : ( isset( $tokens['student_qci_number'] ) ? $tokens['student_qci_number'] : '' );
 
         $representative = isset( $student['their_representative'] ) ? json_decode( (string) $student['their_representative'], true ) : array();
 
