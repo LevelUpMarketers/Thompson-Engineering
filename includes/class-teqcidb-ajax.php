@@ -2060,6 +2060,16 @@ class TEQCIDB_Ajax {
             $selected_count    = 1;
         }
 
+        $eligibility_error = $this->validate_refresher_student_eligibility_for_checkout( $class_type, $selected_students, get_current_user_id() );
+
+        if ( is_wp_error( $eligibility_error ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => $eligibility_error->get_error_message(),
+                )
+            );
+        }
+
         $discount_count = $allow_association_discounts ? $this->count_association_discounts_for_selected_students( $selected_students ) : 0;
         $amount         = ( $base_amount * $selected_count ) - ( 50 * $discount_count );
 
@@ -2284,10 +2294,182 @@ class TEQCIDB_Ajax {
         }
 
         $placeholders = implode( ', ', array_fill( 0, count( $wpids ), '%d' ) );
-        $query        = "SELECT wpuserid, uniquestudentid, first_name, last_name, email, company, phone_cell, their_representative, associations FROM $students_table WHERE wpuserid IN ($placeholders)";
+        $query        = "SELECT wpuserid, uniquestudentid, first_name, last_name, email, company, phone_cell, their_representative, associations, qcinumber, expiration_date FROM $students_table WHERE wpuserid IN ($placeholders)";
         $results      = $wpdb->get_results( $wpdb->prepare( $query, $wpids ), ARRAY_A );
 
         return is_array( $results ) ? $results : array();
+    }
+
+    /**
+     * Enforce refresher-registration eligibility checks for selected students.
+     *
+     * @param string $class_type        Selected class type.
+     * @param array  $selected_students Parsed selected-student payload.
+     * @param int    $fallback_user_id  Fallback user ID when no selected students are provided.
+     *
+     * @return WP_Error|null
+     */
+    private function validate_refresher_student_eligibility_for_checkout( $class_type, array $selected_students, $fallback_user_id = 0 ) {
+        $normalized_class_type = strtolower( trim( sanitize_key( (string) $class_type ) ) );
+
+        if ( 'refresher' !== $normalized_class_type ) {
+            return null;
+        }
+
+        $selected_wpids = array();
+
+        foreach ( $selected_students as $student ) {
+            if ( ! is_array( $student ) || ! isset( $student['wpid'] ) ) {
+                continue;
+            }
+
+            $wpid = absint( $student['wpid'] );
+
+            if ( $wpid > 0 ) {
+                $selected_wpids[] = $wpid;
+            }
+        }
+
+        if ( empty( $selected_wpids ) ) {
+            $fallback_user_id = absint( $fallback_user_id );
+
+            if ( $fallback_user_id > 0 ) {
+                $selected_wpids[] = $fallback_user_id;
+            }
+        }
+
+        $selected_wpids = array_values( array_unique( $selected_wpids ) );
+
+        if ( empty( $selected_wpids ) ) {
+            return new WP_Error( 'teqcidb_refresher_eligibility_missing_students', __( 'No eligible students were found for this Refresher registration.', 'teqcidb' ) );
+        }
+
+        $student_rows = $this->get_students_by_wpids( $selected_wpids );
+
+        if ( empty( $student_rows ) ) {
+            return new WP_Error( 'teqcidb_refresher_eligibility_missing_records', __( 'Selected student records could not be verified for this Refresher registration.', 'teqcidb' ) );
+        }
+
+        $missing_qci_students = array();
+        $expired_students     = array();
+
+        foreach ( $student_rows as $student_row ) {
+            if ( ! is_array( $student_row ) ) {
+                continue;
+            }
+
+            $student_label   = $this->format_student_label_for_eligibility_message( $student_row );
+            $qci_number      = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+            $expiration_date = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
+
+            if ( '' === $qci_number ) {
+                $missing_qci_students[] = $student_label;
+            }
+
+            if ( $this->is_student_expired_for_refresher_registration( $expiration_date ) ) {
+                $expired_students[] = $student_label;
+            }
+        }
+
+        $missing_qci_students = array_values( array_unique( array_filter( $missing_qci_students ) ) );
+        $expired_students     = array_values( array_unique( array_filter( $expired_students ) ) );
+
+        if ( empty( $missing_qci_students ) && empty( $expired_students ) ) {
+            return null;
+        }
+
+        if ( ! empty( $missing_qci_students ) && ! empty( $expired_students ) ) {
+            return new WP_Error(
+                'teqcidb_refresher_eligibility_failed',
+                sprintf(
+                    /* translators: 1: comma-separated students missing a QCI number, 2: comma-separated students with expired certifications. */
+                    __( 'One or more selected students are not eligible for this Refresher class. Missing QCI number: %1$s. Expired certification: %2$s.', 'teqcidb' ),
+                    implode( ', ', $missing_qci_students ),
+                    implode( ', ', $expired_students )
+                )
+            );
+        }
+
+        if ( ! empty( $missing_qci_students ) ) {
+            return new WP_Error(
+                'teqcidb_refresher_eligibility_failed',
+                sprintf(
+                    /* translators: %s: comma-separated students missing a QCI number. */
+                    __( 'The following selected student(s) are not eligible for this Refresher class because they do not have a QCI number: %s.', 'teqcidb' ),
+                    implode( ', ', $missing_qci_students )
+                )
+            );
+        }
+
+        return new WP_Error(
+            'teqcidb_refresher_eligibility_failed',
+            sprintf(
+                /* translators: %s: comma-separated students with expired certifications. */
+                __( 'The following selected student(s) are not eligible for this Refresher class because their certification is expired: %s.', 'teqcidb' ),
+                implode( ', ', $expired_students )
+            )
+        );
+    }
+
+    /**
+     * Build a concise student label for checkout eligibility messaging.
+     *
+     * @param array $student_row Student row values.
+     * @return string
+     */
+    private function format_student_label_for_eligibility_message( array $student_row ) {
+        $first_name = isset( $student_row['first_name'] ) ? sanitize_text_field( (string) $student_row['first_name'] ) : '';
+        $last_name  = isset( $student_row['last_name'] ) ? sanitize_text_field( (string) $student_row['last_name'] ) : '';
+        $email      = isset( $student_row['email'] ) ? sanitize_email( (string) $student_row['email'] ) : '';
+        $name       = trim( $first_name . ' ' . $last_name );
+
+        if ( '' !== $name ) {
+            return $name;
+        }
+
+        if ( '' !== $email ) {
+            return $email;
+        }
+
+        $wpid = isset( $student_row['wpuserid'] ) ? absint( $student_row['wpuserid'] ) : 0;
+
+        if ( $wpid > 0 ) {
+            return sprintf(
+                /* translators: %d: WordPress user ID. */
+                __( 'Student ID %d', 'teqcidb' ),
+                $wpid
+            );
+        }
+
+        return __( 'Unknown student', 'teqcidb' );
+    }
+
+    /**
+     * Determine whether a student is expired for refresher registration.
+     *
+     * @param string $expiration_date Stored expiration date.
+     * @return bool
+     */
+    private function is_student_expired_for_refresher_registration( $expiration_date ) {
+        $expiration_date = trim( (string) $expiration_date );
+
+        if ( '' === $expiration_date || '0000-00-00' === $expiration_date ) {
+            return false;
+        }
+
+        $expiration = $this->parse_student_date_value( $expiration_date );
+
+        if ( ! $expiration instanceof DateTimeImmutable ) {
+            return false;
+        }
+
+        $today = $this->parse_student_date_value( wp_date( 'Y-m-d' ) );
+
+        if ( ! $today instanceof DateTimeImmutable ) {
+            return false;
+        }
+
+        return $expiration <= $today;
     }
 
 
@@ -2472,6 +2654,17 @@ class TEQCIDB_Ajax {
         if ( ! empty( $selected_wpids ) ) {
             $multiple_students     = wp_json_encode( $selected_wpids );
             $selected_student_rows = $this->get_students_by_wpids( $selected_wpids );
+        }
+
+        $class_type_for_validation = is_array( $class_row ) && isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '';
+        $eligibility_error         = $this->validate_refresher_student_eligibility_for_checkout( $class_type_for_validation, $selected_students, $user_id );
+
+        if ( is_wp_error( $eligibility_error ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => $eligibility_error->get_error_message(),
+                )
+            );
         }
 
         $inserted = $wpdb->insert(

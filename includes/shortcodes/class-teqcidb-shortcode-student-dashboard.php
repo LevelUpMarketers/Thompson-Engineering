@@ -1112,6 +1112,10 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                             $label      = '' !== $full_name && '' !== $email ? sprintf( '%1$s (%2$s)', $full_name, $email ) : ( '' !== $full_name ? $full_name : $email );
                                                             ?>
                                                             <?php if ( $student_id > 0 && '' !== $label ) : ?>
+                                                                <?php
+                                                                $student_qci_number      = isset( $assigned_student['qcinumber'] ) ? trim( (string) $assigned_student['qcinumber'] ) : '';
+                                                                $student_expiration_date = isset( $assigned_student['expiration_date'] ) ? sanitize_text_field( (string) $assigned_student['expiration_date'] ) : '';
+                                                                ?>
                                                                 <label class="teqcidb-form-checkbox">
                                                                     <input
                                                                         type="checkbox"
@@ -1119,6 +1123,8 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                         data-teqcidb-rep-student-checkbox
                                                                         data-teqcidb-rep-student-name="<?php echo esc_attr( $full_name ); ?>"
                                                                         data-teqcidb-rep-student-email="<?php echo esc_attr( $email ); ?>"
+                                                                        data-teqcidb-rep-student-has-qci="<?php echo '' !== $student_qci_number ? 'yes' : 'no'; ?>"
+                                                                        data-teqcidb-rep-student-expiration-date="<?php echo esc_attr( $student_expiration_date ); ?>"
                                                                     />
                                                                     <span><?php echo esc_html( $label ); ?></span>
                                                                 </label>
@@ -1143,6 +1149,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                                                                     value="<?php echo esc_attr( $class_option['class_id'] ); ?>"
                                                                     data-teqcidb-rep-class-radio
                                                                     data-teqcidb-rep-class-name="<?php echo esc_attr( $class_option['classname'] ); ?>"
+                                                                    data-teqcidb-rep-class-type="<?php echo esc_attr( isset( $class_option['classtype'] ) ? $class_option['classtype'] : '' ); ?>"
                                                                 />
                                                                 <span>
                                                                     <?php echo esc_html( $class_option['classname'] ); ?>
@@ -2128,6 +2135,9 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                     'messageLoginRequired' => esc_html_x( 'Please enter your username/email and password.', 'Login form validation message', 'teqcidb' ),
                     'messageLoginFailed' => esc_html_x( 'We could not log you in with those credentials. Please try again.', 'Login form validation message', 'teqcidb' ),
                     'messageRepresentativeSelectionUpdated' => esc_html_x( 'Your selections changed. Please click Register & Pay Online again to load an updated secure payment form.', 'Representative register and pay selection-changed message', 'teqcidb' ),
+                    'messageRepresentativeRefresherNeedsQci' => esc_html_x( 'The selected Refresher class requires an existing QCI number. The following selected student(s) are not eligible: %s. Please choose an Initial class or remove ineligible students.', 'Representative refresher registration validation message when selected students do not have a QCI number', 'teqcidb' ),
+                    'messageRepresentativeRefresherExpired' => esc_html_x( 'The selected Refresher class requires an active (non-expired) certification. The following selected student(s) are currently expired: %s. Please choose an Initial class or remove expired students.', 'Representative refresher registration validation message when selected students are expired', 'teqcidb' ),
+                    'messageRepresentativeRefresherNeedsQciAndActive' => esc_html_x( 'One or more selected students are not eligible for the selected Refresher class. Students must have a QCI number and an active (non-expired) certification. Missing QCI number: %1$s. Expired certification: %2$s.', 'Representative refresher registration validation message when selected students fail both QCI number and expiration checks', 'teqcidb' ),
                     'profileEditLabel' => esc_html_x( 'Edit Profile Info', 'Profile form edit button label', 'teqcidb' ),
                     'profileCancelLabel' => esc_html_x( 'Cancel Editing', 'Profile form edit button label', 'teqcidb' ),
                     'profileSaveLabel' => esc_html_x( 'Save Profile Info', 'Profile form save button label', 'teqcidb' ),
@@ -2933,7 +2943,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, classname, classstartdate
+                "SELECT id, classname, classstartdate, classtype
                 FROM $table_name
                 WHERE COALESCE(classhide, 0) <> 1
                 ORDER BY CASE WHEN classstartdate >= %s THEN 0 ELSE 1 END ASC, classstartdate ASC, classname ASC, id ASC",
@@ -2957,6 +2967,7 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                 'class_id'       => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
                 'classname'      => isset( $row['classname'] ) ? sanitize_text_field( (string) $row['classname'] ) : '',
                 'classstartdate' => isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '',
+                'classtype'      => isset( $row['classtype'] ) ? strtolower( trim( sanitize_text_field( (string) $row['classtype'] ) ) ) : '',
             );
         }
 

@@ -2200,6 +2200,30 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
+    const normalizeRegistrationClassType = (value) =>
+        String(value || '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9_]/g, '');
+
+    const isStudentExpiredForRefresher = (expirationDateValue) => {
+        const rawValue = String(expirationDateValue || '').trim();
+        if (!rawValue) {
+            return false;
+        }
+
+        const parsedDate = new Date(`${rawValue}T00:00:00`);
+        if (Number.isNaN(parsedDate.getTime())) {
+            return false;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        parsedDate.setHours(0, 0, 0, 0);
+
+        return parsedDate <= today;
+    };
+
     const initRepresentativeRegistrationSelection = () => {
         const wrappers = document.querySelectorAll('[data-teqcidb-representative-registration="true"]');
 
@@ -2266,13 +2290,61 @@
                         wpid: checkbox.value ? String(checkbox.value) : '',
                         name: checkbox.dataset.teqcidbRepStudentName || '',
                         email: checkbox.dataset.teqcidbRepStudentEmail || '',
+                        hasQci:
+                            (checkbox.dataset.teqcidbRepStudentHasQci || 'no') === 'yes',
+                        expirationDate:
+                            checkbox.dataset.teqcidbRepStudentExpirationDate || '',
                     }));
 
                 const checkedClass = classRadios.find((radio) => radio.checked);
                 const hasStudents = checkedStudents.length > 0;
                 const hasClass = Boolean(checkedClass && checkedClass.value);
+                const selectedClassType = hasClass
+                    ? normalizeRegistrationClassType(
+                          checkedClass.dataset.teqcidbRepClassType || ''
+                      )
+                    : '';
+                const isRefresherClass = selectedClassType === 'refresher';
 
-                payButton.disabled = !(hasStudents && hasClass);
+                const studentsMissingQci = isRefresherClass
+                    ? checkedStudents.filter((student) => !student.hasQci)
+                    : [];
+                const studentsExpired = isRefresherClass
+                    ? checkedStudents.filter((student) =>
+                          isStudentExpiredForRefresher(student.expirationDate)
+                      )
+                    : [];
+
+                const missingQciNames = studentsMissingQci.map(
+                    (student) => student.name || student.email || student.wpid
+                );
+                const expiredNames = studentsExpired.map(
+                    (student) => student.name || student.email || student.wpid
+                );
+
+                let eligibilityMessage = '';
+
+                if (isRefresherClass && missingQciNames.length && expiredNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherNeedsQciAndActive ||
+                        'One or more selected students are not eligible for the selected Refresher class. Students must have a QCI number and an active (non-expired) certification. Missing QCI number: %1$s. Expired certification: %2$s.';
+                    eligibilityMessage = template
+                        .replace('%1$s', missingQciNames.join(', '))
+                        .replace('%2$s', expiredNames.join(', '));
+                } else if (isRefresherClass && missingQciNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherNeedsQci ||
+                        'The selected Refresher class requires an existing QCI number. The following selected student(s) are not eligible: %s. Please choose an Initial class or remove ineligible students.';
+                    eligibilityMessage = template.replace('%s', missingQciNames.join(', '));
+                } else if (isRefresherClass && expiredNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherExpired ||
+                        'The selected Refresher class requires an active (non-expired) certification. The following selected student(s) are currently expired: %s. Please choose an Initial class or remove expired students.';
+                    eligibilityMessage = template.replace('%s', expiredNames.join(', '));
+                }
+
+                payButton.disabled =
+                    !(hasStudents && hasClass) || Boolean(eligibilityMessage);
                 payButton.dataset.classId = hasClass ? String(checkedClass.value) : '';
 
                 if (selectedStudentsInput) {
@@ -2291,6 +2363,12 @@
                 if (selectionChanged && hadHostedForm) {
                     clearHostedFormState();
                 }
+
+                if (eligibilityMessage) {
+                    setPaymentFeedback(paymentWrapper, eligibilityMessage, false);
+                } else if (!(selectionChanged && hadHostedForm)) {
+                    setPaymentFeedback(paymentWrapper, '', false);
+                }
             };
 
             payButton.disabled = true;
@@ -2307,8 +2385,6 @@
             syncState(false);
         });
     };
-
-    initRepresentativeRegistrationSelection();
 
     const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
@@ -2332,6 +2408,8 @@
         feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
         feedback.classList.toggle('is-loading', Boolean(isLoading));
     };
+
+    initRepresentativeRegistrationSelection();
 
     const parseIframeCommunication = (payload) => {
         if (!payload || typeof payload !== 'string') {
