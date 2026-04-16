@@ -2634,7 +2634,7 @@ class TEQCIDB_Admin {
              LEFT JOIN $classes_table c ON c.id = qa.class_id
              LEFT JOIN $students_table s ON s.wpuserid = qa.user_id
              WHERE qa.status = %d
-             ORDER BY qa.updated_at DESC, qa.id DESC",
+             ORDER BY qa.id DESC",
             absint( $status )
         );
         $results = $wpdb->get_results( $query, ARRAY_A );
@@ -4224,12 +4224,13 @@ class TEQCIDB_Admin {
                         $choices       = $this->get_multi_select_choices_from_choices_json( $choices_json );
                         $selected      = isset( $answers[ $question_id ] ) && is_array( $answers[ $question_id ] ) ? $answers[ $question_id ] : array();
 
-                        $selected_label = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
-                        $correct_label  = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $selected_label      = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
+                        $correct_label       = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $is_selected_correct = $this->is_attempt_answer_correct( $question_type, $selected, $choices_json, $choices );
 
                         echo '<tr>';
                         echo '<td>' . esc_html( '' !== $prompt ? $prompt : __( 'Untitled question', 'teqcidb' ) ) . '</td>';
-                        echo '<td>' . esc_html( $selected_label ) . '</td>';
+                        echo '<td' . ( $is_selected_correct ? '' : ' style="color: #b32d2e; font-weight: 600;"' ) . '>' . esc_html( $selected_label ) . '</td>';
                         echo '<td>' . esc_html( $correct_label ) . '</td>';
                         echo '</tr>';
                     }
