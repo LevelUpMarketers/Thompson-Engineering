@@ -245,6 +245,7 @@ class TEQCIDB_Rest {
         $quiz_id    = absint( $request->get_param( 'quiz_id' ) );
         $class_id   = absint( $request->get_param( 'class_id' ) );
         $attempt_id = absint( $request->get_param( 'attempt_id' ) );
+        $idempotency_token = sanitize_text_field( (string) $request->get_param( 'idempotency_token' ) );
         $answers_raw = $request->get_param( 'answers' );
 
         if ( $quiz_id <= 0 || $class_id <= 0 ) {
@@ -293,6 +294,7 @@ class TEQCIDB_Rest {
             'quiz_id'    => $quiz_id,
             'class_id'   => $class_id,
             'attempt_id' => $attempt_id,
+            'idempotency_token' => $idempotency_token,
             'answers'    => $answers,
         );
     }

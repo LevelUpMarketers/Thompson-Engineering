@@ -83,6 +83,7 @@
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
+    var idempotencyToken = String(runtime.idempotencyToken || '');
     var isSubmitting = false;
     var isSavingProgress = false;
     var slideIndex = 0;
@@ -610,6 +611,7 @@
             quiz_id: runtime.quiz.id,
             class_id: runtime.quiz.classId,
             attempt_id: attemptId,
+            idempotency_token: idempotencyToken,
             answers: answers
         };
     }
@@ -621,6 +623,7 @@
         formData.append('quiz_id', runtime.quiz.id);
         formData.append('class_id', runtime.quiz.classId);
         formData.append('attempt_id', String(attemptId || 0));
+        formData.append('idempotency_token', idempotencyToken);
         formData.append('answers_json', JSON.stringify(answers || {}));
         return formData;
     }
