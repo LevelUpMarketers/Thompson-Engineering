@@ -1591,18 +1591,18 @@ class TEQCIDB_Ajax {
 
         $saved_at = current_time( 'mysql' );
 
-        $wpdb->update(
-            $attempts_table,
-            array(
-                'status'        => 2,
-                'current_index' => max( 0, absint( $current_index ) ),
-            ),
-            array( 'id' => $attempt_id ),
-            array( '%d', '%d' ),
-            array( '%d' )
-        );
-
         if ( ! $is_final_submission ) {
+            $wpdb->update(
+                $attempts_table,
+                array(
+                    'status'        => 2,
+                    'current_index' => max( 0, absint( $current_index ) ),
+                ),
+                array( 'id' => $attempt_id ),
+                array( '%d', '%d' ),
+                array( '%d' )
+            );
+
             return array(
                 'attempt_id' => $attempt_id,
                 'saved_at'   => $saved_at,
