@@ -1436,7 +1436,7 @@ class TEQCIDB_Ajax {
         if ( $attempt_id > 0 ) {
             $attempt = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id, status FROM $attempts_table WHERE id = %d LIMIT 1",
+                    "SELECT id, status, current_index FROM $attempts_table WHERE id = %d LIMIT 1",
                     $attempt_id
                 ),
                 ARRAY_A
@@ -1444,7 +1444,7 @@ class TEQCIDB_Ajax {
         } else {
             $attempt = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id, status FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
+                    "SELECT id, status, current_index FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
                     $quiz_id,
                     $class_id,
                     $user_id
@@ -1454,6 +1454,7 @@ class TEQCIDB_Ajax {
         }
 
         $attempt_id = isset( $attempt['id'] ) ? absint( $attempt['id'] ) : 0;
+        $stored_current_index = isset( $attempt['current_index'] ) ? max( 0, absint( $attempt['current_index'] ) ) : 0;
 
         if ( $attempt_id > 0 && isset( $attempt['status'] ) && in_array( (int) $attempt['status'], array( 0, 1 ), true ) ) {
             return new WP_Error( 'teqcidb_attempt_submitted', __( 'This quiz attempt has already been submitted.', 'teqcidb' ), array( 'status' => 409 ) );
@@ -1516,6 +1517,8 @@ class TEQCIDB_Ajax {
 
             $sanitized_answers[ $question_id ] = $this->sanitize_runtime_selected_values( array( 'selected' => $answers_payload[ $question_key ] ) );
         }
+
+        $answer_rows_changed = false;
 
         if ( ! empty( $sanitized_answers ) ) {
             $existing_item_rows = $wpdb->get_results(
@@ -1586,22 +1589,29 @@ class TEQCIDB_Ajax {
                         array( '%d', '%d', '%s', '%s' )
                     );
                 }
+
+                $answer_rows_changed = true;
             }
         }
 
         $saved_at = current_time( 'mysql' );
 
         if ( ! $is_final_submission ) {
-            $wpdb->update(
-                $attempts_table,
-                array(
-                    'status'        => 2,
-                    'current_index' => max( 0, absint( $current_index ) ),
-                ),
-                array( 'id' => $attempt_id ),
-                array( '%d', '%d' ),
-                array( '%d' )
-            );
+            $normalized_current_index = max( 0, absint( $current_index ) );
+            $index_changed            = $normalized_current_index !== $stored_current_index;
+
+            if ( $answer_rows_changed || $index_changed ) {
+                $wpdb->update(
+                    $attempts_table,
+                    array(
+                        'status'        => 2,
+                        'current_index' => $normalized_current_index,
+                    ),
+                    array( 'id' => $attempt_id ),
+                    array( '%d', '%d' ),
+                    array( '%d' )
+                );
+            }
 
             return array(
                 'attempt_id' => $attempt_id,
