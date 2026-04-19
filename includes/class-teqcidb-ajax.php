@@ -1610,26 +1610,28 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $stored_answer_items = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT question_id, selected_json FROM $answer_items_table WHERE attempt_id = %d",
-                $attempt_id
-            ),
-            ARRAY_A
-        );
+        $answers_for_grading = $sanitized_answers;
 
-        $stored_answers = array();
+        if ( empty( $answers_for_grading ) && $attempt_id > 0 ) {
+            $stored_answer_items = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT question_id, selected_json FROM $answer_items_table WHERE attempt_id = %d",
+                    $attempt_id
+                ),
+                ARRAY_A
+            );
 
-        if ( is_array( $stored_answer_items ) ) {
-            foreach ( $stored_answer_items as $stored_answer_item ) {
-                $stored_question_id = isset( $stored_answer_item['question_id'] ) ? absint( $stored_answer_item['question_id'] ) : 0;
+            if ( is_array( $stored_answer_items ) ) {
+                foreach ( $stored_answer_items as $stored_answer_item ) {
+                    $stored_question_id = isset( $stored_answer_item['question_id'] ) ? absint( $stored_answer_item['question_id'] ) : 0;
 
-                if ( $stored_question_id <= 0 ) {
-                    continue;
+                    if ( $stored_question_id <= 0 ) {
+                        continue;
+                    }
+
+                    $selected_values                       = json_decode( isset( $stored_answer_item['selected_json'] ) ? (string) $stored_answer_item['selected_json'] : '', true );
+                    $answers_for_grading[ $stored_question_id ] = $this->sanitize_runtime_selected_values( array( 'selected' => $selected_values ) );
                 }
-
-                $selected_values               = json_decode( isset( $stored_answer_item['selected_json'] ) ? (string) $stored_answer_item['selected_json'] : '', true );
-                $stored_answers[ $stored_question_id ] = $this->sanitize_runtime_selected_values( array( 'selected' => $selected_values ) );
             }
         }
 
@@ -1645,7 +1647,7 @@ class TEQCIDB_Ajax {
                 continue;
             }
 
-            $selected = isset( $stored_answers[ $question_id ] ) ? $stored_answers[ $question_id ] : array();
+            $selected = isset( $answers_for_grading[ $question_id ] ) ? $answers_for_grading[ $question_id ] : array();
 
             $evaluation = $this->evaluate_runtime_answer( isset( $row['type'] ) ? $row['type'] : '', isset( $row['choices_json'] ) ? $row['choices_json'] : '', $selected );
 
