@@ -488,3 +488,5 @@
 481. 2026-04-16 04:00 UTC: Updated Quizzes → Passed Quizzes answer review to highlight incorrect student answers in red (matching Failed Quizzes), and normalized Failed/Passed attempt list ordering to newest database rows first using descending quiz-attempt ID.
 482. 2026-04-16 04:30 UTC: Added a new Communications email template (**Student Initial Exam Passed**) and wired automatic post-pass delivery for Initial Exam quiz submissions by queueing a short delayed cron event after grading/persistence completes, sending the template to the logged-in student's email.
 483. 2026-04-16 05:00 UTC: Added the new Student Information email token `{student_qci_number}` (token-picker UI + preview/token hydration paths) so Communications templates can merge each student's current QCI number, including the Initial Exam Passed template body.
+
+484. 2026-04-19 00:00 UTC: Removed Initial/Refresher quiz autosave plumbing across class-page runtime, REST/AJAX progress-save endpoints, and related rate-limiting/load-test docs so exam answers now persist and grade only on final Submit Quiz.

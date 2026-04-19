@@ -23,16 +23,6 @@ class TEQCIDB_Rest {
     public function register_routes() {
         register_rest_route(
             'teqcidb/v1',
-            '/quiz/progress',
-            array(
-                'methods'             => WP_REST_Server::CREATABLE,
-                'callback'            => array( $this, 'save_quiz_progress' ),
-                'permission_callback' => array( $this, 'can_manage_quiz_request' ),
-            )
-        );
-
-        register_rest_route(
-            'teqcidb/v1',
             '/quiz/submit',
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
@@ -74,36 +64,6 @@ class TEQCIDB_Rest {
         return true;
     }
 
-    public function save_quiz_progress( $request ) {
-        $validated = $this->validate_request_payload( $request );
-
-        if ( is_wp_error( $validated ) ) {
-            return $validated;
-        }
-
-        $throttle_error = $this->ajax->enforce_quiz_progress_rate_limit( get_current_user_id(), $validated['attempt_id'], $validated['quiz_id'], $validated['class_id'] );
-
-        if ( is_wp_error( $throttle_error ) ) {
-            return $throttle_error;
-        }
-
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), false );
-
-        if ( is_wp_error( $result ) ) {
-            return $result;
-        }
-
-        return rest_ensure_response(
-            array(
-                'ok'             => true,
-                'attempt_id'     => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
-                'saved_at'       => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
-                'server_version' => TEQCIDB_VERSION,
-                'message'        => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
-            )
-        );
-    }
-
     public function submit_quiz_attempt( $request ) {
         $validated = $this->validate_request_payload( $request );
 
@@ -111,7 +71,7 @@ class TEQCIDB_Rest {
             return $validated;
         }
 
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true );
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id() );
 
         if ( is_wp_error( $result ) ) {
             return $result;
