@@ -84,6 +84,7 @@
     var useRestQuizApi = runtime.useRestQuizApi !== false;
     var attemptId = parseInt((runtime.attempt && runtime.attempt.id) || 0, 10) || 0;
     var isSubmitting = false;
+    var isSavingProgress = false;
     var slideIndex = 0;
     var slideViewedMap = {};
     var initialSlideProgress = runtime.slideProgress || {};
@@ -558,12 +559,16 @@
         root.innerHTML = '<div class="teqcidb-class-quiz">' +
             questionBlocks +
             '<div class="teqcidb-class-quiz__actions">' +
+                (runtime.quiz.classType === 'initial'
+                    ? '<button type="button" class="teqcidb-button teqcidb-button-secondary" id="teqcidb-quiz-save-progress">' + esc(t('saveProgress', 'Save Progress')) + '</button>'
+                    : '') +
                 '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-submit">' + esc(t('submitQuiz', 'Submit Quiz')) + '</button>' +
             '</div>' +
             '<div class="teqcidb-class-quiz__error" id="teqcidb-quiz-error" aria-live="polite"></div>' +
         '</div>';
 
         bindChoiceEvents();
+        bindSaveProgressButton();
         bindSubmitButton();
     }
 
@@ -691,6 +696,14 @@
         });
     }
 
+    function requestQuizSaveEndpoint(failureMessage){
+        return requestQuizEndpoint({
+            restPath: '/quiz/save',
+            ajaxAction: 'teqcidb_save_quiz_progress',
+            failureMessage: failureMessage
+        });
+    }
+
     function mapChoiceValuesToLabels(values, choices){
         if (!Array.isArray(values) || !values.length) {
             return [];
@@ -773,7 +786,7 @@
         }
 
         btn.addEventListener('click', function(){
-            if (isSubmitting) {
+            if (isSubmitting || isSavingProgress) {
                 return;
             }
 
@@ -786,6 +799,45 @@
             err.textContent = '';
             btn.disabled = true;
             submitQuiz();
+        });
+    }
+
+    function bindSaveProgressButton(){
+        var saveBtn = root.querySelector('#teqcidb-quiz-save-progress');
+        var submitBtn = root.querySelector('#teqcidb-quiz-submit');
+        var err = root.querySelector('#teqcidb-quiz-error');
+
+        if (!saveBtn) {
+            return;
+        }
+
+        saveBtn.addEventListener('click', function(){
+            if (isSubmitted || isSubmitting || isSavingProgress) {
+                return;
+            }
+
+            isSavingProgress = true;
+            saveBtn.disabled = true;
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+
+            err.textContent = '';
+
+            requestQuizSaveEndpoint(i18n.saveProgressError || 'We could not save your progress. Please try again.').then(function(payload){
+                attemptId = parseInt(payload.attempt_id || attemptId || 0, 10) || 0;
+                err.textContent = payload.message || (i18n.saveProgressSuccess || 'Progress saved.');
+            }).catch(function(error){
+                err.textContent = error.message || (i18n.saveProgressError || 'We could not save your progress. Please try again.');
+            }).finally(function(){
+                isSavingProgress = false;
+                saveBtn.disabled = false;
+
+                if (submitBtn && !isSubmitted) {
+                    submitBtn.disabled = false;
+                }
+            });
         });
     }
 

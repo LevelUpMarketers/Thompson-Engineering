@@ -490,3 +490,4 @@
 483. 2026-04-16 05:00 UTC: Added the new Student Information email token `{student_qci_number}` (token-picker UI + preview/token hydration paths) so Communications templates can merge each student's current QCI number, including the Initial Exam Passed template body.
 
 484. 2026-04-19 00:00 UTC: Removed Initial/Refresher quiz autosave plumbing across class-page runtime, REST/AJAX progress-save endpoints, and related rate-limiting/load-test docs so exam answers now persist and grade only on final Submit Quiz.
+485. 2026-04-19 01:00 UTC: Added an Initial Exam-only manual Save Progress button beside Submit Quiz, reintroduced explicit REST/AJAX save endpoints with per-attempt save rate-limiting, and restored non-final attempt persistence so students can intentionally checkpoint answers without re-enabling background autosave.
