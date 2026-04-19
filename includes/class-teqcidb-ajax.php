@@ -1540,13 +1540,23 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $question_rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, type, prompt, choices_json FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
-                $quiz_id
-            ),
-            ARRAY_A
-        );
+        if ( $is_final_submission ) {
+            $question_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, type, prompt, choices_json FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
+                    $quiz_id
+                ),
+                ARRAY_A
+            );
+        } else {
+            $question_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
+                    $quiz_id
+                ),
+                ARRAY_A
+            );
+        }
 
         if ( ! is_array( $question_rows ) || empty( $question_rows ) ) {
             return new WP_Error( 'teqcidb_quiz_no_questions', __( 'Quiz has no questions to save.', 'teqcidb' ), array( 'status' => 400 ) );
