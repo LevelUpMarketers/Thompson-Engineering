@@ -1512,6 +1512,16 @@ class TEQCIDB_Ajax {
             $sanitized_answers[ $question_id ] = $this->sanitize_runtime_selected_values( array( 'selected' => $answers_payload[ $question_key ] ) );
         }
 
+        $transaction_started = false;
+
+        if ( $is_final_submission ) {
+            $transaction_started = false !== $wpdb->query( 'START TRANSACTION' );
+
+            if ( ! $transaction_started ) {
+                return new WP_Error( 'teqcidb_submit_transaction_start_failed', __( 'Unable to start quiz submission transaction.', 'teqcidb' ), array( 'status' => 500 ) );
+            }
+        }
+
         $answer_rows_changed = false;
 
         if ( ! empty( $sanitized_answers ) ) {
@@ -1558,7 +1568,7 @@ class TEQCIDB_Ajax {
                 }
 
                 if ( $has_existing ) {
-                    $wpdb->update(
+                    $updated = $wpdb->update(
                         $answer_items_table,
                         array(
                             'selected_json' => $selected_json,
@@ -1571,8 +1581,16 @@ class TEQCIDB_Ajax {
                         array( '%s', '%s' ),
                         array( '%d', '%d' )
                     );
+
+                    if ( false === $updated ) {
+                        if ( $transaction_started ) {
+                            $wpdb->query( 'ROLLBACK' );
+                        }
+
+                        return new WP_Error( 'teqcidb_answer_item_update_failed', __( 'Unable to update quiz answers right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                    }
                 } else {
-                    $wpdb->insert(
+                    $inserted = $wpdb->insert(
                         $answer_items_table,
                         array(
                             'attempt_id'    => $attempt_id,
@@ -1582,6 +1600,14 @@ class TEQCIDB_Ajax {
                         ),
                         array( '%d', '%d', '%s', '%s' )
                     );
+
+                    if ( false === $inserted ) {
+                        if ( $transaction_started ) {
+                            $wpdb->query( 'ROLLBACK' );
+                        }
+
+                        return new WP_Error( 'teqcidb_answer_item_insert_failed', __( 'Unable to save quiz answers right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                    }
                 }
 
                 $answer_rows_changed = true;
@@ -1592,7 +1618,7 @@ class TEQCIDB_Ajax {
 
         if ( ! $is_final_submission ) {
             if ( $answer_rows_changed ) {
-                $wpdb->update(
+                $attempt_updated = $wpdb->update(
                     $attempts_table,
                     array(
                         'status' => 2,
@@ -1601,6 +1627,10 @@ class TEQCIDB_Ajax {
                     array( '%d' ),
                     array( '%d' )
                 );
+
+                if ( false === $attempt_updated ) {
+                    return new WP_Error( 'teqcidb_attempt_progress_update_failed', __( 'Unable to save quiz progress right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                }
             }
 
             return array(
@@ -1713,15 +1743,23 @@ class TEQCIDB_Ajax {
             );
 
             if ( $existing_answer_id > 0 ) {
-                $wpdb->update(
+                $legacy_updated = $wpdb->update(
                     $answers_table,
                     array( 'answers_json' => $legacy_payload_json ),
                     array( 'attempt_id' => $attempt_id ),
                     array( '%s' ),
                     array( '%d' )
                 );
+
+                if ( false === $legacy_updated ) {
+                    if ( $transaction_started ) {
+                        $wpdb->query( 'ROLLBACK' );
+                    }
+
+                    return new WP_Error( 'teqcidb_legacy_answer_update_failed', __( 'Unable to finalize quiz answers right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                }
             } else {
-                $wpdb->insert(
+                $legacy_inserted = $wpdb->insert(
                     $answers_table,
                     array(
                         'attempt_id'   => $attempt_id,
@@ -1729,6 +1767,14 @@ class TEQCIDB_Ajax {
                     ),
                     array( '%d', '%s' )
                 );
+
+                if ( false === $legacy_inserted ) {
+                    if ( $transaction_started ) {
+                        $wpdb->query( 'ROLLBACK' );
+                    }
+
+                    return new WP_Error( 'teqcidb_legacy_answer_insert_failed', __( 'Unable to finalize quiz answers right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                }
             }
         }
 
@@ -1739,7 +1785,7 @@ class TEQCIDB_Ajax {
             )
         );
 
-        $wpdb->update(
+        $attempt_final_updated = $wpdb->update(
             $attempts_table,
             array(
                 'status'       => $passed ? 0 : 1,
@@ -1750,6 +1796,23 @@ class TEQCIDB_Ajax {
             array( '%d', '%d', '%s' ),
             array( '%d' )
         );
+
+        if ( false === $attempt_final_updated ) {
+            if ( $transaction_started ) {
+                $wpdb->query( 'ROLLBACK' );
+            }
+
+            return new WP_Error( 'teqcidb_attempt_final_update_failed', __( 'Unable to finalize quiz attempt right now.', 'teqcidb' ), array( 'status' => 500 ) );
+        }
+
+        if ( $transaction_started ) {
+            $commit_result = $wpdb->query( 'COMMIT' );
+
+            if ( false === $commit_result ) {
+                $wpdb->query( 'ROLLBACK' );
+                return new WP_Error( 'teqcidb_submit_transaction_commit_failed', __( 'Unable to finalize quiz submission transaction.', 'teqcidb' ), array( 'status' => 500 ) );
+            }
+        }
 
         $this->delete_quiz_attempt_access_metadata( $attempt_id );
 
