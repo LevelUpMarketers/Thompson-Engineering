@@ -16,6 +16,7 @@ class TEQCIDB_Ajax {
     const QUIZ_PROGRESS_RATE_LIMIT_GAP        = 5;
     const QUIZ_PROGRESS_RATE_LIMIT_TTL        = 30;
     const QUIZ_PROGRESS_RATE_LIMIT_KEY_PREFIX = 'teqcidb_qp_rate_';
+    const LEGACY_QUIZ_ANSWERS_COMPAT_OPTION   = 'teqcidb_enable_legacy_quiz_answers_compat';
     const QUIZ_SUBMIT_IDEMPOTENCY_TTL         = DAY_IN_SECONDS;
     const QUIZ_SUBMIT_IDEMPOTENCY_KEY_PREFIX  = 'teqcidb_qs_idem_';
     const INITIAL_EXAM_PASS_EMAIL_HOOK        = 'teqcidb_send_initial_exam_pass_email';
@@ -1458,6 +1459,18 @@ class TEQCIDB_Ajax {
         set_transient( $cache_key, $result, self::QUIZ_SUBMIT_IDEMPOTENCY_TTL );
     }
 
+    private function is_legacy_quiz_answers_compat_enabled() {
+        $enabled = get_option( self::LEGACY_QUIZ_ANSWERS_COMPAT_OPTION, '1' );
+        $enabled = '0' !== (string) $enabled;
+
+        /**
+         * Filter whether legacy teqcidb_quiz_answers compatibility writes are enabled.
+         *
+         * @param bool $enabled Whether legacy compatibility writes are enabled.
+         */
+        return (bool) apply_filters( 'teqcidb_enable_legacy_quiz_answers_compat', $enabled );
+    }
+
     private function persist_quiz_attempt_answers( $quiz_id, $class_id, $user_id, $answers_payload, $is_final_submission, $attempt_id = 0, $attempt_metadata = null, $idempotency_token = '' ) {
         global $wpdb;
 
@@ -1783,7 +1796,7 @@ class TEQCIDB_Ajax {
             )
         );
 
-        if ( $legacy_payload_json ) {
+        if ( $legacy_payload_json && $this->is_legacy_quiz_answers_compat_enabled() ) {
             $existing_answer_id = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT id FROM $answers_table WHERE attempt_id = %d LIMIT 1",
