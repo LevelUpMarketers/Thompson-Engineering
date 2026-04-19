@@ -324,11 +324,12 @@
 }
 
 .teqcidb-class-quiz__actions {
-    display: flex;
-    gap: 12px;
+    display: block;
     margin-top: 18px;
-    align-items: flex-start;
-    flex-direction: column;
+}
+
+.teqcidb-class-quiz__actions .teqcidb-button + .teqcidb-button {
+    margin-top: 12px;
 }
 
 .teqcidb-class-quiz__error {

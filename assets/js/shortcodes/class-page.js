@@ -559,10 +559,10 @@
         root.innerHTML = '<div class="teqcidb-class-quiz">' +
             questionBlocks +
             '<div class="teqcidb-class-quiz__actions">' +
+                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-submit">' + esc(t('submitQuiz', 'Submit Quiz')) + '</button>' +
                 (runtime.quiz.classType === 'initial'
                     ? '<button type="button" class="teqcidb-button teqcidb-button-secondary" id="teqcidb-quiz-save-progress">' + esc(t('saveProgress', 'Save Progress')) + '</button>'
                     : '') +
-                '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-quiz-submit">' + esc(t('submitQuiz', 'Submit Quiz')) + '</button>' +
             '</div>' +
             '<div class="teqcidb-class-quiz__error" id="teqcidb-quiz-error" aria-live="polite"></div>' +
         '</div>';
