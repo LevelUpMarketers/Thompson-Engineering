@@ -43,13 +43,14 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.3 (current)
+### 1.0.4 (current)
 
-Changes in **1.0.3** compared with **1.0.2**:
+Changes in **1.0.4** compared with **1.0.3**:
 
-- Class-page quiz runtime now renders all questions at once in sequential cards and uses a single **Submit Quiz** action instead of a one-question-at-a-time flow.
-- Class-page quiz runtime now submits answers only once at final submit time, removing background autosave/progress-save requests.
-- Post-submit quiz UX now keeps questions visible in a read-only disabled state (subtly faded), and submit UX now disables the button on click plus auto-scrolls students to the result area.
+- Final quiz submit now gracefully falls back to non-transactional writes when `START TRANSACTION` is unavailable, while emitting `teqcidb_quiz_submit_transaction_unavailable` for observability.
+- Non-final **Save Progress** requests now validate against ordered question IDs without loading full question metadata, reducing DB work.
+- Class-page quiz submit now immediately disables both **Submit Quiz** and **Save Progress**, restoring both on submit failure so students can retry safely.
+- Email token hydration now explicitly maps `teqcidb_students.expiration_date` into `{student_certification_expiration}` for communications templates.
 
 ## Legacy Migration Note (Student Email Placeholders)
 
