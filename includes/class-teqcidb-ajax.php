@@ -1580,7 +1580,23 @@ class TEQCIDB_Ajax {
             $transaction_started = false !== $wpdb->query( 'START TRANSACTION' );
 
             if ( ! $transaction_started ) {
-                return new WP_Error( 'teqcidb_submit_transaction_start_failed', __( 'Unable to start quiz submission transaction.', 'teqcidb' ), array( 'status' => 500 ) );
+                /**
+                 * Fires when final quiz submission falls back to non-transactional writes.
+                 *
+                 * @param int    $attempt_id Quiz attempt ID being finalized.
+                 * @param int    $quiz_id    Quiz ID associated with the attempt.
+                 * @param int    $class_id   Class ID associated with the attempt.
+                 * @param int    $user_id    User ID submitting the quiz.
+                 * @param string $db_error   Database error reported while starting the transaction.
+                 */
+                do_action(
+                    'teqcidb_quiz_submit_transaction_unavailable',
+                    $attempt_id,
+                    $quiz_id,
+                    $class_id,
+                    $user_id,
+                    isset( $wpdb->last_error ) ? (string) $wpdb->last_error : ''
+                );
             }
         }
 
