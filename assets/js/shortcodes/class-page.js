@@ -621,7 +621,6 @@
         formData.append('quiz_id', runtime.quiz.id);
         formData.append('class_id', runtime.quiz.classId);
         formData.append('attempt_id', String(attemptId || 0));
-        formData.append('current_index', '0');
         formData.append('answers_json', JSON.stringify(answers || {}));
         return formData;
     }

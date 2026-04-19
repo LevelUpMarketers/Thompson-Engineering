@@ -242,11 +242,10 @@ class TEQCIDB_Rest {
     }
 
     private function validate_request_payload( $request ) {
-        $quiz_id                = absint( $request->get_param( 'quiz_id' ) );
-        $class_id               = absint( $request->get_param( 'class_id' ) );
-        $attempt_id             = absint( $request->get_param( 'attempt_id' ) );
-        $current_question_index = absint( $request->get_param( 'current_question_index' ) );
-        $answers_raw            = $request->get_param( 'answers' );
+        $quiz_id    = absint( $request->get_param( 'quiz_id' ) );
+        $class_id   = absint( $request->get_param( 'class_id' ) );
+        $attempt_id = absint( $request->get_param( 'attempt_id' ) );
+        $answers_raw = $request->get_param( 'answers' );
 
         if ( $quiz_id <= 0 || $class_id <= 0 ) {
             return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID and class ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
@@ -291,11 +290,10 @@ class TEQCIDB_Rest {
         }
 
         return array(
-            'quiz_id'       => $quiz_id,
-            'class_id'      => $class_id,
-            'attempt_id'    => $attempt_id,
-            'current_index' => $current_question_index,
-            'answers'       => $answers,
+            'quiz_id'    => $quiz_id,
+            'class_id'   => $class_id,
+            'attempt_id' => $attempt_id,
+            'answers'    => $answers,
         );
     }
 
