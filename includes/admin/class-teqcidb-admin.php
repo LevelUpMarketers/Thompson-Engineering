@@ -1782,13 +1782,6 @@ class TEQCIDB_Admin {
 
         $this->render_tab_intro( $title, $description );
 
-        if ( 'student_reports' === $active_tab ) {
-            $highest_qci = $this->get_highest_assigned_qci_number();
-            $highest_qci_display = '' !== $highest_qci ? $highest_qci : __( 'Not available', 'teqcidb' );
-            /* translators: %s: highest currently assigned QCI number. */
-            echo '<p class="teqcidb-tab-intro__description teqcidb-tab-intro__description--qci-highest">' . esc_html( sprintf( __( 'The highest currently-assigned QCI Number is: %s', 'teqcidb' ), $highest_qci_display ) ) . '</p>';
-        }
-
         if ( 'edit' === $active_tab ) {
             $this->render_class_edit_tab();
         } else {
@@ -1832,6 +1825,13 @@ class TEQCIDB_Admin {
         $description = isset( $tab_descriptions[ $active_tab ] ) ? $tab_descriptions[ $active_tab ] : '';
 
         $this->render_tab_intro( $title, $description );
+
+        if ( 'student_reports' === $active_tab ) {
+            $highest_qci = $this->get_highest_assigned_qci_number();
+            $highest_qci_display = '' !== $highest_qci ? $highest_qci : __( 'Not available', 'teqcidb' );
+            /* translators: %s: highest currently assigned QCI number. */
+            echo '<p class="teqcidb-tab-intro__description teqcidb-tab-intro__description--qci-highest">' . esc_html( sprintf( __( 'The highest currently-assigned QCI Number is: %s', 'teqcidb' ), $highest_qci_display ) ) . '</p>';
+        }
 
         if ( 'edit' === $active_tab ) {
             $this->render_edit_tab();
