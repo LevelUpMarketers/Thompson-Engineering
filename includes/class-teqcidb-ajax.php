@@ -1965,25 +1965,6 @@ class TEQCIDB_Ajax {
         $student_update = array();
         $student_formats = array();
 
-        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
-
-        if ( '' === $existing_qci_number ) {
-            $student_update['qcinumber'] = $this->generate_next_qci_number();
-            $student_formats[]           = '%s';
-        }
-
-        $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
-        $expiration_source   = $this->parse_student_date_value( $existing_expiration );
-
-        if ( ! $expiration_source ) {
-            $expiration_source = $this->parse_student_date_value( $today );
-        }
-
-        if ( $expiration_source ) {
-            $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
-            $student_formats[]                 = '%s';
-        }
-
         if ( 'initial' === $class_type ) {
             $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
 
@@ -1996,16 +1977,6 @@ class TEQCIDB_Ajax {
         if ( 'refresher' === $class_type ) {
             $student_update['last_refresher_date'] = $today;
             $student_formats[]                     = '%s';
-        }
-
-        if ( ! empty( $student_update ) ) {
-            $wpdb->update(
-                $students_table,
-                $student_update,
-                array( 'id' => $student_id ),
-                $student_formats,
-                array( '%d' )
-            );
         }
 
         $class_row = $wpdb->get_row(
@@ -2025,34 +1996,87 @@ class TEQCIDB_Ajax {
         $unique_student_id = isset( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '';
 
         $history_id = 0;
+        $history_row = array();
 
         if ( '' !== $unique_class_id ) {
-            $history_id = (int) $wpdb->get_var(
+            $history_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                     $user_id,
                     $unique_class_id
                 )
+                ,
+                ARRAY_A
             );
+            $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
 
             if ( $history_id <= 0 && '' !== $unique_student_id ) {
-                $history_id = (int) $wpdb->get_var(
+                $history_row = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT id FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                         $unique_student_id,
                         $unique_class_id
                     )
+                    ,
+                    ARRAY_A
                 );
+                $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
             }
         }
 
         if ( $history_id <= 0 && '' !== $class_name ) {
-            $history_id = (int) $wpdb->get_var(
+            $history_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                     $user_id,
                     $class_name
                 )
+                ,
+                ARRAY_A
+            );
+            $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
+        }
+
+        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+        $payment_status      = isset( $history_row['paymentstatus'] ) ? sanitize_text_field( (string) $history_row['paymentstatus'] ) : '';
+
+        if ( '' === $existing_qci_number && 'paid in full' === strtolower( $payment_status ) ) {
+            $student_update['qcinumber'] = $this->generate_next_qci_number();
+            $student_formats[]           = '%s';
+        }
+
+        if ( 'initial' === $class_type ) {
+            $class_date_source = isset( $history_row['enrollmentdate'] ) ? $this->parse_student_date_value( $history_row['enrollmentdate'] ) : null;
+
+            if ( ! $class_date_source ) {
+                $class_date_source = $this->parse_student_date_value( $today );
+            }
+
+            if ( $class_date_source ) {
+                $student_update['expiration_date'] = $class_date_source->modify( '+2 years' )->format( 'Y-m-d' );
+                $student_formats[]                 = '%s';
+            }
+        } else {
+            $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
+            $expiration_source   = $this->parse_student_date_value( $existing_expiration );
+
+            if ( ! $expiration_source ) {
+                $expiration_source = $this->parse_student_date_value( $today );
+            }
+
+            if ( $expiration_source ) {
+                $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
+                $student_formats[]                 = '%s';
+            }
+        }
+
+        if ( ! empty( $student_update ) ) {
+            $wpdb->update(
+                $students_table,
+                $student_update,
+                array( 'id' => $student_id ),
+                $student_formats,
+                array( '%d' )
             );
         }
 
