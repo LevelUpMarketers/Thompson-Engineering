@@ -1782,6 +1782,13 @@ class TEQCIDB_Admin {
 
         $this->render_tab_intro( $title, $description );
 
+        if ( 'student_reports' === $active_tab ) {
+            $highest_qci = $this->get_highest_assigned_qci_number();
+            $highest_qci_display = '' !== $highest_qci ? $highest_qci : __( 'Not available', 'teqcidb' );
+            /* translators: %s: highest currently assigned QCI number. */
+            echo '<p class="teqcidb-tab-intro__description teqcidb-tab-intro__description--qci-highest">' . esc_html( sprintf( __( 'The highest currently-assigned QCI Number is: %s', 'teqcidb' ), $highest_qci_display ) ) . '</p>';
+        }
+
         if ( 'edit' === $active_tab ) {
             $this->render_class_edit_tab();
         } else {
@@ -4822,6 +4829,23 @@ class TEQCIDB_Admin {
         echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
         echo '</div>';
         echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function get_highest_assigned_qci_number() {
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $highest_qci = $wpdb->get_var(
+            "SELECT qcinumber
+            FROM $students_table
+            WHERE qcinumber IS NOT NULL
+            AND qcinumber <> ''
+            AND qcinumber REGEXP '^T[0-9]+$'
+            ORDER BY CAST(SUBSTRING(qcinumber, 2) AS UNSIGNED) DESC
+            LIMIT 1"
+        );
+
+        return is_scalar( $highest_qci ) ? sanitize_text_field( (string) $highest_qci ) : '';
     }
 
     public function render_settings_page() {
