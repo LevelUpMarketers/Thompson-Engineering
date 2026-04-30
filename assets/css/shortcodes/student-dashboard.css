@@ -167,6 +167,10 @@
     min-width: 365px;
 }
 
+#teqcidb-dashboard-panel-your-students .teqcidb-wallet-card-actions .teqcidb-button {
+    flex: 1;
+}
+
 .teqcidb-class-history-list {
     display: flex;
     flex-direction: column;

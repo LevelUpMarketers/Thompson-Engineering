@@ -594,6 +594,11 @@ class TEQCIDB_Admin {
         );
 
         $token_group['tokens'][] = array(
+            'value' => '{student_qci_number}',
+            'label' => __( 'Student QCI Number', 'teqcidb' ),
+        );
+
+        $token_group['tokens'][] = array(
             'value' => '{student_username}',
             'label' => __( 'Student Username', 'teqcidb' ),
         );
@@ -1158,6 +1163,17 @@ class TEQCIDB_Admin {
                     'trigger'            => __( 'Create-account success | Front-end registration | WordPress user + TEQCIDB student created', 'teqcidb' ),
                     'communication_type' => __( 'Internal', 'teqcidb' ),
                     'category'           => __( 'Account Creation', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
+            array(
+                'id'      => 'teqcidb-email-student-initial-exam-passed',
+                'title'   => __( 'Student Initial Exam Passed', 'teqcidb' ),
+                'tooltip' => __( 'Sent automatically to the logged-in student after they pass an Initial Exam quiz attempt.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Quiz submission success | Student pass result | Class Type: Initial', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Exam & Quiz Outcomes', 'teqcidb' ),
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
@@ -1781,17 +1797,20 @@ class TEQCIDB_Admin {
         echo '<h2 class="nav-tab-wrapper">';
         echo '<a href="?page=teqcidb-student&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Student', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Students', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-student&tab=newest" class="nav-tab ' . ( 'newest' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Newest Students', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=student_forms" class="nav-tab ' . ( 'student_forms' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Student Forms', 'teqcidb' ) . '</a>';
         echo '</h2>';
         $tab_titles = array(
             'create'        => __( 'Create a Student', 'teqcidb' ),
             'edit'          => __( 'Edit Students', 'teqcidb' ),
+            'newest'        => __( 'Newest Students', 'teqcidb' ),
             'student_forms' => __( 'Student Forms', 'teqcidb' ),
         );
 
         $tab_descriptions = array(
             'create'        => __( 'Capture the student\'s profile, contact, and certification details before saving.', 'teqcidb' ),
             'edit'          => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
+            'newest'        => __( 'Review the 20 most recently created student records in a read-only accordion list.', 'teqcidb' ),
             'student_forms' => __( 'Find students and review their saved data before generating wallet cards and certificates.', 'teqcidb' ),
         );
 
@@ -1806,6 +1825,8 @@ class TEQCIDB_Admin {
 
         if ( 'edit' === $active_tab ) {
             $this->render_edit_tab();
+        } elseif ( 'newest' === $active_tab ) {
+            $this->render_newest_students_tab();
         } elseif ( 'student_forms' === $active_tab ) {
             $this->render_student_forms_tab();
         } else {
@@ -1823,18 +1844,21 @@ class TEQCIDB_Admin {
         echo '<a href="?page=teqcidb-quizzes&tab=create" class="nav-tab ' . ( 'create' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Create a Quiz', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-quizzes&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Quizzes', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-quizzes&tab=failed" class="nav-tab ' . ( 'failed' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Failed Quizzes', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-quizzes&tab=passed" class="nav-tab ' . ( 'passed' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Passed Quizzes', 'teqcidb' ) . '</a>';
         echo '</h2>';
 
         $tab_titles = array(
             'create' => __( 'Create a Quiz', 'teqcidb' ),
             'edit'   => __( 'Edit Quizzes', 'teqcidb' ),
             'failed' => __( 'Failed Quizzes', 'teqcidb' ),
+            'passed' => __( 'Passed Quizzes', 'teqcidb' ),
         );
 
         $tab_descriptions = array(
             'create' => __( 'Define the quiz record metadata now so questions and delivery workflows can be connected in upcoming updates.', 'teqcidb' ),
             'edit'   => __( 'Review existing quizzes and open each record for future editing and question-management actions.', 'teqcidb' ),
             'failed' => __( 'Review students with failed quiz attempts and inspect each answer alongside the correct response.', 'teqcidb' ),
+            'passed' => __( 'Review students with passed quiz attempts and inspect each answer alongside the correct response.', 'teqcidb' ),
         );
 
         if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
@@ -1852,6 +1876,8 @@ class TEQCIDB_Admin {
             $this->render_quiz_edit_tab();
         } elseif ( 'failed' === $active_tab ) {
             $this->render_quiz_failed_tab();
+        } elseif ( 'passed' === $active_tab ) {
+            $this->render_quiz_passed_tab();
         } else {
             $this->render_quiz_create_tab();
         }
@@ -2598,7 +2624,7 @@ class TEQCIDB_Admin {
         return $results;
     }
 
-    private function get_failed_quiz_attempts() {
+    private function get_quiz_attempts_by_status( $status ) {
         global $wpdb;
 
         $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -2606,7 +2632,7 @@ class TEQCIDB_Admin {
         $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
         $classes_table  = $wpdb->prefix . 'teqcidb_classes';
 
-        $results = $wpdb->get_results(
+        $query = $wpdb->prepare(
             "SELECT qa.id, qa.quiz_id, qa.class_id, qa.user_id, qa.status, qa.score, qa.submitted_at, qa.updated_at,
                     q.name AS quiz_name,
                     c.classname,
@@ -2614,17 +2640,62 @@ class TEQCIDB_Admin {
                     s.first_name,
                     s.last_name,
                     s.email,
-                    s.company
+                    s.company,
+                    s.qcinumber,
+                    s.initial_training_date,
+                    s.last_refresher_date,
+                    s.expiration_date
              FROM $attempts_table qa
              LEFT JOIN $quizzes_table q ON q.id = qa.quiz_id
              LEFT JOIN $classes_table c ON c.id = qa.class_id
              LEFT JOIN $students_table s ON s.wpuserid = qa.user_id
-             WHERE qa.status = 1
-             ORDER BY qa.updated_at DESC, qa.id DESC",
-            ARRAY_A
+             WHERE qa.status = %d
+             ORDER BY qa.id DESC",
+            absint( $status )
         );
+        $results = $wpdb->get_results( $query, ARRAY_A );
 
         return is_array( $results ) ? $results : array();
+    }
+
+    private function get_failed_quiz_attempts() {
+        return $this->get_quiz_attempts_by_status( 1 );
+    }
+
+    private function get_passed_quiz_attempts() {
+        return $this->get_quiz_attempts_by_status( 0 );
+    }
+
+    private function get_student_detail_value( $value ) {
+        $sanitized_value = sanitize_text_field( (string) $value );
+
+        return '' !== $sanitized_value ? $sanitized_value : __( 'Not provided', 'teqcidb' );
+    }
+
+    private function get_student_date_detail_value( $value, $empty_label = '' ) {
+        $sanitized_value = sanitize_text_field( (string) $value );
+
+        if ( '' === $empty_label ) {
+            $empty_label = __( 'Not provided', 'teqcidb' );
+        }
+
+        if ( '' === $sanitized_value || '0000-00-00' === $sanitized_value ) {
+            return $empty_label;
+        }
+
+        $date_parts = explode( '-', $sanitized_value );
+
+        if ( 3 === count( $date_parts ) ) {
+            $year  = absint( $date_parts[0] );
+            $month = absint( $date_parts[1] );
+            $day   = absint( $date_parts[2] );
+
+            if ( $year > 0 && $month > 0 && $day > 0 && checkdate( $month, $day, $year ) ) {
+                return sprintf( '%02d-%02d-%04d', $month, $day, $year );
+            }
+        }
+
+        return $sanitized_value;
     }
 
     private function get_failed_attempt_answer_items( array $attempt_ids ) {
@@ -3951,6 +4022,10 @@ class TEQCIDB_Admin {
                 $last_name  = isset( $failed_attempt['last_name'] ) ? sanitize_text_field( (string) $failed_attempt['last_name'] ) : '';
                 $email      = isset( $failed_attempt['email'] ) ? sanitize_email( (string) $failed_attempt['email'] ) : '';
                 $company    = isset( $failed_attempt['company'] ) ? sanitize_text_field( (string) $failed_attempt['company'] ) : '';
+                $qci_number = isset( $failed_attempt['qcinumber'] ) ? $this->get_student_detail_value( $failed_attempt['qcinumber'] ) : __( 'Not provided', 'teqcidb' );
+                $initial_training_date = isset( $failed_attempt['initial_training_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['initial_training_date'] ) : __( 'Not provided', 'teqcidb' );
+                $last_refresher_date   = isset( $failed_attempt['last_refresher_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['last_refresher_date'], __( 'N/A', 'teqcidb' ) ) : __( 'N/A', 'teqcidb' );
+                $expiration_date       = isset( $failed_attempt['expiration_date'] ) ? $this->get_student_date_detail_value( $failed_attempt['expiration_date'] ) : __( 'Not provided', 'teqcidb' );
 
                 if ( $attempt_id <= 0 ) {
                     continue;
@@ -3989,6 +4064,10 @@ class TEQCIDB_Admin {
                 echo '<p><strong>' . esc_html__( 'Student Name:', 'teqcidb' ) . '</strong> ' . esc_html( $student_name ) . '</p>';
                 echo '<p><strong>' . esc_html__( 'Email Address:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $email ? $email : __( 'Not provided', 'teqcidb' ) ) . '</p>';
                 echo '<p><strong>' . esc_html__( 'Company Name:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $company ? $company : __( 'Not provided', 'teqcidb' ) ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'QCI Number:', 'teqcidb' ) . '</strong> ' . esc_html( $qci_number ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Initial Training Date:', 'teqcidb' ) . '</strong> ' . esc_html( $initial_training_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Last Refresher Date:', 'teqcidb' ) . '</strong> ' . esc_html( $last_refresher_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Expiration Date:', 'teqcidb' ) . '</strong> ' . esc_html( $expiration_date ) . '</p>';
 
                 echo '<h4>' . esc_html__( 'Question Review', 'teqcidb' ) . '</h4>';
 
@@ -4031,6 +4110,149 @@ class TEQCIDB_Admin {
                     echo '<button type="button" class="button button-secondary teqcidb-reset-failed-quiz-attempt" data-quiz-id="' . esc_attr( $quiz_id ) . '" data-class-id="' . esc_attr( isset( $failed_attempt['class_id'] ) ? absint( $failed_attempt['class_id'] ) : 0 ) . '" data-user-id="' . esc_attr( isset( $failed_attempt['user_id'] ) ? absint( $failed_attempt['user_id'] ) : 0 ) . '">' . esc_html__( 'Reset Quiz Attempt', 'teqcidb' ) . '</button>';
                     echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline"><span class="spinner teqcidb-reset-failed-quiz-attempt-spinner" aria-hidden="true"></span><span class="teqcidb-reset-failed-quiz-attempt-feedback" role="status" aria-live="polite"></span></span>';
                     echo '</p>';
+                }
+
+                echo '</div>';
+                echo '</div>';
+                echo '</td>';
+                echo '</tr>';
+            }
+        }
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '</div>';
+    }
+
+    private function render_quiz_passed_tab() {
+        $passed_attempts = $this->get_passed_quiz_attempts();
+        $attempt_ids     = array();
+        $quiz_ids        = array();
+
+        foreach ( $passed_attempts as $passed_attempt ) {
+            $attempt_id = isset( $passed_attempt['id'] ) ? absint( $passed_attempt['id'] ) : 0;
+            $quiz_id    = isset( $passed_attempt['quiz_id'] ) ? absint( $passed_attempt['quiz_id'] ) : 0;
+
+            if ( $attempt_id > 0 ) {
+                $attempt_ids[] = $attempt_id;
+            }
+
+            if ( $quiz_id > 0 ) {
+                $quiz_ids[] = $quiz_id;
+            }
+        }
+
+        $answer_items_map = $this->get_failed_attempt_answer_items( $attempt_ids );
+        $question_map     = $this->get_quiz_questions_map( $quiz_ids );
+        $column_count     = 5;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="passed-quizzes">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--quiz-name">' . esc_html__( 'Student', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Email Address', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--class-name">' . esc_html__( 'Quiz / Exam', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--updated">' . esc_html__( 'Last Attempt', 'teqcidb' ) . '</th>';
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+        echo '<tbody data-column-count="' . esc_attr( $column_count ) . '">';
+
+        if ( empty( $passed_attempts ) ) {
+            echo '<tr><td colspan="' . esc_attr( $column_count ) . '">' . esc_html__( 'No passed quiz attempts found.', 'teqcidb' ) . '</td></tr>';
+        } else {
+            foreach ( $passed_attempts as $passed_attempt ) {
+                $attempt_id = isset( $passed_attempt['id'] ) ? absint( $passed_attempt['id'] ) : 0;
+                $quiz_id    = isset( $passed_attempt['quiz_id'] ) ? absint( $passed_attempt['quiz_id'] ) : 0;
+                $quiz_name  = isset( $passed_attempt['quiz_name'] ) ? sanitize_text_field( (string) $passed_attempt['quiz_name'] ) : '';
+                $class_name = isset( $passed_attempt['classname'] ) ? sanitize_text_field( (string) $passed_attempt['classname'] ) : '';
+                $updated_at = isset( $passed_attempt['updated_at'] ) ? sanitize_text_field( (string) $passed_attempt['updated_at'] ) : '';
+                $first_name = isset( $passed_attempt['first_name'] ) ? sanitize_text_field( (string) $passed_attempt['first_name'] ) : '';
+                $last_name  = isset( $passed_attempt['last_name'] ) ? sanitize_text_field( (string) $passed_attempt['last_name'] ) : '';
+                $email      = isset( $passed_attempt['email'] ) ? sanitize_email( (string) $passed_attempt['email'] ) : '';
+                $company    = isset( $passed_attempt['company'] ) ? sanitize_text_field( (string) $passed_attempt['company'] ) : '';
+                $qci_number = isset( $passed_attempt['qcinumber'] ) ? $this->get_student_detail_value( $passed_attempt['qcinumber'] ) : __( 'Not provided', 'teqcidb' );
+                $initial_training_date = isset( $passed_attempt['initial_training_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['initial_training_date'] ) : __( 'Not provided', 'teqcidb' );
+                $last_refresher_date   = isset( $passed_attempt['last_refresher_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['last_refresher_date'], __( 'N/A', 'teqcidb' ) ) : __( 'N/A', 'teqcidb' );
+                $expiration_date       = isset( $passed_attempt['expiration_date'] ) ? $this->get_student_date_detail_value( $passed_attempt['expiration_date'] ) : __( 'Not provided', 'teqcidb' );
+
+                if ( $attempt_id <= 0 ) {
+                    continue;
+                }
+
+                $student_name = trim( $first_name . ' ' . $last_name );
+
+                if ( '' === $student_name ) {
+                    $student_name = __( 'Unknown Student', 'teqcidb' );
+                }
+
+                $quiz_summary = '' !== $quiz_name ? $quiz_name : __( 'Unknown Quiz', 'teqcidb' );
+
+                if ( '' !== $class_name ) {
+                    /* translators: 1: quiz/exam name, 2: class name. */
+                    $quiz_summary = sprintf( __( '%1$s (%2$s)', 'teqcidb' ), $quiz_summary, $class_name );
+                }
+
+                $panel_id  = 'teqcidb-passed-quiz-panel-' . $attempt_id;
+                $questions = isset( $question_map[ $quiz_id ] ) && is_array( $question_map[ $quiz_id ] ) ? $question_map[ $quiz_id ] : array();
+                $answers   = isset( $answer_items_map[ $attempt_id ] ) && is_array( $answer_items_map[ $attempt_id ] ) ? $answer_items_map[ $attempt_id ] : array();
+
+                echo '<tr class="teqcidb-accordion__summary-row" tabindex="0" role="button" aria-expanded="false" aria-controls="' . esc_attr( $panel_id ) . '">';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--title"><span class="teqcidb-accordion__title-text">' . esc_html( $student_name ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( '' !== $email ? $email : __( 'Not provided', 'teqcidb' ) ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $quiz_summary ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--meta"><span class="teqcidb-accordion__meta-text">' . esc_html( $updated_at ) . '</span></td>';
+                echo '<td class="teqcidb-accordion__cell teqcidb-accordion__cell--actions"><span class="teqcidb-accordion__action-link" aria-hidden="true">' . esc_html__( 'View Attempt', 'teqcidb' ) . '</span><span class="dashicons dashicons-arrow-down-alt2 teqcidb-accordion__icon" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Toggle passed quiz details', 'teqcidb' ) . '</span></td>';
+                echo '</tr>';
+
+                echo '<tr id="' . esc_attr( $panel_id ) . '" class="teqcidb-accordion__panel-row" aria-hidden="true">';
+                echo '<td colspan="' . esc_attr( $column_count ) . '">';
+                echo '<div class="teqcidb-accordion__panel">';
+                echo '<div class="teqcidb-failed-quiz-attempt">';
+
+                echo '<p><strong>' . esc_html__( 'Student Name:', 'teqcidb' ) . '</strong> ' . esc_html( $student_name ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Email Address:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $email ? $email : __( 'Not provided', 'teqcidb' ) ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Company Name:', 'teqcidb' ) . '</strong> ' . esc_html( '' !== $company ? $company : __( 'Not provided', 'teqcidb' ) ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'QCI Number:', 'teqcidb' ) . '</strong> ' . esc_html( $qci_number ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Initial Training Date:', 'teqcidb' ) . '</strong> ' . esc_html( $initial_training_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Last Refresher Date:', 'teqcidb' ) . '</strong> ' . esc_html( $last_refresher_date ) . '</p>';
+                echo '<p><strong>' . esc_html__( 'Expiration Date:', 'teqcidb' ) . '</strong> ' . esc_html( $expiration_date ) . '</p>';
+
+                echo '<h4>' . esc_html__( 'Question Review', 'teqcidb' ) . '</h4>';
+
+                if ( empty( $questions ) ) {
+                    echo '<p>' . esc_html__( 'No quiz questions were found for this passed attempt.', 'teqcidb' ) . '</p>';
+                } else {
+                    echo '<table class="widefat striped">';
+                    echo '<thead><tr>';
+                    echo '<th scope="col">' . esc_html__( 'Question', 'teqcidb' ) . '</th>';
+                    echo '<th scope="col">' . esc_html__( 'Student Answer', 'teqcidb' ) . '</th>';
+                    echo '<th scope="col">' . esc_html__( 'Correct Answer', 'teqcidb' ) . '</th>';
+                    echo '</tr></thead>';
+                    echo '<tbody>';
+
+                    foreach ( $questions as $question ) {
+                        $question_id   = isset( $question['id'] ) ? absint( $question['id'] ) : 0;
+                        $question_type = isset( $question['type'] ) ? sanitize_key( (string) $question['type'] ) : '';
+                        $prompt        = isset( $question['prompt'] ) ? sanitize_textarea_field( (string) $question['prompt'] ) : '';
+                        $choices_json  = isset( $question['choices_json'] ) ? (string) $question['choices_json'] : '';
+                        $choices       = $this->get_multi_select_choices_from_choices_json( $choices_json );
+                        $selected      = isset( $answers[ $question_id ] ) && is_array( $answers[ $question_id ] ) ? $answers[ $question_id ] : array();
+
+                        $selected_label      = $this->get_attempt_answer_label_string( $question_type, $selected, $choices );
+                        $correct_label       = $this->get_correct_answer_label_string( $question_type, $choices_json, $choices );
+                        $is_selected_correct = $this->is_attempt_answer_correct( $question_type, $selected, $choices_json, $choices );
+
+                        echo '<tr>';
+                        echo '<td>' . esc_html( '' !== $prompt ? $prompt : __( 'Untitled question', 'teqcidb' ) ) . '</td>';
+                        echo '<td' . ( $is_selected_correct ? '' : ' style="color: #b32d2e; font-weight: 600;"' ) . '>' . esc_html( $selected_label ) . '</td>';
+                        echo '<td>' . esc_html( $correct_label ) . '</td>';
+                        echo '</tr>';
+                    }
+
+                    echo '</tbody>';
+                    echo '</table>';
                 }
 
                 echo '</div>';
@@ -4501,6 +4723,40 @@ class TEQCIDB_Admin {
         echo '</table>';
         echo '</div>';
         echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function render_newest_students_tab() {
+        $per_page     = 20;
+        $column_count = 6;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--students">';
+        echo '<p class="description">' . esc_html__( 'Showing the 20 most recent student records.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="newest-students">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+
+        for ( $i = 1; $i <= 5; $i++ ) {
+            printf(
+                '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-%1$d">%2$s</th>',
+                absint( $i ),
+                esc_html( $this->get_placeholder_label( $i ) )
+            );
+        }
+
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+
+        printf(
+            '<tbody id="teqcidb-entity-list" data-per-page="%1$d" data-column-count="%2$d" data-read-only="1" data-list-mode="newest">',
+            absint( $per_page ),
+            absint( $column_count )
+        );
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
         echo '</div>';
         echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
     }

@@ -1015,6 +1015,66 @@
         return matchingOption ? matchingOption.value : normalized;
     };
 
+    const hasValidAssignedStudentExpirationDate = (value) => {
+        if (typeof value !== 'string') {
+            return false;
+        }
+
+        const trimmed = value.trim();
+
+        if (!trimmed || trimmed === '0000-00-00') {
+            return false;
+        }
+
+        const parsed = new Date(trimmed);
+        return !Number.isNaN(parsed.getTime());
+    };
+
+    const normalizeAssignedStudentClassType = (value) =>
+        String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z]/g, '');
+
+    const hasAssignedStudentPassedRefresher = (entity) => {
+        const historyEntries = Array.isArray(entity && entity.studenthistory)
+            ? entity.studenthistory
+            : [];
+
+        return historyEntries.some((entry) => {
+            const classType = normalizeAssignedStudentClassType(entry && entry.classtype);
+            const outcome = String((entry && entry.outcome) || '')
+                .toLowerCase()
+                .trim();
+
+            if (classType !== 'refresher') {
+                return false;
+            }
+
+            if (!outcome) {
+                return false;
+            }
+
+            if (outcome.includes('fail')) {
+                return false;
+            }
+
+            return outcome.includes('pass');
+        });
+    };
+
+    const buildAssignedStudentCertificateData = (entity) => ({
+        name: `${entity && entity.first_name ? entity.first_name : ''} ${entity && entity.last_name ? entity.last_name : ''}`.trim(),
+        company: entity && entity.company ? entity.company : '',
+        qci_number: entity && entity.qcinumber ? entity.qcinumber : '',
+        address_line_1: entity && entity.student_address_street_1 ? entity.student_address_street_1 : '',
+        address_line_2: `${entity && entity.student_address_city ? entity.student_address_city : ''}${entity && entity.student_address_state ? `, ${entity.student_address_state}` : ''}${entity && entity.student_address_postal_code ? ` ${entity.student_address_postal_code}` : ''}`.trim(),
+        phone: entity && entity.phone_cell ? entity.phone_cell : entity && entity.phone_office ? entity.phone_office : '',
+        email: entity && entity.email ? entity.email : '',
+        expiration_date: entity && entity.expiration_date ? entity.expiration_date : '',
+        initial_training_date: entity && entity.initial_training_date ? entity.initial_training_date : '',
+        last_refresher_date: entity && entity.last_refresher_date ? entity.last_refresher_date : '',
+    });
+
     const buildAssignedStudentForm = (entity) => {
         const form = document.createElement('form');
         form.className = 'teqcidb-profile-form teqcidb-assigned-student-form';
@@ -1182,6 +1242,70 @@
 
         associationsFieldset.appendChild(checkboxGrid);
         form.appendChild(associationsFieldset);
+
+        if (hasValidAssignedStudentExpirationDate(entity.expiration_date || '')) {
+            const certificateData = buildAssignedStudentCertificateData(entity);
+            const hasPassedRefresherClass = hasAssignedStudentPassedRefresher(entity);
+            const certificateWrapper = document.createElement('div');
+            certificateWrapper.className = 'teqcidb-countdown';
+            certificateWrapper.dataset.teqcidbWalletCard = JSON.stringify(certificateData);
+
+            const walletActions = document.createElement('div');
+            walletActions.className = 'teqcidb-wallet-card-actions';
+            walletActions.setAttribute('role', 'group');
+            walletActions.setAttribute(
+                'aria-label',
+                studentSearchSettings.assignedWalletActionsLabel || 'Wallet card actions'
+            );
+            walletActions.innerHTML = `
+                <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-wallet-card-action="print">
+                    ${studentSearchSettings.assignedWalletPrintLabel || 'Print Wallet Card'}
+                </button>
+                <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-wallet-card-action="download">
+                    ${studentSearchSettings.assignedWalletDownloadLabel || 'Download Wallet Card'}
+                </button>
+            `;
+
+            const initialActions = document.createElement('div');
+            initialActions.className = 'teqcidb-wallet-card-actions';
+            initialActions.setAttribute('role', 'group');
+            initialActions.setAttribute(
+                'aria-label',
+                studentSearchSettings.assignedInitialActionsLabel || 'Initial certificate actions'
+            );
+            initialActions.innerHTML = `
+                <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-initial-certificate-action="print">
+                    ${studentSearchSettings.assignedInitialPrintLabel || 'Print Initial Certificate'}
+                </button>
+                <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-initial-certificate-action="download">
+                    ${studentSearchSettings.assignedInitialDownloadLabel || 'Download Initial Certificate'}
+                </button>
+            `;
+
+            certificateWrapper.appendChild(walletActions);
+            certificateWrapper.appendChild(initialActions);
+
+            if (hasPassedRefresherClass) {
+                const refresherActions = document.createElement('div');
+                refresherActions.className = 'teqcidb-wallet-card-actions';
+                refresherActions.setAttribute('role', 'group');
+                refresherActions.setAttribute(
+                    'aria-label',
+                    studentSearchSettings.assignedRefresherActionsLabel || 'Refresher certificate actions'
+                );
+                refresherActions.innerHTML = `
+                    <button class="teqcidb-button teqcidb-button-secondary" type="button" data-teqcidb-refresher-certificate-action="print">
+                        ${studentSearchSettings.assignedRefresherPrintLabel || 'Print Refresher Certificate'}
+                    </button>
+                    <button class="teqcidb-button teqcidb-button-primary" type="button" data-teqcidb-refresher-certificate-action="download">
+                        ${studentSearchSettings.assignedRefresherDownloadLabel || 'Download Refresher Certificate'}
+                    </button>
+                `;
+                certificateWrapper.appendChild(refresherActions);
+            }
+
+            form.appendChild(certificateWrapper);
+        }
 
         const actions = document.createElement('div');
         actions.className = 'teqcidb-profile-actions teqcidb-student-edit';
@@ -2200,6 +2324,26 @@
     const registrationSections = document.querySelectorAll('[data-teqcidb-registration="true"]');
     let activeRegistrationCheckout = null;
 
+    const normalizeRegistrationClassType = (value) =>
+        String(value || '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9_]/g, '');
+
+    const isStudentExpiredForRefresher = (expirationDateValue) => {
+        const rawValue = String(expirationDateValue || '').trim();
+        if (!rawValue) {
+            return false;
+        }
+
+        const expirationEnd = new Date(`${rawValue}T23:59:59`);
+        if (Number.isNaN(expirationEnd.getTime())) {
+            return false;
+        }
+
+        return Date.now() > expirationEnd.getTime();
+    };
+
     const initRepresentativeRegistrationSelection = () => {
         const wrappers = document.querySelectorAll('[data-teqcidb-representative-registration="true"]');
 
@@ -2266,13 +2410,61 @@
                         wpid: checkbox.value ? String(checkbox.value) : '',
                         name: checkbox.dataset.teqcidbRepStudentName || '',
                         email: checkbox.dataset.teqcidbRepStudentEmail || '',
+                        hasQci:
+                            (checkbox.dataset.teqcidbRepStudentHasQci || 'no') === 'yes',
+                        expirationDate:
+                            checkbox.dataset.teqcidbRepStudentExpirationDate || '',
                     }));
 
                 const checkedClass = classRadios.find((radio) => radio.checked);
                 const hasStudents = checkedStudents.length > 0;
                 const hasClass = Boolean(checkedClass && checkedClass.value);
+                const selectedClassType = hasClass
+                    ? normalizeRegistrationClassType(
+                          checkedClass.dataset.teqcidbRepClassType || ''
+                      )
+                    : '';
+                const isRefresherClass = selectedClassType === 'refresher';
 
-                payButton.disabled = !(hasStudents && hasClass);
+                const studentsMissingQci = isRefresherClass
+                    ? checkedStudents.filter((student) => !student.hasQci)
+                    : [];
+                const studentsExpired = isRefresherClass
+                    ? checkedStudents.filter((student) =>
+                          isStudentExpiredForRefresher(student.expirationDate)
+                      )
+                    : [];
+
+                const missingQciNames = studentsMissingQci.map(
+                    (student) => student.name || student.email || student.wpid
+                );
+                const expiredNames = studentsExpired.map(
+                    (student) => student.name || student.email || student.wpid
+                );
+
+                let eligibilityMessage = '';
+
+                if (isRefresherClass && missingQciNames.length && expiredNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherNeedsQciAndActive ||
+                        'One or more selected students are not eligible for the selected Refresher class. Students must have a QCI number and an active (non-expired) certification. Missing QCI number: %1$s. Expired certification: %2$s.';
+                    eligibilityMessage = template
+                        .replace('%1$s', missingQciNames.join(', '))
+                        .replace('%2$s', expiredNames.join(', '));
+                } else if (isRefresherClass && missingQciNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherNeedsQci ||
+                        'The selected Refresher class requires an existing QCI number. The following selected student(s) are not eligible: %s. Please choose an Initial class or remove ineligible students.';
+                    eligibilityMessage = template.replace('%s', missingQciNames.join(', '));
+                } else if (isRefresherClass && expiredNames.length) {
+                    const template =
+                        settings.messageRepresentativeRefresherExpired ||
+                        'The selected Refresher class requires an active (non-expired) certification. The following selected student(s) are currently expired: %s. Please choose an Initial class or remove expired students.';
+                    eligibilityMessage = template.replace('%s', expiredNames.join(', '));
+                }
+
+                payButton.disabled =
+                    !(hasStudents && hasClass) || Boolean(eligibilityMessage);
                 payButton.dataset.classId = hasClass ? String(checkedClass.value) : '';
 
                 if (selectedStudentsInput) {
@@ -2291,6 +2483,12 @@
                 if (selectionChanged && hadHostedForm) {
                     clearHostedFormState();
                 }
+
+                if (eligibilityMessage) {
+                    setPaymentFeedback(paymentWrapper, eligibilityMessage, false);
+                } else if (!(selectionChanged && hadHostedForm)) {
+                    setPaymentFeedback(paymentWrapper, '', false);
+                }
             };
 
             payButton.disabled = true;
@@ -2307,8 +2505,6 @@
             syncState(false);
         });
     };
-
-    initRepresentativeRegistrationSelection();
 
     const setPaymentFeedback = (paymentWrapper, message, isLoading, options = {}) => {
         if (!paymentWrapper) {
@@ -2332,6 +2528,8 @@
         feedback.classList.toggle('is-visible', Boolean(message) || Boolean(isLoading));
         feedback.classList.toggle('is-loading', Boolean(isLoading));
     };
+
+    initRepresentativeRegistrationSelection();
 
     const parseIframeCommunication = (payload) => {
         if (!payload || typeof payload !== 'string') {
@@ -2395,6 +2593,7 @@
         formData.append('invoice_number', response && response.orderInvoiceNumber ? String(response.orderInvoiceNumber) : '');
         formData.append('gateway_datetime', response && response.dateTime ? String(response.dateTime) : '');
         formData.append('multiple_students', checkout && checkout.selectedStudents ? String(checkout.selectedStudents) : '');
+        formData.append('client_timezone_offset', String(new Date().getTimezoneOffset()));
 
         return fetch(settings.ajaxUrl, {
             method: 'POST',
@@ -2709,6 +2908,7 @@
             formData.append('_ajax_nonce', settings.ajaxNonce || '');
             formData.append('class_id', classId);
             formData.append('multiple_students', selectedStudents || '');
+            formData.append('client_timezone_offset', String(new Date().getTimezoneOffset()));
 
             return fetch(settings.ajaxUrl, {
                 method: 'POST',

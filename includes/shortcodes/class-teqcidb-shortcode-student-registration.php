@@ -281,6 +281,8 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         $today = wp_date( 'Y-m-d' );
+        $student_has_qci_number = $this->student_has_qci_number( get_current_user_id() );
+        $student_is_expired     = $this->student_is_expired( get_current_user_id() );
 
         $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
         $history_like  = $wpdb->esc_like( $history_table );
@@ -326,6 +328,7 @@ class TEQCIDB_Shortcode_Student_Registration {
             $class_size       = isset( $row['classsize'] ) ? absint( $row['classsize'] ) : 0;
             $registered_total = isset( $row['registered_total'] ) ? absint( $row['registered_total'] ) : 0;
             $class_start_date = isset( $row['classstartdate'] ) ? sanitize_text_field( (string) $row['classstartdate'] ) : '';
+            $class_type       = isset( $row['classtype'] ) ? strtolower( trim( (string) $row['classtype'] ) ) : '';
             $is_full          = $class_size > 0 && $registered_total >= $class_size;
             $is_past          = '' !== $class_start_date && $class_start_date < $today;
 
@@ -334,6 +337,10 @@ class TEQCIDB_Shortcode_Student_Registration {
                     $hide_ids[] = $class_id;
                 }
 
+                continue;
+            }
+
+            if ( 'refresher' === $class_type && ( ! $student_has_qci_number || $student_is_expired ) ) {
                 continue;
             }
 
@@ -361,6 +368,95 @@ class TEQCIDB_Shortcode_Student_Registration {
         }
 
         return $classes;
+    }
+
+    /**
+     * Determine whether the logged-in student has a non-empty QCI number.
+     *
+     * @param int $user_id WordPress user ID.
+     *
+     * @return bool
+     */
+    private function student_has_qci_number( $user_id ) {
+        global $wpdb;
+
+        $user_id = absint( $user_id );
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return false;
+        }
+
+        $qci_number = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT qcinumber FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            )
+        );
+
+        return '' !== trim( (string) $qci_number );
+    }
+
+    /**
+     * Determine whether the logged-in student is currently expired.
+     *
+     * @param int $user_id WordPress user ID.
+     *
+     * @return bool
+     */
+    private function student_is_expired( $user_id ) {
+        global $wpdb;
+
+        $user_id = absint( $user_id );
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $students_like  = $wpdb->esc_like( $students_table );
+        $students_found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $students_like ) );
+
+        if ( $students_found !== $students_table ) {
+            return false;
+        }
+
+        $expiration_date = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            )
+        );
+
+        $expiration_date = trim( (string) $expiration_date );
+
+        if ( '' === $expiration_date || '0000-00-00' === $expiration_date ) {
+            return false;
+        }
+
+        $expiration = DateTimeImmutable::createFromFormat( 'Y-m-d', $expiration_date );
+
+        if ( ! $expiration instanceof DateTimeImmutable ) {
+            return false;
+        }
+
+        $timezone = wp_timezone();
+
+        try {
+            $expiration_end = new DateTimeImmutable( $expiration->format( 'Y-m-d' ) . ' 23:59:59', $timezone );
+            $now            = new DateTimeImmutable( 'now', $timezone );
+        } catch ( Exception $exception ) {
+            return false;
+        }
+
+        return $now > $expiration_end;
     }
 
     /**

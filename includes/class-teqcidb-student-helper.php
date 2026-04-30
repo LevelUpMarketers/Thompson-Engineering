@@ -305,6 +305,7 @@ class TEQCIDB_Student_Helper {
         $prepared['student_company']                = isset( $prepared['company'] ) ? $prepared['company'] : ( isset( $prepared['placeholder_3'] ) ? $prepared['placeholder_3'] : '' );
         $prepared['student_phone_cell']             = isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : ( isset( $prepared['placeholder_4'] ) ? $prepared['placeholder_4'] : '' );
         $prepared['student_phone_office']           = isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '';
+        $prepared['student_qci_number']             = isset( $prepared['qcinumber'] ) ? $prepared['qcinumber'] : '';
         $prepared['student_representative']         = isset( $prepared['student_representative'] ) ? $prepared['student_representative'] : '';
         $prepared['representative_first_name']      = isset( $prepared['first_name'] ) ? $prepared['first_name'] : '';
         $prepared['representative_last_name']       = isset( $prepared['last_name'] ) ? $prepared['last_name'] : '';
