@@ -505,3 +505,5 @@
 497. 2026-04-19 04:40 UTC: Updated class-page quiz submit UX to immediately disable both Submit Quiz and Save Progress buttons on submit click, and to restore both buttons if submit fails so students can retry without accidental concurrent Save Progress clicks.
 498. 2026-04-19 05:00 UTC: Fixed Communications token hydration for `{student_certification_expiration}` in registration/initial-exam-pass email flows by explicitly mapping `teqcidb_students.expiration_date` through date-token formatting when building outbound email tokens.
 499. 2026-04-19 05:20 UTC: Bumped plugin/versioning metadata from `1.0.3` to `1.0.4` across the main plugin header constant, translation project header, and README Version History "current" section.
+500. 2026-04-30 00:00 UTC: Updated Classes → Edit & Manage Classes registered-students table so loaded rows now show each student's QCI Number and representative/alternate-contact email (sourced from `teqcidb_students`) in place of the previous cell/office phone columns, with blank values continuing to render as an em dash.
+

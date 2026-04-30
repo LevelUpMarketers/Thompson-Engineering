@@ -9963,8 +9963,8 @@ class TEQCIDB_Ajax {
                 'last_name'      => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
                 'company'        => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
                 'email'          => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
-                'phone_cell'     => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
-                'phone_office'   => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+                'qci_number'         => isset( $prepared['qcinumber'] ) ? sanitize_text_field( (string) $prepared['qcinumber'] ) : '',
+                'representative_email' => isset( $prepared['representative_email'] ) ? sanitize_email( (string) $prepared['representative_email'] ) : '',
             );
 
             if ( $student['wpuserid'] > 0 ) {

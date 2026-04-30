@@ -3465,8 +3465,8 @@ jQuery(document).ready(function($){
                 { key: 'last_name', label: teqcidbAdmin.studentLastNameLabel || 'Last Name' },
                 { key: 'company', label: teqcidbAdmin.studentCompanyLabel || 'Company' },
                 { key: 'email', label: teqcidbAdmin.studentEmailLabel || 'Email' },
-                { key: 'phone_cell', label: teqcidbAdmin.studentPhoneCellLabel || 'Phone (cell)' },
-                { key: 'phone_office', label: teqcidbAdmin.studentPhoneOfficeLabel || 'Phone (office)' }
+                { key: 'qci_number', label: teqcidbAdmin.studentQciNumberLabel || 'QCI Number' },
+                { key: 'representative_email', label: teqcidbAdmin.studentRepresentativeEmailLabel || 'Representative Email' }
             ];
             var $section = $('<section/>', {
                 'class': 'teqcidb-class-registered-students',
