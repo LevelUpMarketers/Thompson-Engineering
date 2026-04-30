@@ -2046,14 +2046,10 @@ class TEQCIDB_Ajax {
         }
 
         if ( 'initial' === $class_type ) {
-            $class_date_source = isset( $history_row['enrollmentdate'] ) ? $this->parse_student_date_value( $history_row['enrollmentdate'] ) : null;
+            $today_date_source = $this->parse_student_date_value( $today );
 
-            if ( ! $class_date_source ) {
-                $class_date_source = $this->parse_student_date_value( $today );
-            }
-
-            if ( $class_date_source ) {
-                $student_update['expiration_date'] = $class_date_source->modify( '+2 years' )->format( 'Y-m-d' );
+            if ( $today_date_source ) {
+                $student_update['expiration_date'] = $today_date_source->modify( '+2 years' )->format( 'Y-m-d' );
                 $student_formats[]                 = '%s';
             }
         } else {
