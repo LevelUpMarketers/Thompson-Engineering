@@ -6191,16 +6191,6 @@ class TEQCIDB_Ajax {
         }
 
         if ( $reports_mode ) {
-            if ( isset( $search_terms['expiration_start'] ) ) {
-                $where_clauses[] = "expiration_date IS NOT NULL AND expiration_date <> '' AND expiration_date <> '0000-00-00' AND DATE(expiration_date) >= %s";
-                $where_params[]  = $search_terms['expiration_start'];
-            }
-
-            if ( isset( $search_terms['expiration_end'] ) ) {
-                $where_clauses[] = "expiration_date IS NOT NULL AND expiration_date <> '' AND expiration_date <> '0000-00-00' AND DATE(expiration_date) <= %s";
-                $where_params[]  = $search_terms['expiration_end'];
-            }
-
             if ( isset( $search_terms['company'] ) ) {
                 $where_clauses[] = 'company LIKE %s';
                 $where_params[]  = '%' . $wpdb->esc_like( $search_terms['company'] ) . '%';
@@ -6217,6 +6207,9 @@ class TEQCIDB_Ajax {
             $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
         }
 
+        $report_expiration_start = isset( $search_terms['expiration_start'] ) ? $search_terms['expiration_start'] : '';
+        $report_expiration_end   = isset( $search_terms['expiration_end'] ) ? $search_terms['expiration_end'] : '';
+        $has_report_expiration_filter = $reports_mode && ( '' !== $report_expiration_start || '' !== $report_expiration_end );
         $total_query = "SELECT COUNT(*) FROM $table";
 
         if ( $where_sql ) {
@@ -6227,6 +6220,10 @@ class TEQCIDB_Ajax {
             $total = (int) $wpdb->get_var( $wpdb->prepare( $total_query, $where_params ) );
         } else {
             $total = (int) $wpdb->get_var( $total_query );
+        }
+
+        if ( $has_report_expiration_filter ) {
+            $total = 0;
         }
         $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
 
@@ -6251,7 +6248,7 @@ class TEQCIDB_Ajax {
 
         $entities = array();
 
-        if ( $total > 0 ) {
+        if ( $total > 0 || $has_report_expiration_filter ) {
             $select_query = "SELECT * FROM $table";
 
             if ( $where_sql ) {
@@ -6264,17 +6261,66 @@ class TEQCIDB_Ajax {
                 $select_query .= ' ORDER BY first_name ASC, last_name ASC, id ASC LIMIT %d OFFSET %d';
             }
 
-            $select_params   = $where_params;
-            $select_params[] = $per_page;
-            $select_params[] = $offset;
+            $select_params = $where_params;
 
-            $entities = $wpdb->get_results(
-                $wpdb->prepare(
-                    $select_query,
-                    $select_params
-                ),
-                ARRAY_A
-            );
+            if ( ! $has_report_expiration_filter ) {
+                $select_params[] = $per_page;
+                $select_params[] = $offset;
+            }
+
+            if ( $has_report_expiration_filter ) {
+                $select_query = str_replace( ' LIMIT %d OFFSET %d', '', $select_query );
+            }
+
+            $entities = $wpdb->get_results( $wpdb->prepare( $select_query, $select_params ), ARRAY_A );
+
+            if ( $has_report_expiration_filter && is_array( $entities ) ) {
+                $entities = array_values(
+                    array_filter(
+                        $entities,
+                        function( $entity ) use ( $report_expiration_start, $report_expiration_end ) {
+                            $expiration_raw = isset( $entity['expiration_date'] ) ? trim( (string) $entity['expiration_date'] ) : '';
+
+                            if ( '' === $expiration_raw || '0000-00-00' === $expiration_raw ) {
+                                return false;
+                            }
+
+                            $expiration_ts = strtotime( $expiration_raw );
+
+                            if ( false === $expiration_ts ) {
+                                return false;
+                            }
+
+                            if ( '' !== $report_expiration_start ) {
+                                $start_ts = strtotime( $report_expiration_start . ' 00:00:00' );
+                                if ( false !== $start_ts && $expiration_ts < $start_ts ) {
+                                    return false;
+                                }
+                            }
+
+                            if ( '' !== $report_expiration_end ) {
+                                $end_ts = strtotime( $report_expiration_end . ' 23:59:59' );
+                                if ( false !== $end_ts && $expiration_ts > $end_ts ) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
+                        }
+                    )
+                );
+
+                $total       = count( $entities );
+                $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+                if ( $total_pages < 1 ) {
+                    $total_pages = 1;
+                }
+                if ( $page > $total_pages ) {
+                    $page = $total_pages;
+                }
+                $offset      = max( 0, ( $page - 1 ) * $per_page );
+                $entities    = array_slice( $entities, $offset, $per_page );
+            }
 
             if ( is_array( $entities ) ) {
                 foreach ( $entities as &$entity ) {
