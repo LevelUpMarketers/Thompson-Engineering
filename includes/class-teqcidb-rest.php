@@ -23,7 +23,7 @@ class TEQCIDB_Rest {
     public function register_routes() {
         register_rest_route(
             'teqcidb/v1',
-            '/quiz/progress',
+            '/quiz/save',
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            => array( $this, 'save_quiz_progress' ),
@@ -74,6 +74,34 @@ class TEQCIDB_Rest {
         return true;
     }
 
+    public function submit_quiz_attempt( $request ) {
+        $validated = $this->validate_request_payload( $request );
+
+        if ( is_wp_error( $validated ) ) {
+            return $validated;
+        }
+
+        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id() );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return rest_ensure_response(
+            array(
+                'ok'              => true,
+                'attempt_id'      => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
+                'saved_at'        => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
+                'server_version'  => TEQCIDB_VERSION,
+                'message'         => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz submitted.', 'teqcidb' ),
+                'score'           => isset( $result['score'] ) ? (int) $result['score'] : 0,
+                'passThreshold'   => isset( $result['pass_threshold'] ) ? (int) $result['pass_threshold'] : 75,
+                'passed'          => ! empty( $result['passed'] ),
+                'incorrectDetails'=> isset( $result['incorrect_details'] ) ? $result['incorrect_details'] : array(),
+            )
+        );
+    }
+
     public function save_quiz_progress( $request ) {
         $validated = $this->validate_request_payload( $request );
 
@@ -95,39 +123,10 @@ class TEQCIDB_Rest {
 
         return rest_ensure_response(
             array(
-                'ok'             => true,
-                'attempt_id'     => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
-                'saved_at'       => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
-                'server_version' => TEQCIDB_VERSION,
-                'message'        => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
-            )
-        );
-    }
-
-    public function submit_quiz_attempt( $request ) {
-        $validated = $this->validate_request_payload( $request );
-
-        if ( is_wp_error( $validated ) ) {
-            return $validated;
-        }
-
-        $result = $this->ajax->process_quiz_attempt_request( $validated, get_current_user_id(), true );
-
-        if ( is_wp_error( $result ) ) {
-            return $result;
-        }
-
-        return rest_ensure_response(
-            array(
-                'ok'              => true,
-                'attempt_id'      => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
-                'saved_at'        => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
-                'server_version'  => TEQCIDB_VERSION,
-                'message'         => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz submitted.', 'teqcidb' ),
-                'score'           => isset( $result['score'] ) ? (int) $result['score'] : 0,
-                'passThreshold'   => isset( $result['pass_threshold'] ) ? (int) $result['pass_threshold'] : 75,
-                'passed'          => ! empty( $result['passed'] ),
-                'incorrectDetails'=> isset( $result['incorrect_details'] ) ? $result['incorrect_details'] : array(),
+                'ok'         => true,
+                'attempt_id' => isset( $result['attempt_id'] ) ? (int) $result['attempt_id'] : 0,
+                'saved_at'   => isset( $result['saved_at'] ) ? (string) $result['saved_at'] : current_time( 'mysql' ),
+                'message'    => isset( $result['message'] ) ? (string) $result['message'] : __( 'Quiz progress saved.', 'teqcidb' ),
             )
         );
     }
@@ -243,11 +242,11 @@ class TEQCIDB_Rest {
     }
 
     private function validate_request_payload( $request ) {
-        $quiz_id                = absint( $request->get_param( 'quiz_id' ) );
-        $class_id               = absint( $request->get_param( 'class_id' ) );
-        $attempt_id             = absint( $request->get_param( 'attempt_id' ) );
-        $current_question_index = absint( $request->get_param( 'current_question_index' ) );
-        $answers_raw            = $request->get_param( 'answers' );
+        $quiz_id    = absint( $request->get_param( 'quiz_id' ) );
+        $class_id   = absint( $request->get_param( 'class_id' ) );
+        $attempt_id = absint( $request->get_param( 'attempt_id' ) );
+        $idempotency_token = sanitize_text_field( (string) $request->get_param( 'idempotency_token' ) );
+        $answers_raw = $request->get_param( 'answers' );
 
         if ( $quiz_id <= 0 || $class_id <= 0 ) {
             return new WP_Error( 'teqcidb_rest_invalid_ids', __( 'Quiz ID and class ID are required.', 'teqcidb' ), array( 'status' => 400 ) );
@@ -292,11 +291,11 @@ class TEQCIDB_Rest {
         }
 
         return array(
-            'quiz_id'       => $quiz_id,
-            'class_id'      => $class_id,
-            'attempt_id'    => $attempt_id,
-            'current_index' => $current_question_index,
-            'answers'       => $answers,
+            'quiz_id'    => $quiz_id,
+            'class_id'   => $class_id,
+            'attempt_id' => $attempt_id,
+            'idempotency_token' => $idempotency_token,
+            'answers'    => $answers,
         );
     }
 
