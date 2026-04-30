@@ -6133,14 +6133,14 @@ class TEQCIDB_Ajax {
 
         if ( $reports_mode ) {
             if ( isset( $raw_search['expiration_start'] ) ) {
-                $expiration_start = sanitize_text_field( $raw_search['expiration_start'] );
-                if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $expiration_start ) ) {
+                $expiration_start = $this->normalize_student_report_date( sanitize_text_field( $raw_search['expiration_start'] ) );
+                if ( '' !== $expiration_start ) {
                     $search_terms['expiration_start'] = $expiration_start;
                 }
             }
             if ( isset( $raw_search['expiration_end'] ) ) {
-                $expiration_end = sanitize_text_field( $raw_search['expiration_end'] );
-                if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $expiration_end ) ) {
+                $expiration_end = $this->normalize_student_report_date( sanitize_text_field( $raw_search['expiration_end'] ) );
+                if ( '' !== $expiration_end ) {
                     $search_terms['expiration_end'] = $expiration_end;
                 }
             }
@@ -6322,6 +6322,26 @@ class TEQCIDB_Ajax {
                 'total_pages' => $total_pages,
             )
         );
+    }
+
+    private function normalize_student_report_date( $raw_date ) {
+        $raw_date = trim( (string) $raw_date );
+
+        if ( '' === $raw_date ) {
+            return '';
+        }
+
+        $formats = array( 'Y-m-d', 'm/d/Y', 'n/j/Y', 'm-d-Y', 'n-j-Y' );
+
+        foreach ( $formats as $format ) {
+            $parsed = DateTime::createFromFormat( $format, $raw_date );
+
+            if ( $parsed instanceof DateTime && $parsed->format( $format ) === $raw_date ) {
+                return $parsed->format( 'Y-m-d' );
+            }
+        }
+
+        return '';
     }
 
     public function save_email_template() {
