@@ -6458,29 +6458,47 @@ class TEQCIDB_Ajax {
             } ) );
         }
 
+        $column_names = $wpdb->get_col( "SHOW COLUMNS FROM $table", 0 );
+        if ( ! is_array( $column_names ) || empty( $column_names ) ) {
+            $column_names = array_keys( isset( $rows[0] ) && is_array( $rows[0] ) ? $rows[0] : array() );
+        }
+
+        $header_labels = array();
+        foreach ( $column_names as $column_name ) {
+            $header_labels[] = ucwords( str_replace( '_', ' ', (string) $column_name ) );
+        }
+
         $filename = 'student-reports-' . gmdate( 'Y-m-d-His' ) . '.csv';
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename=' . $filename );
         $output = fopen( 'php://output', 'w' );
 
-        fputcsv( $output, array( 'First Name', 'Last Name', 'Email Address', 'Company', 'QCI Number', 'Certification Expiration', 'Representative?', 'Representative Email', 'Cell Phone', 'Office Phone' ) );
+        fputcsv( $output, $header_labels );
 
         foreach ( $rows as $row ) {
             $prepared = $this->prepare_student_entity( $row );
-            $expiration = isset( $prepared['expiration_date'] ) ? sanitize_text_field( (string) $prepared['expiration_date'] ) : '';
-            $expiration_display = '' !== $expiration ? $expiration : '—';
-            fputcsv( $output, array(
-                isset( $prepared['first_name'] ) ? $prepared['first_name'] : '',
-                isset( $prepared['last_name'] ) ? $prepared['last_name'] : '',
-                isset( $prepared['email'] ) ? $prepared['email'] : '',
-                isset( $prepared['company'] ) ? $prepared['company'] : '',
-                isset( $prepared['qcinumber'] ) ? $prepared['qcinumber'] : '',
-                $expiration_display,
-                isset( $prepared['is_a_representative'] ) && '1' === (string) $prepared['is_a_representative'] ? 'Yes' : 'No',
-                isset( $prepared['representative_email'] ) ? $prepared['representative_email'] : '',
-                isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : '',
-                isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '',
-            ) );
+            $csv_row = array();
+
+            foreach ( $column_names as $column_name ) {
+                $value = isset( $row[ $column_name ] ) ? $row[ $column_name ] : '';
+
+                if ( in_array( $column_name, array( 'expiration_date', 'initial_training_date', 'last_refresher_date' ), true ) ) {
+                    $value = isset( $prepared[ $column_name ] ) ? $prepared[ $column_name ] : $value;
+                } elseif ( 'is_a_representative' === $column_name ) {
+                    $value = ( isset( $prepared['is_a_representative'] ) && '1' === (string) $prepared['is_a_representative'] ) ? 'Yes' : 'No';
+                } elseif ( in_array( $column_name, array( 'phone_cell', 'phone_office', 'fax' ), true ) ) {
+                    $value = isset( $prepared[ $column_name ] ) ? $prepared[ $column_name ] : $value;
+                } elseif ( in_array( $column_name, array( 'old_companies', 'student_address', 'their_representative', 'associations' ), true ) && is_string( $value ) ) {
+                    $decoded = json_decode( $value, true );
+                    if ( is_array( $decoded ) ) {
+                        $value = wp_json_encode( $decoded );
+                    }
+                }
+
+                $csv_row[] = is_scalar( $value ) ? (string) $value : '';
+            }
+
+            fputcsv( $output, $csv_row );
         }
 
         fclose( $output );
