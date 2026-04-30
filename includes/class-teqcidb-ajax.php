@@ -6114,7 +6114,8 @@ class TEQCIDB_Ajax {
         $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
         $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 20;
         $list_mode = isset( $_POST['list_mode'] ) ? sanitize_key( wp_unslash( (string) $_POST['list_mode'] ) ) : '';
-        $newest_mode = ( 'newest' === $list_mode );
+        $newest_mode  = ( 'newest' === $list_mode );
+        $reports_mode = ( 'student_reports' === $list_mode );
 
         if ( $per_page <= 0 ) {
             $per_page = 20;
@@ -6130,7 +6131,30 @@ class TEQCIDB_Ajax {
 
         $search_terms = array();
 
-        if ( ! $newest_mode ) {
+        if ( $reports_mode ) {
+            if ( isset( $raw_search['expiration_start'] ) ) {
+                $expiration_start = sanitize_text_field( $raw_search['expiration_start'] );
+                if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $expiration_start ) ) {
+                    $search_terms['expiration_start'] = $expiration_start;
+                }
+            }
+            if ( isset( $raw_search['expiration_end'] ) ) {
+                $expiration_end = sanitize_text_field( $raw_search['expiration_end'] );
+                if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $expiration_end ) ) {
+                    $search_terms['expiration_end'] = $expiration_end;
+                }
+            }
+            if ( isset( $raw_search['company'] ) ) {
+                $company = sanitize_text_field( $raw_search['company'] );
+                if ( '' !== $company ) {
+                    $search_terms['company'] = $company;
+                }
+            }
+            $representative_only = isset( $raw_search['representative_only'] ) ? sanitize_text_field( (string) $raw_search['representative_only'] ) : '';
+            if ( '1' === $representative_only ) {
+                $search_terms['representative_only'] = '1';
+            }
+        } elseif ( ! $newest_mode ) {
             foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
                 if ( isset( $raw_search[ $column ] ) ) {
                     $value = sanitize_text_field( $raw_search[ $column ] );
@@ -6163,6 +6187,27 @@ class TEQCIDB_Ajax {
             if ( 'placeholder_3' === $key ) {
                 $where_clauses[] = 'company LIKE %s';
                 $where_params[]  = $like_value;
+            }
+        }
+
+        if ( $reports_mode ) {
+            if ( isset( $search_terms['expiration_start'] ) ) {
+                $where_clauses[] = "expiration_date <> '' AND expiration_date <> '0000-00-00' AND expiration_date >= %s";
+                $where_params[]  = $search_terms['expiration_start'];
+            }
+
+            if ( isset( $search_terms['expiration_end'] ) ) {
+                $where_clauses[] = "expiration_date <> '' AND expiration_date <> '0000-00-00' AND expiration_date <= %s";
+                $where_params[]  = $search_terms['expiration_end'];
+            }
+
+            if ( isset( $search_terms['company'] ) ) {
+                $where_clauses[] = 'company LIKE %s';
+                $where_params[]  = '%' . $wpdb->esc_like( $search_terms['company'] ) . '%';
+            }
+
+            if ( isset( $search_terms['representative_only'] ) ) {
+                $where_clauses[] = 'is_a_representative = 1';
             }
         }
 

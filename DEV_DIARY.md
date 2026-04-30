@@ -506,4 +506,4 @@
 498. 2026-04-19 05:00 UTC: Fixed Communications token hydration for `{student_certification_expiration}` in registration/initial-exam-pass email flows by explicitly mapping `teqcidb_students.expiration_date` through date-token formatting when building outbound email tokens.
 499. 2026-04-19 05:20 UTC: Bumped plugin/versioning metadata from `1.0.3` to `1.0.4` across the main plugin header constant, translation project header, and README Version History "current" section.
 500. 2026-04-30 00:00 UTC: Updated Classes → Edit & Manage Classes registered-students table so loaded rows now show each student's QCI Number and representative/alternate-contact email (sourced from `teqcidb_students`) in place of the previous cell/office phone columns, with blank values continuing to render as an em dash.
-
+501. 2026-04-30 00:30 UTC: Added a new Students → Student Reports admin tab with paginated accordion results and search filters for expiration date range (inclusive), company name, and representative-only status, backed by `teqcidb_read_student` report-mode query constraints against `teqcidb_students` (`expiration_date`, `company`, `is_a_representative`).
