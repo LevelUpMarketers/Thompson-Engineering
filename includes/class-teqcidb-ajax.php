@@ -6191,21 +6191,13 @@ class TEQCIDB_Ajax {
         }
 
         if ( $reports_mode ) {
-            $normalized_expiration_sql = "COALESCE(
-                STR_TO_DATE(NULLIF(expiration_date, ''), '%Y-%m-%d'),
-                STR_TO_DATE(NULLIF(expiration_date, ''), '%m/%d/%Y'),
-                STR_TO_DATE(NULLIF(expiration_date, ''), '%c/%e/%Y'),
-                STR_TO_DATE(NULLIF(expiration_date, ''), '%m-%d-%Y'),
-                STR_TO_DATE(NULLIF(expiration_date, ''), '%c-%e-%Y')
-            )";
-
             if ( isset( $search_terms['expiration_start'] ) ) {
-                $where_clauses[] = "$normalized_expiration_sql IS NOT NULL AND $normalized_expiration_sql >= STR_TO_DATE(%s, '%%Y-%%m-%%d')";
+                $where_clauses[] = "expiration_date IS NOT NULL AND expiration_date <> '' AND expiration_date <> '0000-00-00' AND DATE(expiration_date) >= %s";
                 $where_params[]  = $search_terms['expiration_start'];
             }
 
             if ( isset( $search_terms['expiration_end'] ) ) {
-                $where_clauses[] = "$normalized_expiration_sql IS NOT NULL AND $normalized_expiration_sql <= STR_TO_DATE(%s, '%%Y-%%m-%%d')";
+                $where_clauses[] = "expiration_date IS NOT NULL AND expiration_date <> '' AND expiration_date <> '0000-00-00' AND DATE(expiration_date) <= %s";
                 $where_params[]  = $search_terms['expiration_end'];
             }
 
