@@ -1540,13 +1540,23 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $question_rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, type, prompt, choices_json FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
-                $quiz_id
-            ),
-            ARRAY_A
-        );
+        if ( $is_final_submission ) {
+            $question_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, type, prompt, choices_json FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
+                    $quiz_id
+                ),
+                ARRAY_A
+            );
+        } else {
+            $question_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id FROM $questions_table WHERE quiz_id = %d ORDER BY sort_order ASC, id ASC",
+                    $quiz_id
+                ),
+                ARRAY_A
+            );
+        }
 
         if ( ! is_array( $question_rows ) || empty( $question_rows ) ) {
             return new WP_Error( 'teqcidb_quiz_no_questions', __( 'Quiz has no questions to save.', 'teqcidb' ), array( 'status' => 400 ) );
@@ -1580,7 +1590,23 @@ class TEQCIDB_Ajax {
             $transaction_started = false !== $wpdb->query( 'START TRANSACTION' );
 
             if ( ! $transaction_started ) {
-                return new WP_Error( 'teqcidb_submit_transaction_start_failed', __( 'Unable to start quiz submission transaction.', 'teqcidb' ), array( 'status' => 500 ) );
+                /**
+                 * Fires when final quiz submission falls back to non-transactional writes.
+                 *
+                 * @param int    $attempt_id Quiz attempt ID being finalized.
+                 * @param int    $quiz_id    Quiz ID associated with the attempt.
+                 * @param int    $class_id   Class ID associated with the attempt.
+                 * @param int    $user_id    User ID submitting the quiz.
+                 * @param string $db_error   Database error reported while starting the transaction.
+                 */
+                do_action(
+                    'teqcidb_quiz_submit_transaction_unavailable',
+                    $attempt_id,
+                    $quiz_id,
+                    $class_id,
+                    $user_id,
+                    isset( $wpdb->last_error ) ? (string) $wpdb->last_error : ''
+                );
             }
         }
 
@@ -7475,6 +7501,7 @@ class TEQCIDB_Ajax {
         $tokens['student_company']    = isset( $student['company'] ) ? sanitize_text_field( (string) $student['company'] ) : ( isset( $tokens['student_company'] ) ? $tokens['student_company'] : '' );
         $tokens['student_phone_cell'] = isset( $student['phone_cell'] ) ? sanitize_text_field( (string) $student['phone_cell'] ) : ( isset( $tokens['student_phone_cell'] ) ? $tokens['student_phone_cell'] : '' );
         $tokens['student_qci_number'] = isset( $student['qcinumber'] ) ? sanitize_text_field( (string) $student['qcinumber'] ) : ( isset( $tokens['student_qci_number'] ) ? $tokens['student_qci_number'] : '' );
+        $tokens['student_certification_expiration'] = isset( $student['expiration_date'] ) ? $this->format_date_token_value( $student['expiration_date'] ) : ( isset( $tokens['student_certification_expiration'] ) ? $tokens['student_certification_expiration'] : '' );
 
         $representative = isset( $student['their_representative'] ) ? json_decode( (string) $student['their_representative'], true ) : array();
 

@@ -781,6 +781,7 @@
 
     function bindSubmitButton(){
         var btn = root.querySelector('#teqcidb-quiz-submit');
+        var saveBtn = root.querySelector('#teqcidb-quiz-save-progress');
         var err = root.querySelector('#teqcidb-quiz-error');
 
         if (!btn) {
@@ -800,6 +801,11 @@
 
             err.textContent = '';
             btn.disabled = true;
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+            }
+
             submitQuiz();
         });
     }
@@ -875,6 +881,11 @@
                 var submitButton = root.querySelector('#teqcidb-quiz-submit');
                 if (submitButton) {
                     submitButton.disabled = false;
+                }
+
+                var saveButton = root.querySelector('#teqcidb-quiz-save-progress');
+                if (saveButton && !isSubmitted) {
+                    saveButton.disabled = false;
                 }
             }).finally(function(){
                 isSubmitting = false;
