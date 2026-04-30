@@ -1915,6 +1915,12 @@ class TEQCIDB_Ajax {
             if ( 'initial' === $normalized_class_type && 0 !== $existing_attempt_status ) {
                 $this->maybe_queue_initial_exam_pass_email( $user_id, $class_id, $attempt_id );
             }
+        } else {
+            $normalized_class_type = strtolower( sanitize_key( $class_type ) );
+
+            if ( 'initial' === $normalized_class_type ) {
+                $this->apply_initial_quiz_fail_history_updates( $user_id, $class_id );
+            }
         }
 
         $final_result = array(
@@ -2111,6 +2117,88 @@ class TEQCIDB_Ajax {
         }
 
         return 'T' . str_pad( (string) ( $max_numeric + 1 ), 4, '0', STR_PAD_LEFT );
+    }
+
+    private function apply_initial_quiz_fail_history_updates( $user_id, $class_id ) {
+        global $wpdb;
+
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return;
+        }
+
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+
+        $student_unique_id = (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT uniquestudentid FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            )
+        );
+        $student_unique_id = sanitize_text_field( $student_unique_id );
+
+        $history_id = 0;
+
+        if ( '' !== $unique_class_id ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $history_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $unique_class_id
+                )
+            );
+
+            if ( $history_id <= 0 && '' !== $student_unique_id ) {
+                $history_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM $history_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        $student_unique_id,
+                        $unique_class_id
+                    )
+                );
+            }
+        }
+
+        if ( $history_id <= 0 && '' !== $class_name ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $history_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $class_name
+                )
+            );
+        }
+
+        if ( $history_id > 0 ) {
+            $wpdb->update(
+                $history_table,
+                array(
+                    'attended' => 'Yes',
+                    'outcome'  => 'Failed',
+                ),
+                array( 'id' => $history_id ),
+                array( '%s', '%s' ),
+                array( '%d' )
+            );
+        }
     }
 
     private function parse_student_date_value( $value ) {
