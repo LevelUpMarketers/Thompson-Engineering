@@ -367,6 +367,7 @@ jQuery(document).ready(function($){
         var $searchSpinner = $('#teqcidb-entity-search-spinner');
         var $searchFeedback = $('#teqcidb-entity-search-feedback');
         var $clearSearchButton = $('#teqcidb-entity-search-clear');
+        var $downloadReportButton = $('#teqcidb-student-reports-download');
         var placeholderMap = teqcidbAdmin.placeholderMap || {};
         var placeholderList = Array.isArray(teqcidbAdmin.placeholders) ? teqcidbAdmin.placeholders : [];
         var entityFields = Array.isArray(teqcidbAdmin.entityFields) ? teqcidbAdmin.entityFields : [];
@@ -2584,6 +2585,24 @@ jQuery(document).ready(function($){
                 if (hadActiveFilters || currentPage !== 1){
                     fetchEntities(1);
                 }
+            });
+        }
+
+        if ($downloadReportButton.length && listMode === 'student_reports'){
+            $downloadReportButton.on('click', function(e){
+                e.preventDefault();
+
+                var params = {
+                    action: 'teqcidb_download_student_report_csv',
+                    _ajax_nonce: teqcidbAjax.nonce,
+                    list_mode: 'student_reports'
+                };
+
+                Object.keys(currentFilters).forEach(function(key){
+                    params['search[' + key + ']'] = currentFilters[key];
+                });
+
+                window.location.href = teqcidbAjax.ajaxurl + '?' + $.param(params);
             });
         }
 

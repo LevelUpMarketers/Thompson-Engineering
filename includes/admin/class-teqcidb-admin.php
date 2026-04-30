@@ -4629,6 +4629,7 @@ class TEQCIDB_Admin {
         echo '<div class="teqcidb-entity-search__actions">';
         echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
         echo '<button type="button" id="teqcidb-entity-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-student-reports-download" class="button button-secondary">' . esc_html__( 'Download Report', 'teqcidb' ) . '</button>';
         echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
         echo '<span id="teqcidb-entity-search-spinner" class="spinner" aria-hidden="true"></span>';
         echo '<span id="teqcidb-entity-search-feedback" role="status" aria-live="polite"></span>';

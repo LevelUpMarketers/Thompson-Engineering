@@ -39,6 +39,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_delete_studenthistory', array( $this, 'delete_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
+        add_action( 'wp_ajax_teqcidb_download_student_report_csv', array( $this, 'download_student_report_csv' ) );
         add_action( 'wp_ajax_teqcidb_read_class', array( $this, 'read_class' ) );
         add_action( 'wp_ajax_teqcidb_read_class_registered_students', array( $this, 'read_class_registered_students' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
@@ -6388,6 +6389,102 @@ class TEQCIDB_Ajax {
         }
 
         return '';
+    }
+
+    public function download_student_report_csv() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+        global $wpdb;
+
+        $raw_search = isset( $_GET['search'] ) ? wp_unslash( $_GET['search'] ) : array();
+        if ( ! is_array( $raw_search ) ) {
+            $raw_search = array();
+        }
+
+        $company = isset( $raw_search['company'] ) ? sanitize_text_field( (string) $raw_search['company'] ) : '';
+        $representative_only = isset( $raw_search['representative_only'] ) ? sanitize_text_field( (string) $raw_search['representative_only'] ) : '';
+        $expiration_start = isset( $raw_search['expiration_start'] ) ? $this->normalize_student_report_date( sanitize_text_field( (string) $raw_search['expiration_start'] ) ) : '';
+        $expiration_end   = isset( $raw_search['expiration_end'] ) ? $this->normalize_student_report_date( sanitize_text_field( (string) $raw_search['expiration_end'] ) ) : '';
+
+        $table = $wpdb->prefix . 'teqcidb_students';
+        $where_clauses = array();
+        $where_params = array();
+
+        if ( '' !== $company ) {
+            $where_clauses[] = 'company LIKE %s';
+            $where_params[] = '%' . $wpdb->esc_like( $company ) . '%';
+        }
+        if ( '1' === $representative_only ) {
+            $where_clauses[] = 'is_a_representative = 1';
+        }
+
+        $query = "SELECT * FROM $table";
+        if ( ! empty( $where_clauses ) ) {
+            $query .= ' WHERE ' . implode( ' AND ', $where_clauses );
+        }
+        $query .= ' ORDER BY first_name ASC, last_name ASC, id ASC';
+
+        if ( ! empty( $where_params ) ) {
+            $rows = $wpdb->get_results( $wpdb->prepare( $query, $where_params ), ARRAY_A );
+        } else {
+            $rows = $wpdb->get_results( $query, ARRAY_A );
+        }
+        if ( ! is_array( $rows ) ) {
+            $rows = array();
+        }
+
+        if ( '' !== $expiration_start || '' !== $expiration_end ) {
+            $rows = array_values( array_filter( $rows, function( $row ) use ( $expiration_start, $expiration_end ) {
+                $expiration_raw = isset( $row['expiration_date'] ) ? trim( (string) $row['expiration_date'] ) : '';
+                if ( '' === $expiration_raw || '0000-00-00' === $expiration_raw ) {
+                    return false;
+                }
+                $expiration_ts = strtotime( $expiration_raw );
+                if ( false === $expiration_ts ) {
+                    return false;
+                }
+                if ( '' !== $expiration_start ) {
+                    $start_ts = strtotime( $expiration_start . ' 00:00:00' );
+                    if ( false !== $start_ts && $expiration_ts < $start_ts ) {
+                        return false;
+                    }
+                }
+                if ( '' !== $expiration_end ) {
+                    $end_ts = strtotime( $expiration_end . ' 23:59:59' );
+                    if ( false !== $end_ts && $expiration_ts > $end_ts ) {
+                        return false;
+                    }
+                }
+                return true;
+            } ) );
+        }
+
+        $filename = 'student-reports-' . gmdate( 'Y-m-d-His' ) . '.csv';
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename=' . $filename );
+        $output = fopen( 'php://output', 'w' );
+
+        fputcsv( $output, array( 'First Name', 'Last Name', 'Email Address', 'Company', 'QCI Number', 'Certification Expiration', 'Representative?', 'Representative Email', 'Cell Phone', 'Office Phone' ) );
+
+        foreach ( $rows as $row ) {
+            $prepared = $this->prepare_student_entity( $row );
+            $expiration = isset( $prepared['expiration_date'] ) ? sanitize_text_field( (string) $prepared['expiration_date'] ) : '';
+            $expiration_display = '' !== $expiration ? $expiration : '—';
+            fputcsv( $output, array(
+                isset( $prepared['first_name'] ) ? $prepared['first_name'] : '',
+                isset( $prepared['last_name'] ) ? $prepared['last_name'] : '',
+                isset( $prepared['email'] ) ? $prepared['email'] : '',
+                isset( $prepared['company'] ) ? $prepared['company'] : '',
+                isset( $prepared['qcinumber'] ) ? $prepared['qcinumber'] : '',
+                $expiration_display,
+                isset( $prepared['is_a_representative'] ) && '1' === (string) $prepared['is_a_representative'] ? 'Yes' : 'No',
+                isset( $prepared['representative_email'] ) ? $prepared['representative_email'] : '',
+                isset( $prepared['phone_cell'] ) ? $prepared['phone_cell'] : '',
+                isset( $prepared['phone_office'] ) ? $prepared['phone_office'] : '',
+            ) );
+        }
+
+        fclose( $output );
+        exit;
     }
 
     public function save_email_template() {
