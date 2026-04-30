@@ -43,7 +43,20 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.4 (current)
+### 1.0.5 (current)
+
+Changes in **1.0.5** compared with **1.0.4**:
+
+- Added a new **Students → Student Reports** tab with paginated accordion results and filters for expiration date range, company name, and representative-only status.
+- Added a **Download Report** action on Student Reports that exports the active filtered result set to CSV, including all `teqcidb_students` columns with human-readable headers.
+- Updated **Classes → Edit & Manage Classes** registered-students table columns to show **QCI Number** and **Representative Email** in place of legacy phone columns.
+- Added a Student Reports intro status line showing the highest currently assigned QCI number.
+- Refined Initial exam persistence rules:
+  - new QCI numbers are assigned only when the matching class-history `paymentstatus` is **Paid in Full**
+  - on Initial pass, expiration is set to **today + 2 years**
+  - on Initial fail, matching studenthistory is updated to `attended = Yes` and `outcome = Failed`.
+
+### 1.0.4
 
 Changes in **1.0.4** compared with **1.0.3**:
 
