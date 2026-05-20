@@ -1342,8 +1342,8 @@ class TEQCIDB_Admin {
             'studentLastNameLabel' => __( 'Last Name', 'teqcidb' ),
             'studentCompanyLabel' => __( 'Company', 'teqcidb' ),
             'studentEmailLabel' => __( 'Email', 'teqcidb' ),
-            'studentPhoneCellLabel' => __( 'Phone (cell)', 'teqcidb' ),
-            'studentPhoneOfficeLabel' => __( 'Phone (office)', 'teqcidb' ),
+            'studentQciNumberLabel' => __( 'QCI Number', 'teqcidb' ),
+            'studentRepresentativeEmailLabel' => __( 'Representative Email', 'teqcidb' ),
             'resourceNameLabel' => __( 'Resource Name', 'teqcidb' ),
             'resourceTypeLabel' => __( 'Resource Type', 'teqcidb' ),
             'resourceUrlLabel' => __( 'Resource URL', 'teqcidb' ),
@@ -1799,12 +1799,14 @@ class TEQCIDB_Admin {
         echo '<a href="?page=teqcidb-student&tab=edit" class="nav-tab ' . ( 'edit' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Edit Students', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=newest" class="nav-tab ' . ( 'newest' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Newest Students', 'teqcidb' ) . '</a>';
         echo '<a href="?page=teqcidb-student&tab=student_forms" class="nav-tab ' . ( 'student_forms' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Student Forms', 'teqcidb' ) . '</a>';
+        echo '<a href="?page=teqcidb-student&tab=student_reports" class="nav-tab ' . ( 'student_reports' === $active_tab ? 'nav-tab-active' : '' ) . '">' . esc_html__( 'Student Reports', 'teqcidb' ) . '</a>';
         echo '</h2>';
         $tab_titles = array(
             'create'        => __( 'Create a Student', 'teqcidb' ),
             'edit'          => __( 'Edit Students', 'teqcidb' ),
             'newest'        => __( 'Newest Students', 'teqcidb' ),
             'student_forms' => __( 'Student Forms', 'teqcidb' ),
+            'student_reports' => __( 'Student Reports', 'teqcidb' ),
         );
 
         $tab_descriptions = array(
@@ -1812,6 +1814,7 @@ class TEQCIDB_Admin {
             'edit'          => __( 'Review saved students to confirm their data, trigger edits, or remove records you no longer need.', 'teqcidb' ),
             'newest'        => __( 'Review the 20 most recently created student records in a read-only accordion list.', 'teqcidb' ),
             'student_forms' => __( 'Find students and review their saved data before generating wallet cards and certificates.', 'teqcidb' ),
+            'student_reports' => __( 'Search students by expiration-date range, company, and representative status using a paginated accordion list.', 'teqcidb' ),
         );
 
         if ( ! array_key_exists( $active_tab, $tab_titles ) ) {
@@ -1823,12 +1826,21 @@ class TEQCIDB_Admin {
 
         $this->render_tab_intro( $title, $description );
 
+        if ( 'student_reports' === $active_tab ) {
+            $highest_qci = $this->get_highest_assigned_qci_number();
+            $highest_qci_display = '' !== $highest_qci ? $highest_qci : __( 'Not available', 'teqcidb' );
+            /* translators: %s: highest currently assigned QCI number. */
+            echo '<p class="teqcidb-tab-intro__description teqcidb-tab-intro__description--qci-highest">' . esc_html( sprintf( __( 'The highest currently-assigned QCI Number is: %s', 'teqcidb' ), $highest_qci_display ) ) . '</p>';
+        }
+
         if ( 'edit' === $active_tab ) {
             $this->render_edit_tab();
         } elseif ( 'newest' === $active_tab ) {
             $this->render_newest_students_tab();
         } elseif ( 'student_forms' === $active_tab ) {
             $this->render_student_forms_tab();
+        } elseif ( 'student_reports' === $active_tab ) {
+            $this->render_student_reports_tab();
         } else {
             $this->render_create_tab();
         }
@@ -4759,6 +4771,81 @@ class TEQCIDB_Admin {
         echo '</div>';
         echo '</div>';
         echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function render_student_reports_tab() {
+        $per_page     = 20;
+        $column_count = 6;
+
+        echo '<div class="teqcidb-communications teqcidb-communications--students">';
+        echo '<div class="teqcidb-entity-search" role="search">';
+        echo '<form id="teqcidb-student-search" class="teqcidb-entity-search__form" method="post">';
+        echo '<h3 class="teqcidb-entity-search__title">' . esc_html__( 'Student Reports Search', 'teqcidb' ) . '</h3>';
+        echo '<p class="teqcidb-entity-search__description">' . esc_html__( 'Filter by expiration date range, company, and representative-only status.', 'teqcidb' ) . '</p>';
+        echo '<div class="teqcidb-entity-search__fields">';
+
+        echo '<div class="teqcidb-entity-search__field">';
+        echo '<label class="teqcidb-entity-search__label" for="teqcidb-student-reports-expiration-start">' . esc_html__( 'Expiration Date (From)', 'teqcidb' ) . '</label>';
+        echo '<input type="date" id="teqcidb-student-reports-expiration-start" name="expiration_start" class="regular-text" />';
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__field">';
+        echo '<label class="teqcidb-entity-search__label" for="teqcidb-student-reports-expiration-end">' . esc_html__( 'Expiration Date (To)', 'teqcidb' ) . '</label>';
+        echo '<input type="date" id="teqcidb-student-reports-expiration-end" name="expiration_end" class="regular-text" />';
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__field">';
+        echo '<label class="teqcidb-entity-search__label" for="teqcidb-student-reports-company">' . esc_html__( 'Company Name', 'teqcidb' ) . '</label>';
+        echo '<input type="text" id="teqcidb-student-reports-company" name="company" class="regular-text" />';
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__field">';
+        echo '<label class="teqcidb-entity-search__label" for="teqcidb-student-reports-representative-only">' . esc_html__( 'Representative Filter', 'teqcidb' ) . '</label>';
+        echo '<label><input type="checkbox" id="teqcidb-student-reports-representative-only" name="representative_only" value="1" /> ' . esc_html__( 'Only show representatives', 'teqcidb' ) . '</label>';
+        echo '</div>';
+
+        echo '</div>';
+        echo '<div class="teqcidb-entity-search__actions">';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-entity-search-clear" class="button button-secondary">' . esc_html__( 'Clear Search', 'teqcidb' ) . '</button>';
+        echo '<button type="button" id="teqcidb-student-reports-download" class="button button-secondary">' . esc_html__( 'Download Report', 'teqcidb' ) . '</button>';
+        echo '<span class="teqcidb-feedback-area teqcidb-feedback-area--inline">';
+        echo '<span id="teqcidb-entity-search-spinner" class="spinner" aria-hidden="true"></span>';
+        echo '<span id="teqcidb-entity-search-feedback" role="status" aria-live="polite"></span>';
+        echo '</span>';
+        echo '</div>';
+        echo '</form>';
+        echo '</div>';
+
+        echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="student-reports">';
+        echo '<table class="wp-list-table widefat striped teqcidb-accordion-table">';
+        echo '<thead><tr>';
+        for ( $i = 1; $i <= 5; $i++ ) {
+            printf( '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--placeholder-%1$d">%2$s</th>', absint( $i ), esc_html( $this->get_placeholder_label( $i ) ) );
+        }
+        echo '<th scope="col" class="teqcidb-accordion__heading teqcidb-accordion__heading--actions">' . esc_html__( 'Actions', 'teqcidb' ) . '</th>';
+        echo '</tr></thead>';
+        printf( '<tbody id="teqcidb-entity-list" data-per-page="%1$d" data-column-count="%2$d" data-read-only="1" data-list-mode="student_reports">', absint( $per_page ), absint( $column_count ) );
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '<div class="tablenav"><div id="teqcidb-entity-pagination" class="tablenav-pages"></div></div>';
+        echo '</div>';
+        echo '<div id="teqcidb-entity-feedback" class="teqcidb-feedback-area teqcidb-feedback-area--block" role="status" aria-live="polite"></div>';
+    }
+
+    private function get_highest_assigned_qci_number() {
+        global $wpdb;
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $highest_qci = $wpdb->get_var(
+            "SELECT qcinumber
+            FROM $students_table
+            WHERE qcinumber IS NOT NULL
+            AND qcinumber <> ''
+            AND qcinumber REGEXP '^T[0-9]+$'
+            ORDER BY CAST(SUBSTRING(qcinumber, 2) AS UNSIGNED) DESC
+            LIMIT 1"
+        );
+
+        return is_scalar( $highest_qci ) ? sanitize_text_field( (string) $highest_qci ) : '';
     }
 
     public function render_settings_page() {

@@ -39,6 +39,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_delete_student', array( $this, 'delete_student' ) );
         add_action( 'wp_ajax_teqcidb_delete_studenthistory', array( $this, 'delete_studenthistory' ) );
         add_action( 'wp_ajax_teqcidb_read_student', array( $this, 'read_student' ) );
+        add_action( 'wp_ajax_teqcidb_download_student_report_csv', array( $this, 'download_student_report_csv' ) );
         add_action( 'wp_ajax_teqcidb_read_class', array( $this, 'read_class' ) );
         add_action( 'wp_ajax_teqcidb_read_class_registered_students', array( $this, 'read_class_registered_students' ) );
         add_action( 'wp_ajax_teqcidb_save_general_settings', array( $this, 'save_general_settings' ) );
@@ -1914,6 +1915,12 @@ class TEQCIDB_Ajax {
             if ( 'initial' === $normalized_class_type && 0 !== $existing_attempt_status ) {
                 $this->maybe_queue_initial_exam_pass_email( $user_id, $class_id, $attempt_id );
             }
+        } else {
+            $normalized_class_type = strtolower( sanitize_key( $class_type ) );
+
+            if ( 'initial' === $normalized_class_type ) {
+                $this->apply_initial_quiz_fail_history_updates( $user_id, $class_id );
+            }
         }
 
         $final_result = array(
@@ -1964,25 +1971,6 @@ class TEQCIDB_Ajax {
         $student_update = array();
         $student_formats = array();
 
-        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
-
-        if ( '' === $existing_qci_number ) {
-            $student_update['qcinumber'] = $this->generate_next_qci_number();
-            $student_formats[]           = '%s';
-        }
-
-        $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
-        $expiration_source   = $this->parse_student_date_value( $existing_expiration );
-
-        if ( ! $expiration_source ) {
-            $expiration_source = $this->parse_student_date_value( $today );
-        }
-
-        if ( $expiration_source ) {
-            $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
-            $student_formats[]                 = '%s';
-        }
-
         if ( 'initial' === $class_type ) {
             $existing_initial_training_date = isset( $student_row['initial_training_date'] ) ? trim( (string) $student_row['initial_training_date'] ) : '';
 
@@ -1995,16 +1983,6 @@ class TEQCIDB_Ajax {
         if ( 'refresher' === $class_type ) {
             $student_update['last_refresher_date'] = $today;
             $student_formats[]                     = '%s';
-        }
-
-        if ( ! empty( $student_update ) ) {
-            $wpdb->update(
-                $students_table,
-                $student_update,
-                array( 'id' => $student_id ),
-                $student_formats,
-                array( '%d' )
-            );
         }
 
         $class_row = $wpdb->get_row(
@@ -2024,34 +2002,83 @@ class TEQCIDB_Ajax {
         $unique_student_id = isset( $student_row['uniquestudentid'] ) ? sanitize_text_field( (string) $student_row['uniquestudentid'] ) : '';
 
         $history_id = 0;
+        $history_row = array();
 
         if ( '' !== $unique_class_id ) {
-            $history_id = (int) $wpdb->get_var(
+            $history_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                     $user_id,
                     $unique_class_id
                 )
+                ,
+                ARRAY_A
             );
+            $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
 
             if ( $history_id <= 0 && '' !== $unique_student_id ) {
-                $history_id = (int) $wpdb->get_var(
+                $history_row = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT id FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                         $unique_student_id,
                         $unique_class_id
                     )
+                    ,
+                    ARRAY_A
                 );
+                $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
             }
         }
 
         if ( $history_id <= 0 && '' !== $class_name ) {
-            $history_id = (int) $wpdb->get_var(
+            $history_row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT id FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    "SELECT id, paymentstatus, enrollmentdate FROM $studenthistory_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
                     $user_id,
                     $class_name
                 )
+                ,
+                ARRAY_A
+            );
+            $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
+        }
+
+        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+        $payment_status      = isset( $history_row['paymentstatus'] ) ? sanitize_text_field( (string) $history_row['paymentstatus'] ) : '';
+
+        if ( '' === $existing_qci_number && 'paid in full' === strtolower( $payment_status ) ) {
+            $student_update['qcinumber'] = $this->generate_next_qci_number();
+            $student_formats[]           = '%s';
+        }
+
+        if ( 'initial' === $class_type ) {
+            $today_date_source = $this->parse_student_date_value( $today );
+
+            if ( $today_date_source ) {
+                $student_update['expiration_date'] = $today_date_source->modify( '+2 years' )->format( 'Y-m-d' );
+                $student_formats[]                 = '%s';
+            }
+        } else {
+            $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
+            $expiration_source   = $this->parse_student_date_value( $existing_expiration );
+
+            if ( ! $expiration_source ) {
+                $expiration_source = $this->parse_student_date_value( $today );
+            }
+
+            if ( $expiration_source ) {
+                $student_update['expiration_date'] = $expiration_source->modify( '+2 years' )->format( 'Y-m-d' );
+                $student_formats[]                 = '%s';
+            }
+        }
+
+        if ( ! empty( $student_update ) ) {
+            $wpdb->update(
+                $students_table,
+                $student_update,
+                array( 'id' => $student_id ),
+                $student_formats,
+                array( '%d' )
             );
         }
 
@@ -2090,6 +2117,88 @@ class TEQCIDB_Ajax {
         }
 
         return 'T' . str_pad( (string) ( $max_numeric + 1 ), 4, '0', STR_PAD_LEFT );
+    }
+
+    private function apply_initial_quiz_fail_history_updates( $user_id, $class_id ) {
+        global $wpdb;
+
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $history_table = $wpdb->prefix . 'teqcidb_studenthistory';
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $class_row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT uniqueclassid, classname FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class_row ) ) {
+            return;
+        }
+
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+
+        $student_unique_id = (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT uniquestudentid FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            )
+        );
+        $student_unique_id = sanitize_text_field( $student_unique_id );
+
+        $history_id = 0;
+
+        if ( '' !== $unique_class_id ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $history_table WHERE wpuserid = %d AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $unique_class_id
+                )
+            );
+
+            if ( $history_id <= 0 && '' !== $student_unique_id ) {
+                $history_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT id FROM $history_table WHERE uniquestudentid = %s AND uniqueclassid = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                        $student_unique_id,
+                        $unique_class_id
+                    )
+                );
+            }
+        }
+
+        if ( $history_id <= 0 && '' !== $class_name ) {
+            $history_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $history_table WHERE wpuserid = %d AND classname = %s ORDER BY enrollmentdate DESC, id DESC LIMIT 1",
+                    $user_id,
+                    $class_name
+                )
+            );
+        }
+
+        if ( $history_id > 0 ) {
+            $wpdb->update(
+                $history_table,
+                array(
+                    'attended' => 'Yes',
+                    'outcome'  => 'Failed',
+                ),
+                array( 'id' => $history_id ),
+                array( '%s', '%s' ),
+                array( '%d' )
+            );
+        }
     }
 
     private function parse_student_date_value( $value ) {
@@ -6114,7 +6223,8 @@ class TEQCIDB_Ajax {
         $page     = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
         $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : 20;
         $list_mode = isset( $_POST['list_mode'] ) ? sanitize_key( wp_unslash( (string) $_POST['list_mode'] ) ) : '';
-        $newest_mode = ( 'newest' === $list_mode );
+        $newest_mode  = ( 'newest' === $list_mode );
+        $reports_mode = ( 'student_reports' === $list_mode );
 
         if ( $per_page <= 0 ) {
             $per_page = 20;
@@ -6130,7 +6240,30 @@ class TEQCIDB_Ajax {
 
         $search_terms = array();
 
-        if ( ! $newest_mode ) {
+        if ( $reports_mode ) {
+            if ( isset( $raw_search['expiration_start'] ) ) {
+                $expiration_start = $this->normalize_student_report_date( sanitize_text_field( $raw_search['expiration_start'] ) );
+                if ( '' !== $expiration_start ) {
+                    $search_terms['expiration_start'] = $expiration_start;
+                }
+            }
+            if ( isset( $raw_search['expiration_end'] ) ) {
+                $expiration_end = $this->normalize_student_report_date( sanitize_text_field( $raw_search['expiration_end'] ) );
+                if ( '' !== $expiration_end ) {
+                    $search_terms['expiration_end'] = $expiration_end;
+                }
+            }
+            if ( isset( $raw_search['company'] ) ) {
+                $company = sanitize_text_field( $raw_search['company'] );
+                if ( '' !== $company ) {
+                    $search_terms['company'] = $company;
+                }
+            }
+            $representative_only = isset( $raw_search['representative_only'] ) ? sanitize_text_field( (string) $raw_search['representative_only'] ) : '';
+            if ( '1' === $representative_only ) {
+                $search_terms['representative_only'] = '1';
+            }
+        } elseif ( ! $newest_mode ) {
             foreach ( array( 'placeholder_1', 'placeholder_2', 'placeholder_3' ) as $column ) {
                 if ( isset( $raw_search[ $column ] ) ) {
                     $value = sanitize_text_field( $raw_search[ $column ] );
@@ -6166,12 +6299,26 @@ class TEQCIDB_Ajax {
             }
         }
 
+        if ( $reports_mode ) {
+            if ( isset( $search_terms['company'] ) ) {
+                $where_clauses[] = 'company LIKE %s';
+                $where_params[]  = '%' . $wpdb->esc_like( $search_terms['company'] ) . '%';
+            }
+
+            if ( isset( $search_terms['representative_only'] ) ) {
+                $where_clauses[] = 'is_a_representative = 1';
+            }
+        }
+
         $where_sql = '';
 
         if ( $where_clauses ) {
             $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
         }
 
+        $report_expiration_start = isset( $search_terms['expiration_start'] ) ? $search_terms['expiration_start'] : '';
+        $report_expiration_end   = isset( $search_terms['expiration_end'] ) ? $search_terms['expiration_end'] : '';
+        $has_report_expiration_filter = $reports_mode && ( '' !== $report_expiration_start || '' !== $report_expiration_end );
         $total_query = "SELECT COUNT(*) FROM $table";
 
         if ( $where_sql ) {
@@ -6182,6 +6329,10 @@ class TEQCIDB_Ajax {
             $total = (int) $wpdb->get_var( $wpdb->prepare( $total_query, $where_params ) );
         } else {
             $total = (int) $wpdb->get_var( $total_query );
+        }
+
+        if ( $has_report_expiration_filter ) {
+            $total = 0;
         }
         $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
 
@@ -6206,7 +6357,7 @@ class TEQCIDB_Ajax {
 
         $entities = array();
 
-        if ( $total > 0 ) {
+        if ( $total > 0 || $has_report_expiration_filter ) {
             $select_query = "SELECT * FROM $table";
 
             if ( $where_sql ) {
@@ -6219,17 +6370,66 @@ class TEQCIDB_Ajax {
                 $select_query .= ' ORDER BY first_name ASC, last_name ASC, id ASC LIMIT %d OFFSET %d';
             }
 
-            $select_params   = $where_params;
-            $select_params[] = $per_page;
-            $select_params[] = $offset;
+            $select_params = $where_params;
 
-            $entities = $wpdb->get_results(
-                $wpdb->prepare(
-                    $select_query,
-                    $select_params
-                ),
-                ARRAY_A
-            );
+            if ( ! $has_report_expiration_filter ) {
+                $select_params[] = $per_page;
+                $select_params[] = $offset;
+            }
+
+            if ( $has_report_expiration_filter ) {
+                $select_query = str_replace( ' LIMIT %d OFFSET %d', '', $select_query );
+            }
+
+            $entities = $wpdb->get_results( $wpdb->prepare( $select_query, $select_params ), ARRAY_A );
+
+            if ( $has_report_expiration_filter && is_array( $entities ) ) {
+                $entities = array_values(
+                    array_filter(
+                        $entities,
+                        function( $entity ) use ( $report_expiration_start, $report_expiration_end ) {
+                            $expiration_raw = isset( $entity['expiration_date'] ) ? trim( (string) $entity['expiration_date'] ) : '';
+
+                            if ( '' === $expiration_raw || '0000-00-00' === $expiration_raw ) {
+                                return false;
+                            }
+
+                            $expiration_ts = strtotime( $expiration_raw );
+
+                            if ( false === $expiration_ts ) {
+                                return false;
+                            }
+
+                            if ( '' !== $report_expiration_start ) {
+                                $start_ts = strtotime( $report_expiration_start . ' 00:00:00' );
+                                if ( false !== $start_ts && $expiration_ts < $start_ts ) {
+                                    return false;
+                                }
+                            }
+
+                            if ( '' !== $report_expiration_end ) {
+                                $end_ts = strtotime( $report_expiration_end . ' 23:59:59' );
+                                if ( false !== $end_ts && $expiration_ts > $end_ts ) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
+                        }
+                    )
+                );
+
+                $total       = count( $entities );
+                $total_pages = $per_page > 0 ? (int) ceil( $total / $per_page ) : 1;
+                if ( $total_pages < 1 ) {
+                    $total_pages = 1;
+                }
+                if ( $page > $total_pages ) {
+                    $page = $total_pages;
+                }
+                $offset      = max( 0, ( $page - 1 ) * $per_page );
+                $entities    = array_slice( $entities, $offset, $per_page );
+            }
 
             if ( is_array( $entities ) ) {
                 foreach ( $entities as &$entity ) {
@@ -6277,6 +6477,140 @@ class TEQCIDB_Ajax {
                 'total_pages' => $total_pages,
             )
         );
+    }
+
+    private function normalize_student_report_date( $raw_date ) {
+        $raw_date = trim( (string) $raw_date );
+
+        if ( '' === $raw_date ) {
+            return '';
+        }
+
+        $formats = array( 'Y-m-d', 'm/d/Y', 'n/j/Y', 'm-d-Y', 'n-j-Y' );
+
+        foreach ( $formats as $format ) {
+            $parsed = DateTime::createFromFormat( $format, $raw_date );
+
+            if ( $parsed instanceof DateTime && $parsed->format( $format ) === $raw_date ) {
+                return $parsed->format( 'Y-m-d' );
+            }
+        }
+
+        return '';
+    }
+
+    public function download_student_report_csv() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+        global $wpdb;
+
+        $raw_search = isset( $_GET['search'] ) ? wp_unslash( $_GET['search'] ) : array();
+        if ( ! is_array( $raw_search ) ) {
+            $raw_search = array();
+        }
+
+        $company = isset( $raw_search['company'] ) ? sanitize_text_field( (string) $raw_search['company'] ) : '';
+        $representative_only = isset( $raw_search['representative_only'] ) ? sanitize_text_field( (string) $raw_search['representative_only'] ) : '';
+        $expiration_start = isset( $raw_search['expiration_start'] ) ? $this->normalize_student_report_date( sanitize_text_field( (string) $raw_search['expiration_start'] ) ) : '';
+        $expiration_end   = isset( $raw_search['expiration_end'] ) ? $this->normalize_student_report_date( sanitize_text_field( (string) $raw_search['expiration_end'] ) ) : '';
+
+        $table = $wpdb->prefix . 'teqcidb_students';
+        $where_clauses = array();
+        $where_params = array();
+
+        if ( '' !== $company ) {
+            $where_clauses[] = 'company LIKE %s';
+            $where_params[] = '%' . $wpdb->esc_like( $company ) . '%';
+        }
+        if ( '1' === $representative_only ) {
+            $where_clauses[] = 'is_a_representative = 1';
+        }
+
+        $query = "SELECT * FROM $table";
+        if ( ! empty( $where_clauses ) ) {
+            $query .= ' WHERE ' . implode( ' AND ', $where_clauses );
+        }
+        $query .= ' ORDER BY first_name ASC, last_name ASC, id ASC';
+
+        if ( ! empty( $where_params ) ) {
+            $rows = $wpdb->get_results( $wpdb->prepare( $query, $where_params ), ARRAY_A );
+        } else {
+            $rows = $wpdb->get_results( $query, ARRAY_A );
+        }
+        if ( ! is_array( $rows ) ) {
+            $rows = array();
+        }
+
+        if ( '' !== $expiration_start || '' !== $expiration_end ) {
+            $rows = array_values( array_filter( $rows, function( $row ) use ( $expiration_start, $expiration_end ) {
+                $expiration_raw = isset( $row['expiration_date'] ) ? trim( (string) $row['expiration_date'] ) : '';
+                if ( '' === $expiration_raw || '0000-00-00' === $expiration_raw ) {
+                    return false;
+                }
+                $expiration_ts = strtotime( $expiration_raw );
+                if ( false === $expiration_ts ) {
+                    return false;
+                }
+                if ( '' !== $expiration_start ) {
+                    $start_ts = strtotime( $expiration_start . ' 00:00:00' );
+                    if ( false !== $start_ts && $expiration_ts < $start_ts ) {
+                        return false;
+                    }
+                }
+                if ( '' !== $expiration_end ) {
+                    $end_ts = strtotime( $expiration_end . ' 23:59:59' );
+                    if ( false !== $end_ts && $expiration_ts > $end_ts ) {
+                        return false;
+                    }
+                }
+                return true;
+            } ) );
+        }
+
+        $column_names = $wpdb->get_col( "SHOW COLUMNS FROM $table", 0 );
+        if ( ! is_array( $column_names ) || empty( $column_names ) ) {
+            $column_names = array_keys( isset( $rows[0] ) && is_array( $rows[0] ) ? $rows[0] : array() );
+        }
+
+        $header_labels = array();
+        foreach ( $column_names as $column_name ) {
+            $header_labels[] = ucwords( str_replace( '_', ' ', (string) $column_name ) );
+        }
+
+        $filename = 'student-reports-' . gmdate( 'Y-m-d-His' ) . '.csv';
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename=' . $filename );
+        $output = fopen( 'php://output', 'w' );
+
+        fputcsv( $output, $header_labels );
+
+        foreach ( $rows as $row ) {
+            $prepared = $this->prepare_student_entity( $row );
+            $csv_row = array();
+
+            foreach ( $column_names as $column_name ) {
+                $value = isset( $row[ $column_name ] ) ? $row[ $column_name ] : '';
+
+                if ( in_array( $column_name, array( 'expiration_date', 'initial_training_date', 'last_refresher_date' ), true ) ) {
+                    $value = isset( $prepared[ $column_name ] ) ? $prepared[ $column_name ] : $value;
+                } elseif ( 'is_a_representative' === $column_name ) {
+                    $value = ( isset( $prepared['is_a_representative'] ) && '1' === (string) $prepared['is_a_representative'] ) ? 'Yes' : 'No';
+                } elseif ( in_array( $column_name, array( 'phone_cell', 'phone_office', 'fax' ), true ) ) {
+                    $value = isset( $prepared[ $column_name ] ) ? $prepared[ $column_name ] : $value;
+                } elseif ( in_array( $column_name, array( 'old_companies', 'student_address', 'their_representative', 'associations' ), true ) && is_string( $value ) ) {
+                    $decoded = json_decode( $value, true );
+                    if ( is_array( $decoded ) ) {
+                        $value = wp_json_encode( $decoded );
+                    }
+                }
+
+                $csv_row[] = is_scalar( $value ) ? (string) $value : '';
+            }
+
+            fputcsv( $output, $csv_row );
+        }
+
+        fclose( $output );
+        exit;
     }
 
     public function save_email_template() {
@@ -9963,8 +10297,8 @@ class TEQCIDB_Ajax {
                 'last_name'      => isset( $prepared['last_name'] ) ? sanitize_text_field( (string) $prepared['last_name'] ) : '',
                 'company'        => isset( $prepared['company'] ) ? sanitize_text_field( (string) $prepared['company'] ) : '',
                 'email'          => isset( $prepared['email'] ) ? sanitize_email( (string) $prepared['email'] ) : '',
-                'phone_cell'     => isset( $prepared['phone_cell'] ) ? sanitize_text_field( (string) $prepared['phone_cell'] ) : '',
-                'phone_office'   => isset( $prepared['phone_office'] ) ? sanitize_text_field( (string) $prepared['phone_office'] ) : '',
+                'qci_number'         => isset( $prepared['qcinumber'] ) ? sanitize_text_field( (string) $prepared['qcinumber'] ) : '',
+                'representative_email' => isset( $prepared['representative_email'] ) ? sanitize_email( (string) $prepared['representative_email'] ) : '',
             );
 
             if ( $student['wpuserid'] > 0 ) {

@@ -367,6 +367,7 @@ jQuery(document).ready(function($){
         var $searchSpinner = $('#teqcidb-entity-search-spinner');
         var $searchFeedback = $('#teqcidb-entity-search-feedback');
         var $clearSearchButton = $('#teqcidb-entity-search-clear');
+        var $downloadReportButton = $('#teqcidb-student-reports-download');
         var placeholderMap = teqcidbAdmin.placeholderMap || {};
         var placeholderList = Array.isArray(teqcidbAdmin.placeholders) ? teqcidbAdmin.placeholders : [];
         var entityFields = Array.isArray(teqcidbAdmin.entityFields) ? teqcidbAdmin.entityFields : [];
@@ -375,11 +376,7 @@ jQuery(document).ready(function($){
         var pendingFeedbackMessage = '';
         var currentPage = 1;
         var emptyValue = 'N/A';
-        var currentFilters = {
-            placeholder_1: '',
-            placeholder_2: '',
-            placeholder_3: ''
-        };
+        var currentFilters = {};
 
         if ($entityFeedback.length){
             $entityFeedback.hide().removeClass('is-visible');
@@ -429,7 +426,11 @@ jQuery(document).ready(function($){
             return Object.keys(currentFilters).some(function(key){
                 var value = currentFilters[key];
 
-                return typeof value === 'string' && value.trim() !== '';
+                if (typeof value === 'string'){
+                    return value.trim() !== '';
+                }
+
+                return !!value;
             });
         }
 
@@ -2462,11 +2463,7 @@ jQuery(document).ready(function($){
                 page: targetPage,
                 per_page: perPage,
                 list_mode: listMode,
-                search: {
-                    placeholder_1: currentFilters.placeholder_1,
-                    placeholder_2: currentFilters.placeholder_2,
-                    placeholder_3: currentFilters.placeholder_3
-                }
+                search: currentFilters
             })
                 .done(function(response){
                     if (response && response.success && response.data){
@@ -2500,24 +2497,26 @@ jQuery(document).ready(function($){
 
         if (listMode === 'newest'){
             restoreState = null;
-            currentFilters = {
-                placeholder_1: '',
-                placeholder_2: '',
-                placeholder_3: ''
-            };
+            currentFilters = {};
         }
 
         if (restoreState && restoreState.filters){
-            currentFilters = {
-                placeholder_1: restoreState.filters.placeholder_1 || '',
-                placeholder_2: restoreState.filters.placeholder_2 || '',
-                placeholder_3: restoreState.filters.placeholder_3 || ''
-            };
+            currentFilters = $.extend({}, restoreState.filters);
 
             if ($searchForm.length){
-                $searchForm.find('input[name="placeholder_1"]').val(currentFilters.placeholder_1);
-                $searchForm.find('input[name="placeholder_2"]').val(currentFilters.placeholder_2);
-                $searchForm.find('input[name="placeholder_3"]').val(currentFilters.placeholder_3);
+                Object.keys(currentFilters).forEach(function(key){
+                    var $field = $searchForm.find('[name="' + key + '"]');
+
+                    if (!$field.length){
+                        return;
+                    }
+
+                    if ($field.is(':checkbox')){
+                        $field.prop('checked', !!currentFilters[key] && String(currentFilters[key]) !== '0');
+                    } else {
+                        $field.val(currentFilters[key]);
+                    }
+                });
             }
         }
 
@@ -2546,19 +2545,20 @@ jQuery(document).ready(function($){
             $searchForm.on('submit', function(e){
                 e.preventDefault();
 
-                var newFilters = {
-                    placeholder_1: '',
-                    placeholder_2: '',
-                    placeholder_3: ''
-                };
+                var newFilters = {};
 
                 $searchForm.serializeArray().forEach(function(field){
-                    if (!Object.prototype.hasOwnProperty.call(newFilters, field.name)){
+                    var value = typeof field.value === 'string' ? field.value.trim() : '';
+                    newFilters[field.name] = value;
+                });
+                $searchForm.find('input[type="checkbox"]').each(function(){
+                    var name = $(this).attr('name');
+
+                    if (!name){
                         return;
                     }
 
-                    var value = typeof field.value === 'string' ? field.value.trim() : '';
-                    newFilters[field.name] = value;
+                    newFilters[name] = $(this).is(':checked') ? '1' : '';
                 });
 
                 currentFilters = newFilters;
@@ -2578,17 +2578,31 @@ jQuery(document).ready(function($){
                     $searchForm.find('input[type="text"]').val('');
                 }
 
-                currentFilters = {
-                    placeholder_1: '',
-                    placeholder_2: '',
-                    placeholder_3: ''
-                };
+                currentFilters = {};
 
                 clearSearchFeedback();
 
                 if (hadActiveFilters || currentPage !== 1){
                     fetchEntities(1);
                 }
+            });
+        }
+
+        if ($downloadReportButton.length && listMode === 'student_reports'){
+            $downloadReportButton.on('click', function(e){
+                e.preventDefault();
+
+                var params = {
+                    action: 'teqcidb_download_student_report_csv',
+                    _ajax_nonce: teqcidbAjax.nonce,
+                    list_mode: 'student_reports'
+                };
+
+                Object.keys(currentFilters).forEach(function(key){
+                    params['search[' + key + ']'] = currentFilters[key];
+                });
+
+                window.location.href = teqcidbAjax.ajaxurl + '?' + $.param(params);
             });
         }
 
@@ -3465,8 +3479,8 @@ jQuery(document).ready(function($){
                 { key: 'last_name', label: teqcidbAdmin.studentLastNameLabel || 'Last Name' },
                 { key: 'company', label: teqcidbAdmin.studentCompanyLabel || 'Company' },
                 { key: 'email', label: teqcidbAdmin.studentEmailLabel || 'Email' },
-                { key: 'phone_cell', label: teqcidbAdmin.studentPhoneCellLabel || 'Phone (cell)' },
-                { key: 'phone_office', label: teqcidbAdmin.studentPhoneOfficeLabel || 'Phone (office)' }
+                { key: 'qci_number', label: teqcidbAdmin.studentQciNumberLabel || 'QCI Number' },
+                { key: 'representative_email', label: teqcidbAdmin.studentRepresentativeEmailLabel || 'Representative Email' }
             ];
             var $section = $('<section/>', {
                 'class': 'teqcidb-class-registered-students',
