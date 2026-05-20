@@ -10369,7 +10369,7 @@ class TEQCIDB_Ajax {
         $entity['placeholder_1'] = $this->build_student_display_name( $entity );
         $entity['placeholder_2'] = isset( $entity['email'] ) ? $entity['email'] : '';
         $entity['placeholder_3'] = isset( $entity['company'] ) ? $entity['company'] : '';
-        $entity['placeholder_4'] = isset( $entity['phone_cell'] ) ? $entity['phone_cell'] : '';
+        $entity['placeholder_4'] = isset( $entity['qcinumber'] ) ? $entity['qcinumber'] : '';
         $entity['placeholder_5'] = $entity['expiration_date'];
         $entity['name']          = $entity['placeholder_1'];
 

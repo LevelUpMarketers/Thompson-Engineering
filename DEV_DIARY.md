@@ -521,3 +521,5 @@
 513. 2026-04-30 04:05 UTC: Added a Student Reports intro-line status message that displays the highest currently assigned QCI Number by querying `teqcidb_students.qcinumber` (numeric descending on `T####` pattern), with a `Not available` fallback when no assigned QCI exists.
 514. 2026-04-30 04:20 UTC: Fixed highest-QCI intro placement by moving the status line render from Classes page logic into Students page logic, so it now appears correctly under the Student Reports tab intro description.
 522. 2026-04-30 04:35 UTC: Bumped plugin/versioning metadata from `1.0.4` to `1.0.5` and updated README Version History with a summary of Student Reports, CSV export, class roster column updates, highest-QCI display, and Initial exam pass/fail persistence rule changes included in 1.0.5.
+
+523. 2026-05-20 00:00 UTC: Updated Students → Edit Students accordion placeholder column 4 to display each student's QCI Number instead of Cell Phone by relabeling the heading to "QCI Number" and mapping placeholder_4 to qcinumber in the student-entity response payload.
