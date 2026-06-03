@@ -734,6 +734,17 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $slide_progress = array(
+            'currentIndex'       => 0,
+            'currentSlideNumber' => 1,
+            'slidesTotal'        => count( $slides ),
+            'updatedAt'          => '',
+        );
+
+        if ( 'refresher' === $class_type_key && ! empty( $slides ) ) {
+            $slide_progress = $this->get_current_refresher_slide_progress( $quiz_id, $class_id, $user_id, count( $slides ) );
+        }
+
         return array(
             'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
             'nonce'        => wp_create_nonce( 'teqcidb_ajax_nonce' ),
@@ -796,10 +807,61 @@ class TEQCIDB_Ajax {
             ),
             'questions'     => $questions,
             'slides'        => $slides,
+            'slideProgress' => $slide_progress,
             'dashboardCertificatesUrl' => $this->get_student_dashboard_certificates_url(),
         );
     }
 
+
+    public function get_current_refresher_slide_progress( $quiz_id, $class_id, $user_id, $slides_total = 0 ) {
+        global $wpdb;
+
+        $quiz_id      = absint( $quiz_id );
+        $class_id     = absint( $class_id );
+        $user_id      = absint( $user_id );
+        $slides_total = absint( $slides_total );
+
+        $default_progress = array(
+            'currentIndex'       => 0,
+            'currentSlideNumber' => 1,
+            'slidesTotal'        => $slides_total,
+            'updatedAt'          => '',
+        );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 ) {
+            return $default_progress;
+        }
+
+        $table_name = $wpdb->prefix . 'teqcidb_slide_progress';
+        $row        = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT current_slide_index, slides_total, updated_at FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
+                $quiz_id,
+                $class_id,
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $row ) ) {
+            return $default_progress;
+        }
+
+        $stored_slides_total = isset( $row['slides_total'] ) ? absint( $row['slides_total'] ) : 0;
+        $effective_total     = $slides_total > 0 ? $slides_total : $stored_slides_total;
+        $current_index       = isset( $row['current_slide_index'] ) ? absint( $row['current_slide_index'] ) : 0;
+
+        if ( $effective_total > 0 ) {
+            $current_index = min( $current_index, max( 0, $effective_total - 1 ) );
+        }
+
+        return array(
+            'currentIndex'       => $current_index,
+            'currentSlideNumber' => $current_index + 1,
+            'slidesTotal'        => $effective_total,
+            'updatedAt'          => isset( $row['updated_at'] ) ? (string) $row['updated_at'] : '',
+        );
+    }
 
     public function save_current_refresher_slide_progress( $quiz_id, $class_id, $user_id, $current_slide_number, $slides_total ) {
         global $wpdb;

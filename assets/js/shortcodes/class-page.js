@@ -95,6 +95,7 @@
     var isSavingSlideProgress = false;
     var slideIndex = 0;
     var slideViewedMap = {};
+    var initialSlideProgress = runtime.slideProgress || {};
     var hasUnlockedQuiz = false;
     var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0;
     var preloadedSlideUrls = {};
@@ -146,8 +147,8 @@
     }
 
     function slidesStatusLine(){
-        var viewed = viewedSlidesCount();
-        return format(t('slidesCompletedRemaining', '%1$s completed / %2$s remaining'), String(viewed), String(Math.max(0, slides.length - viewed)));
+        var completed = Math.min(slides.length, Math.max(0, slideIndex) + 1);
+        return format(t('slidesCompletedRemaining', '%1$s completed / %2$s remaining'), String(completed), String(Math.max(0, slides.length - completed)));
     }
 
     function slidePositionLabel(){
@@ -257,7 +258,7 @@
         }
 
         slideViewedMap[String(slides[slideIndex].id || slideIndex)] = true;
-        if (!hasUnlockedQuiz && viewedSlidesCount() >= slides.length) {
+        if (!hasUnlockedQuiz && (viewedSlidesCount() >= slides.length || slideIndex >= (slides.length - 1))) {
             hasUnlockedQuiz = true;
         }
     }
@@ -807,6 +808,12 @@
     }
 
     if (requiresSlidesFirst) {
+        var savedSlideNumber = parseInt(initialSlideProgress.currentSlideNumber || 0, 10) || 0;
+        var savedSlideIndex = savedSlideNumber > 0
+            ? savedSlideNumber - 1
+            : (parseInt(initialSlideProgress.currentIndex || 0, 10) || 0);
+
+        slideIndex = Math.min(Math.max(0, savedSlideIndex), Math.max(0, slides.length - 1));
         markCurrentSlideAsViewed();
         preloadUpcomingSlides(slideIndex);
         renderSlides();
