@@ -454,6 +454,31 @@ jQuery(document).ready(function($){
         return attachment && attachment.url ? attachment.url : '';
     }
 
+    function openQuizSlideMediaFrame(options){
+        options = options || {};
+
+        var frame = wp.media({
+            title: options.title || teqcidbAdmin.mediaTitle,
+            button: {
+                text: options.buttonText || teqcidbAdmin.mediaButton
+            },
+            library: {
+                type: 'image'
+            },
+            multiple: false
+        });
+
+        frame.on('select', function(){
+            var attachment = frame.state().get('selection').first().toJSON();
+
+            if (typeof options.onSelect === 'function'){
+                options.onSelect(attachment || {});
+            }
+        });
+
+        frame.open();
+    }
+
     $(document).on('click', '.teqcidb-quiz-slide-replace', function(e){
         e.preventDefault();
         e.stopPropagation();
@@ -465,46 +490,149 @@ jQuery(document).ready(function($){
         var $thumbnail = $card.find('.teqcidb-quiz-slide-card__thumbnail').first();
         var $status = $card.find('.teqcidb-quiz-slide-card__status').first();
         var title = $card.find('.teqcidb-quiz-slide-card__title').first().text() || '';
-        var frame = wp.media({
+        openQuizSlideMediaFrame({
             title: teqcidbAdmin.quizSlideReplaceMediaTitle || teqcidbAdmin.mediaTitle,
-            button: {
-                text: teqcidbAdmin.quizSlideReplaceMediaButton || teqcidbAdmin.mediaButton
-            },
-            library: {
-                type: 'image'
-            },
-            multiple: false
-        });
+            buttonText: teqcidbAdmin.quizSlideReplaceMediaButton || teqcidbAdmin.mediaButton,
+            onSelect: function(attachment){
+                var attachmentId = attachment && attachment.id ? parseInt(attachment.id, 10) : 0;
+                var fullUrl = attachment && attachment.url ? attachment.url : '';
+                var thumbnailUrl = getReplacementThumbnailUrl(attachment);
+                var altText = attachment && attachment.alt ? attachment.alt : title;
 
-        frame.on('select', function(){
-            var attachment = frame.state().get('selection').first().toJSON();
-            var attachmentId = attachment && attachment.id ? parseInt(attachment.id, 10) : 0;
-            var fullUrl = attachment && attachment.url ? attachment.url : '';
-            var thumbnailUrl = getReplacementThumbnailUrl(attachment);
-            var altText = attachment && attachment.alt ? attachment.alt : title;
+                if (!attachmentId || !fullUrl){
+                    return;
+                }
 
-            if (!attachmentId || !fullUrl){
-                return;
+                $input.val(attachmentId);
+                $thumbnailButton.attr('data-full-image', fullUrl);
+
+                if ($thumbnail.length && thumbnailUrl){
+                    $thumbnail.attr({
+                        src: thumbnailUrl,
+                        alt: altText
+                    });
+                }
+
+                $card.addClass('is-pending-replacement');
+
+                if ($status.length){
+                    $status.text(teqcidbAdmin.quizSlideReplacementPending || 'Replacement selected. Click Save Changes to update this slide.');
+                }
             }
+        });
+    });
 
-            $input.val(attachmentId);
-            $thumbnailButton.attr('data-full-image', fullUrl);
+    $(document).on('click', '.teqcidb-quiz-slide-add__select', function(e){
+        e.preventDefault();
+        e.stopPropagation();
 
-            if ($thumbnail.length && thumbnailUrl){
+        var $section = $(this).closest('.teqcidb-quiz-slide-add');
+        var $input = $section.find('.teqcidb-quiz-slide-add__attachment').first();
+        var $thumbnail = $section.find('.teqcidb-quiz-slide-add__thumbnail').first();
+        var $placeholder = $section.find('.teqcidb-quiz-slide-add__placeholder').first();
+        var $status = $section.find('.teqcidb-quiz-slide-add__status').first();
+
+        openQuizSlideMediaFrame({
+            title: teqcidbAdmin.quizSlideAddMediaTitle || teqcidbAdmin.mediaTitle,
+            buttonText: teqcidbAdmin.quizSlideAddMediaButton || teqcidbAdmin.mediaButton,
+            onSelect: function(attachment){
+                var attachmentId = attachment && attachment.id ? parseInt(attachment.id, 10) : 0;
+                var thumbnailUrl = getReplacementThumbnailUrl(attachment);
+                var altText = attachment && attachment.alt ? attachment.alt : '';
+
+                if (!attachmentId || !thumbnailUrl){
+                    return;
+                }
+
+                $input.val(attachmentId);
                 $thumbnail.attr({
                     src: thumbnailUrl,
                     alt: altText
-                });
-            }
+                }).removeAttr('hidden');
+                $placeholder.attr('hidden', 'hidden');
 
-            $card.addClass('is-pending-replacement');
-
-            if ($status.length){
-                $status.text(teqcidbAdmin.quizSlideReplacementPending || 'Replacement selected. Click Save Changes to update this slide.');
+                if ($status.length){
+                    $status.text(teqcidbAdmin.quizSlideAddSelected || 'Image selected. Enter a slide number, then click Add Image.').addClass('is-visible');
+                }
             }
         });
+    });
 
-        frame.open();
+    function handleQuizSlideAdd($button){
+        if (!$button || !$button.length){
+            return;
+        }
+
+        var $section = $button.closest('.teqcidb-quiz-slide-add');
+        var quizId = parseInt($section.data('quiz-id'), 10) || 0;
+        var attachmentId = parseInt($section.find('.teqcidb-quiz-slide-add__attachment').first().val(), 10) || 0;
+        var slideNumber = parseInt($section.find('.teqcidb-quiz-slide-add__number').first().val(), 10) || 0;
+        var $status = $section.find('.teqcidb-quiz-slide-add__status').first();
+        var $buttons = $section.find('.teqcidb-quiz-slide-add__select, .teqcidb-quiz-slide-add__submit');
+
+        if (!attachmentId){
+            if ($status.length){
+                $status.text(teqcidbAdmin.quizSlideAddImageRequired || 'Select an image before adding a new slide.').addClass('is-visible');
+            }
+            return;
+        }
+
+        if (!slideNumber){
+            if ($status.length){
+                $status.text(teqcidbAdmin.quizSlideAddNumberRequired || 'Enter the slide number before adding the image.').addClass('is-visible');
+            }
+            return;
+        }
+
+        $buttons.prop('disabled', true);
+        $section.addClass('is-adding-slide');
+
+        if ($status.length){
+            $status.text(teqcidbAdmin.quizSlideAdding || 'Adding slide…').addClass('is-visible');
+        }
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_add_quiz_slide',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            attachment_id: attachmentId,
+            slide_number: slideNumber
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizSlideAddedReloading || 'Slide added. Reloading…');
+
+                    if ($status.length && message){
+                        $status.text(message).addClass('is-visible');
+                    }
+
+                    saveQuizRestoreState(quizId);
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($status.length && errorMessage){
+                        $status.text(errorMessage).addClass('is-visible');
+                    }
+                    $buttons.prop('disabled', false);
+                    $section.removeClass('is-adding-slide');
+                }
+            })
+            .fail(function(){
+                if ($status.length && teqcidbAdmin.error){
+                    $status.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+                $buttons.prop('disabled', false);
+                $section.removeClass('is-adding-slide');
+            });
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-add__submit', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        handleQuizSlideAdd($(this));
     });
 
     function handleQuizSlideDelete($button){

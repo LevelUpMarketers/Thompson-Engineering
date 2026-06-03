@@ -31,6 +31,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_slide', array( $this, 'delete_quiz_slide' ) );
+        add_action( 'wp_ajax_teqcidb_add_quiz_slide', array( $this, 'add_quiz_slide' ) );
         add_action( 'wp_ajax_teqcidb_create_quiz_question', array( $this, 'create_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_reset_failed_quiz_attempt', array( $this, 'reset_failed_quiz_attempt' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_progress', array( $this, 'save_quiz_progress' ) );
@@ -5092,6 +5093,159 @@ class TEQCIDB_Ajax {
 
 
 
+    private function renumber_quiz_slides( $quiz_id, $slides_table, array $ordered_slide_ids = array() ) {
+        global $wpdb;
+
+        if ( empty( $ordered_slide_ids ) ) {
+            $ordered_slide_ids = $this->get_ordered_quiz_slide_ids( $quiz_id, $slides_table );
+        }
+
+        $slide_order = 1;
+
+        foreach ( $ordered_slide_ids as $slide_id ) {
+            $wpdb_update_result = $wpdb->update(
+                $slides_table,
+                array(
+                    'slide_order' => $slide_order,
+                    'updated_at'  => current_time( 'mysql' ),
+                ),
+                array(
+                    'id'      => absint( $slide_id ),
+                    'quiz_id' => absint( $quiz_id ),
+                ),
+                array( '%d', '%s' ),
+                array( '%d', '%d' )
+            );
+
+            if ( false === $wpdb_update_result ) {
+                return false;
+            }
+
+            ++$slide_order;
+        }
+
+        return true;
+    }
+
+    private function get_ordered_quiz_slide_ids( $quiz_id, $slides_table, $excluded_slide_id = 0 ) {
+        global $wpdb;
+
+        if ( $excluded_slide_id > 0 ) {
+            $slide_ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT id FROM $slides_table WHERE quiz_id = %d AND is_active = 1 AND id <> %d ORDER BY slide_order ASC, id ASC",
+                    absint( $quiz_id ),
+                    absint( $excluded_slide_id )
+                )
+            );
+        } else {
+            $slide_ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT id FROM $slides_table WHERE quiz_id = %d AND is_active = 1 ORDER BY slide_order ASC, id ASC",
+                    absint( $quiz_id )
+                )
+            );
+        }
+
+        return is_array( $slide_ids ) ? array_map( 'absint', $slide_ids ) : array();
+    }
+
+    public function add_quiz_slide() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to add quiz slides.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $quiz_id       = isset( $_POST['quiz_id'] ) ? absint( wp_unslash( $_POST['quiz_id'] ) ) : 0;
+        $attachment_id = isset( $_POST['attachment_id'] ) ? absint( wp_unslash( $_POST['attachment_id'] ) ) : 0;
+        $slide_number  = isset( $_POST['slide_number'] ) ? absint( wp_unslash( $_POST['slide_number'] ) ) : 0;
+
+        if ( $quiz_id <= 0 || $attachment_id <= 0 || $slide_number <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Select an image and enter a valid slide number before adding a slide.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected media item is not an image.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $quizzes_table = $wpdb->prefix . 'teqcidb_quizzes';
+        $quiz_exists   = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $quizzes_table WHERE id = %d LIMIT 1",
+                $quiz_id
+            )
+        );
+
+        if ( ! $quiz_exists ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'That quiz no longer exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $slides_table       = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $existing_slide_ids = $this->get_ordered_quiz_slide_ids( $quiz_id, $slides_table );
+        $max_position       = count( $existing_slide_ids ) + 1;
+        $slide_position     = min( max( 1, $slide_number ), $max_position );
+        $now                = current_time( 'mysql' );
+        $inserted           = $wpdb->insert(
+            $slides_table,
+            array(
+                'quiz_id'       => $quiz_id,
+                'attachment_id' => $attachment_id,
+                'slide_order'   => $slide_position,
+                'is_active'     => 1,
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ),
+            array( '%d', '%d', '%d', '%d', '%s', '%s' )
+        );
+
+        if ( false === $inserted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to add the quiz slide. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $new_slide_id = absint( $wpdb->insert_id );
+        array_splice( $existing_slide_ids, $slide_position - 1, 0, array( $new_slide_id ) );
+
+        if ( false === $this->renumber_quiz_slides( $quiz_id, $slides_table, $existing_slide_ids ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The slide was added, but slide ordering could not be refreshed. Please reload and review the quiz slides.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'message' => __( 'Slide added. Reloading…', 'teqcidb' ),
+                'quiz_id' => $quiz_id,
+                'slide_id' => $new_slide_id,
+            )
+        );
+    }
+
+
     public function delete_quiz_slide() {
         check_ajax_referer( 'teqcidb_ajax_nonce' );
 
@@ -5165,34 +5319,7 @@ class TEQCIDB_Ajax {
             );
         }
 
-        $remaining_slides = $wpdb->get_col(
-            $wpdb->prepare(
-                "SELECT id FROM $slides_table WHERE quiz_id = %d ORDER BY slide_order ASC, id ASC",
-                $quiz_id
-            )
-        );
-
-        if ( is_array( $remaining_slides ) ) {
-            $slide_order = 1;
-
-            foreach ( $remaining_slides as $remaining_slide_id ) {
-                $wpdb->update(
-                    $slides_table,
-                    array(
-                        'slide_order' => $slide_order,
-                        'updated_at'  => current_time( 'mysql' ),
-                    ),
-                    array(
-                        'id'      => absint( $remaining_slide_id ),
-                        'quiz_id' => $quiz_id,
-                    ),
-                    array( '%d', '%s' ),
-                    array( '%d', '%d' )
-                );
-
-                ++$slide_order;
-            }
-        }
+        $this->renumber_quiz_slides( $quiz_id, $slides_table );
 
         wp_send_json_success(
             array(

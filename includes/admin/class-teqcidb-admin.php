@@ -1384,6 +1384,13 @@ class TEQCIDB_Admin {
             'quizSlideReplacementPending' => __( 'Replacement selected. Click Save Changes to update this slide.', 'teqcidb' ),
             'quizSlideDeleting' => __( 'Deleting slide…', 'teqcidb' ),
             'quizSlideDeletedReloading' => __( 'Slide deleted. Reloading…', 'teqcidb' ),
+            'quizSlideAddMediaTitle' => __( 'Choose New Slide Image', 'teqcidb' ),
+            'quizSlideAddMediaButton' => __( 'Use this slide image', 'teqcidb' ),
+            'quizSlideAddSelected' => __( 'Image selected. Enter a slide number, then click Add Image.', 'teqcidb' ),
+            'quizSlideAddImageRequired' => __( 'Select an image before adding a new slide.', 'teqcidb' ),
+            'quizSlideAddNumberRequired' => __( 'Enter the slide number before adding the image.', 'teqcidb' ),
+            'quizSlideAdding' => __( 'Adding slide…', 'teqcidb' ),
+            'quizSlideAddedReloading' => __( 'Slide added. Reloading…', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
             'falseLabel' => __( 'False', 'teqcidb' ),
             'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
@@ -4073,6 +4080,25 @@ class TEQCIDB_Admin {
                     }
 
                     echo '</div>';
+
+                    echo '<div class="teqcidb-quiz-slide-add" data-quiz-id="' . esc_attr( $quiz_id ) . '">';
+                    echo '<h5 class="teqcidb-quiz-slide-add__title">' . esc_html__( 'Add a New Slide', 'teqcidb' ) . '</h5>';
+                    echo '<input type="hidden" class="teqcidb-quiz-slide-add__attachment" value="" />';
+                    echo '<div class="teqcidb-quiz-slide-add__layout">';
+                    echo '<div class="teqcidb-quiz-slide-add__preview" aria-live="polite">';
+                    echo '<span class="teqcidb-quiz-slide-add__placeholder">' . esc_html__( 'No image selected', 'teqcidb' ) . '</span>';
+                    echo '<img class="teqcidb-quiz-slide-add__thumbnail" src="" alt="" hidden="hidden" />';
+                    echo '</div>';
+                    echo '<div class="teqcidb-quiz-slide-add__controls">';
+                    echo '<button type="button" class="button button-secondary teqcidb-quiz-slide-add__select">' . esc_html__( 'Select Image', 'teqcidb' ) . '</button>';
+                    echo '<label class="teqcidb-quiz-slide-add__number-label" for="teqcidb-quiz-slide-add-number-' . esc_attr( $quiz_id ) . '">' . esc_html__( 'What number slide do you want this to be?', 'teqcidb' ) . '</label>';
+                    echo '<input type="number" id="teqcidb-quiz-slide-add-number-' . esc_attr( $quiz_id ) . '" class="teqcidb-quiz-slide-add__number" min="1" step="1" required="required" />';
+                    echo '<button type="button" class="button button-primary teqcidb-quiz-slide-add__submit">' . esc_html__( 'Add Image', 'teqcidb' ) . '</button>';
+                    echo '<p class="description teqcidb-quiz-slide-add__status" aria-live="polite"></p>';
+                    echo '</div>';
+                    echo '</div>';
+                    echo '</div>';
+
                     echo '</section>';
                 }
 
