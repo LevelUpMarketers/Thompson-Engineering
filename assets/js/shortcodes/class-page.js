@@ -94,17 +94,8 @@
     var isSavingProgress = false;
     var slideIndex = 0;
     var slideViewedMap = {};
-    var initialSlideProgress = runtime.slideProgress || {};
-    var hasCompletedSlidesFromServer = !!initialSlideProgress.completed || (slides.length > 0 && (parseInt(initialSlideProgress.maxViewed || 0, 10) || 0) >= (slides.length - 1));
-    var hasUnlockedQuiz = hasCompletedSlidesFromServer;
-    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0 && !hasCompletedSlidesFromServer;
-    var slideAdvanceCooldownMs = 15000;
-    var nextSlideUnlockedAt = 0;
-    var slideCooldownTimer = null;
-    var slideProgressState = { isSaving: false, hasPending: false };
-    var slideProgressDirty = false;
-    var slideLastSavedHash = '';
-    var slideCooldownUnlockByIndex = {};
+    var hasUnlockedQuiz = false;
+    var requiresSlidesFirst = runtime.quiz.classType === 'refresher' && slides.length > 0;
     var preloadedSlideUrls = {};
     var preloadInFlight = {};
 
@@ -188,7 +179,6 @@
     }
 
     function renderSlideOnlyComplete(){
-        clearSlideCooldownTimer();
         updateRefresherSectionCopy(false);
 
         var titleEl = document.getElementById('teqcidb-class-quiz-section-title');
@@ -218,55 +208,6 @@
     function setCurrentSelection(questionId, selected){
         var normalizedQuestionId = String(questionId);
         answers[normalizedQuestionId] = selected;
-    }
-
-    function buildSlideProgressPayload(){
-        return {
-            quiz_id: runtime.quiz.id,
-            class_id: runtime.quiz.classId,
-            current_slide_index: Math.max(0, slideIndex),
-            max_slide_index_viewed: Math.max(0, getMaxViewedSlideIndex()),
-            slides_total: slides.length,
-            completed: hasUnlockedQuiz
-        };
-    }
-
-    function getSlideProgressPayloadHash(){
-        return JSON.stringify(buildSlideProgressPayload());
-    }
-
-    function getMaxViewedSlideIndex(){
-        var maxIndex = 0;
-
-        Object.keys(slideViewedMap).forEach(function(key){
-            if (!slideViewedMap[key]) {
-                return;
-            }
-
-            var numericId = parseInt(key, 10);
-            if (!isNaN(numericId)) {
-                for (var i = 0; i < slides.length; i += 1) {
-                    var rowId = parseInt(slides[i].id || i, 10);
-                    if (rowId === numericId) {
-                        maxIndex = Math.max(maxIndex, i);
-                        return;
-                    }
-                }
-            }
-        });
-
-        return Math.min(maxIndex, Math.max(0, slides.length - 1));
-    }
-
-    function markSlideProgressDirty(){
-        slideProgressDirty = true;
-    }
-
-
-    function recordMetric(eventName, extra){
-        if (window && typeof window.teqcidbQuizMetricHook === 'function') {
-            window.teqcidbQuizMetricHook(eventName, extra || {});
-        }
     }
 
     function normalizeSelected(question, selectedValues){
@@ -309,15 +250,6 @@
         }).join('');
     }
 
-    function isSlideViewedAtIndex(index){
-        if (index < 0 || index >= slides.length || !slides[index]) {
-            return false;
-        }
-
-        var viewedKey = String(slides[index].id || index);
-        return !!slideViewedMap[viewedKey];
-    }
-
     function markCurrentSlideAsViewed(){
         if (!slides[slideIndex]) {
             return;
@@ -329,57 +261,7 @@
         }
     }
 
-    function clearSlideCooldownTimer(){
-        if (slideCooldownTimer) {
-            clearTimeout(slideCooldownTimer);
-            slideCooldownTimer = null;
-        }
-    }
-
-    function clearNextSlideCooldown(index){
-        var targetIndex = typeof index === 'number' ? index : slideIndex;
-        delete slideCooldownUnlockByIndex[String(targetIndex)];
-        nextSlideUnlockedAt = 0;
-        clearSlideCooldownTimer();
-    }
-
-    function setNextSlideCooldown(index){
-        var cooldownIndex = typeof index === 'number' ? index : slideIndex;
-        var cooldownKey = String(cooldownIndex);
-
-        clearSlideCooldownTimer();
-        slideCooldownUnlockByIndex[cooldownKey] = Date.now() + slideAdvanceCooldownMs;
-        nextSlideUnlockedAt = slideCooldownUnlockByIndex[cooldownKey];
-        slideCooldownTimer = setTimeout(function(){
-            slideCooldownTimer = null;
-            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
-                renderSlides();
-            }
-        }, Math.max(0, nextSlideUnlockedAt - Date.now()));
-    }
-
-    function syncCurrentSlideCooldown(){
-        var cooldownKey = String(slideIndex);
-        var unlockAt = parseInt(slideCooldownUnlockByIndex[cooldownKey] || 0, 10) || 0;
-
-        clearSlideCooldownTimer();
-
-        if (!unlockAt || unlockAt <= Date.now()) {
-            delete slideCooldownUnlockByIndex[cooldownKey];
-            nextSlideUnlockedAt = 0;
-            return;
-        }
-
-        nextSlideUnlockedAt = unlockAt;
-        slideCooldownTimer = setTimeout(function(){
-            slideCooldownTimer = null;
-            if (requiresSlidesFirst && root.querySelector('.teqcidb-class-slides')) {
-                renderSlides();
-            }
-        }, Math.max(0, unlockAt - Date.now()));
-    }
-
-    // Preloading is cache-warm only and must not affect slide progression, cooldown timing, or persistence.
+    // Preloading is cache-warm only and must not affect slide progression.
     function preloadSlideAtIndex(index){
         if (index < 0 || index >= slides.length || !slides[index]) {
             return;
@@ -409,13 +291,10 @@
 
     function renderSlides(){
         updateRefresherSectionCopy(true);
-        syncCurrentSlideCooldown();
         var currentSlide = slides[slideIndex] || {};
         var currentSlideAlt = currentSlide.alt || t('slideOf', 'Slide');
         var isFirst = slideIndex <= 0;
         var isLast = slideIndex >= (slides.length - 1);
-        var isNextDisabled = Date.now() < nextSlideUnlockedAt;
-        var nextTooltip = isNextDisabled ? t('slideWaitTooltip', 'Please study the slide and wait to proceed.') : '';
         var percent = slidesProgressPercent();
 
         root.innerHTML = '<div class="teqcidb-class-slides">' +
@@ -429,8 +308,8 @@
             '</div>' +
             '<div class="teqcidb-class-slides__actions">' +
                 '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
-                '<span class="teqcidb-class-slides__next-wrap ' + (isNextDisabled ? 'is-disabled' : '') + '" data-tooltip="' + esc(nextTooltip) + '">' +
-                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? (isSlideOnlyRefresher ? t('completeSlides', 'Complete Slides') : t('startQuiz', 'Start Quiz')) : t('nextSlide', 'Next Slide')) + '</button>' +
+                '<span class="teqcidb-class-slides__next-wrap" data-tooltip="">' +
+                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next">' + esc(isLast ? (isSlideOnlyRefresher ? t('completeSlides', 'Complete Slides') : t('startQuiz', 'Start Quiz')) : t('nextSlide', 'Next Slide')) + '</button>' +
                 '</span>' +
             '</div>' +
         '</div>';
@@ -450,23 +329,15 @@
 
                 slideIndex -= 1;
                 markCurrentSlideAsViewed();
-                markSlideProgressDirty();
-                saveSlideProgress({ reason: 'slide_previous' });
                 renderSlides();
             });
         }
 
         if (nextBtn) {
             nextBtn.addEventListener('click', function(){
-                if (nextBtn.disabled) {
-                    return;
-                }
-
                 if (slideIndex >= (slides.length - 1)) {
                     if (hasUnlockedQuiz) {
                         if (isSlideOnlyRefresher) {
-                            markSlideProgressDirty();
-                            saveSlideProgress({ reason: 'slide_only_complete' });
                             renderSlideOnlyComplete();
                         } else {
                             render();
@@ -475,81 +346,14 @@
                     return;
                 }
 
-                var targetSlideIndex = slideIndex + 1;
-
-                if (!isSlideViewedAtIndex(targetSlideIndex)) {
-                    setNextSlideCooldown(targetSlideIndex);
-                }
-
-                slideIndex = targetSlideIndex;
+                slideIndex += 1;
                 markCurrentSlideAsViewed();
-                markSlideProgressDirty();
-                saveSlideProgress({ reason: 'slide_next' });
                 preloadUpcomingSlides(slideIndex);
                 renderSlides();
             });
         }
     }
 
-
-    function requestSlideProgressEndpoint(progressPayload){
-        if (!runtime.restUrl) {
-            return Promise.reject(new Error(i18n.slideProgressSaveError || 'Slide save failed.'));
-        }
-
-        return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': runtime.restNonce || ''
-            },
-            body: JSON.stringify(progressPayload)
-        }).then(function(resp){
-            return resp.json().then(function(payload){
-                if (!resp.ok || !payload || payload.ok !== true) {
-                    throw new Error((payload && payload.message) || (i18n.slideProgressSaveError || 'Slide save failed.'));
-                }
-                return payload;
-            });
-        });
-    }
-
-    function saveSlideProgress(options){
-        var saveOptions = options || {};
-        var payload = buildSlideProgressPayload();
-        var payloadHash = JSON.stringify(payload);
-
-        if (!requiresSlidesFirst) {
-            return;
-        }
-
-        if (!slideProgressDirty || payloadHash === slideLastSavedHash) {
-            return;
-        }
-
-        if (slideProgressState.isSaving) {
-            slideProgressState.hasPending = true;
-            return;
-        }
-
-        slideProgressState.isSaving = true;
-
-        requestSlideProgressEndpoint(payload).then(function(resp){
-            slideProgressDirty = false;
-            slideLastSavedHash = payloadHash;
-            recordMetric('slide_progress_save_success', { reason: saveOptions.reason || 'unspecified' });
-        }).catch(function(err){
-            recordMetric('slide_progress_save_failure', { reason: saveOptions.reason || 'unspecified', message: err.message || '' });
-        }).finally(function(){
-            slideProgressState.isSaving = false;
-
-            if (slideProgressState.hasPending) {
-                slideProgressState.hasPending = false;
-                saveSlideProgress({ reason: 'pending' });
-            }
-        });
-    }
 
     function render(resultData){
         if (isSlideOnlyRefresher) {
@@ -936,49 +740,7 @@
             });
     }
 
-    document.addEventListener('visibilitychange', function(){
-        if (document.visibilityState === 'hidden') {
-            if (requiresSlidesFirst) {
-                saveSlideProgress({ reason: 'visibility_hidden' });
-            }
-        }
-    });
-
-    window.addEventListener('beforeunload', function(){
-        if (requiresSlidesFirst && slideProgressDirty && runtime.restUrl) {
-            var slidePayload = buildSlideProgressPayload();
-            fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
-                method: 'POST',
-                credentials: 'same-origin',
-                keepalive: true,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': runtime.restNonce || ''
-                },
-                body: JSON.stringify(slidePayload)
-            });
-        }
-    });
-
     if (requiresSlidesFirst) {
-        var restoredSlideProgress = initialSlideProgress;
-        var restoredCurrentIndex = Math.max(0, parseInt(restoredSlideProgress.currentIndex || 0, 10) || 0);
-        var restoredMaxViewed = Math.max(restoredCurrentIndex, parseInt(restoredSlideProgress.maxViewed || 0, 10) || 0);
-
-        slideIndex = Math.min(restoredCurrentIndex, Math.max(0, slides.length - 1));
-
-        for (var restoredIndex = 0; restoredIndex <= Math.min(restoredMaxViewed, Math.max(0, slides.length - 1)); restoredIndex += 1) {
-            var slideKey = String(slides[restoredIndex].id || restoredIndex);
-            slideViewedMap[slideKey] = true;
-        }
-
-        hasUnlockedQuiz = !!restoredSlideProgress.completed || restoredMaxViewed >= (slides.length - 1);
-        slideLastSavedHash = getSlideProgressPayloadHash();
-
-        if (restoredMaxViewed > 0) {
-            recordMetric('slide_progress_restored', { maxViewed: restoredMaxViewed, currentIndex: slideIndex });
-        }
-
         markCurrentSlideAsViewed();
         preloadUpcomingSlides(slideIndex);
         renderSlides();

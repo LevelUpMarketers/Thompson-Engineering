@@ -443,11 +443,10 @@ class TEQCIDB_Ajax {
 
         if ( ! empty( $quiz_runtime ) ) {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
-            $has_completed_refresher_slides = ( $has_refresher_slides && ! empty( $quiz_runtime['slideProgress']['completed'] ) );
             $has_refresher_quiz_questions = ( isset( $quiz_runtime['questions'] ) && is_array( $quiz_runtime['questions'] ) && ! empty( $quiz_runtime['questions'] ) );
             $is_slide_only_refresher = ( $has_refresher_slides && ! $has_refresher_quiz_questions );
 
-            if ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
+            if ( $has_refresher_slides ) {
                 $quiz_section_title = __( 'Refresher Class Slides', 'teqcidb' );
             }
 
@@ -455,12 +454,10 @@ class TEQCIDB_Ajax {
 
             if ( 'initial' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is passing. Anything below 75% will be considered failing. If you fail, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register For A Class</a> page to register & pay for another upcoming Initial Class. For questions, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a>. Good luck!', 'teqcidb' );
-            } elseif ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
+            } elseif ( $has_refresher_slides ) {
                 $quiz_intro = $is_slide_only_refresher
                     ? __( 'Please review each refresher slide. This refresher will be complete after you have worked through every slide.', 'teqcidb' )
                     : __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
-            } elseif ( $is_slide_only_refresher ) {
-                $quiz_intro = __( 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' );
             } else {
@@ -737,17 +734,6 @@ class TEQCIDB_Ajax {
             }
         }
 
-        $slide_progress = array(
-            'currentIndex' => 0,
-            'maxViewed'    => 0,
-            'completed'    => false,
-            'updatedAt'    => '',
-        );
-
-        if ( 'refresher' === $class_type_key && ! empty( $slides ) ) {
-            $slide_progress = $this->get_refresher_slide_progress( $quiz_id, $class_id, $user_id );
-        }
-
         return array(
             'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
             'nonce'        => wp_create_nonce( 'teqcidb_ajax_nonce' ),
@@ -779,10 +765,6 @@ class TEQCIDB_Ajax {
                 'completeSlides'           => __( 'Complete Slides', 'teqcidb' ),
                 'slideOnlyCompleteTitle'   => __( 'Refresher Slides Complete', 'teqcidb' ),
                 'slideOnlyCompleteMessage' => __( 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.', 'teqcidb' ),
-                'slideWaitTooltip'        => __( 'Please study the slide and wait to proceed.', 'teqcidb' ),
-                'slideProgressSaved'       => __( 'Slide progress saved.', 'teqcidb' ),
-                'slideProgressSaveError'   => __( 'We could not save your slide progress. Please check your connection and try again.', 'teqcidb' ),
-                'slideProgressRestored'    => __( 'We restored your slide progress from your last save.', 'teqcidb' ),
                 'refresherSlidesSectionTitle'=> __( 'Refresher Class Slides', 'teqcidb' ),
                 'refresherQuizSectionTitle'  => __( 'Refresher Quiz', 'teqcidb' ),
                 'refresherSlidesIntro'       => __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' ),
@@ -811,159 +793,10 @@ class TEQCIDB_Ajax {
             ),
             'questions'     => $questions,
             'slides'        => $slides,
-            'slideProgress' => $slide_progress,
             'dashboardCertificatesUrl' => $this->get_student_dashboard_certificates_url(),
         );
     }
 
-
-    public function get_refresher_slide_progress( $quiz_id, $class_id, $user_id ) {
-        global $wpdb;
-
-        $quiz_id  = absint( $quiz_id );
-        $class_id = absint( $class_id );
-        $user_id  = absint( $user_id );
-
-        $default_progress = array(
-            'currentIndex' => 0,
-            'maxViewed'    => 0,
-            'completed'    => false,
-            'updatedAt'    => '',
-        );
-
-        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 ) {
-            return $default_progress;
-        }
-
-        $table_name = $wpdb->prefix . 'teqcidb_slide_progress';
-        $row        = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT current_slide_index, max_slide_index_viewed, completed, updated_at FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
-                $quiz_id,
-                $class_id,
-                $user_id
-            ),
-            ARRAY_A
-        );
-
-        if ( ! is_array( $row ) ) {
-            return $default_progress;
-        }
-
-        return array(
-            'currentIndex' => isset( $row['current_slide_index'] ) ? absint( $row['current_slide_index'] ) : 0,
-            'maxViewed'    => isset( $row['max_slide_index_viewed'] ) ? absint( $row['max_slide_index_viewed'] ) : 0,
-            'completed'    => ! empty( $row['completed'] ),
-            'updatedAt'    => isset( $row['updated_at'] ) ? (string) $row['updated_at'] : '',
-        );
-    }
-
-    public function save_refresher_slide_progress( $quiz_id, $class_id, $user_id, $current_slide_index, $max_slide_index_viewed, $slides_total, $completed ) {
-        global $wpdb;
-
-        $quiz_id                = absint( $quiz_id );
-        $class_id               = absint( $class_id );
-        $user_id                = absint( $user_id );
-        $current_slide_index    = absint( $current_slide_index );
-        $max_slide_index_viewed = absint( $max_slide_index_viewed );
-        $slides_total           = absint( $slides_total );
-        $completed              = ! empty( $completed ) ? 1 : 0;
-
-        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 || $slides_total <= 0 ) {
-            return new WP_Error( 'teqcidb_slide_progress_invalid', __( 'Unable to save slide progress because the payload was invalid.', 'teqcidb' ), array( 'status' => 400 ) );
-        }
-
-        if ( ! $this->is_quiz_assigned_to_class( $quiz_id, $class_id ) ) {
-            return new WP_Error( 'teqcidb_slide_progress_unavailable', __( 'This slide deck is not available for the selected class.', 'teqcidb' ), array( 'status' => 403 ) );
-        }
-
-        if ( ! $this->user_can_access_class_quiz( $class_id, $user_id ) ) {
-            return new WP_Error( 'teqcidb_slide_progress_forbidden', __( 'You do not have access to this slide deck.', 'teqcidb' ), array( 'status' => 403 ) );
-        }
-
-        $classes_table = $wpdb->prefix . 'teqcidb_classes';
-        $class_type    = (string) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
-                $class_id
-            )
-        );
-
-        if ( 'refresher' !== strtolower( sanitize_key( $class_type ) ) ) {
-            return new WP_Error( 'teqcidb_slide_progress_not_refresher', __( 'Slide progress tracking is only available for refresher classes.', 'teqcidb' ), array( 'status' => 400 ) );
-        }
-
-        $current_slide_index    = min( $current_slide_index, max( 0, $slides_total - 1 ) );
-        $max_slide_index_viewed = min( $max_slide_index_viewed, max( 0, $slides_total - 1 ) );
-
-        if ( $max_slide_index_viewed < $current_slide_index ) {
-            $max_slide_index_viewed = $current_slide_index;
-        }
-
-        $table_name = $wpdb->prefix . 'teqcidb_slide_progress';
-        $existing   = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT id, max_slide_index_viewed, current_slide_index, completed FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
-                $quiz_id,
-                $class_id,
-                $user_id
-            ),
-            ARRAY_A
-        );
-
-        $effective_max = $max_slide_index_viewed;
-
-        if ( is_array( $existing ) ) {
-            $existing_max = isset( $existing['max_slide_index_viewed'] ) ? absint( $existing['max_slide_index_viewed'] ) : 0;
-            $effective_max = max( $existing_max, $max_slide_index_viewed );
-            $completed = ( ! empty( $existing['completed'] ) || $completed ) ? 1 : 0;
-        }
-
-        if ( $effective_max >= ( $slides_total - 1 ) ) {
-            $completed = 1;
-        }
-
-        $data = array(
-            'quiz_id'                => $quiz_id,
-            'class_id'               => $class_id,
-            'user_id'                => $user_id,
-            'attempt_token'          => '',
-            'current_slide_index'    => $current_slide_index,
-            'max_slide_index_viewed' => $effective_max,
-            'slides_total'           => $slides_total,
-            'completed'              => $completed,
-            'updated_at'             => current_time( 'mysql' ),
-        );
-
-        $formats = array( '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s' );
-
-        if ( is_array( $existing ) && isset( $existing['id'] ) ) {
-            $updated = $wpdb->update(
-                $table_name,
-                $data,
-                array( 'id' => absint( $existing['id'] ) ),
-                $formats,
-                array( '%d' )
-            );
-
-            if ( false === $updated ) {
-                return new WP_Error( 'teqcidb_slide_progress_update_failed', __( 'Unable to update slide progress right now.', 'teqcidb' ), array( 'status' => 500 ) );
-            }
-        } else {
-            $inserted = $wpdb->insert( $table_name, $data, $formats );
-
-            if ( false === $inserted ) {
-                return new WP_Error( 'teqcidb_slide_progress_insert_failed', __( 'Unable to save slide progress right now.', 'teqcidb' ), array( 'status' => 500 ) );
-            }
-        }
-
-        return array(
-            'currentIndex' => $current_slide_index,
-            'maxViewed'    => $effective_max,
-            'completed'    => (bool) $completed,
-            'updatedAt'    => current_time( 'mysql' ),
-        );
-    }
 
     private function normalize_question_choices_for_runtime( $question_type, $choices_json ) {
         $question_type = sanitize_key( (string) $question_type );
