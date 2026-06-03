@@ -390,6 +390,15 @@
     font-weight: 600;
 }
 
+#teqcidb-quiz-list .teqcidb-quiz-slide-card.is-deleting-slide {
+    opacity: 0.75;
+}
+
+#teqcidb-quiz-list .teqcidb-quiz-slide-card.is-deleting-slide .teqcidb-quiz-slide-card__status {
+    color: #b32d2e;
+    font-weight: 600;
+}
+
 #teqcidb-quiz-list .teqcidb-quiz-slide-card__actions {
     display: grid;
     gap: 8px;

@@ -507,6 +507,75 @@ jQuery(document).ready(function($){
         frame.open();
     });
 
+    function handleQuizSlideDelete($button){
+        if (!$button || !$button.length){
+            return;
+        }
+
+        var $card = $button.closest('.teqcidb-quiz-slide-card');
+        var $form = $button.closest('form');
+        var slideId = parseInt($card.data('slide-id'), 10) || 0;
+        var quizId = parseInt($form.find('input[name="quiz_id"]').first().val(), 10) || 0;
+        var $status = $card.find('.teqcidb-quiz-slide-card__status').first();
+        var $deleteButtons = $('.teqcidb-quiz-slide-delete');
+
+        if (slideId <= 0 || quizId <= 0){
+            if ($status.length){
+                $status.text(teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        $deleteButtons.prop('disabled', true);
+        $card.addClass('is-deleting-slide');
+
+        if ($status.length){
+            $status.text(teqcidbAdmin.quizSlideDeleting || 'Deleting slide…').addClass('is-visible');
+        }
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_delete_quiz_slide',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            slide_id: slideId
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizSlideDeletedReloading || 'Slide deleted. Reloading…');
+
+                    if ($status.length && message){
+                        $status.text(message).addClass('is-visible');
+                    }
+
+                    saveQuizRestoreState(quizId);
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($status.length && errorMessage){
+                        $status.text(errorMessage).addClass('is-visible');
+                    }
+                    $deleteButtons.prop('disabled', false);
+                    $card.removeClass('is-deleting-slide');
+                }
+            })
+            .fail(function(){
+                if ($status.length && teqcidbAdmin.error){
+                    $status.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+                $deleteButtons.prop('disabled', false);
+                $card.removeClass('is-deleting-slide');
+            });
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-delete', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        handleQuizSlideDelete($(this));
+    });
+
     $(document).on('keydown', function(e){
         if (e.key === 'Escape' && $quizSlideModal.length && $quizSlideModal.hasClass('is-visible')){
             closeQuizSlideModal();

@@ -1382,6 +1382,8 @@ class TEQCIDB_Admin {
             'quizSlideReplaceMediaTitle' => __( 'Choose Replacement Slide Image', 'teqcidb' ),
             'quizSlideReplaceMediaButton' => __( 'Use this slide image', 'teqcidb' ),
             'quizSlideReplacementPending' => __( 'Replacement selected. Click Save Changes to update this slide.', 'teqcidb' ),
+            'quizSlideDeleting' => __( 'Deleting slide…', 'teqcidb' ),
+            'quizSlideDeletedReloading' => __( 'Slide deleted. Reloading…', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
             'falseLabel' => __( 'False', 'teqcidb' ),
             'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
