@@ -71,14 +71,20 @@
         runtime = {};
     }
 
-    if (!runtime || !runtime.quiz || !Array.isArray(runtime.questions) || runtime.questions.length === 0) {
+    var runtimeQuestions = Array.isArray(runtime.questions) ? runtime.questions : [];
+    var runtimeSlides = Array.isArray(runtime.slides) ? runtime.slides : [];
+    var runtimeClassType = runtime && runtime.quiz ? String(runtime.quiz.classType || '') : '';
+    var hasSlideOnlyRefresherRuntime = runtimeClassType === 'refresher' && runtimeSlides.length > 0 && runtimeQuestions.length === 0;
+
+    if (!runtime || !runtime.quiz || (!runtimeQuestions.length && !hasSlideOnlyRefresherRuntime)) {
         return;
     }
 
     var i18n = runtime.i18n || {};
-    var questions = runtime.questions;
-    var slides = Array.isArray(runtime.slides) ? runtime.slides : [];
+    var questions = runtimeQuestions;
+    var slides = runtimeSlides;
     var totalQuestions = questions.length;
+    var isSlideOnlyRefresher = hasSlideOnlyRefresherRuntime;
     var answers = Object.assign({}, (runtime.attempt && runtime.attempt.answers) || {});
     var isSubmitted = runtime.attempt && (runtime.attempt.status === 0 || runtime.attempt.status === 1);
     var useRestQuizApi = runtime.useRestQuizApi !== false;
@@ -171,10 +177,37 @@
         }
 
         if (descriptionEl) {
-            descriptionEl.innerHTML = showSlidesCopy
-                ? t('refresherSlidesIntro', 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.')
-                : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!');
+            if (showSlidesCopy && isSlideOnlyRefresher) {
+                descriptionEl.innerHTML = t('refresherSlideOnlyIntro', 'Please review each refresher slide. This refresher will be complete after you have worked through every slide.');
+            } else {
+                descriptionEl.innerHTML = showSlidesCopy
+                    ? t('refresherSlidesIntro', 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.')
+                    : t('refresherQuizIntro', 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!');
+            }
         }
+    }
+
+    function renderSlideOnlyComplete(){
+        clearSlideCooldownTimer();
+        updateRefresherSectionCopy(false);
+
+        var titleEl = document.getElementById('teqcidb-class-quiz-section-title');
+        var descriptionEl = document.getElementById('teqcidb-class-quiz-section-description');
+
+        if (titleEl) {
+            titleEl.textContent = t('slideOnlyCompleteTitle', 'Refresher Slides Complete');
+        }
+
+        if (descriptionEl) {
+            descriptionEl.textContent = t('slideOnlyCompleteMessage', 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.');
+        }
+
+        root.innerHTML = '<div class="teqcidb-class-quiz teqcidb-class-quiz--slide-only-complete">' +
+            '<div class="teqcidb-class-quiz__result">' +
+                '<h3>' + esc(t('slideOnlyCompleteTitle', 'Refresher Slides Complete')) + '</h3>' +
+                '<p>' + esc(t('slideOnlyCompleteMessage', 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.')) + '</p>' +
+            '</div>' +
+        '</div>';
     }
 
     function getCurrentSelection(questionId){
@@ -397,7 +430,7 @@
             '<div class="teqcidb-class-slides__actions">' +
                 '<button type="button" class="teqcidb-button" id="teqcidb-slide-prev" ' + (isFirst ? 'disabled' : '') + '>' + esc(t('previousSlide', 'Previous Slide')) + '</button>' +
                 '<span class="teqcidb-class-slides__next-wrap ' + (isNextDisabled ? 'is-disabled' : '') + '" data-tooltip="' + esc(nextTooltip) + '">' +
-                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? t('startQuiz', 'Start Quiz') : t('nextSlide', 'Next Slide')) + '</button>' +
+                    '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next" ' + (isNextDisabled ? 'disabled' : '') + '>' + esc(isLast ? (isSlideOnlyRefresher ? t('completeSlides', 'Complete Slides') : t('startQuiz', 'Start Quiz')) : t('nextSlide', 'Next Slide')) + '</button>' +
                 '</span>' +
             '</div>' +
         '</div>';
@@ -431,7 +464,13 @@
 
                 if (slideIndex >= (slides.length - 1)) {
                     if (hasUnlockedQuiz) {
-                        render();
+                        if (isSlideOnlyRefresher) {
+                            markSlideProgressDirty();
+                            saveSlideProgress({ reason: 'slide_only_complete' });
+                            renderSlideOnlyComplete();
+                        } else {
+                            render();
+                        }
                     }
                     return;
                 }
@@ -513,6 +552,11 @@
     }
 
     function render(resultData){
+        if (isSlideOnlyRefresher) {
+            renderSlideOnlyComplete();
+            return;
+        }
+
         updateRefresherSectionCopy(false);
         if (isSubmitted && !resultData) {
             resultData = {
@@ -938,6 +982,11 @@
         markCurrentSlideAsViewed();
         preloadUpcomingSlides(slideIndex);
         renderSlides();
+        return;
+    }
+
+    if (isSlideOnlyRefresher) {
+        renderSlideOnlyComplete();
         return;
     }
 

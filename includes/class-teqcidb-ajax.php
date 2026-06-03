@@ -233,6 +233,7 @@ class TEQCIDB_Ajax {
         $feedback_message = __( 'Welcome! Please wait for your QCI instructor to enable the Quiz below or tell you that you may start your quiz.', 'teqcidb' );
         $current_user_id  = get_current_user_id();
         $quiz_runtime     = array();
+        $quiz_id          = 0;
         $current_user     = wp_get_current_user();
         $students_table   = $wpdb->prefix . 'teqcidb_students';
         $student_name     = '';
@@ -443,6 +444,8 @@ class TEQCIDB_Ajax {
         if ( ! empty( $quiz_runtime ) ) {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
             $has_completed_refresher_slides = ( $has_refresher_slides && ! empty( $quiz_runtime['slideProgress']['completed'] ) );
+            $has_refresher_quiz_questions = ( isset( $quiz_runtime['questions'] ) && is_array( $quiz_runtime['questions'] ) && ! empty( $quiz_runtime['questions'] ) );
+            $is_slide_only_refresher = ( $has_refresher_slides && ! $has_refresher_quiz_questions );
 
             if ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
                 $quiz_section_title = __( 'Refresher Class Slides', 'teqcidb' );
@@ -453,7 +456,11 @@ class TEQCIDB_Ajax {
             if ( 'initial' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is passing. Anything below 75% will be considered failing. If you fail, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register For A Class</a> page to register & pay for another upcoming Initial Class. For questions, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a>. Good luck!', 'teqcidb' );
             } elseif ( $has_refresher_slides && ! $has_completed_refresher_slides ) {
-                $quiz_intro = __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
+                $quiz_intro = $is_slide_only_refresher
+                    ? __( 'Please review each refresher slide. This refresher will be complete after you have worked through every slide.', 'teqcidb' )
+                    : __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' );
+            } elseif ( $is_slide_only_refresher ) {
+                $quiz_intro = __( 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.', 'teqcidb' );
             } elseif ( 'refresher' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' );
             } else {
@@ -474,6 +481,8 @@ class TEQCIDB_Ajax {
                 } else {
                     echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'Your instructor has not enabled this quiz yet!', 'teqcidb' ) . '</p>';
                 }
+            } elseif ( $quiz_id > 0 ) {
+                echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'The assigned quiz has no questions or slides available yet.', 'teqcidb' ) . '</p>';
             } else {
                 echo '<p class="teqcidb-class-route__section-description">' . esc_html__( 'No quiz is assigned to this class yet.', 'teqcidb' ) . '</p>';
             }
@@ -562,7 +571,8 @@ class TEQCIDB_Ajax {
             )
         );
 
-        $pass_threshold = ( 'refresher' === strtolower( sanitize_key( $class_type ) ) ) ? 80 : 75;
+        $class_type_key = strtolower( sanitize_key( $class_type ) );
+        $pass_threshold = ( 'refresher' === $class_type_key ) ? 80 : 75;
 
         $question_rows = $wpdb->get_results(
             $wpdb->prepare(
@@ -606,30 +616,34 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( ! is_array( $question_rows ) || empty( $question_rows ) ) {
+        $has_slide_only_refresher_runtime = ( 'refresher' === $class_type_key && ! empty( $slides ) );
+
+        if ( ( ! is_array( $question_rows ) || empty( $question_rows ) ) && ! $has_slide_only_refresher_runtime ) {
             return array();
         }
 
         $questions = array();
 
-        foreach ( $question_rows as $row ) {
-            $question_id = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
-            $type        = isset( $row['type'] ) ? sanitize_key( (string) $row['type'] ) : '';
-            $prompt      = isset( $row['prompt'] ) ? wp_kses_post( (string) $row['prompt'] ) : '';
+        if ( is_array( $question_rows ) ) {
+            foreach ( $question_rows as $row ) {
+                $question_id = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+                $type        = isset( $row['type'] ) ? sanitize_key( (string) $row['type'] ) : '';
+                $prompt      = isset( $row['prompt'] ) ? wp_kses_post( (string) $row['prompt'] ) : '';
 
-            if ( $question_id <= 0 || '' === $type || '' === trim( wp_strip_all_tags( $prompt ) ) ) {
-                continue;
+                if ( $question_id <= 0 || '' === $type || '' === trim( wp_strip_all_tags( $prompt ) ) ) {
+                    continue;
+                }
+
+                $questions[] = array(
+                    'id'      => $question_id,
+                    'type'    => $type,
+                    'prompt'  => $prompt,
+                    'choices' => $this->normalize_question_choices_for_runtime( $type, isset( $row['choices_json'] ) ? (string) $row['choices_json'] : '' ),
+                );
             }
-
-            $questions[] = array(
-                'id'      => $question_id,
-                'type'    => $type,
-                'prompt'  => $prompt,
-                'choices' => $this->normalize_question_choices_for_runtime( $type, isset( $row['choices_json'] ) ? (string) $row['choices_json'] : '' ),
-            );
         }
 
-        if ( empty( $questions ) ) {
+        if ( empty( $questions ) && ! $has_slide_only_refresher_runtime ) {
             return array();
         }
 
@@ -730,7 +744,7 @@ class TEQCIDB_Ajax {
             'updatedAt'    => '',
         );
 
-        if ( 'refresher' === strtolower( sanitize_key( $class_type ) ) && ! empty( $slides ) ) {
+        if ( 'refresher' === $class_type_key && ! empty( $slides ) ) {
             $slide_progress = $this->get_refresher_slide_progress( $quiz_id, $class_id, $user_id );
         }
 
@@ -762,6 +776,9 @@ class TEQCIDB_Ajax {
                 'nextSlide'                => __( 'Next Slide', 'teqcidb' ),
                 'previousSlide'            => __( 'Previous Slide', 'teqcidb' ),
                 'startQuiz'                => __( 'Start Quiz', 'teqcidb' ),
+                'completeSlides'           => __( 'Complete Slides', 'teqcidb' ),
+                'slideOnlyCompleteTitle'   => __( 'Refresher Slides Complete', 'teqcidb' ),
+                'slideOnlyCompleteMessage' => __( 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.', 'teqcidb' ),
                 'slideWaitTooltip'        => __( 'Please study the slide and wait to proceed.', 'teqcidb' ),
                 'slideProgressSaved'       => __( 'Slide progress saved.', 'teqcidb' ),
                 'slideProgressSaveError'   => __( 'We could not save your slide progress. Please check your connection and try again.', 'teqcidb' ),
@@ -769,6 +786,7 @@ class TEQCIDB_Ajax {
                 'refresherSlidesSectionTitle'=> __( 'Refresher Class Slides', 'teqcidb' ),
                 'refresherQuizSectionTitle'  => __( 'Refresher Quiz', 'teqcidb' ),
                 'refresherSlidesIntro'       => __( 'Please review each refresher slide before starting your quiz. The quiz will unlock after you have worked through every slide.', 'teqcidb' ),
+                'refresherSlideOnlyIntro'   => __( 'Please review each refresher slide. This refresher will be complete after you have worked through every slide.', 'teqcidb' ),
                 'refresherQuizIntro'         => __( 'Below is your QCI Refresher Quiz! A score of 80% or higher is considered passing. Anything below an 80% will be considered failing. If you fail, you will need to contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a> to request another Refresher Quiz attempt. Only 1 additional attempt is granted! If you fail both Refresher Quiz attempts, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register for a Class</a> page to register and pay for an upcoming Refresher Class. Good luck!', 'teqcidb' ),
                 'initialPassedMessageBeforeLink' => __( 'Congratulations! Looks like you\'ve passed this class! Please ', 'teqcidb' ),
                 'initialPassedMessageLinkText'   => __( 'visit your QCI Dashboard', 'teqcidb' ),
@@ -778,7 +796,7 @@ class TEQCIDB_Ajax {
                 'id'             => $quiz_id,
                 'name'           => isset( $quiz_row['name'] ) ? sanitize_text_field( (string) $quiz_row['name'] ) : '',
                 'classId'        => $class_id,
-                'classType'      => sanitize_key( $class_type ),
+                'classType'      => $class_type_key,
                 'passThreshold'  => $pass_threshold,
                 'totalQuestions' => count( $questions ),
             ),
