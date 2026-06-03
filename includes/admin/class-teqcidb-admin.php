@@ -2782,6 +2782,47 @@ class TEQCIDB_Admin {
         return array_values( array_unique( $ids ) );
     }
 
+    private function get_quiz_slides_map( array $quiz_ids ) {
+        global $wpdb;
+
+        $quiz_ids = array_values( array_filter( array_map( 'absint', $quiz_ids ) ) );
+
+        if ( empty( $quiz_ids ) ) {
+            return array();
+        }
+
+        $placeholders = implode( ',', array_fill( 0, count( $quiz_ids ), '%d' ) );
+        $table        = $wpdb->prefix . 'teqcidb_quiz_slides';
+
+        $query = $wpdb->prepare(
+            "SELECT id, quiz_id, attachment_id, slide_order FROM $table WHERE quiz_id IN ($placeholders) AND is_active = 1 ORDER BY quiz_id ASC, slide_order ASC, id ASC",
+            $quiz_ids
+        );
+
+        $results = $wpdb->get_results( $query, ARRAY_A );
+        $map     = array();
+
+        if ( ! is_array( $results ) ) {
+            return $map;
+        }
+
+        foreach ( $results as $row ) {
+            $quiz_id = isset( $row['quiz_id'] ) ? absint( $row['quiz_id'] ) : 0;
+
+            if ( $quiz_id <= 0 ) {
+                continue;
+            }
+
+            if ( ! isset( $map[ $quiz_id ] ) ) {
+                $map[ $quiz_id ] = array();
+            }
+
+            $map[ $quiz_id ][] = $row;
+        }
+
+        return $map;
+    }
+
     private function get_quiz_question_count_map( array $quiz_ids ) {
         global $wpdb;
 
@@ -3788,6 +3829,7 @@ class TEQCIDB_Admin {
 
         $question_count_map = $this->get_quiz_question_count_map( $quiz_ids );
         $question_map       = $this->get_quiz_questions_map( $quiz_ids );
+        $slide_map          = $this->get_quiz_slides_map( $quiz_ids );
 
         echo '<div class="teqcidb-communications teqcidb-communications--quizzes">';
         echo '<div class="teqcidb-accordion-group teqcidb-accordion-group--table" data-teqcidb-accordion-group="quizzes">';
@@ -3968,6 +4010,60 @@ class TEQCIDB_Admin {
 
                 echo '<button type="button" class="button button-secondary teqcidb-quiz-question-add">' . esc_html__( 'Add Quiz Question', 'teqcidb' ) . '</button>';
                 echo '</div>';
+
+                $quiz_slides = isset( $slide_map[ $quiz_id ] ) && is_array( $slide_map[ $quiz_id ] ) ? $slide_map[ $quiz_id ] : array();
+
+                if ( ! empty( $quiz_slides ) ) {
+                    echo '<section class="teqcidb-quiz-slides" aria-label="' . esc_attr__( 'Quiz Slides', 'teqcidb' ) . '">';
+                    echo '<h4 class="teqcidb-quiz-slides__title">' . esc_html__( 'Quiz Slides', 'teqcidb' ) . '</h4>';
+                    echo '<div class="teqcidb-quiz-slides__grid">';
+
+                    foreach ( $quiz_slides as $slide_index => $slide ) {
+                        $attachment_id = isset( $slide['attachment_id'] ) ? absint( $slide['attachment_id'] ) : 0;
+
+                        if ( $attachment_id <= 0 ) {
+                            continue;
+                        }
+
+                        $thumbnail_url = wp_get_attachment_image_url( $attachment_id, 'thumbnail' );
+                        $full_url      = wp_get_attachment_image_url( $attachment_id, 'full' );
+                        $alt_text      = trim( wp_strip_all_tags( (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) ) );
+                        $slide_number  = $slide_index + 1;
+                        /* translators: %d: Slide number. */
+                        $slide_title = sprintf( __( 'Slide #%d', 'teqcidb' ), $slide_number );
+
+                        if ( ! is_string( $thumbnail_url ) || '' === $thumbnail_url ) {
+                            $thumbnail_url = $full_url;
+                        }
+
+                        if ( ! is_string( $thumbnail_url ) || '' === $thumbnail_url ) {
+                            continue;
+                        }
+
+                        $preview_url = is_string( $full_url ) && '' !== $full_url ? $full_url : $thumbnail_url;
+
+                        if ( '' === $alt_text ) {
+                            $alt_text = $slide_title;
+                        }
+
+                        /* translators: %s: Slide title, such as "Slide #1". */
+                        $preview_label = sprintf( __( 'Preview %s', 'teqcidb' ), $slide_title );
+
+                        echo '<article class="teqcidb-quiz-slide-card" data-slide-id="' . esc_attr( isset( $slide['id'] ) ? absint( $slide['id'] ) : 0 ) . '">';
+                        echo '<h5 class="teqcidb-quiz-slide-card__title">' . esc_html( $slide_title ) . '</h5>';
+                        echo '<button type="button" class="teqcidb-quiz-slide-card__thumbnail-button" data-full-image="' . esc_url( $preview_url ) . '" aria-label="' . esc_attr( $preview_label ) . '">';
+                        echo '<img class="teqcidb-quiz-slide-card__thumbnail" src="' . esc_url( $thumbnail_url ) . '" alt="' . esc_attr( $alt_text ) . '" loading="lazy" />';
+                        echo '</button>';
+                        echo '<div class="teqcidb-quiz-slide-card__actions">';
+                        echo '<button type="button" class="button button-secondary teqcidb-quiz-slide-replace">' . esc_html__( 'Replace', 'teqcidb' ) . '</button>';
+                        echo '<button type="button" class="button button-secondary teqcidb-quiz-slide-delete">' . esc_html__( 'Delete', 'teqcidb' ) . '</button>';
+                        echo '</div>';
+                        echo '</article>';
+                    }
+
+                    echo '</div>';
+                    echo '</section>';
+                }
 
                 echo '<p class="submit">';
                 echo get_submit_button( __( 'Save Changes', 'teqcidb' ), 'primary', 'submit', false );
