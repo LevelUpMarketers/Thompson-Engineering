@@ -356,6 +356,102 @@ jQuery(document).ready(function($){
         frame.open();
     });
 
+    var $quizSlideModal = $();
+    var $quizSlideModalImage = $();
+    var $quizSlideModalTitle = $();
+    var quizSlidePreviousFocus = null;
+
+    function ensureQuizSlideModal(){
+        if ($quizSlideModal.length){
+            return $quizSlideModal;
+        }
+
+        $quizSlideModal = $('<div/>', {
+            'class': 'teqcidb-quiz-slide-modal',
+            'role': 'dialog',
+            'aria-modal': 'true',
+            'aria-hidden': 'true',
+            'aria-labelledby': 'teqcidb-quiz-slide-modal-title'
+        });
+
+        var $backdrop = $('<button/>', {
+            type: 'button',
+            'class': 'teqcidb-quiz-slide-modal__backdrop',
+            'aria-label': teqcidbAdmin.quizSlidePreviewClose || 'Close slide preview'
+        });
+        var $dialog = $('<div/>', {
+            'class': 'teqcidb-quiz-slide-modal__dialog',
+            tabindex: '-1'
+        });
+        var $close = $('<button/>', {
+            type: 'button',
+            'class': 'teqcidb-quiz-slide-modal__close',
+            'aria-label': teqcidbAdmin.quizSlidePreviewClose || 'Close slide preview'
+        }).html('&times;');
+
+        $quizSlideModalTitle = $('<h2/>', {
+            id: 'teqcidb-quiz-slide-modal-title',
+            'class': 'teqcidb-quiz-slide-modal__title'
+        }).text(teqcidbAdmin.quizSlidePreviewTitle || 'Slide Preview');
+        $quizSlideModalImage = $('<img/>', {
+            'class': 'teqcidb-quiz-slide-modal__image',
+            src: '',
+            alt: ''
+        });
+
+        $dialog.append($close, $quizSlideModalTitle, $quizSlideModalImage);
+        $quizSlideModal.append($backdrop, $dialog);
+        $('body').append($quizSlideModal);
+
+        $backdrop.add($close).on('click', closeQuizSlideModal);
+
+        return $quizSlideModal;
+    }
+
+    function closeQuizSlideModal(){
+        if (!$quizSlideModal.length){
+            return;
+        }
+
+        $quizSlideModal.removeClass('is-visible').attr('aria-hidden', 'true');
+        $quizSlideModalImage.attr({ src: '', alt: '' });
+
+        if (quizSlidePreviousFocus && typeof quizSlidePreviousFocus.focus === 'function'){
+            quizSlidePreviousFocus.focus();
+        }
+
+        quizSlidePreviousFocus = null;
+    }
+
+    function openQuizSlideModal($button){
+        var imageUrl = $button.attr('data-full-image') || '';
+        var title = $button.closest('.teqcidb-quiz-slide-card').find('.teqcidb-quiz-slide-card__title').first().text() || (teqcidbAdmin.quizSlidePreviewTitle || 'Slide Preview');
+        var altText = $button.find('img').first().attr('alt') || title;
+
+        if (!imageUrl){
+            return;
+        }
+
+        ensureQuizSlideModal();
+        quizSlidePreviousFocus = $button.get(0) || null;
+        $quizSlideModalTitle.text(title);
+        $quizSlideModalImage.attr({ src: imageUrl, alt: altText });
+        $quizSlideModal.addClass('is-visible').attr('aria-hidden', 'false');
+        $quizSlideModal.find('.teqcidb-quiz-slide-modal__dialog').first().trigger('focus');
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-card__thumbnail-button', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        openQuizSlideModal($(this));
+    });
+
+    $(document).on('keydown', function(e){
+        if (e.key === 'Escape' && $quizSlideModal.length && $quizSlideModal.hasClass('is-visible')){
+            closeQuizSlideModal();
+        }
+    });
+
     if($('#teqcidb-entity-list').length){
         var $entityTableBody = $('#teqcidb-entity-list');
         var perPage = parseInt($entityTableBody.data('per-page'), 10) || 20;

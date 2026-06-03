@@ -386,6 +386,70 @@
     text-align: center;
 }
 
+.teqcidb-quiz-slide-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+}
+
+.teqcidb-quiz-slide-modal.is-visible {
+    display: flex;
+}
+
+.teqcidb-quiz-slide-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.72);
+    cursor: pointer;
+}
+
+.teqcidb-quiz-slide-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: min(1100px, 96vw);
+    max-height: 92vh;
+    padding: 20px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    overflow: auto;
+}
+
+.teqcidb-quiz-slide-modal__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #c3c4c7;
+    border-radius: 50%;
+    background: #fff;
+    color: #1d2327;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.teqcidb-quiz-slide-modal__title {
+    margin: 0 48px 16px 0;
+    font-size: 20px;
+    line-height: 1.3;
+}
+
+.teqcidb-quiz-slide-modal__image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    border-radius: 4px;
+}
+
 .teqcidb-quiz-question__actions {
     margin-top: 12px;
 }

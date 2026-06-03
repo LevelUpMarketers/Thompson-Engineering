@@ -1377,6 +1377,8 @@ class TEQCIDB_Admin {
             'quizQuestionMultipleChoiceSingleTrue' => __( 'Set exactly one answer option to True for a multiple choice question.', 'teqcidb' ),
             'quizQuestionOptionPlaceholder' => __( 'Enter answer option text…', 'teqcidb' ),
             'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
+            'quizSlidePreviewClose' => __( 'Close slide preview', 'teqcidb' ),
+            'quizSlidePreviewTitle' => __( 'Slide Preview', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
             'falseLabel' => __( 'False', 'teqcidb' ),
             'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
