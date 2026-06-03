@@ -232,7 +232,9 @@ class TEQCIDB_Ajax {
             exit;
         }
 
-        $feedback_message = __( 'Welcome! Please wait for your QCI instructor to enable the Quiz below or tell you that you may start your quiz.', 'teqcidb' );
+        $feedback_message = ( 'refresher' === $class_type )
+            ? __( "Welcome! Below you'll find links to various class resources, as well as your Refresher Slides. You must progress through each slide to pass this class. There is a 'Save Progress' button below the slides that allows you to save which slide you're currently on, in case you need to resume this at a later time.", 'teqcidb' )
+            : __( 'Welcome! Please wait for your QCI instructor to enable the Quiz below or tell you that you may start your quiz.', 'teqcidb' );
         $current_user_id  = get_current_user_id();
         $quiz_runtime     = array();
         $quiz_id          = 0;
