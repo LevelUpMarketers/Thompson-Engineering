@@ -50,6 +50,16 @@ class TEQCIDB_Rest {
                 'permission_callback' => array( $this, 'can_manage_quiz_request' ),
             )
         );
+
+        register_rest_route(
+            'teqcidb/v1',
+            '/slides/complete',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'complete_slide_refresher' ),
+                'permission_callback' => array( $this, 'can_manage_quiz_request' ),
+            )
+        );
     }
 
     public function can_manage_quiz_request( $request ) {
@@ -148,6 +158,36 @@ class TEQCIDB_Rest {
                 'ok'                 => true,
                 'message'            => __( 'Slide progress saved.', 'teqcidb' ),
                 'currentSlideNumber' => isset( $result['currentSlideNumber'] ) ? (int) $result['currentSlideNumber'] : 0,
+                'saved_at'           => isset( $result['updatedAt'] ) ? (string) $result['updatedAt'] : current_time( 'mysql' ),
+            )
+        );
+    }
+
+    public function complete_slide_refresher( $request ) {
+        $validated = $this->validate_slide_progress_payload( $request );
+
+        if ( is_wp_error( $validated ) ) {
+            return $validated;
+        }
+
+        $result = $this->ajax->complete_refresher_slides(
+            $validated['quiz_id'],
+            $validated['class_id'],
+            get_current_user_id(),
+            $validated['current_slide_number'],
+            $validated['slides_total']
+        );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return rest_ensure_response(
+            array(
+                'ok'                 => true,
+                'message'            => __( 'Refresher slides completed.', 'teqcidb' ),
+                'currentSlideNumber' => isset( $result['currentSlideNumber'] ) ? (int) $result['currentSlideNumber'] : 0,
+                'passed'             => ! empty( $result['passed'] ),
                 'saved_at'           => isset( $result['updatedAt'] ) ? (string) $result['updatedAt'] : current_time( 'mysql' ),
             )
         );

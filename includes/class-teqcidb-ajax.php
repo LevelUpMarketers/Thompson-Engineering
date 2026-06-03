@@ -775,6 +775,7 @@ class TEQCIDB_Ajax {
                 'slideSaveProgress'        => __( 'Save Progress', 'teqcidb' ),
                 'slideProgressSaved'       => __( 'Slide progress saved.', 'teqcidb' ),
                 'slideProgressSaveError'   => __( 'We could not save your slide progress. Please try again.', 'teqcidb' ),
+                'slideCompletionError'     => __( 'We could not complete your refresher slides. Please try again.', 'teqcidb' ),
                 'startQuiz'                => __( 'Start Quiz', 'teqcidb' ),
                 'completeSlides'           => __( 'Complete Slides', 'teqcidb' ),
                 'slideOnlyCompleteTitle'   => __( 'Refresher Slides Complete', 'teqcidb' ),
@@ -946,6 +947,122 @@ class TEQCIDB_Ajax {
             'currentSlideIndex'  => $current_slide_index,
             'slidesTotal'        => $slides_total,
             'updatedAt'          => current_time( 'mysql' ),
+        );
+    }
+
+    public function complete_refresher_slides( $quiz_id, $class_id, $user_id, $current_slide_number, $slides_total ) {
+        global $wpdb;
+
+        $quiz_id              = absint( $quiz_id );
+        $class_id             = absint( $class_id );
+        $user_id              = absint( $user_id );
+        $current_slide_number = absint( $current_slide_number );
+        $slides_total         = absint( $slides_total );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 || $current_slide_number <= 0 || $slides_total <= 0 ) {
+            return new WP_Error( 'teqcidb_slide_completion_invalid', __( 'Unable to complete refresher slides because the payload was invalid.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $slides_table = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $active_slides_total = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM $slides_table WHERE quiz_id = %d AND is_active = 1",
+                $quiz_id
+            )
+        );
+
+        if ( $active_slides_total <= 0 ) {
+            return new WP_Error( 'teqcidb_slide_completion_no_slides', __( 'No refresher slides are available to complete.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $slides_total = $active_slides_total;
+
+        if ( $current_slide_number < $slides_total ) {
+            return new WP_Error( 'teqcidb_slide_completion_incomplete', __( 'Please review every slide before completing this refresher.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $slide_progress = $this->save_current_refresher_slide_progress( $quiz_id, $class_id, $user_id, $current_slide_number, $slides_total );
+
+        if ( is_wp_error( $slide_progress ) ) {
+            return $slide_progress;
+        }
+
+        $slide_progress_table = $wpdb->prefix . 'teqcidb_slide_progress';
+        $wpdb->update(
+            $slide_progress_table,
+            array( 'completed' => 1 ),
+            array(
+                'quiz_id'  => $quiz_id,
+                'class_id' => $class_id,
+                'user_id'  => $user_id,
+            ),
+            array( '%d' ),
+            array( '%d', '%d', '%d' )
+        );
+
+        $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+        $submitted_at   = current_time( 'mysql' );
+        $existing_attempt = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, status FROM $attempts_table WHERE quiz_id = %d AND class_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1",
+                $quiz_id,
+                $class_id,
+                $user_id
+            ),
+            ARRAY_A
+        );
+        $attempt_id = isset( $existing_attempt['id'] ) ? absint( $existing_attempt['id'] ) : 0;
+        $already_passed = ( $attempt_id > 0 && isset( $existing_attempt['status'] ) && 0 === (int) $existing_attempt['status'] );
+
+        if ( ! $already_passed ) {
+            if ( $attempt_id > 0 ) {
+                $updated = $wpdb->update(
+                    $attempts_table,
+                    array(
+                        'status'       => 0,
+                        'score'        => 100,
+                        'submitted_at' => $submitted_at,
+                    ),
+                    array( 'id' => $attempt_id ),
+                    array( '%d', '%d', '%s' ),
+                    array( '%d' )
+                );
+
+                if ( false === $updated ) {
+                    return new WP_Error( 'teqcidb_slide_completion_attempt_update_failed', __( 'Unable to complete this refresher right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                }
+            } else {
+                $inserted = $wpdb->insert(
+                    $attempts_table,
+                    array(
+                        'quiz_id'       => $quiz_id,
+                        'class_id'      => $class_id,
+                        'user_id'       => $user_id,
+                        'status'        => 0,
+                        'score'         => 100,
+                        'current_index' => 0,
+                        'submitted_at'  => $submitted_at,
+                    ),
+                    array( '%d', '%d', '%d', '%d', '%d', '%d', '%s' )
+                );
+
+                if ( false === $inserted ) {
+                    return new WP_Error( 'teqcidb_slide_completion_attempt_insert_failed', __( 'Unable to complete this refresher right now.', 'teqcidb' ), array( 'status' => 500 ) );
+                }
+
+                $attempt_id = (int) $wpdb->insert_id;
+            }
+
+            $this->apply_quiz_pass_updates( $user_id, $class_id, 'refresher' );
+        }
+
+        return array(
+            'attemptId'          => $attempt_id,
+            'currentSlideNumber' => isset( $slide_progress['currentSlideNumber'] ) ? (int) $slide_progress['currentSlideNumber'] : $slides_total,
+            'currentSlideIndex'  => isset( $slide_progress['currentSlideIndex'] ) ? (int) $slide_progress['currentSlideIndex'] : max( 0, $slides_total - 1 ),
+            'slidesTotal'        => $slides_total,
+            'passed'             => true,
+            'updatedAt'          => $submitted_at,
         );
     }
 

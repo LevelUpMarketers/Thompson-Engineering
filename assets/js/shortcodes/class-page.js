@@ -93,6 +93,7 @@
     var isSubmitting = false;
     var isSavingProgress = false;
     var isSavingSlideProgress = false;
+    var isCompletingSlides = false;
     var slideIndex = 0;
     var slideViewedMap = {};
     var initialSlideProgress = runtime.slideProgress || {};
@@ -344,7 +345,7 @@
                 if (slideIndex >= (slides.length - 1)) {
                     if (hasUnlockedQuiz) {
                         if (isSlideOnlyRefresher) {
-                            renderSlideOnlyComplete();
+                            completeSlideOnlyRefresher(nextBtn, saveSlideBtn, saveSlideStatus);
                         } else {
                             render();
                         }
@@ -398,11 +399,19 @@
     }
 
     function requestSlideProgressSaveEndpoint(failureMessage){
+        return requestSlideEndpoint('/slides/progress', failureMessage);
+    }
+
+    function requestSlideCompletionEndpoint(failureMessage){
+        return requestSlideEndpoint('/slides/complete', failureMessage);
+    }
+
+    function requestSlideEndpoint(path, failureMessage){
         if (!runtime.restUrl) {
             return Promise.reject(new Error(failureMessage));
         }
 
-        return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+        return fetch(String(runtime.restUrl).replace(/\/$/, '') + path, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -418,6 +427,44 @@
 
                 return parseRestResponse(payload);
             });
+        });
+    }
+
+    function completeSlideOnlyRefresher(nextBtn, saveSlideBtn, saveSlideStatus){
+        if (isCompletingSlides) {
+            return;
+        }
+
+        isCompletingSlides = true;
+
+        if (nextBtn) {
+            nextBtn.disabled = true;
+        }
+
+        if (saveSlideBtn) {
+            saveSlideBtn.disabled = true;
+        }
+
+        if (saveSlideStatus) {
+            saveSlideStatus.textContent = '';
+        }
+
+        requestSlideCompletionEndpoint(i18n.slideCompletionError || 'We could not complete your refresher slides. Please try again.').then(function(){
+            renderSlideOnlyComplete();
+        }).catch(function(error){
+            if (saveSlideStatus) {
+                saveSlideStatus.textContent = error.message || t('slideCompletionError', 'We could not complete your refresher slides. Please try again.');
+            }
+
+            if (nextBtn) {
+                nextBtn.disabled = false;
+            }
+
+            if (saveSlideBtn) {
+                saveSlideBtn.disabled = false;
+            }
+        }).finally(function(){
+            isCompletingSlides = false;
         });
     }
 
