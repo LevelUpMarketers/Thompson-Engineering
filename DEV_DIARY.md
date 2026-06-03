@@ -535,3 +535,4 @@
 534. 2026-06-03 03:40 UTC: Added an Add a New Slide subsection under Quiz Slides so admins can select a media-library image, choose the desired slide number, insert the image as a new `teqcidb_quiz_slides` row, re-number that quiz’s slides, and reload the edit page.
 535. 2026-06-03 04:00 UTC: Added a WordPress User Account action between Save Changes and Delete on Edit Students rows, linking to `user-edit.php?user_id={wpuserid}` when a student has a WordPress user ID and rendering a disabled N/A button when not available.
 536. 2026-06-03 04:20 UTC: Updated the student accordion fourth summary column from Cell Phone to QCI Number so Edit Students headers and student rows show `qcinumber` instead of `phone_cell`.
+537. 2026-06-03 04:40 UTC: Restored the passed-class congratulations/dashboard message for completed slide-only refresher pages so completing slides and returning later shows the success outcome while keeping slide navigation hidden.

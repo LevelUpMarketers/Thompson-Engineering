@@ -181,6 +181,16 @@
         }
     }
 
+    function buildPassedDashboardMessage(){
+        var dashboardUrl = String(runtime.dashboardCertificatesUrl || '/my-qci-dashboard/?tab=certificates-dates');
+
+        return '<p>' +
+            esc(t('passedClassMessageBeforeLink', t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you\'ve passed this class! Please '))) +
+            '<a href="' + esc(dashboardUrl) + '">' + esc(t('passedClassMessageLinkText', t('initialPassedMessageLinkText', 'visit your QCI Dashboard'))) + '</a>' +
+            esc(t('passedClassMessageAfterLink', t('initialPassedMessageAfterLink', ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.'))) +
+        '</p>';
+    }
+
     function renderSlideOnlyComplete(){
         updateRefresherSectionCopy(false);
 
@@ -197,7 +207,8 @@
 
         root.innerHTML = '<div class="teqcidb-class-quiz teqcidb-class-quiz--slide-only-complete">' +
             '<div class="teqcidb-class-quiz__result">' +
-                '<h3>' + esc(t('slideOnlyCompleteTitle', 'Refresher Slides Complete')) + '</h3>' +
+                '<h3>' + esc(t('passed', 'Passed')) + '</h3>' +
+                buildPassedDashboardMessage() +
                 '<p>' + esc(t('slideOnlyCompleteMessage', 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.')) + '</p>' +
             '</div>' +
         '</div>';
@@ -494,18 +505,9 @@
         }).join('');
 
         if (isSubmitted && resultData) {
-            var showInitialPassedMessage = runtime.quiz.classType === 'initial' && !!resultData.passed;
+            var showPassedDashboardMessage = !!resultData.passed;
             var hideIncorrectDetails = !resultData.passed;
-            var dashboardUrl = String(runtime.dashboardCertificatesUrl || '/my-qci-dashboard/?tab=certificates-dates');
-            var passedMessage = '';
-
-            if (showInitialPassedMessage) {
-                passedMessage = '<p>' +
-                    esc(t('initialPassedMessageBeforeLink', 'Congratulations! Looks like you\'ve passed this class! Please ')) +
-                    '<a href="' + esc(dashboardUrl) + '">' + esc(t('initialPassedMessageLinkText', 'visit your QCI Dashboard')) + '</a>' +
-                    esc(t('initialPassedMessageAfterLink', ' for resources and information such as your QCI Certificate, Wallet Card, and important QCI expiration dates.')) +
-                '</p>';
-            }
+            var passedMessage = showPassedDashboardMessage ? buildPassedDashboardMessage() : '';
 
             root.innerHTML = '<div class="teqcidb-class-quiz is-submitted">' +
                 '<div class="teqcidb-class-quiz__result">' +
