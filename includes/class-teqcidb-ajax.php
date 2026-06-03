@@ -445,6 +445,7 @@ class TEQCIDB_Ajax {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
             $has_refresher_quiz_questions = ( isset( $quiz_runtime['questions'] ) && is_array( $quiz_runtime['questions'] ) && ! empty( $quiz_runtime['questions'] ) );
             $is_slide_only_refresher = ( $has_refresher_slides && ! $has_refresher_quiz_questions );
+            $has_completed_refresher_slides = ( $is_slide_only_refresher && ! empty( $quiz_runtime['slideProgress']['completed'] ) );
 
             if ( $has_refresher_slides ) {
                 $quiz_section_title = __( 'Refresher Class Slides', 'teqcidb' );
@@ -454,6 +455,8 @@ class TEQCIDB_Ajax {
 
             if ( 'initial' === $class_type ) {
                 $quiz_intro = __( 'Below is your QCI Exam! A score of 75% or higher is passing. Anything below 75% will be considered failing. If you fail, you\'ll need to visit the <a href="/register-for-a-class-qci/">Register For A Class</a> page to register & pay for another upcoming Initial Class. For questions, please contact Ilka Porter at <a href="tel:2516662443">(251) 666-2443</a> or <a href="mailto:qci@thompsonengineering.com">qci@thompsonengineering.com</a>. Good luck!', 'teqcidb' );
+            } elseif ( $has_completed_refresher_slides ) {
+                $quiz_intro = __( 'You have completed all refresher slides. There are no quiz questions to answer for this refresher.', 'teqcidb' );
             } elseif ( $has_refresher_slides ) {
                 $quiz_intro = $is_slide_only_refresher
                     ? __( 'Please review each refresher slide. This refresher will be complete after you have worked through every slide.', 'teqcidb' )
@@ -738,6 +741,7 @@ class TEQCIDB_Ajax {
             'currentIndex'       => 0,
             'currentSlideNumber' => 1,
             'slidesTotal'        => count( $slides ),
+            'completed'          => false,
             'updatedAt'          => '',
         );
 
@@ -826,6 +830,7 @@ class TEQCIDB_Ajax {
             'currentIndex'       => 0,
             'currentSlideNumber' => 1,
             'slidesTotal'        => $slides_total,
+            'completed'          => false,
             'updatedAt'          => '',
         );
 
@@ -836,7 +841,7 @@ class TEQCIDB_Ajax {
         $table_name = $wpdb->prefix . 'teqcidb_slide_progress';
         $row        = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT current_slide_index, slides_total, updated_at FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
+                "SELECT current_slide_index, slides_total, completed, updated_at FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
                 $quiz_id,
                 $class_id,
                 $user_id
@@ -860,6 +865,7 @@ class TEQCIDB_Ajax {
             'currentIndex'       => $current_index,
             'currentSlideNumber' => $current_index + 1,
             'slidesTotal'        => $effective_total,
+            'completed'          => ! empty( $row['completed'] ),
             'updatedAt'          => isset( $row['updated_at'] ) ? (string) $row['updated_at'] : '',
         );
     }

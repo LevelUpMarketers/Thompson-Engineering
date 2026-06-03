@@ -855,6 +855,11 @@
     }
 
     if (requiresSlidesFirst) {
+        if (isSlideOnlyRefresher && !!initialSlideProgress.completed) {
+            renderSlideOnlyComplete();
+            return;
+        }
+
         var savedSlideNumber = parseInt(initialSlideProgress.currentSlideNumber || 0, 10) || 0;
         var savedSlideIndex = savedSlideNumber > 0
             ? savedSlideNumber - 1
