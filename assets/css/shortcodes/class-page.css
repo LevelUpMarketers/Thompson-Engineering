@@ -362,7 +362,7 @@
 
 .teqcidb-class-slides__image {
     display: block;
-    max-width: 745px;
+    max-width: 100%;
     height: auto;
     border-radius: 6px;
     margin-left: auto;
