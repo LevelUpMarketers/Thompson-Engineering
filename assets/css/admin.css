@@ -375,6 +375,21 @@
     background: #f6f7f7;
 }
 
+#teqcidb-quiz-list .teqcidb-quiz-slide-card__status {
+    min-height: 18px;
+    margin: 8px 0 0;
+}
+
+#teqcidb-quiz-list .teqcidb-quiz-slide-card.is-pending-replacement {
+    border-color: #72aee6;
+    box-shadow: 0 0 0 1px #72aee6;
+}
+
+#teqcidb-quiz-list .teqcidb-quiz-slide-card.is-pending-replacement .teqcidb-quiz-slide-card__status {
+    color: #2271b1;
+    font-weight: 600;
+}
+
 #teqcidb-quiz-list .teqcidb-quiz-slide-card__actions {
     display: grid;
     gap: 8px;

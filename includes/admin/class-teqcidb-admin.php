@@ -1379,6 +1379,9 @@ class TEQCIDB_Admin {
             'quizQuestionOptionCorrectLabel' => __( 'Select whether this answer option is correct', 'teqcidb' ),
             'quizSlidePreviewClose' => __( 'Close slide preview', 'teqcidb' ),
             'quizSlidePreviewTitle' => __( 'Slide Preview', 'teqcidb' ),
+            'quizSlideReplaceMediaTitle' => __( 'Choose Replacement Slide Image', 'teqcidb' ),
+            'quizSlideReplaceMediaButton' => __( 'Use this slide image', 'teqcidb' ),
+            'quizSlideReplacementPending' => __( 'Replacement selected. Click Save Changes to update this slide.', 'teqcidb' ),
             'trueLabel' => __( 'True', 'teqcidb' ),
             'falseLabel' => __( 'False', 'teqcidb' ),
             'failedQuizResetConfirm' => __( 'Are you sure you want to reset this quiz attempt? This cannot be undone.', 'teqcidb' ),
@@ -4051,11 +4054,15 @@ class TEQCIDB_Admin {
                         /* translators: %s: Slide title, such as "Slide #1". */
                         $preview_label = sprintf( __( 'Preview %s', 'teqcidb' ), $slide_title );
 
-                        echo '<article class="teqcidb-quiz-slide-card" data-slide-id="' . esc_attr( isset( $slide['id'] ) ? absint( $slide['id'] ) : 0 ) . '">';
+                        $slide_id = isset( $slide['id'] ) ? absint( $slide['id'] ) : 0;
+
+                        echo '<article class="teqcidb-quiz-slide-card" data-slide-id="' . esc_attr( $slide_id ) . '">';
+                        echo '<input type="hidden" class="teqcidb-quiz-slide-card__replacement" name="quiz_slide_replacements[' . esc_attr( $slide_id ) . ']" value="" />';
                         echo '<h5 class="teqcidb-quiz-slide-card__title">' . esc_html( $slide_title ) . '</h5>';
                         echo '<button type="button" class="teqcidb-quiz-slide-card__thumbnail-button" data-full-image="' . esc_url( $preview_url ) . '" aria-label="' . esc_attr( $preview_label ) . '">';
                         echo '<img class="teqcidb-quiz-slide-card__thumbnail" src="' . esc_url( $thumbnail_url ) . '" alt="' . esc_attr( $alt_text ) . '" loading="lazy" />';
                         echo '</button>';
+                        echo '<p class="description teqcidb-quiz-slide-card__status" aria-live="polite"></p>';
                         echo '<div class="teqcidb-quiz-slide-card__actions">';
                         echo '<button type="button" class="button button-secondary teqcidb-quiz-slide-replace">' . esc_html__( 'Replace', 'teqcidb' ) . '</button>';
                         echo '<button type="button" class="button button-secondary teqcidb-quiz-slide-delete">' . esc_html__( 'Delete', 'teqcidb' ) . '</button>';
@@ -4407,6 +4414,81 @@ class TEQCIDB_Admin {
         }
     }
 
+    private function update_quiz_slide_replacements( $quiz_id ) {
+        if ( empty( $_POST['quiz_slide_replacements'] ) || ! is_array( $_POST['quiz_slide_replacements'] ) ) {
+            return;
+        }
+
+        global $wpdb;
+
+        $replacements = (array) wp_unslash( $_POST['quiz_slide_replacements'] );
+        $slide_ids    = array();
+
+        foreach ( $replacements as $slide_id_raw => $attachment_id_raw ) {
+            $slide_id      = absint( $slide_id_raw );
+            $attachment_id = absint( $attachment_id_raw );
+
+            if ( $slide_id > 0 && $attachment_id > 0 ) {
+                $slide_ids[] = $slide_id;
+            }
+        }
+
+        $slide_ids = array_values( array_unique( $slide_ids ) );
+
+        if ( empty( $slide_ids ) ) {
+            return;
+        }
+
+        $slides_table = $wpdb->prefix . 'teqcidb_quiz_slides';
+        $placeholders = implode( ',', array_fill( 0, count( $slide_ids ), '%d' ) );
+        $query_args   = array_merge( array( absint( $quiz_id ) ), $slide_ids );
+        $existing_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, attachment_id FROM $slides_table WHERE quiz_id = %d AND is_active = 1 AND id IN ($placeholders)",
+                $query_args
+            ),
+            ARRAY_A
+        );
+        $existing_map = array();
+
+        if ( is_array( $existing_rows ) ) {
+            foreach ( $existing_rows as $row ) {
+                $existing_id = isset( $row['id'] ) ? absint( $row['id'] ) : 0;
+
+                if ( $existing_id > 0 ) {
+                    $existing_map[ $existing_id ] = isset( $row['attachment_id'] ) ? absint( $row['attachment_id'] ) : 0;
+                }
+            }
+        }
+
+        foreach ( $replacements as $slide_id_raw => $attachment_id_raw ) {
+            $slide_id      = absint( $slide_id_raw );
+            $attachment_id = absint( $attachment_id_raw );
+
+            if ( $slide_id <= 0 || $attachment_id <= 0 || ! isset( $existing_map[ $slide_id ] ) ) {
+                continue;
+            }
+
+            if ( $attachment_id === $existing_map[ $slide_id ] || ! wp_attachment_is_image( $attachment_id ) ) {
+                continue;
+            }
+
+            $wpdb->update(
+                $slides_table,
+                array(
+                    'attachment_id' => $attachment_id,
+                    'updated_at'    => current_time( 'mysql' ),
+                ),
+                array(
+                    'id'      => $slide_id,
+                    'quiz_id' => absint( $quiz_id ),
+                ),
+                array( '%d', '%s' ),
+                array( '%d', '%d' )
+            );
+        }
+    }
+
     public function handle_update_quiz() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Insufficient permissions.', 'teqcidb' ) );
@@ -4454,6 +4536,7 @@ class TEQCIDB_Admin {
             exit;
         }
 
+        $this->update_quiz_slide_replacements( $quiz_id );
 
         $question_prompts       = isset( $_POST['question_prompt'] ) ? (array) wp_unslash( $_POST['question_prompt'] ) : array();
         $question_types_input   = isset( $_POST['question_type'] ) ? (array) wp_unslash( $_POST['question_type'] ) : array();
