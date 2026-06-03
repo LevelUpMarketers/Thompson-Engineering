@@ -761,6 +761,9 @@ class TEQCIDB_Ajax {
                 'slidesCompletedRemaining' => __( '%1$s completed / %2$s remaining', 'teqcidb' ),
                 'nextSlide'                => __( 'Next Slide', 'teqcidb' ),
                 'previousSlide'            => __( 'Previous Slide', 'teqcidb' ),
+                'slideSaveProgress'        => __( 'Save Progress', 'teqcidb' ),
+                'slideProgressSaved'       => __( 'Slide progress saved.', 'teqcidb' ),
+                'slideProgressSaveError'   => __( 'We could not save your slide progress. Please try again.', 'teqcidb' ),
                 'startQuiz'                => __( 'Start Quiz', 'teqcidb' ),
                 'completeSlides'           => __( 'Complete Slides', 'teqcidb' ),
                 'slideOnlyCompleteTitle'   => __( 'Refresher Slides Complete', 'teqcidb' ),
@@ -797,6 +800,92 @@ class TEQCIDB_Ajax {
         );
     }
 
+
+    public function save_current_refresher_slide_progress( $quiz_id, $class_id, $user_id, $current_slide_number, $slides_total ) {
+        global $wpdb;
+
+        $quiz_id              = absint( $quiz_id );
+        $class_id             = absint( $class_id );
+        $user_id              = absint( $user_id );
+        $current_slide_number = absint( $current_slide_number );
+        $slides_total         = absint( $slides_total );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 || $user_id <= 0 || $current_slide_number <= 0 || $slides_total <= 0 ) {
+            return new WP_Error( 'teqcidb_slide_progress_invalid', __( 'Unable to save slide progress because the payload was invalid.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! $this->is_quiz_assigned_to_class( $quiz_id, $class_id ) ) {
+            return new WP_Error( 'teqcidb_slide_progress_unavailable', __( 'This slide deck is not available for the selected class.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
+        if ( ! $this->user_can_access_class_quiz( $class_id, $user_id ) ) {
+            return new WP_Error( 'teqcidb_slide_progress_forbidden', __( 'You do not have access to this slide deck.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
+        $classes_table = $wpdb->prefix . 'teqcidb_classes';
+        $class_type    = (string) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT classtype FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            )
+        );
+
+        if ( 'refresher' !== strtolower( sanitize_key( $class_type ) ) ) {
+            return new WP_Error( 'teqcidb_slide_progress_not_refresher', __( 'Slide progress saving is only available for refresher classes.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        $current_slide_number = min( $current_slide_number, $slides_total );
+        $current_slide_index  = max( 0, $current_slide_number - 1 );
+        $table_name           = $wpdb->prefix . 'teqcidb_slide_progress';
+        $data                 = array(
+            'quiz_id'                => $quiz_id,
+            'class_id'               => $class_id,
+            'user_id'                => $user_id,
+            'attempt_token'          => '',
+            'current_slide_index'    => $current_slide_index,
+            'max_slide_index_viewed' => $current_slide_index,
+            'slides_total'           => $slides_total,
+            'completed'              => 0,
+            'updated_at'             => current_time( 'mysql' ),
+        );
+        $formats              = array( '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%s' );
+
+        $existing_id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $table_name WHERE quiz_id = %d AND class_id = %d AND user_id = %d LIMIT 1",
+                $quiz_id,
+                $class_id,
+                $user_id
+            )
+        );
+
+        if ( $existing_id > 0 ) {
+            $updated = $wpdb->update(
+                $table_name,
+                $data,
+                array( 'id' => $existing_id ),
+                $formats,
+                array( '%d' )
+            );
+
+            if ( false === $updated ) {
+                return new WP_Error( 'teqcidb_slide_progress_update_failed', __( 'Unable to save slide progress right now.', 'teqcidb' ), array( 'status' => 500 ) );
+            }
+        } else {
+            $inserted = $wpdb->insert( $table_name, $data, $formats );
+
+            if ( false === $inserted ) {
+                return new WP_Error( 'teqcidb_slide_progress_insert_failed', __( 'Unable to save slide progress right now.', 'teqcidb' ), array( 'status' => 500 ) );
+            }
+        }
+
+        return array(
+            'currentSlideNumber' => $current_slide_number,
+            'currentSlideIndex'  => $current_slide_index,
+            'slidesTotal'        => $slides_total,
+            'updatedAt'          => current_time( 'mysql' ),
+        );
+    }
 
     private function normalize_question_choices_for_runtime( $question_type, $choices_json ) {
         $question_type = sanitize_key( (string) $question_type );

@@ -92,6 +92,7 @@
     var idempotencyToken = String(runtime.idempotencyToken || '');
     var isSubmitting = false;
     var isSavingProgress = false;
+    var isSavingSlideProgress = false;
     var slideIndex = 0;
     var slideViewedMap = {};
     var hasUnlockedQuiz = false;
@@ -311,6 +312,8 @@
                 '<span class="teqcidb-class-slides__next-wrap" data-tooltip="">' +
                     '<button type="button" class="teqcidb-button teqcidb-button-primary" id="teqcidb-slide-next">' + esc(isLast ? (isSlideOnlyRefresher ? t('completeSlides', 'Complete Slides') : t('startQuiz', 'Start Quiz')) : t('nextSlide', 'Next Slide')) + '</button>' +
                 '</span>' +
+                '<button type="button" class="teqcidb-button teqcidb-button-secondary" id="teqcidb-slide-save-progress">' + esc(t('slideSaveProgress', 'Save Progress')) + '</button>' +
+                '<span class="teqcidb-class-slides__save-status" id="teqcidb-slide-save-status" aria-live="polite"></span>' +
             '</div>' +
         '</div>';
 
@@ -320,6 +323,8 @@
     function bindSlideEvents(){
         var prevBtn = root.querySelector('#teqcidb-slide-prev');
         var nextBtn = root.querySelector('#teqcidb-slide-next');
+        var saveSlideBtn = root.querySelector('#teqcidb-slide-save-progress');
+        var saveSlideStatus = root.querySelector('#teqcidb-slide-save-status');
 
         if (prevBtn) {
             prevBtn.addEventListener('click', function(){
@@ -352,6 +357,67 @@
                 renderSlides();
             });
         }
+
+        if (saveSlideBtn) {
+            saveSlideBtn.addEventListener('click', function(){
+                if (isSavingSlideProgress) {
+                    return;
+                }
+
+                isSavingSlideProgress = true;
+                saveSlideBtn.disabled = true;
+
+                if (saveSlideStatus) {
+                    saveSlideStatus.textContent = '';
+                }
+
+                requestSlideProgressSaveEndpoint(i18n.slideProgressSaveError || 'We could not save your slide progress. Please try again.').then(function(payload){
+                    if (saveSlideStatus) {
+                        saveSlideStatus.textContent = payload.message || t('slideProgressSaved', 'Slide progress saved.');
+                    }
+                }).catch(function(error){
+                    if (saveSlideStatus) {
+                        saveSlideStatus.textContent = error.message || t('slideProgressSaveError', 'We could not save your slide progress. Please try again.');
+                    }
+                }).finally(function(){
+                    isSavingSlideProgress = false;
+                    saveSlideBtn.disabled = false;
+                });
+            });
+        }
+    }
+
+    function buildSlideProgressSavePayload(){
+        return {
+            quiz_id: runtime.quiz.id,
+            class_id: runtime.quiz.classId,
+            current_slide_number: Math.max(1, slideIndex + 1),
+            slides_total: slides.length
+        };
+    }
+
+    function requestSlideProgressSaveEndpoint(failureMessage){
+        if (!runtime.restUrl) {
+            return Promise.reject(new Error(failureMessage));
+        }
+
+        return fetch(String(runtime.restUrl).replace(/\/$/, '') + '/slides/progress', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': runtime.restNonce || ''
+            },
+            body: JSON.stringify(buildSlideProgressSavePayload())
+        }).then(function(resp){
+            return resp.json().then(function(payload){
+                if (!resp.ok) {
+                    throw new Error(getRequestErrorMessage(payload, failureMessage));
+                }
+
+                return parseRestResponse(payload);
+            });
+        });
     }
 
 

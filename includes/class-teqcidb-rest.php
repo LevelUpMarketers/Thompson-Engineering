@@ -40,6 +40,16 @@ class TEQCIDB_Rest {
                 'permission_callback' => array( $this, 'can_manage_quiz_request' ),
             )
         );
+
+        register_rest_route(
+            'teqcidb/v1',
+            '/slides/progress',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'save_slide_progress' ),
+                'permission_callback' => array( $this, 'can_manage_quiz_request' ),
+            )
+        );
     }
 
     public function can_manage_quiz_request( $request ) {
@@ -113,6 +123,57 @@ class TEQCIDB_Rest {
         );
     }
 
+
+    public function save_slide_progress( $request ) {
+        $validated = $this->validate_slide_progress_payload( $request );
+
+        if ( is_wp_error( $validated ) ) {
+            return $validated;
+        }
+
+        $result = $this->ajax->save_current_refresher_slide_progress(
+            $validated['quiz_id'],
+            $validated['class_id'],
+            get_current_user_id(),
+            $validated['current_slide_number'],
+            $validated['slides_total']
+        );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return rest_ensure_response(
+            array(
+                'ok'                 => true,
+                'message'            => __( 'Slide progress saved.', 'teqcidb' ),
+                'currentSlideNumber' => isset( $result['currentSlideNumber'] ) ? (int) $result['currentSlideNumber'] : 0,
+                'saved_at'           => isset( $result['updatedAt'] ) ? (string) $result['updatedAt'] : current_time( 'mysql' ),
+            )
+        );
+    }
+
+    private function validate_slide_progress_payload( $request ) {
+        $quiz_id              = absint( $request->get_param( 'quiz_id' ) );
+        $class_id             = absint( $request->get_param( 'class_id' ) );
+        $current_slide_number = absint( $request->get_param( 'current_slide_number' ) );
+        $slides_total         = absint( $request->get_param( 'slides_total' ) );
+
+        if ( $quiz_id <= 0 || $class_id <= 0 ) {
+            return new WP_Error( 'teqcidb_slide_progress_invalid_ids', __( 'Quiz ID and class ID are required for slide progress.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( $current_slide_number <= 0 || $slides_total <= 0 ) {
+            return new WP_Error( 'teqcidb_slide_progress_invalid_slide', __( 'A valid slide number is required to save slide progress.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        return array(
+            'quiz_id'              => $quiz_id,
+            'class_id'             => $class_id,
+            'current_slide_number' => $current_slide_number,
+            'slides_total'         => $slides_total,
+        );
+    }
 
     private function validate_request_payload( $request ) {
         $quiz_id    = absint( $request->get_param( 'quiz_id' ) );

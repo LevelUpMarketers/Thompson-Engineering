@@ -384,6 +384,12 @@
     opacity: 0.45;
 }
 
+.teqcidb-class-slides__save-status {
+    align-self: center;
+    color: #315f2f;
+    font-size: 0.95rem;
+}
+
 
 .teqcidb-class-slides__next-wrap {
     position: relative;
