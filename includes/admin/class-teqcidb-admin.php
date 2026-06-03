@@ -1296,6 +1296,10 @@ class TEQCIDB_Admin {
             'studentNameLabel' => __( 'First & Last Name', 'teqcidb' ),
             'editAction'   => __( 'Edit', 'teqcidb' ),
             'saveChanges'  => __( 'Save Changes', 'teqcidb' ),
+            /* translators: %s: WordPress user ID. */
+            'wpUserAccountLabel' => __( 'WordPress User Account - %s', 'teqcidb' ),
+            'wpUserAccountUnavailable' => __( 'WordPress User Account - N/A', 'teqcidb' ),
+            'wpUserEditBaseUrl' => esc_url( admin_url( 'user-edit.php?user_id=' ) ),
             'entityFields' => $field_definitions,
             'studentHistoryFields' => $student_history_definitions,
             'studentHistoryClassMap' => $student_history_class_map,

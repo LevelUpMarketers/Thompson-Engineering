@@ -1624,6 +1624,17 @@ jQuery(document).ready(function($){
                     type: 'submit',
                     'class': 'button button-primary teqcidb-entity-save'
                 }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+                var wpUserId = parseInt(entity && entity.wpuserid ? entity.wpuserid : 0, 10) || 0;
+                var wpUserLabel = wpUserId > 0 ? formatString(teqcidbAdmin.wpUserAccountLabel || 'WordPress User Account - %s', wpUserId) : (teqcidbAdmin.wpUserAccountUnavailable || 'WordPress User Account - N/A');
+                var $wpUserButton = wpUserId > 0 ? $('<a/>', {
+                    'class': 'button button-secondary teqcidb-wp-user-account',
+                    href: (teqcidbAdmin.wpUserEditBaseUrl || '') + encodeURIComponent(wpUserId)
+                }).text(wpUserLabel) : $('<button/>', {
+                    type: 'button',
+                    'class': 'button button-secondary teqcidb-wp-user-account',
+                    disabled: 'disabled',
+                    'aria-disabled': 'true'
+                }).text(wpUserLabel);
                 var $deleteButton = $('<button/>', {
                     type: 'button',
                     'class': 'button button-secondary teqcidb-delete',
@@ -1633,7 +1644,7 @@ jQuery(document).ready(function($){
                 var $spinner = $('<span/>', { 'class': 'spinner teqcidb-entity-spinner', 'aria-hidden': 'true' });
                 var $feedback = $('<span/>', { 'class': 'teqcidb-entity-feedback', 'role': 'status', 'aria-live': 'polite' });
                 $feedbackArea.append($spinner).append($feedback);
-                $actions.append($saveButton).append(' ').append($deleteButton).append($feedbackArea);
+                $actions.append($saveButton).append(' ').append($wpUserButton).append(' ').append($deleteButton).append($feedbackArea);
                 $form.append($actions);
             } else {
                 $form.find('input, select, textarea, button').prop('disabled', true).attr('aria-disabled', 'true');
