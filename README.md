@@ -45,14 +45,22 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.6 (current)
+### 1.0.7 (current)
+
+Changes in **1.0.7** compared with **1.0.6**:
+
+- Changed **Quizzes → Create a Quiz** slide ZIP imports to stage the uploaded ZIP after quiz creation and import slide images in small background AJAX batches, reducing timeout risk for larger slide decks.
+- Added a live admin progress message for batched slide ZIP imports, with automatic continuation between batches and a completion redirect back to the normal quiz-saved success message.
+- Preserved filename-based slide ordering, WordPress Media Library attachment creation, and `teqcidb_quiz_slides` row creation during the new staged import flow, while adding cleanup for completed or stale staged ZIP files.
+- Added translatable status/error copy and translation template entries for the new background slide ZIP importer.
+
+### 1.0.6
 
 Changes in **1.0.6** compared with **1.0.5**:
 
 - Added slide-only Refresher class support so refresher classes with slides but no quiz questions can load, track manual progress, complete slides, and record the same passed outcome handling used by passed Refresher quizzes.
 - Simplified Refresher slide navigation by removing slide cooldowns and automatic position saves, adding a manual **Save Progress** action, restoring saved slide loading, and hiding slide navigation after completion while preserving the passed-class congratulations/dashboard message.
 - Added Quiz Slides management to **Quizzes → Edit Quizzes**, including ordered slide thumbnails, full-size previews, image replacement tracking on **Save Changes**, per-slide delete with media removal and re-numbering, and an **Add a New Slide** flow.
-- Changed **Quizzes → Create a Quiz** slide ZIP imports to stage the uploaded ZIP and import slide images in small background AJAX batches after the quiz is saved, reducing timeout risk for larger slide decks.
 - Made class-page slide images responsive with `max-width: 100%` and updated Refresher class-page welcome copy to explain resources, slides, completion requirements, and manual progress saving.
 - Added a **WordPress User Account** action to **Students → Edit Students** rows and changed the fourth student accordion summary column from **Cell Phone** to **QCI Number**.
 
