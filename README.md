@@ -45,7 +45,17 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.5 (current)
+### 1.0.6 (current)
+
+Changes in **1.0.6** compared with **1.0.5**:
+
+- Added slide-only Refresher class support so refresher classes with slides but no quiz questions can load, track manual progress, complete slides, and record the same passed outcome handling used by passed Refresher quizzes.
+- Simplified Refresher slide navigation by removing slide cooldowns and automatic position saves, adding a manual **Save Progress** action, restoring saved slide loading, and hiding slide navigation after completion while preserving the passed-class congratulations/dashboard message.
+- Added Quiz Slides management to **Quizzes → Edit Quizzes**, including ordered slide thumbnails, full-size previews, image replacement tracking on **Save Changes**, per-slide delete with media removal and re-numbering, and an **Add a New Slide** flow.
+- Made class-page slide images responsive with `max-width: 100%` and updated Refresher class-page welcome copy to explain resources, slides, completion requirements, and manual progress saving.
+- Added a **WordPress User Account** action to **Students → Edit Students** rows and changed the fourth student accordion summary column from **Cell Phone** to **QCI Number**.
+
+### 1.0.5
 
 Changes in **1.0.5** compared with **1.0.4**:
 
