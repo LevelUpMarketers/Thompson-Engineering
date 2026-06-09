@@ -637,3 +637,48 @@ msgstr ""
 #: includes/shortcodes/class-teqcidb-shortcode-student.php:16
 msgid "Student Output"
 msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:1402
+msgid "Importing quiz slides in the background. Please keep this page open until the import finishes."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:1404
+#, php-format
+msgid "Imported %1$s of %2$s slides…"
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:1405
+msgid "Slide import complete. Reloading…"
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:1406
+msgid "Unable to finish importing quiz slides. Please try uploading the ZIP again."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:1966
+msgid "Quiz saved. The slide ZIP is being imported in smaller batches to avoid server timeouts. Please keep this page open until it finishes."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3799
+msgid "Missing slide import token."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3806
+msgid "Slide import session was not found. Please upload the ZIP again."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3813
+msgid "The staged slide ZIP could not be found. Please upload the ZIP again."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3817
+msgid "The server is missing ZIP support."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3828
+msgid "The staged slide ZIP could not be opened. Please upload the ZIP again."
+msgstr ""
+
+#: includes/admin/class-teqcidb-admin.php:3845
+msgid "WordPress uploads are unavailable right now."
+msgstr ""

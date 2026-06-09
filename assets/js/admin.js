@@ -42,6 +42,89 @@ jQuery(document).ready(function($){
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
 
+    function formatQuizSlideImportProgress(template, processed, total){
+        return String(template || '')
+            .replace('%1$s', processed)
+            .replace('%2$s', total);
+    }
+
+    function handleQuizSlideZipImport(){
+        var importConfig = teqcidbAdmin && teqcidbAdmin.quizSlideImport ? teqcidbAdmin.quizSlideImport : {};
+        var token = importConfig.token || '';
+
+        if (!token){
+            return;
+        }
+
+        var total = parseInt(importConfig.total, 10) || 0;
+        var $notice = $('.teqcidb-top-message').first();
+        var $status = $('<p/>', {
+            'class': 'teqcidb-quiz-slide-import-status',
+            'role': 'status',
+            'aria-live': 'polite'
+        });
+
+        if (!$notice.length){
+            $notice = $('<div/>', { 'class': 'notice notice-info teqcidb-top-message' }).prependTo('.wrap').first();
+        }
+
+        $notice.append($status);
+        $status.text(teqcidbAdmin.quizSlideZipImporting || 'Importing quiz slides...');
+
+        function updateStatus(processed, totalSlides){
+            var progressTemplate = teqcidbAdmin.quizSlideZipImportProgress || 'Imported %1$s of %2$s slides...';
+            $status.text(formatQuizSlideImportProgress(progressTemplate, processed, totalSlides));
+        }
+
+        function markImportFailed(message){
+            $notice.removeClass('notice-info').addClass('notice-error');
+            $status.text(message || teqcidbAdmin.quizSlideZipImportError || 'Unable to finish importing quiz slides.');
+        }
+
+        function processNextBatch(){
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_import_quiz_slides_batch',
+                _ajax_nonce: teqcidbAjax.nonce,
+                token: token
+            })
+            .done(function(response){
+                var data = response && response.data ? response.data : {};
+
+                if (!response || !response.success){
+                    markImportFailed(data.message || data.error);
+                    return;
+                }
+
+                updateStatus(data.processed || 0, data.total || total);
+
+                if (data.done){
+                    $status.text(teqcidbAdmin.quizSlideZipImportComplete || 'Slide import complete. Reloading...');
+
+                    if (data.redirectUrl){
+                        window.location.href = data.redirectUrl;
+                    }
+
+                    return;
+                }
+
+                window.setTimeout(processNextBatch, 250);
+            })
+            .fail(function(xhr){
+                var message = '';
+
+                if (xhr && xhr.responseJSON && xhr.responseJSON.data){
+                    message = xhr.responseJSON.data.message || xhr.responseJSON.data.error || '';
+                }
+
+                markImportFailed(message);
+            });
+        }
+
+        processNextBatch();
+    }
+
+    handleQuizSlideZipImport();
+
     function handleLegacyUploadForm(){
         var selector = '#teqcidb-legacy-upload-form';
 
