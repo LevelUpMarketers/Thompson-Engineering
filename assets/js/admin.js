@@ -4017,11 +4017,12 @@ jQuery(document).ready(function($){
 
             var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
             var $button = $('<button/>', { type: 'submit', 'class': 'button button-primary teqcidb-class-save' }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+            var $deleteButton = $('<button/>', { type: 'button', 'class': 'button button-secondary teqcidb-class-delete' }).text(teqcidbAdmin.delete || 'Delete');
             var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
             var $spinner = $('<span/>', { 'class': 'spinner teqcidb-class-spinner', 'aria-hidden': 'true' });
             var $feedback = $('<span/>', { 'class': 'teqcidb-class-feedback', 'role': 'status', 'aria-live': 'polite' });
             $feedbackArea.append($spinner).append($feedback);
-            $actions.append($button).append($feedbackArea);
+            $actions.append($button).append(' ').append($deleteButton).append($feedbackArea);
             $form.append($actions);
             $form.append(buildClassRegisteredStudentsSection(entity));
 
