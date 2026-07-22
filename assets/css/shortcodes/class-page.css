@@ -362,7 +362,7 @@
 
 .teqcidb-class-slides__image {
     display: block;
-    max-width: 745px;
+    max-width: 100%;
     height: auto;
     border-radius: 6px;
     margin-left: auto;
@@ -382,6 +382,12 @@
 .teqcidb-class-slides__actions .teqcidb-button[disabled] {
     cursor: not-allowed;
     opacity: 0.45;
+}
+
+.teqcidb-class-slides__save-status {
+    align-self: center;
+    color: #315f2f;
+    font-size: 0.95rem;
 }
 
 

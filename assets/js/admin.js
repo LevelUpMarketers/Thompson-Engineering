@@ -42,6 +42,89 @@ jQuery(document).ready(function($){
     handleForm('#teqcidb-style-settings-form','teqcidb_save_student');
     handleForm('.teqcidb-api-settings__form','teqcidb_save_api_settings');
 
+    function formatQuizSlideImportProgress(template, processed, total){
+        return String(template || '')
+            .replace('%1$s', processed)
+            .replace('%2$s', total);
+    }
+
+    function handleQuizSlideZipImport(){
+        var importConfig = teqcidbAdmin && teqcidbAdmin.quizSlideImport ? teqcidbAdmin.quizSlideImport : {};
+        var token = importConfig.token || '';
+
+        if (!token){
+            return;
+        }
+
+        var total = parseInt(importConfig.total, 10) || 0;
+        var $notice = $('.teqcidb-top-message').first();
+        var $status = $('<p/>', {
+            'class': 'teqcidb-quiz-slide-import-status',
+            'role': 'status',
+            'aria-live': 'polite'
+        });
+
+        if (!$notice.length){
+            $notice = $('<div/>', { 'class': 'notice notice-info teqcidb-top-message' }).prependTo('.wrap').first();
+        }
+
+        $notice.append($status);
+        $status.text(teqcidbAdmin.quizSlideZipImporting || 'Importing quiz slides...');
+
+        function updateStatus(processed, totalSlides){
+            var progressTemplate = teqcidbAdmin.quizSlideZipImportProgress || 'Imported %1$s of %2$s slides...';
+            $status.text(formatQuizSlideImportProgress(progressTemplate, processed, totalSlides));
+        }
+
+        function markImportFailed(message){
+            $notice.removeClass('notice-info').addClass('notice-error');
+            $status.text(message || teqcidbAdmin.quizSlideZipImportError || 'Unable to finish importing quiz slides.');
+        }
+
+        function processNextBatch(){
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_import_quiz_slides_batch',
+                _ajax_nonce: teqcidbAjax.nonce,
+                token: token
+            })
+            .done(function(response){
+                var data = response && response.data ? response.data : {};
+
+                if (!response || !response.success){
+                    markImportFailed(data.message || data.error);
+                    return;
+                }
+
+                updateStatus(data.processed || 0, data.total || total);
+
+                if (data.done){
+                    $status.text(teqcidbAdmin.quizSlideZipImportComplete || 'Slide import complete. Reloading...');
+
+                    if (data.redirectUrl){
+                        window.location.href = data.redirectUrl;
+                    }
+
+                    return;
+                }
+
+                window.setTimeout(processNextBatch, 250);
+            })
+            .fail(function(xhr){
+                var message = '';
+
+                if (xhr && xhr.responseJSON && xhr.responseJSON.data){
+                    message = xhr.responseJSON.data.message || xhr.responseJSON.data.error || '';
+                }
+
+                markImportFailed(message);
+            });
+        }
+
+        processNextBatch();
+    }
+
+    handleQuizSlideZipImport();
+
     function handleLegacyUploadForm(){
         var selector = '#teqcidb-legacy-upload-form';
 
@@ -354,6 +437,360 @@ jQuery(document).ready(function($){
             $(target+'-preview').html('<img src="'+attachment.url+'" style="max-width:100px;height:auto;" />');
         });
         frame.open();
+    });
+
+    var $quizSlideModal = $();
+    var $quizSlideModalImage = $();
+    var $quizSlideModalTitle = $();
+    var quizSlidePreviousFocus = null;
+
+    function ensureQuizSlideModal(){
+        if ($quizSlideModal.length){
+            return $quizSlideModal;
+        }
+
+        $quizSlideModal = $('<div/>', {
+            'class': 'teqcidb-quiz-slide-modal',
+            'role': 'dialog',
+            'aria-modal': 'true',
+            'aria-hidden': 'true',
+            'aria-labelledby': 'teqcidb-quiz-slide-modal-title'
+        });
+
+        var $backdrop = $('<button/>', {
+            type: 'button',
+            'class': 'teqcidb-quiz-slide-modal__backdrop',
+            'aria-label': teqcidbAdmin.quizSlidePreviewClose || 'Close slide preview'
+        });
+        var $dialog = $('<div/>', {
+            'class': 'teqcidb-quiz-slide-modal__dialog',
+            tabindex: '-1'
+        });
+        var $close = $('<button/>', {
+            type: 'button',
+            'class': 'teqcidb-quiz-slide-modal__close',
+            'aria-label': teqcidbAdmin.quizSlidePreviewClose || 'Close slide preview'
+        }).html('&times;');
+
+        $quizSlideModalTitle = $('<h2/>', {
+            id: 'teqcidb-quiz-slide-modal-title',
+            'class': 'teqcidb-quiz-slide-modal__title'
+        }).text(teqcidbAdmin.quizSlidePreviewTitle || 'Slide Preview');
+        $quizSlideModalImage = $('<img/>', {
+            'class': 'teqcidb-quiz-slide-modal__image',
+            src: '',
+            alt: ''
+        });
+
+        $dialog.append($close, $quizSlideModalTitle, $quizSlideModalImage);
+        $quizSlideModal.append($backdrop, $dialog);
+        $('body').append($quizSlideModal);
+
+        $backdrop.add($close).on('click', closeQuizSlideModal);
+
+        return $quizSlideModal;
+    }
+
+    function closeQuizSlideModal(){
+        if (!$quizSlideModal.length){
+            return;
+        }
+
+        $quizSlideModal.removeClass('is-visible').attr('aria-hidden', 'true');
+        $quizSlideModalImage.attr({ src: '', alt: '' });
+
+        if (quizSlidePreviousFocus && typeof quizSlidePreviousFocus.focus === 'function'){
+            quizSlidePreviousFocus.focus();
+        }
+
+        quizSlidePreviousFocus = null;
+    }
+
+    function openQuizSlideModal($button){
+        var imageUrl = $button.attr('data-full-image') || '';
+        var title = $button.closest('.teqcidb-quiz-slide-card').find('.teqcidb-quiz-slide-card__title').first().text() || (teqcidbAdmin.quizSlidePreviewTitle || 'Slide Preview');
+        var altText = $button.find('img').first().attr('alt') || title;
+
+        if (!imageUrl){
+            return;
+        }
+
+        ensureQuizSlideModal();
+        quizSlidePreviousFocus = $button.get(0) || null;
+        $quizSlideModalTitle.text(title);
+        $quizSlideModalImage.attr({ src: imageUrl, alt: altText });
+        $quizSlideModal.addClass('is-visible').attr('aria-hidden', 'false');
+        $quizSlideModal.find('.teqcidb-quiz-slide-modal__dialog').first().trigger('focus');
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-card__thumbnail-button', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        openQuizSlideModal($(this));
+    });
+
+    function getReplacementThumbnailUrl(attachment){
+        if (attachment && attachment.sizes && attachment.sizes.thumbnail && attachment.sizes.thumbnail.url){
+            return attachment.sizes.thumbnail.url;
+        }
+
+        return attachment && attachment.url ? attachment.url : '';
+    }
+
+    function openQuizSlideMediaFrame(options){
+        options = options || {};
+
+        var frame = wp.media({
+            title: options.title || teqcidbAdmin.mediaTitle,
+            button: {
+                text: options.buttonText || teqcidbAdmin.mediaButton
+            },
+            library: {
+                type: 'image'
+            },
+            multiple: false
+        });
+
+        frame.on('select', function(){
+            var attachment = frame.state().get('selection').first().toJSON();
+
+            if (typeof options.onSelect === 'function'){
+                options.onSelect(attachment || {});
+            }
+        });
+
+        frame.open();
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-replace', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $card = $button.closest('.teqcidb-quiz-slide-card');
+        var $input = $card.find('.teqcidb-quiz-slide-card__replacement').first();
+        var $thumbnailButton = $card.find('.teqcidb-quiz-slide-card__thumbnail-button').first();
+        var $thumbnail = $card.find('.teqcidb-quiz-slide-card__thumbnail').first();
+        var $status = $card.find('.teqcidb-quiz-slide-card__status').first();
+        var title = $card.find('.teqcidb-quiz-slide-card__title').first().text() || '';
+        openQuizSlideMediaFrame({
+            title: teqcidbAdmin.quizSlideReplaceMediaTitle || teqcidbAdmin.mediaTitle,
+            buttonText: teqcidbAdmin.quizSlideReplaceMediaButton || teqcidbAdmin.mediaButton,
+            onSelect: function(attachment){
+                var attachmentId = attachment && attachment.id ? parseInt(attachment.id, 10) : 0;
+                var fullUrl = attachment && attachment.url ? attachment.url : '';
+                var thumbnailUrl = getReplacementThumbnailUrl(attachment);
+                var altText = attachment && attachment.alt ? attachment.alt : title;
+
+                if (!attachmentId || !fullUrl){
+                    return;
+                }
+
+                $input.val(attachmentId);
+                $thumbnailButton.attr('data-full-image', fullUrl);
+
+                if ($thumbnail.length && thumbnailUrl){
+                    $thumbnail.attr({
+                        src: thumbnailUrl,
+                        alt: altText
+                    });
+                }
+
+                $card.addClass('is-pending-replacement');
+
+                if ($status.length){
+                    $status.text(teqcidbAdmin.quizSlideReplacementPending || 'Replacement selected. Click Save Changes to update this slide.');
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '.teqcidb-quiz-slide-add__select', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $section = $(this).closest('.teqcidb-quiz-slide-add');
+        var $input = $section.find('.teqcidb-quiz-slide-add__attachment').first();
+        var $thumbnail = $section.find('.teqcidb-quiz-slide-add__thumbnail').first();
+        var $placeholder = $section.find('.teqcidb-quiz-slide-add__placeholder').first();
+        var $status = $section.find('.teqcidb-quiz-slide-add__status').first();
+
+        openQuizSlideMediaFrame({
+            title: teqcidbAdmin.quizSlideAddMediaTitle || teqcidbAdmin.mediaTitle,
+            buttonText: teqcidbAdmin.quizSlideAddMediaButton || teqcidbAdmin.mediaButton,
+            onSelect: function(attachment){
+                var attachmentId = attachment && attachment.id ? parseInt(attachment.id, 10) : 0;
+                var thumbnailUrl = getReplacementThumbnailUrl(attachment);
+                var altText = attachment && attachment.alt ? attachment.alt : '';
+
+                if (!attachmentId || !thumbnailUrl){
+                    return;
+                }
+
+                $input.val(attachmentId);
+                $thumbnail.attr({
+                    src: thumbnailUrl,
+                    alt: altText
+                }).removeAttr('hidden');
+                $placeholder.attr('hidden', 'hidden');
+
+                if ($status.length){
+                    $status.text(teqcidbAdmin.quizSlideAddSelected || 'Image selected. Enter a slide number, then click Add Image.').addClass('is-visible');
+                }
+            }
+        });
+    });
+
+    function handleQuizSlideAdd($button){
+        if (!$button || !$button.length){
+            return;
+        }
+
+        var $section = $button.closest('.teqcidb-quiz-slide-add');
+        var quizId = parseInt($section.data('quiz-id'), 10) || 0;
+        var attachmentId = parseInt($section.find('.teqcidb-quiz-slide-add__attachment').first().val(), 10) || 0;
+        var slideNumber = parseInt($section.find('.teqcidb-quiz-slide-add__number').first().val(), 10) || 0;
+        var $status = $section.find('.teqcidb-quiz-slide-add__status').first();
+        var $buttons = $section.find('.teqcidb-quiz-slide-add__select, .teqcidb-quiz-slide-add__submit');
+
+        if (!attachmentId){
+            if ($status.length){
+                $status.text(teqcidbAdmin.quizSlideAddImageRequired || 'Select an image before adding a new slide.').addClass('is-visible');
+            }
+            return;
+        }
+
+        if (!slideNumber){
+            if ($status.length){
+                $status.text(teqcidbAdmin.quizSlideAddNumberRequired || 'Enter the slide number before adding the image.').addClass('is-visible');
+            }
+            return;
+        }
+
+        $buttons.prop('disabled', true);
+        $section.addClass('is-adding-slide');
+
+        if ($status.length){
+            $status.text(teqcidbAdmin.quizSlideAdding || 'Adding slide…').addClass('is-visible');
+        }
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_add_quiz_slide',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            attachment_id: attachmentId,
+            slide_number: slideNumber
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizSlideAddedReloading || 'Slide added. Reloading…');
+
+                    if ($status.length && message){
+                        $status.text(message).addClass('is-visible');
+                    }
+
+                    saveQuizRestoreState(quizId);
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($status.length && errorMessage){
+                        $status.text(errorMessage).addClass('is-visible');
+                    }
+                    $buttons.prop('disabled', false);
+                    $section.removeClass('is-adding-slide');
+                }
+            })
+            .fail(function(){
+                if ($status.length && teqcidbAdmin.error){
+                    $status.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+                $buttons.prop('disabled', false);
+                $section.removeClass('is-adding-slide');
+            });
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-add__submit', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        handleQuizSlideAdd($(this));
+    });
+
+    function handleQuizSlideDelete($button){
+        if (!$button || !$button.length){
+            return;
+        }
+
+        var $card = $button.closest('.teqcidb-quiz-slide-card');
+        var $form = $button.closest('form');
+        var slideId = parseInt($card.data('slide-id'), 10) || 0;
+        var quizId = parseInt($form.find('input[name="quiz_id"]').first().val(), 10) || 0;
+        var $status = $card.find('.teqcidb-quiz-slide-card__status').first();
+        var $deleteButtons = $('.teqcidb-quiz-slide-delete');
+
+        if (slideId <= 0 || quizId <= 0){
+            if ($status.length){
+                $status.text(teqcidbAdmin.error || '').addClass('is-visible');
+            }
+            return;
+        }
+
+        $deleteButtons.prop('disabled', true);
+        $card.addClass('is-deleting-slide');
+
+        if ($status.length){
+            $status.text(teqcidbAdmin.quizSlideDeleting || 'Deleting slide…').addClass('is-visible');
+        }
+
+        $.post(teqcidbAjax.ajaxurl, {
+            action: 'teqcidb_delete_quiz_slide',
+            _ajax_nonce: teqcidbAjax.nonce,
+            quiz_id: quizId,
+            slide_id: slideId
+        })
+            .done(function(resp){
+                if (resp && resp.success){
+                    var message = (resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.quizSlideDeletedReloading || 'Slide deleted. Reloading…');
+
+                    if ($status.length && message){
+                        $status.text(message).addClass('is-visible');
+                    }
+
+                    saveQuizRestoreState(quizId);
+
+                    setTimeout(function(){
+                        window.location.reload();
+                    }, 450);
+                } else {
+                    var errorMessage = (resp && resp.data && resp.data.message) ? resp.data.message : (teqcidbAdmin.error || '');
+                    if ($status.length && errorMessage){
+                        $status.text(errorMessage).addClass('is-visible');
+                    }
+                    $deleteButtons.prop('disabled', false);
+                    $card.removeClass('is-deleting-slide');
+                }
+            })
+            .fail(function(){
+                if ($status.length && teqcidbAdmin.error){
+                    $status.text(teqcidbAdmin.error).addClass('is-visible');
+                }
+                $deleteButtons.prop('disabled', false);
+                $card.removeClass('is-deleting-slide');
+            });
+    }
+
+    $(document).on('click', '.teqcidb-quiz-slide-delete', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        handleQuizSlideDelete($(this));
+    });
+
+    $(document).on('keydown', function(e){
+        if (e.key === 'Escape' && $quizSlideModal.length && $quizSlideModal.hasClass('is-visible')){
+            closeQuizSlideModal();
+        }
     });
 
     if($('#teqcidb-entity-list').length){
@@ -1270,6 +1707,17 @@ jQuery(document).ready(function($){
                     type: 'submit',
                     'class': 'button button-primary teqcidb-entity-save'
                 }).text(teqcidbAdmin.saveChanges || 'Save Changes');
+                var wpUserId = parseInt(entity && entity.wpuserid ? entity.wpuserid : 0, 10) || 0;
+                var wpUserLabel = wpUserId > 0 ? formatString(teqcidbAdmin.wpUserAccountLabel || 'WordPress User Account - %s', wpUserId) : (teqcidbAdmin.wpUserAccountUnavailable || 'WordPress User Account - N/A');
+                var $wpUserButton = wpUserId > 0 ? $('<a/>', {
+                    'class': 'button button-secondary teqcidb-wp-user-account',
+                    href: (teqcidbAdmin.wpUserEditBaseUrl || '') + encodeURIComponent(wpUserId)
+                }).text(wpUserLabel) : $('<button/>', {
+                    type: 'button',
+                    'class': 'button button-secondary teqcidb-wp-user-account',
+                    disabled: 'disabled',
+                    'aria-disabled': 'true'
+                }).text(wpUserLabel);
                 var $deleteButton = $('<button/>', {
                     type: 'button',
                     'class': 'button button-secondary teqcidb-delete',
@@ -1279,7 +1727,7 @@ jQuery(document).ready(function($){
                 var $spinner = $('<span/>', { 'class': 'spinner teqcidb-entity-spinner', 'aria-hidden': 'true' });
                 var $feedback = $('<span/>', { 'class': 'teqcidb-entity-feedback', 'role': 'status', 'aria-live': 'polite' });
                 $feedbackArea.append($spinner).append($feedback);
-                $actions.append($saveButton).append(' ').append($deleteButton).append($feedbackArea);
+                $actions.append($saveButton).append(' ').append($wpUserButton).append(' ').append($deleteButton).append($feedbackArea);
                 $form.append($actions);
             } else {
                 $form.find('input, select, textarea, button').prop('disabled', true).attr('aria-disabled', 'true');
