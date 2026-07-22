@@ -28,6 +28,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_teqcidb_update_profile', array( $this, 'update_profile' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
+        add_action( 'wp_ajax_teqcidb_delete_class', array( $this, 'delete_class' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_slide', array( $this, 'delete_quiz_slide' ) );
@@ -4640,6 +4641,58 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    /**
+     * Delete a class from the custom classes table.
+     */
+    public function delete_class() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to delete this class.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $class_id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid class selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table   = $wpdb->prefix . 'teqcidb_classes';
+        $deleted = $wpdb->delete( $table, array( 'id' => $class_id ), array( '%d' ) );
+
+        if ( false === $deleted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to delete this class. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( 0 === $deleted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected class no longer exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'message' => __( 'Class deleted.', 'teqcidb' ),
             )
         );
     }

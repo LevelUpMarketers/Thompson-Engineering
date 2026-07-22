@@ -4017,7 +4017,7 @@ jQuery(document).ready(function($){
 
             var $actions = $('<p/>', { 'class': 'teqcidb-entity__actions submit' });
             var $button = $('<button/>', { type: 'submit', 'class': 'button button-primary teqcidb-class-save' }).text(teqcidbAdmin.saveChanges || 'Save Changes');
-            var $deleteButton = $('<button/>', { type: 'button', 'class': 'button button-secondary teqcidb-class-delete' }).text(teqcidbAdmin.delete || 'Delete');
+            var $deleteButton = $('<button/>', { type: 'button', 'class': 'button button-secondary teqcidb-class-delete', 'data-id': entityId }).text(teqcidbAdmin.delete || 'Delete');
             var $feedbackArea = $('<span/>', { 'class': 'teqcidb-feedback-area teqcidb-feedback-area--inline' });
             var $spinner = $('<span/>', { 'class': 'spinner teqcidb-class-spinner', 'aria-hidden': 'true' });
             var $feedback = $('<span/>', { 'class': 'teqcidb-class-feedback', 'role': 'status', 'aria-live': 'polite' });
@@ -4300,6 +4300,61 @@ jQuery(document).ready(function($){
                         setTimeout(function(){
                             $spinner.removeClass('is-active');
                         }, 150);
+                    }
+                });
+        });
+
+        $classTableBody.on('click', '.teqcidb-class-delete', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $button = $(this);
+            var $form = $button.closest('.teqcidb-class-edit-form');
+            var classId = parseInt($button.data('id'), 10) || 0;
+            var $spinner = $form.find('.teqcidb-class-spinner');
+            var $feedback = $form.find('.teqcidb-class-feedback');
+
+            if (!classId || !window.confirm(teqcidbAdmin.deleteClassConfirmation || 'Are you sure you want to delete this class?')){
+                return;
+            }
+
+            $button.prop('disabled', true);
+
+            if ($spinner.length){
+                $spinner.addClass('is-active');
+            }
+
+            if ($feedback.length){
+                $feedback.removeClass('is-visible').text('');
+            }
+
+            $.post(teqcidbAjax.ajaxurl, {
+                action: 'teqcidb_delete_class',
+                id: classId,
+                _ajax_nonce: teqcidbAjax.nonce
+            })
+                .done(function(resp){
+                    if (resp && resp.success){
+                        window.location.reload();
+                        return;
+                    }
+
+                    var message = resp && resp.data && resp.data.message ? resp.data.message : (teqcidbAdmin.error || '');
+
+                    if ($feedback.length && message){
+                        $feedback.text(message).addClass('is-visible');
+                    }
+                })
+                .fail(function(){
+                    if ($feedback.length && teqcidbAdmin.error){
+                        $feedback.text(teqcidbAdmin.error).addClass('is-visible');
+                    }
+                })
+                .always(function(){
+                    $button.prop('disabled', false);
+
+                    if ($spinner.length){
+                        $spinner.removeClass('is-active');
                     }
                 });
         });

@@ -1278,6 +1278,7 @@ class TEQCIDB_Admin {
             'classPlaceholders' => array_values( $class_placeholder_labels ),
             'classPlaceholderMap' => $class_placeholder_labels,
             'delete'       => __( 'Delete', 'teqcidb' ),
+            'deleteClassConfirmation' => __( 'Are you sure you want to delete this class?', 'teqcidb' ),
             'none'         => __( 'No entries found.', 'teqcidb' ),
             'mediaTitle'   => __( 'Select Image', 'teqcidb' ),
             'mediaButton'  => __( 'Use this image', 'teqcidb' ),
