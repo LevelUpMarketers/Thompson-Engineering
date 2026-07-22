@@ -544,3 +544,4 @@
 523. 2026-05-20 00:00 UTC: Updated Students → Edit Students accordion placeholder column 4 to display each student's QCI Number instead of Cell Phone by relabeling the heading to "QCI Number" and mapping placeholder_4 to qcinumber in the student-entity response payload.
 524. 2026-07-22 00:00 UTC: Added a localized, non-functional Delete button immediately beside Save Changes on each Classes → Edit & Manage Classes form, reserving the control for the forthcoming class-deletion workflow.
 525. 2026-07-22 00:15 UTC: Implemented Classes → Edit & Manage Classes deletion with a localized confirmation dialog, nonce- and capability-protected AJAX removal from `teqcidb_classes`, inline error feedback, and a page reload after successful deletion.
+526. 2026-07-22 00:30 UTC: Disabled the four representative-contact inputs on Students → Create a Student so new student creation submits without administrator-entered representative contact data.

@@ -2101,24 +2101,28 @@ class TEQCIDB_Admin {
                 'label'   => __( 'Representative First Name', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_first_name'],
+                'attrs'   => 'disabled',
             ),
             array(
                 'name'    => 'representative_last_name',
                 'label'   => __( 'Representative Last Name', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_last_name'],
+                'attrs'   => 'disabled',
             ),
             array(
                 'name'    => 'representative_email',
                 'label'   => __( 'Representative Email', 'teqcidb' ),
                 'type'    => 'email',
                 'tooltip' => $tooltips['representative_email'],
+                'attrs'   => 'disabled',
             ),
             array(
                 'name'    => 'representative_phone',
                 'label'   => __( 'Representative Phone', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_phone'],
+                'attrs'   => 'disabled',
             ),
             array(
                 'name'    => 'associations',
