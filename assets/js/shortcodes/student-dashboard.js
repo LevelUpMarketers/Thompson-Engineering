@@ -105,7 +105,6 @@
     const phoneSelectors = [
         '#teqcidb-create-cell-phone',
         '#teqcidb-create-office-phone',
-        '#teqcidb-create-rep-phone',
         '#teqcidb-profile-cell-phone',
         '#teqcidb-profile-office-phone',
         '#teqcidb-profile-rep-phone',
@@ -167,10 +166,6 @@
         data.append('student_address_city', getValue('#teqcidb-create-city'));
         data.append('student_address_state', getValue('#teqcidb-create-state'));
         data.append('student_address_postal_code', getValue('#teqcidb-create-zip'));
-        data.append('representative_first_name', getValue('#teqcidb-create-rep-first-name'));
-        data.append('representative_last_name', getValue('#teqcidb-create-rep-last-name'));
-        data.append('representative_email', getValue('#teqcidb-create-rep-email'));
-        data.append('representative_phone', getValue('#teqcidb-create-rep-phone'));
         data.append('password', getValue('#teqcidb-create-password'));
         data.append('verify_password', getValue('#teqcidb-create-verify-password'));
 
@@ -242,10 +237,6 @@
 
                 return ![
                     'teqcidb_create_office_phone',
-                    'teqcidb_create_rep_first_name',
-                    'teqcidb_create_rep_last_name',
-                    'teqcidb_create_rep_email',
-                    'teqcidb_create_rep_phone',
                 ].includes(field.name);
             });
 

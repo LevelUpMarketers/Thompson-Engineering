@@ -3764,7 +3764,9 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( $creating_new_student || $has_representative_updates ) {
+        if ( $creating_new_student && ! current_user_can( 'manage_options' ) ) {
+            $data['their_representative'] = '';
+        } elseif ( $creating_new_student || $has_representative_updates ) {
             $data['their_representative'] = $this->sanitize_representative_contact();
         }
 
@@ -10177,8 +10179,6 @@ class TEQCIDB_Ajax {
     }
 
     private function sanitize_representative_contact() {
-        global $wpdb;
-
         $contact = array(
             'first_name' => $this->sanitize_text_value( 'representative_first_name' ),
             'last_name'  => $this->sanitize_text_value( 'representative_last_name' ),
@@ -10187,31 +10187,6 @@ class TEQCIDB_Ajax {
             'wpid'       => '',
             'uniquestudentid' => '',
         );
-
-        if ( '' !== $contact['email'] ) {
-            $user = get_user_by( 'email', $contact['email'] );
-
-            if ( $user instanceof WP_User ) {
-                $contact['wpid'] = (string) $user->ID;
-            }
-
-            $students_table = $wpdb->prefix . 'teqcidb_students';
-            $like           = $wpdb->esc_like( $students_table );
-            $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
-
-            if ( $found === $students_table ) {
-                $unique_id = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT uniquestudentid FROM $students_table WHERE email = %s LIMIT 1",
-                        $contact['email']
-                    )
-                );
-
-                if ( $unique_id ) {
-                    $contact['uniquestudentid'] = sanitize_text_field( (string) $unique_id );
-                }
-            }
-        }
 
         $has_value = false;
 
