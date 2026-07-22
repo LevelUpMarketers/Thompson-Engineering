@@ -1467,7 +1467,7 @@ class TEQCIDB_Admin {
                 'placeholder_1' => __( 'Student Name', 'teqcidb' ),
                 'placeholder_2' => __( 'Email Address', 'teqcidb' ),
                 'placeholder_3' => __( 'Company', 'teqcidb' ),
-                'placeholder_4' => __( 'Cell Phone', 'teqcidb' ),
+                'placeholder_4' => __( 'QCI Number', 'teqcidb' ),
                 'placeholder_5' => __( 'Certification Expiration', 'teqcidb' ),
             );
 
