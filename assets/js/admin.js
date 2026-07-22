@@ -1199,6 +1199,10 @@ jQuery(document).ready(function($){
                         });
                     }
 
+                    if (field.disabledOnEdit){
+                        $inputField.prop('disabled', true).attr('aria-disabled', 'true');
+                    }
+
                     $container.append($inputField);
                     break;
             }

@@ -2102,6 +2102,7 @@ class TEQCIDB_Admin {
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_first_name'],
                 'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_last_name',
@@ -2109,6 +2110,7 @@ class TEQCIDB_Admin {
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_last_name'],
                 'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_email',
@@ -2116,6 +2118,7 @@ class TEQCIDB_Admin {
                 'type'    => 'email',
                 'tooltip' => $tooltips['representative_email'],
                 'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_phone',
@@ -2123,6 +2126,7 @@ class TEQCIDB_Admin {
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_phone'],
                 'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'associations',
@@ -2437,6 +2441,7 @@ class TEQCIDB_Admin {
                 'label'     => $field['label'],
                 'tooltip'   => $field['tooltip'],
                 'fullWidth' => ! empty( $field['full_width'] ),
+                'disabledOnEdit' => ! empty( $field['disabled_on_edit'] ),
             );
 
             if ( isset( $field['options'] ) ) {
