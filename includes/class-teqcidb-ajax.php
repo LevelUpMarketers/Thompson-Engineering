@@ -2579,7 +2579,7 @@ class TEQCIDB_Ajax {
         $table_name = $wpdb->prefix . 'teqcidb_classes';
         $row        = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
+                "SELECT id, uniqueclassid, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
                 $class_id
             ),
             ARRAY_A
@@ -2589,6 +2589,15 @@ class TEQCIDB_Ajax {
             wp_send_json_error(
                 array(
                     'message' => __( 'The selected class is not available for registration.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( '' === trim( $multiple_raw ) && $this->student_has_history_entry_for_class( get_current_user_id(), $row ) ) {
+            wp_send_json_error(
+                array(
+                    'code'    => 'already_registered',
+                    'message' => $this->get_already_registered_for_class_message(),
                 )
             );
         }
@@ -2668,6 +2677,81 @@ class TEQCIDB_Ajax {
                 'totalAmount' => number_format( $amount, 2, '.', '' ),
                 'studentCount' => $selected_count,
                 'discountCount' => $discount_count,
+            )
+        );
+    }
+
+    /**
+     * Determine whether a student already has history for a class.
+     *
+     * @param int   $wp_user_id WordPress user ID for the student.
+     * @param array $class_row  Selected class data.
+     * @return bool
+     */
+    private function student_has_history_entry_for_class( $wp_user_id, array $class_row ) {
+        global $wpdb;
+
+        $wp_user_id      = absint( $wp_user_id );
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+
+        if ( $wp_user_id <= 0 || ( '' === $unique_class_id && '' === $class_name ) ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
+        $student_unique_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT uniquestudentid FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $wp_user_id
+            )
+        );
+
+        $student_where  = 'wpuserid = %d';
+        $student_params = array( $wp_user_id );
+
+        if ( is_string( $student_unique_id ) && '' !== trim( $student_unique_id ) ) {
+            $student_where   .= ' OR uniquestudentid = %s';
+            $student_params[] = sanitize_text_field( $student_unique_id );
+        }
+
+        if ( '' !== $unique_class_id ) {
+            $class_where = 'uniqueclassid = %s';
+            $class_param = $unique_class_id;
+        } else {
+            $class_where = 'LOWER(classname) = LOWER(%s)';
+            $class_param = $class_name;
+        }
+
+        $query_params = array_merge( $student_params, array( $class_param ) );
+        $history_id   = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $history_table WHERE ($student_where) AND $class_where LIMIT 1",
+                $query_params
+            )
+        );
+
+        return ! empty( $history_id );
+    }
+
+    /**
+     * Return the duplicate-registration message with a clickable contact email.
+     *
+     * @return string
+     */
+    private function get_already_registered_for_class_message() {
+        return wp_kses(
+            sprintf(
+                /* translators: %1$s: email link opening tag, %2$s: email link closing tag. */
+                __( 'Whoops! Looks like you\'re already registered for this class (or your representative registered you on your behalf, if you have a representative). For questions, please contact Ilka Porter at %1$siporter@thompsonengineering.com%2$s.', 'teqcidb' ),
+                '<a href="mailto:iporter@thompsonengineering.com">',
+                '</a>'
+            ),
+            array(
+                'a' => array(
+                    'href' => true,
+                ),
             )
         );
     }

@@ -3040,7 +3040,13 @@
                                     ? payload.data.message || payload.data.error
                                     : settings.messagePaymentError ||
                                       'Unable to load the payment form right now. Please try again.';
-                            throw new Error(message);
+                            const tokenError = new Error(message);
+                            tokenError.allowHtml = Boolean(
+                                payload &&
+                                    payload.data &&
+                                    payload.data.code === 'already_registered'
+                            );
+                            throw tokenError;
                         }
 
                         if (payload.data.postUrl) {
@@ -3071,7 +3077,8 @@
                                 ? error.message
                                 : settings.messagePaymentError ||
                                   'Unable to load the payment form right now. Please try again.',
-                            false
+                            false,
+                            { allowHtml: Boolean(error && error.allowHtml) }
                         );
                     })
                     .finally(() => {
