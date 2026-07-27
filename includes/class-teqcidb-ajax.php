@@ -2619,6 +2619,23 @@ class TEQCIDB_Ajax {
             $selected_count    = 1;
         }
 
+        if ( '' !== trim( $multiple_raw ) ) {
+            $already_registered_names = $this->get_selected_student_names_with_history_for_class( $selected_students, $row );
+
+            if ( ! empty( $already_registered_names ) ) {
+                wp_send_json_error(
+                    array(
+                        'code'    => 'representative_already_registered',
+                        'message' => sprintf(
+                            /* translators: %s: comma-separated list of student names. */
+                            __( 'One or more selected students are already registered for the selected class: %s. Please remove those students or choose a different class.', 'teqcidb' ),
+                            implode( ', ', $already_registered_names )
+                        ),
+                    )
+                );
+            }
+        }
+
         $eligibility_error = $this->validate_refresher_student_eligibility_for_checkout( $class_type, $selected_students, get_current_user_id(), $client_timezone_offset );
 
         if ( is_wp_error( $eligibility_error ) ) {
@@ -2733,6 +2750,48 @@ class TEQCIDB_Ajax {
         );
 
         return ! empty( $history_id );
+    }
+
+    /**
+     * Return display names for selected students who already have class history.
+     *
+     * @param array $selected_students Selected checkout students.
+     * @param array $class_row         Selected class data.
+     * @return array
+     */
+    private function get_selected_student_names_with_history_for_class( array $selected_students, array $class_row ) {
+        $duplicate_wpids = array();
+
+        foreach ( $selected_students as $selected_student ) {
+            $wp_user_id = is_array( $selected_student ) && isset( $selected_student['wpid'] ) ? absint( $selected_student['wpid'] ) : 0;
+
+            if ( $wp_user_id > 0 && $this->student_has_history_entry_for_class( $wp_user_id, $class_row ) ) {
+                $duplicate_wpids[] = $wp_user_id;
+            }
+        }
+
+        if ( empty( $duplicate_wpids ) ) {
+            return array();
+        }
+
+        $students = $this->get_students_by_wpids( array_values( array_unique( $duplicate_wpids ) ) );
+        $names    = array();
+
+        foreach ( $students as $student ) {
+            if ( ! is_array( $student ) ) {
+                continue;
+            }
+
+            $name  = trim( sprintf( '%s %s', isset( $student['first_name'] ) ? $student['first_name'] : '', isset( $student['last_name'] ) ? $student['last_name'] : '' ) );
+            $email = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : '';
+            $label = '' !== $name ? sanitize_text_field( $name ) : $email;
+
+            if ( '' !== $label ) {
+                $names[] = $label;
+            }
+        }
+
+        return array_values( array_unique( $names ) );
     }
 
     /**

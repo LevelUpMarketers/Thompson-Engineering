@@ -2321,6 +2321,15 @@
             .trim()
             .replace(/[^a-z0-9_]/g, '');
 
+    const parseRegisteredClassIds = (value) => {
+        try {
+            const parsed = JSON.parse(String(value || '[]'));
+            return Array.isArray(parsed) ? parsed.map((classId) => String(classId)) : [];
+        } catch (error) {
+            return [];
+        }
+    };
+
     const isStudentExpiredForRefresher = (expirationDateValue) => {
         const rawValue = String(expirationDateValue || '').trim();
         if (!rawValue) {
@@ -2405,6 +2414,9 @@
                             (checkbox.dataset.teqcidbRepStudentHasQci || 'no') === 'yes',
                         expirationDate:
                             checkbox.dataset.teqcidbRepStudentExpirationDate || '',
+                        registeredClassIds: parseRegisteredClassIds(
+                            checkbox.dataset.teqcidbRepStudentRegisteredClasses
+                        ),
                     }));
 
                 const checkedClass = classRadios.find((radio) => radio.checked);
@@ -2416,6 +2428,9 @@
                       )
                     : '';
                 const isRefresherClass = selectedClassType === 'refresher';
+                const selectedUniqueClassId = hasClass
+                    ? String(checkedClass.dataset.teqcidbRepClassUniqueId || '')
+                    : '';
 
                 const studentsMissingQci = isRefresherClass
                     ? checkedStudents.filter((student) => !student.hasQci)
@@ -2432,6 +2447,13 @@
                 const expiredNames = studentsExpired.map(
                     (student) => student.name || student.email || student.wpid
                 );
+                const alreadyRegisteredNames = selectedUniqueClassId
+                    ? checkedStudents
+                          .filter((student) =>
+                              student.registeredClassIds.includes(selectedUniqueClassId)
+                          )
+                          .map((student) => student.name || student.email || student.wpid)
+                    : [];
 
                 let eligibilityMessage = '';
 
@@ -2452,6 +2474,19 @@
                         settings.messageRepresentativeRefresherExpired ||
                         'The selected Refresher class requires an active (non-expired) certification. The following selected student(s) are currently expired: %s. Please choose an Initial class or remove expired students.';
                     eligibilityMessage = template.replace('%s', expiredNames.join(', '));
+                }
+
+                if (alreadyRegisteredNames.length) {
+                    const template =
+                        settings.messageRepresentativeAlreadyRegistered ||
+                        'One or more selected students are already registered for the selected class: %s. Please remove those students or choose a different class.';
+                    const alreadyRegisteredMessage = template.replace(
+                        '%s',
+                        alreadyRegisteredNames.join(', ')
+                    );
+                    eligibilityMessage = eligibilityMessage
+                        ? `${eligibilityMessage} ${alreadyRegisteredMessage}`
+                        : alreadyRegisteredMessage;
                 }
 
                 payButton.disabled =
