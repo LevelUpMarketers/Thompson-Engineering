@@ -242,10 +242,11 @@ class TEQCIDB_Ajax {
         $current_user     = wp_get_current_user();
         $students_table   = $wpdb->prefix . 'teqcidb_students';
         $student_name     = '';
+        $refresher_access_expired = false;
 
         $student_name_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT first_name, last_name FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                "SELECT first_name, last_name, expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
                 $current_user_id
             ),
             ARRAY_A
@@ -255,6 +256,11 @@ class TEQCIDB_Ajax {
             $student_first_name = isset( $student_name_row['first_name'] ) ? sanitize_text_field( (string) $student_name_row['first_name'] ) : '';
             $student_last_name  = isset( $student_name_row['last_name'] ) ? sanitize_text_field( (string) $student_name_row['last_name'] ) : '';
             $student_name       = trim( $student_first_name . ' ' . $student_last_name );
+
+            if ( 'refresher' === $class_type ) {
+                $student_expiration_date  = isset( $student_name_row['expiration_date'] ) ? (string) $student_name_row['expiration_date'] : '';
+                $refresher_access_expired = $this->is_student_expired_for_refresher_registration( $student_expiration_date );
+            }
         }
 
         if ( '' === $student_name ) {
@@ -286,7 +292,7 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( $class_id > 0 && $current_user_id > 0 ) {
+        if ( $class_id > 0 && $current_user_id > 0 && ! $refresher_access_expired ) {
             $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
             $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
             $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -446,7 +452,19 @@ class TEQCIDB_Ajax {
 
         echo '<section class="teqcidb-class-route__quiz">';
 
-        if ( ! empty( $quiz_runtime ) ) {
+        if ( $refresher_access_expired ) {
+            $expired_refresher_message = sprintf(
+                /* translators: 1: opening email link, 2: closing email link, 3: opening phone link, 4: closing phone link. */
+                __( 'Whoops! It looks like you may already be expired, and you might be required to take an Initial QCI training class instead. Please contact Ilka Porter at %1$siporter@thompsonengineering.com%2$s or %3$s(251) 666-2443%4$s for more information.', 'teqcidb' ),
+                '<a href="mailto:iporter@thompsonengineering.com">',
+                '</a>',
+                '<a href="tel:2516662443">',
+                '</a>'
+            );
+
+            echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html__( 'Refresher Class Slides', 'teqcidb' ) . '</h2>';
+            echo '<p id="teqcidb-class-quiz-section-description" class="teqcidb-class-route__section-description">' . wp_kses( $expired_refresher_message, $allowed_feedback_html ) . '</p>';
+        } elseif ( ! empty( $quiz_runtime ) ) {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
             $has_refresher_quiz_questions = ( isset( $quiz_runtime['questions'] ) && is_array( $quiz_runtime['questions'] ) && ! empty( $quiz_runtime['questions'] ) );
             $is_slide_only_refresher = ( $has_refresher_slides && ! $has_refresher_quiz_questions );
@@ -909,6 +927,10 @@ class TEQCIDB_Ajax {
 
         if ( 'refresher' !== strtolower( sanitize_key( $class_type ) ) ) {
             return new WP_Error( 'teqcidb_slide_progress_not_refresher', __( 'Slide progress saving is only available for refresher classes.', 'teqcidb' ), array( 'status' => 400 ) );
+        }
+
+        if ( $this->is_student_expired_for_refresher_class( $user_id ) ) {
+            return new WP_Error( 'teqcidb_slide_progress_student_expired', __( 'Your certification is expired, so Refresher slide progress cannot be saved. Please contact the training administrator for assistance.', 'teqcidb' ), array( 'status' => 403 ) );
         }
 
         $current_slide_number = min( $current_slide_number, $slides_total );
@@ -1507,13 +1529,17 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $student_is_expired = ( 'refresher' === strtolower( sanitize_key( (string) $class_row['classtype'] ) ) )
+            ? $this->is_student_expired_for_refresher_class( $user_id )
+            : false;
+
         return array(
             'quiz_id'       => $quiz_id,
             'class_id'      => $class_id,
             'user_id'       => $user_id,
             'class_type'    => isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '',
             'quiz_assigned' => $quiz_assigned,
-            'allowed'       => ( $quiz_assigned && $user_has_quiz_access ),
+            'allowed'       => ( $quiz_assigned && $user_has_quiz_access && ! $student_is_expired ),
         );
     }
 
@@ -3135,6 +3161,32 @@ class TEQCIDB_Ajax {
         }
 
         return __( 'Unknown student', 'teqcidb' );
+    }
+
+    /**
+     * Determine whether the stored student record is expired for Refresher access.
+     *
+     * @param int $wp_user_id WordPress user ID for the student.
+     * @return bool
+     */
+    private function is_student_expired_for_refresher_class( $wp_user_id ) {
+        global $wpdb;
+
+        $wp_user_id = absint( $wp_user_id );
+
+        if ( $wp_user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table  = $wpdb->prefix . 'teqcidb_students';
+        $expiration_date = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $wp_user_id
+            )
+        );
+
+        return $this->is_student_expired_for_refresher_registration( $expiration_date );
     }
 
     /**
