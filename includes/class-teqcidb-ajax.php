@@ -10744,14 +10744,14 @@ class TEQCIDB_Ajax {
         $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
         $identifier_sql  = "SELECT
                 CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key,
-                MIN(id) AS history_id,
+                MAX(id) AS history_id,
                 MAX(CASE WHEN wpuserid > 0 THEN wpuserid ELSE 0 END) AS wpuserid,
                 MAX(uniquestudentid) AS uniquestudentid
             FROM $history_table
             WHERE {$history_args['where_sql']}
             AND ( wpuserid > 0 OR uniquestudentid <> '' )
             GROUP BY student_key
-            ORDER BY history_id ASC
+            ORDER BY history_id DESC
             LIMIT %d OFFSET %d";
         $identifier_args = array_merge( $history_args['where_params'], array( $per_page, $offset ) );
         $identifier_rows = $wpdb->get_results( $wpdb->prepare( $identifier_sql, $identifier_args ), ARRAY_A );
