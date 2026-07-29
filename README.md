@@ -45,7 +45,18 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.7 (current)
+### 1.0.8 (current)
+
+Changes in **1.0.8** compared with **1.0.7**:
+
+- Added a confirmed, capability-protected class deletion workflow to **Classes → Edit & Manage Classes**.
+- Restricted representative assignment to the admin **Assigned Students** controls by disabling representative-contact fields in student create/edit forms and removing them from public account creation.
+- Added duplicate-registration protection before payment for both student self-registration and representative registration, including inline eligibility feedback for already-registered students.
+- Prevented expired students from accessing Refresher class slides, saving Refresher progress, or taking Refresher quizzes, while keeping students eligible through the end of their expiration date.
+- Added 30-record server-side pagination to the **Passed Quizzes** and **Failed Quizzes** tabs while preserving newest-attempt-first ordering.
+- Changed the registered-student roster under class management to load the newest class registrants first while preserving its existing paging behavior.
+
+### 1.0.7
 
 Changes in **1.0.7** compared with **1.0.6**:
 
