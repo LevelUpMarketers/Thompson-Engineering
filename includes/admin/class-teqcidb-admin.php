@@ -1178,6 +1178,17 @@ class TEQCIDB_Admin {
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
+            array(
+                'id'      => 'teqcidb-email-student-refresher-class-completed',
+                'title'   => __( 'Student Refresher Class Completed', 'teqcidb' ),
+                'tooltip' => __( 'For the logged-in student after they complete the slides for a Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Refresher slide completion | Logged-in student | Class Type: Refresher', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Exam & Quiz Outcomes', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
 
             array(
                 'id'      => 'teqcidb-email-student-self-refresher-in-person',
