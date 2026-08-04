@@ -20,6 +20,7 @@ class TEQCIDB_Ajax {
     const QUIZ_SUBMIT_IDEMPOTENCY_TTL         = DAY_IN_SECONDS;
     const QUIZ_SUBMIT_IDEMPOTENCY_KEY_PREFIX  = 'teqcidb_qs_idem_';
     const INITIAL_EXAM_PASS_EMAIL_HOOK        = 'teqcidb_send_initial_exam_pass_email';
+    const REFRESHER_CLASS_COMPLETED_EMAIL_HOOK = 'teqcidb_send_refresher_class_completed_email';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -59,6 +60,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( self::INITIAL_EXAM_PASS_EMAIL_HOOK, array( $this, 'send_initial_exam_pass_email' ), 10, 3 );
+        add_action( self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, array( $this, 'send_refresher_class_completed_email' ), 10, 3 );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
         add_action( 'init', array( __CLASS__, 'register_class_page_rewrite' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
@@ -1090,6 +1092,7 @@ class TEQCIDB_Ajax {
             }
 
             $this->apply_quiz_pass_updates( $user_id, $class_id, 'refresher' );
+            $this->maybe_queue_refresher_class_completed_email( $user_id, $class_id, $attempt_id );
         }
 
         return array(
@@ -2394,6 +2397,24 @@ class TEQCIDB_Ajax {
         wp_schedule_single_event( current_time( 'timestamp' ) + 5, self::INITIAL_EXAM_PASS_EMAIL_HOOK, $args );
     }
 
+    private function maybe_queue_refresher_class_completed_email( $user_id, $class_id, $attempt_id ) {
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 || $attempt_id <= 0 ) {
+            return;
+        }
+
+        $args = array( $user_id, $class_id, $attempt_id );
+
+        if ( wp_next_scheduled( self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, $args ) ) {
+            return;
+        }
+
+        wp_schedule_single_event( current_time( 'timestamp' ) + 5, self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, $args );
+    }
+
     public function send_initial_exam_pass_email( $user_id, $class_id, $attempt_id = 0 ) {
         global $wpdb;
 
@@ -2502,6 +2523,120 @@ class TEQCIDB_Ajax {
                 'triggered_by'   => sprintf(
                     /* translators: %d: Quiz attempt database ID. */
                     __( 'Initial Exam passed (Attempt #%d)', 'teqcidb' ),
+                    $attempt_id
+                ),
+            )
+        );
+    }
+
+    public function send_refresher_class_completed_email( $user_id, $class_id, $attempt_id = 0 ) {
+        global $wpdb;
+
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table  = $wpdb->prefix . 'teqcidb_classes';
+        $template_id    = 'teqcidb-email-student-refresher-class-completed';
+
+        $student = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student ) ) {
+            return;
+        }
+
+        $recipient = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $class = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class ) ) {
+            return;
+        }
+
+        $class_type = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+
+        if ( 'refresher' !== $class_type ) {
+            return;
+        }
+
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens  = $this->build_registration_email_tokens( $student, $class, '0.00' );
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => __( 'Student Refresher Class Completed', 'teqcidb' ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic Refresher class completion email', 'teqcidb' ),
+                'triggered_by'   => sprintf(
+                    /* translators: %d: Quiz attempt database ID created for the completed Refresher slides. */
+                    __( 'Refresher slides completed (Attempt #%d)', 'teqcidb' ),
                     $attempt_id
                 ),
             )
