@@ -1428,6 +1428,27 @@ class TEQCIDB_Shortcode_Student_Dashboard {
                         );
                         ?>
                     </p>
+                    <p class="teqcidb-auth-description">
+                        <?php
+                        echo wp_kses(
+                            sprintf(
+                                /* translators: 1: linked Ilka Porter email address, 2: linked Ilka Porter phone number. */
+                                _x(
+                                    'If you’re a Representative that needs to register students on their behalf, you must first create your OWN account below, if you don\'t already have one. For clarification, please contact Ilka Porter at %1$s or %2$s.',
+                                    'Create account form representative guidance',
+                                    'teqcidb'
+                                ),
+                                '<a href="mailto:iporter@thompsonengineering.com">iporter@thompsonengineering.com</a>',
+                                '<a href="tel:+12516662443">(251) 666-2443</a>'
+                            ),
+                            array(
+                                'a' => array(
+                                    'href' => array(),
+                                ),
+                            )
+                        );
+                        ?>
+                    </p>
 
                     <form class="teqcidb-create-form" method="post" action="">
                         <div class="teqcidb-form-grid">
