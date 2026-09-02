@@ -1178,6 +1178,17 @@ class TEQCIDB_Admin {
                 ),
                 'content' => __( 'Test text', 'teqcidb' ),
             ),
+            array(
+                'id'      => 'teqcidb-email-student-refresher-class-completed',
+                'title'   => __( 'Student Refresher Class Completed', 'teqcidb' ),
+                'tooltip' => __( 'For the logged-in student after they complete the slides for a Refresher class.', 'teqcidb' ),
+                'meta'    => array(
+                    'trigger'            => __( 'Refresher slide completion | Logged-in student | Class Type: Refresher', 'teqcidb' ),
+                    'communication_type' => __( 'External', 'teqcidb' ),
+                    'category'           => __( 'Exam & Quiz Outcomes', 'teqcidb' ),
+                ),
+                'content' => __( 'Test text', 'teqcidb' ),
+            ),
 
             array(
                 'id'      => 'teqcidb-email-student-self-refresher-in-person',
@@ -1278,6 +1289,7 @@ class TEQCIDB_Admin {
             'classPlaceholders' => array_values( $class_placeholder_labels ),
             'classPlaceholderMap' => $class_placeholder_labels,
             'delete'       => __( 'Delete', 'teqcidb' ),
+            'deleteClassConfirmation' => __( 'Are you sure you want to delete this class?', 'teqcidb' ),
             'none'         => __( 'No entries found.', 'teqcidb' ),
             'mediaTitle'   => __( 'Select Image', 'teqcidb' ),
             'mediaButton'  => __( 'Use this image', 'teqcidb' ),
@@ -2100,24 +2112,32 @@ class TEQCIDB_Admin {
                 'label'   => __( 'Representative First Name', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_first_name'],
+                'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_last_name',
                 'label'   => __( 'Representative Last Name', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_last_name'],
+                'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_email',
                 'label'   => __( 'Representative Email', 'teqcidb' ),
                 'type'    => 'email',
                 'tooltip' => $tooltips['representative_email'],
+                'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'representative_phone',
                 'label'   => __( 'Representative Phone', 'teqcidb' ),
                 'type'    => 'text',
                 'tooltip' => $tooltips['representative_phone'],
+                'attrs'   => 'disabled',
+                'disabled_on_edit' => true,
             ),
             array(
                 'name'    => 'associations',
@@ -2432,6 +2452,7 @@ class TEQCIDB_Admin {
                 'label'     => $field['label'],
                 'tooltip'   => $field['tooltip'],
                 'fullWidth' => ! empty( $field['full_width'] ),
+                'disabledOnEdit' => ! empty( $field['disabled_on_edit'] ),
             );
 
             if ( isset( $field['options'] ) ) {
@@ -2671,7 +2692,7 @@ class TEQCIDB_Admin {
         return $results;
     }
 
-    private function get_quiz_attempts_by_status( $status ) {
+    private function get_quiz_attempts_by_status( $status, $limit = 0, $offset = 0 ) {
         global $wpdb;
 
         $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -2679,8 +2700,7 @@ class TEQCIDB_Admin {
         $quizzes_table  = $wpdb->prefix . 'teqcidb_quizzes';
         $classes_table  = $wpdb->prefix . 'teqcidb_classes';
 
-        $query = $wpdb->prepare(
-            "SELECT qa.id, qa.quiz_id, qa.class_id, qa.user_id, qa.status, qa.score, qa.submitted_at, qa.updated_at,
+        $query = "SELECT qa.id, qa.quiz_id, qa.class_id, qa.user_id, qa.status, qa.score, qa.submitted_at, qa.updated_at,
                     q.name AS quiz_name,
                     c.classname,
                     c.classtype,
@@ -2697,20 +2717,60 @@ class TEQCIDB_Admin {
              LEFT JOIN $classes_table c ON c.id = qa.class_id
              LEFT JOIN $students_table s ON s.wpuserid = qa.user_id
              WHERE qa.status = %d
-             ORDER BY qa.id DESC",
-            absint( $status )
-        );
-        $results = $wpdb->get_results( $query, ARRAY_A );
+             ORDER BY qa.id DESC";
+        $query_params = array( absint( $status ) );
+
+        if ( absint( $limit ) > 0 ) {
+            $query         .= ' LIMIT %d OFFSET %d';
+            $query_params[] = absint( $limit );
+            $query_params[] = absint( $offset );
+        }
+
+        $results = $wpdb->get_results( $wpdb->prepare( $query, $query_params ), ARRAY_A );
 
         return is_array( $results ) ? $results : array();
     }
 
-    private function get_failed_quiz_attempts() {
-        return $this->get_quiz_attempts_by_status( 1 );
+    private function get_failed_quiz_attempts( $page = 1, $per_page = 30 ) {
+        $page     = max( 1, absint( $page ) );
+        $per_page = max( 1, absint( $per_page ) );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        return $this->get_quiz_attempts_by_status( 1, $per_page, $offset );
     }
 
-    private function get_passed_quiz_attempts() {
-        return $this->get_quiz_attempts_by_status( 0 );
+    private function get_failed_quiz_attempts_total() {
+        global $wpdb;
+
+        $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM $attempts_table WHERE status = %d",
+                1
+            )
+        );
+    }
+
+    private function get_passed_quiz_attempts( $page = 1, $per_page = 30 ) {
+        $page     = max( 1, absint( $page ) );
+        $per_page = max( 1, absint( $per_page ) );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        return $this->get_quiz_attempts_by_status( 0, $per_page, $offset );
+    }
+
+    private function get_passed_quiz_attempts_total() {
+        global $wpdb;
+
+        $attempts_table = $wpdb->prefix . 'teqcidb_quiz_attempts';
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM $attempts_table WHERE status = %d",
+                0
+            )
+        );
     }
 
     private function get_student_detail_value( $value ) {
@@ -4306,7 +4366,12 @@ class TEQCIDB_Admin {
     }
 
     private function render_quiz_failed_tab() {
-        $failed_attempts = $this->get_failed_quiz_attempts();
+        $per_page        = 30;
+        $total_attempts  = $this->get_failed_quiz_attempts_total();
+        $total_pages     = max( 1, (int) ceil( $total_attempts / $per_page ) );
+        $current_page    = isset( $_GET['teqcidb_failed_page'] ) ? max( 1, absint( wp_unslash( $_GET['teqcidb_failed_page'] ) ) ) : 1;
+        $current_page    = min( $current_page, $total_pages );
+        $failed_attempts = $this->get_failed_quiz_attempts( $current_page, $per_page );
         $attempt_ids     = array();
         $quiz_ids        = array();
 
@@ -4454,10 +4519,44 @@ class TEQCIDB_Admin {
         echo '</table>';
         echo '</div>';
         echo '</div>';
+
+        $pagination_base = add_query_arg(
+            array(
+                'page'                => 'teqcidb-quizzes',
+                'tab'                 => 'failed',
+                'teqcidb_failed_page' => '%#%',
+            ),
+            admin_url( 'admin.php' )
+        );
+        $pagination = paginate_links(
+            array(
+                'base'      => $pagination_base,
+                'format'    => '%#%',
+                'current'   => $current_page,
+                'total'     => $total_pages,
+                'prev_text' => __( '&laquo; Previous', 'teqcidb' ),
+                'next_text' => __( 'Next &raquo;', 'teqcidb' ),
+                'type'      => 'plain',
+            )
+        );
+
+        echo '<div class="tablenav"><div class="tablenav-pages">';
+        echo '<span class="displaying-num">' . esc_html( sprintf( _n( '%s item', '%s items', $total_attempts, 'teqcidb' ), number_format_i18n( $total_attempts ) ) ) . '</span>';
+
+        if ( $pagination ) {
+            echo '<span class="pagination-links">' . wp_kses_post( $pagination ) . '</span>';
+        }
+
+        echo '</div></div>';
     }
 
     private function render_quiz_passed_tab() {
-        $passed_attempts = $this->get_passed_quiz_attempts();
+        $per_page        = 30;
+        $total_attempts  = $this->get_passed_quiz_attempts_total();
+        $total_pages     = max( 1, (int) ceil( $total_attempts / $per_page ) );
+        $current_page    = isset( $_GET['teqcidb_passed_page'] ) ? max( 1, absint( wp_unslash( $_GET['teqcidb_passed_page'] ) ) ) : 1;
+        $current_page    = min( $current_page, $total_pages );
+        $passed_attempts = $this->get_passed_quiz_attempts( $current_page, $per_page );
         $attempt_ids     = array();
         $quiz_ids        = array();
 
@@ -4597,6 +4696,35 @@ class TEQCIDB_Admin {
         echo '</table>';
         echo '</div>';
         echo '</div>';
+
+        $pagination_base = add_query_arg(
+            array(
+                'page'                => 'teqcidb-quizzes',
+                'tab'                 => 'passed',
+                'teqcidb_passed_page' => '%#%',
+            ),
+            admin_url( 'admin.php' )
+        );
+        $pagination = paginate_links(
+            array(
+                'base'      => $pagination_base,
+                'format'    => '%#%',
+                'current'   => $current_page,
+                'total'     => $total_pages,
+                'prev_text' => __( '&laquo; Previous', 'teqcidb' ),
+                'next_text' => __( 'Next &raquo;', 'teqcidb' ),
+                'type'      => 'plain',
+            )
+        );
+
+        echo '<div class="tablenav"><div class="tablenav-pages">';
+        echo '<span class="displaying-num">' . esc_html( sprintf( _n( '%s item', '%s items', $total_attempts, 'teqcidb' ), number_format_i18n( $total_attempts ) ) ) . '</span>';
+
+        if ( $pagination ) {
+            echo '<span class="pagination-links">' . wp_kses_post( $pagination ) . '</span>';
+        }
+
+        echo '</div></div>';
     }
 
     private function sync_quiz_class_mappings( $quiz_id, array $class_ids ) {

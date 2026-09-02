@@ -105,7 +105,6 @@
     const phoneSelectors = [
         '#teqcidb-create-cell-phone',
         '#teqcidb-create-office-phone',
-        '#teqcidb-create-rep-phone',
         '#teqcidb-profile-cell-phone',
         '#teqcidb-profile-office-phone',
         '#teqcidb-profile-rep-phone',
@@ -167,10 +166,6 @@
         data.append('student_address_city', getValue('#teqcidb-create-city'));
         data.append('student_address_state', getValue('#teqcidb-create-state'));
         data.append('student_address_postal_code', getValue('#teqcidb-create-zip'));
-        data.append('representative_first_name', getValue('#teqcidb-create-rep-first-name'));
-        data.append('representative_last_name', getValue('#teqcidb-create-rep-last-name'));
-        data.append('representative_email', getValue('#teqcidb-create-rep-email'));
-        data.append('representative_phone', getValue('#teqcidb-create-rep-phone'));
         data.append('password', getValue('#teqcidb-create-password'));
         data.append('verify_password', getValue('#teqcidb-create-verify-password'));
 
@@ -242,10 +237,6 @@
 
                 return ![
                     'teqcidb_create_office_phone',
-                    'teqcidb_create_rep_first_name',
-                    'teqcidb_create_rep_last_name',
-                    'teqcidb_create_rep_email',
-                    'teqcidb_create_rep_phone',
                 ].includes(field.name);
             });
 
@@ -2330,6 +2321,15 @@
             .trim()
             .replace(/[^a-z0-9_]/g, '');
 
+    const parseRegisteredClassIds = (value) => {
+        try {
+            const parsed = JSON.parse(String(value || '[]'));
+            return Array.isArray(parsed) ? parsed.map((classId) => String(classId)) : [];
+        } catch (error) {
+            return [];
+        }
+    };
+
     const isStudentExpiredForRefresher = (expirationDateValue) => {
         const rawValue = String(expirationDateValue || '').trim();
         if (!rawValue) {
@@ -2414,6 +2414,9 @@
                             (checkbox.dataset.teqcidbRepStudentHasQci || 'no') === 'yes',
                         expirationDate:
                             checkbox.dataset.teqcidbRepStudentExpirationDate || '',
+                        registeredClassIds: parseRegisteredClassIds(
+                            checkbox.dataset.teqcidbRepStudentRegisteredClasses
+                        ),
                     }));
 
                 const checkedClass = classRadios.find((radio) => radio.checked);
@@ -2425,6 +2428,9 @@
                       )
                     : '';
                 const isRefresherClass = selectedClassType === 'refresher';
+                const selectedUniqueClassId = hasClass
+                    ? String(checkedClass.dataset.teqcidbRepClassUniqueId || '')
+                    : '';
 
                 const studentsMissingQci = isRefresherClass
                     ? checkedStudents.filter((student) => !student.hasQci)
@@ -2441,6 +2447,13 @@
                 const expiredNames = studentsExpired.map(
                     (student) => student.name || student.email || student.wpid
                 );
+                const alreadyRegisteredNames = selectedUniqueClassId
+                    ? checkedStudents
+                          .filter((student) =>
+                              student.registeredClassIds.includes(selectedUniqueClassId)
+                          )
+                          .map((student) => student.name || student.email || student.wpid)
+                    : [];
 
                 let eligibilityMessage = '';
 
@@ -2461,6 +2474,19 @@
                         settings.messageRepresentativeRefresherExpired ||
                         'The selected Refresher class requires an active (non-expired) certification. The following selected student(s) are currently expired: %s. Please choose an Initial class or remove expired students.';
                     eligibilityMessage = template.replace('%s', expiredNames.join(', '));
+                }
+
+                if (alreadyRegisteredNames.length) {
+                    const template =
+                        settings.messageRepresentativeAlreadyRegistered ||
+                        'One or more selected students are already registered for the selected class: %s. Please remove those students or choose a different class.';
+                    const alreadyRegisteredMessage = template.replace(
+                        '%s',
+                        alreadyRegisteredNames.join(', ')
+                    );
+                    eligibilityMessage = eligibilityMessage
+                        ? `${eligibilityMessage} ${alreadyRegisteredMessage}`
+                        : alreadyRegisteredMessage;
                 }
 
                 payButton.disabled =
@@ -3049,7 +3075,13 @@
                                     ? payload.data.message || payload.data.error
                                     : settings.messagePaymentError ||
                                       'Unable to load the payment form right now. Please try again.';
-                            throw new Error(message);
+                            const tokenError = new Error(message);
+                            tokenError.allowHtml = Boolean(
+                                payload &&
+                                    payload.data &&
+                                    payload.data.code === 'already_registered'
+                            );
+                            throw tokenError;
                         }
 
                         if (payload.data.postUrl) {
@@ -3080,7 +3112,8 @@
                                 ? error.message
                                 : settings.messagePaymentError ||
                                   'Unable to load the payment form right now. Please try again.',
-                            false
+                            false,
+                            { allowHtml: Boolean(error && error.allowHtml) }
                         );
                     })
                     .finally(() => {

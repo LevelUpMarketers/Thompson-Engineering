@@ -20,6 +20,7 @@ class TEQCIDB_Ajax {
     const QUIZ_SUBMIT_IDEMPOTENCY_TTL         = DAY_IN_SECONDS;
     const QUIZ_SUBMIT_IDEMPOTENCY_KEY_PREFIX  = 'teqcidb_qs_idem_';
     const INITIAL_EXAM_PASS_EMAIL_HOOK        = 'teqcidb_send_initial_exam_pass_email';
+    const REFRESHER_CLASS_COMPLETED_EMAIL_HOOK = 'teqcidb_send_refresher_class_completed_email';
 
     public function register() {
         add_action( 'wp_ajax_teqcidb_save_student', array( $this, 'save_student' ) );
@@ -28,6 +29,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_nopriv_teqcidb_login_user', array( $this, 'login_user' ) );
         add_action( 'wp_ajax_teqcidb_update_profile', array( $this, 'update_profile' ) );
         add_action( 'wp_ajax_teqcidb_save_class', array( $this, 'save_class' ) );
+        add_action( 'wp_ajax_teqcidb_delete_class', array( $this, 'delete_class' ) );
         add_action( 'wp_ajax_teqcidb_save_quiz_question', array( $this, 'save_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_question', array( $this, 'delete_quiz_question' ) );
         add_action( 'wp_ajax_teqcidb_delete_quiz_slide', array( $this, 'delete_quiz_slide' ) );
@@ -58,6 +60,7 @@ class TEQCIDB_Ajax {
         add_action( 'wp_ajax_teqcidb_get_accept_hosted_token', array( $this, 'get_accept_hosted_token' ) );
         add_action( 'wp_ajax_teqcidb_record_registration_payment', array( $this, 'record_registration_payment' ) );
         add_action( self::INITIAL_EXAM_PASS_EMAIL_HOOK, array( $this, 'send_initial_exam_pass_email' ), 10, 3 );
+        add_action( self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, array( $this, 'send_refresher_class_completed_email' ), 10, 3 );
         add_action( 'init', array( __CLASS__, 'register_authorizenet_communicator_rewrite' ) );
         add_action( 'init', array( __CLASS__, 'register_class_page_rewrite' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
@@ -241,10 +244,11 @@ class TEQCIDB_Ajax {
         $current_user     = wp_get_current_user();
         $students_table   = $wpdb->prefix . 'teqcidb_students';
         $student_name     = '';
+        $refresher_access_expired = false;
 
         $student_name_row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT first_name, last_name FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                "SELECT first_name, last_name, expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
                 $current_user_id
             ),
             ARRAY_A
@@ -254,6 +258,11 @@ class TEQCIDB_Ajax {
             $student_first_name = isset( $student_name_row['first_name'] ) ? sanitize_text_field( (string) $student_name_row['first_name'] ) : '';
             $student_last_name  = isset( $student_name_row['last_name'] ) ? sanitize_text_field( (string) $student_name_row['last_name'] ) : '';
             $student_name       = trim( $student_first_name . ' ' . $student_last_name );
+
+            if ( 'refresher' === $class_type ) {
+                $student_expiration_date  = isset( $student_name_row['expiration_date'] ) ? (string) $student_name_row['expiration_date'] : '';
+                $refresher_access_expired = $this->is_student_expired_for_refresher_registration( $student_expiration_date );
+            }
         }
 
         if ( '' === $student_name ) {
@@ -285,7 +294,7 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( $class_id > 0 && $current_user_id > 0 ) {
+        if ( $class_id > 0 && $current_user_id > 0 && ! $refresher_access_expired ) {
             $quizzes_table      = $wpdb->prefix . 'teqcidb_quizzes';
             $quiz_classes_table = $wpdb->prefix . 'teqcidb_quiz_classes';
             $attempts_table     = $wpdb->prefix . 'teqcidb_quiz_attempts';
@@ -445,7 +454,19 @@ class TEQCIDB_Ajax {
 
         echo '<section class="teqcidb-class-route__quiz">';
 
-        if ( ! empty( $quiz_runtime ) ) {
+        if ( $refresher_access_expired ) {
+            $expired_refresher_message = sprintf(
+                /* translators: 1: opening email link, 2: closing email link, 3: opening phone link, 4: closing phone link. */
+                __( 'Whoops! It looks like you may already be expired, and you might be required to take an Initial QCI training class instead. Please contact Ilka Porter at %1$siporter@thompsonengineering.com%2$s or %3$s(251) 666-2443%4$s for more information.', 'teqcidb' ),
+                '<a href="mailto:iporter@thompsonengineering.com">',
+                '</a>',
+                '<a href="tel:2516662443">',
+                '</a>'
+            );
+
+            echo '<h2 id="teqcidb-class-quiz-section-title" class="teqcidb-class-route__section-title">' . esc_html__( 'Refresher Class Slides', 'teqcidb' ) . '</h2>';
+            echo '<p id="teqcidb-class-quiz-section-description" class="teqcidb-class-route__section-description">' . wp_kses( $expired_refresher_message, $allowed_feedback_html ) . '</p>';
+        } elseif ( ! empty( $quiz_runtime ) ) {
             $has_refresher_slides = ( 'refresher' === $class_type && ! empty( $quiz_runtime['slides'] ) && is_array( $quiz_runtime['slides'] ) );
             $has_refresher_quiz_questions = ( isset( $quiz_runtime['questions'] ) && is_array( $quiz_runtime['questions'] ) && ! empty( $quiz_runtime['questions'] ) );
             $is_slide_only_refresher = ( $has_refresher_slides && ! $has_refresher_quiz_questions );
@@ -910,6 +931,10 @@ class TEQCIDB_Ajax {
             return new WP_Error( 'teqcidb_slide_progress_not_refresher', __( 'Slide progress saving is only available for refresher classes.', 'teqcidb' ), array( 'status' => 400 ) );
         }
 
+        if ( $this->is_student_expired_for_refresher_class( $user_id ) ) {
+            return new WP_Error( 'teqcidb_slide_progress_student_expired', __( 'Your certification is expired, so Refresher slide progress cannot be saved. Please contact the training administrator for assistance.', 'teqcidb' ), array( 'status' => 403 ) );
+        }
+
         $current_slide_number = min( $current_slide_number, $slides_total );
         $current_slide_index  = max( 0, $current_slide_number - 1 );
         $table_name           = $wpdb->prefix . 'teqcidb_slide_progress';
@@ -1067,6 +1092,7 @@ class TEQCIDB_Ajax {
             }
 
             $this->apply_quiz_pass_updates( $user_id, $class_id, 'refresher' );
+            $this->maybe_queue_refresher_class_completed_email( $user_id, $class_id, $attempt_id );
         }
 
         return array(
@@ -1506,13 +1532,17 @@ class TEQCIDB_Ajax {
             }
         }
 
+        $student_is_expired = ( 'refresher' === strtolower( sanitize_key( (string) $class_row['classtype'] ) ) )
+            ? $this->is_student_expired_for_refresher_class( $user_id )
+            : false;
+
         return array(
             'quiz_id'       => $quiz_id,
             'class_id'      => $class_id,
             'user_id'       => $user_id,
             'class_type'    => isset( $class_row['classtype'] ) ? sanitize_key( (string) $class_row['classtype'] ) : '',
             'quiz_assigned' => $quiz_assigned,
-            'allowed'       => ( $quiz_assigned && $user_has_quiz_access ),
+            'allowed'       => ( $quiz_assigned && $user_has_quiz_access && ! $student_is_expired ),
         );
     }
 
@@ -2367,6 +2397,24 @@ class TEQCIDB_Ajax {
         wp_schedule_single_event( current_time( 'timestamp' ) + 5, self::INITIAL_EXAM_PASS_EMAIL_HOOK, $args );
     }
 
+    private function maybe_queue_refresher_class_completed_email( $user_id, $class_id, $attempt_id ) {
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 || $attempt_id <= 0 ) {
+            return;
+        }
+
+        $args = array( $user_id, $class_id, $attempt_id );
+
+        if ( wp_next_scheduled( self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, $args ) ) {
+            return;
+        }
+
+        wp_schedule_single_event( current_time( 'timestamp' ) + 5, self::REFRESHER_CLASS_COMPLETED_EMAIL_HOOK, $args );
+    }
+
     public function send_initial_exam_pass_email( $user_id, $class_id, $attempt_id = 0 ) {
         global $wpdb;
 
@@ -2481,6 +2529,120 @@ class TEQCIDB_Ajax {
         );
     }
 
+    public function send_refresher_class_completed_email( $user_id, $class_id, $attempt_id = 0 ) {
+        global $wpdb;
+
+        $user_id    = absint( $user_id );
+        $class_id   = absint( $class_id );
+        $attempt_id = absint( $attempt_id );
+
+        if ( $user_id <= 0 || $class_id <= 0 ) {
+            return;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $classes_table  = $wpdb->prefix . 'teqcidb_classes';
+        $template_id    = 'teqcidb-email-student-refresher-class-completed';
+
+        $student = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $student ) ) {
+            return;
+        }
+
+        $recipient = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : '';
+
+        if ( '' === $recipient || ! is_email( $recipient ) ) {
+            return;
+        }
+
+        $class = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $classes_table WHERE id = %d LIMIT 1",
+                $class_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! is_array( $class ) ) {
+            return;
+        }
+
+        $class_type = strtolower( sanitize_text_field( isset( $class['classtype'] ) ? (string) $class['classtype'] : '' ) );
+
+        if ( 'refresher' !== $class_type ) {
+            return;
+        }
+
+        $stored_settings  = TEQCIDB_Email_Template_Helper::get_template_settings( $template_id );
+        $from_name        = TEQCIDB_Email_Template_Helper::resolve_from_name( isset( $stored_settings['from_name'] ) ? $stored_settings['from_name'] : '' );
+        $from_email       = TEQCIDB_Email_Template_Helper::resolve_from_email( isset( $stored_settings['from_email'] ) ? $stored_settings['from_email'] : '' );
+        $subject_template = isset( $stored_settings['subject'] ) ? sanitize_text_field( (string) $stored_settings['subject'] ) : '';
+        $body_template    = isset( $stored_settings['body'] ) ? wp_kses_post( (string) $stored_settings['body'] ) : '';
+        $cc               = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['cc'] ) ? $stored_settings['cc'] : '' );
+        $bcc              = TEQCIDB_Email_Template_Helper::sanitize_recipient_list( isset( $stored_settings['bcc'] ) ? $stored_settings['bcc'] : '' );
+
+        if ( '' === $subject_template && '' === $body_template ) {
+            return;
+        }
+
+        $tokens  = $this->build_registration_email_tokens( $student, $class, '0.00' );
+        $subject = $this->replace_template_tokens( $subject_template, $tokens );
+        $body    = $this->replace_template_tokens( $body_template, $tokens );
+
+        $rendered_body = wp_kses_post( $body );
+
+        if ( '' !== $rendered_body ) {
+            $rendered_body = nl2br( $rendered_body );
+        }
+
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+
+        $from_header = TEQCIDB_Email_Template_Helper::build_from_header( $from_name, $from_email );
+
+        if ( '' !== $from_header ) {
+            $headers[] = $from_header;
+        }
+
+        if ( '' !== $cc ) {
+            $headers[] = 'Cc: ' . $cc;
+        }
+
+        if ( '' !== $bcc ) {
+            $headers[] = 'Bcc: ' . $bcc;
+        }
+
+        $sent = wp_mail( $recipient, $subject, $rendered_body, $headers );
+
+        if ( ! $sent ) {
+            return;
+        }
+
+        TEQCIDB_Email_Log_Helper::log_email(
+            array(
+                'template_id'    => $template_id,
+                'template_title' => __( 'Student Refresher Class Completed', 'teqcidb' ),
+                'recipient'      => $recipient,
+                'from_name'      => $from_name,
+                'from_email'     => $from_email,
+                'subject'        => $subject,
+                'body'           => $rendered_body,
+                'context'        => __( 'Automatic Refresher class completion email', 'teqcidb' ),
+                'triggered_by'   => sprintf(
+                    /* translators: %d: Quiz attempt database ID created for the completed Refresher slides. */
+                    __( 'Refresher slides completed (Attempt #%d)', 'teqcidb' ),
+                    $attempt_id
+                ),
+            )
+        );
+    }
+
 
     private function evaluate_runtime_answer( $question_type, $choices_json, $selected_values ) {
         $question_type  = sanitize_key( (string) $question_type );
@@ -2578,7 +2740,7 @@ class TEQCIDB_Ajax {
         $table_name = $wpdb->prefix . 'teqcidb_classes';
         $row        = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
+                "SELECT id, uniqueclassid, classname, classcost, classtype, classstartdate, classhide FROM $table_name WHERE id = %d",
                 $class_id
             ),
             ARRAY_A
@@ -2588,6 +2750,15 @@ class TEQCIDB_Ajax {
             wp_send_json_error(
                 array(
                     'message' => __( 'The selected class is not available for registration.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( '' === trim( $multiple_raw ) && $this->student_has_history_entry_for_class( get_current_user_id(), $row ) ) {
+            wp_send_json_error(
+                array(
+                    'code'    => 'already_registered',
+                    'message' => $this->get_already_registered_for_class_message(),
                 )
             );
         }
@@ -2607,6 +2778,23 @@ class TEQCIDB_Ajax {
                 ),
             );
             $selected_count    = 1;
+        }
+
+        if ( '' !== trim( $multiple_raw ) ) {
+            $already_registered_names = $this->get_selected_student_names_with_history_for_class( $selected_students, $row );
+
+            if ( ! empty( $already_registered_names ) ) {
+                wp_send_json_error(
+                    array(
+                        'code'    => 'representative_already_registered',
+                        'message' => sprintf(
+                            /* translators: %s: comma-separated list of student names. */
+                            __( 'One or more selected students are already registered for the selected class: %s. Please remove those students or choose a different class.', 'teqcidb' ),
+                            implode( ', ', $already_registered_names )
+                        ),
+                    )
+                );
+            }
         }
 
         $eligibility_error = $this->validate_refresher_student_eligibility_for_checkout( $class_type, $selected_students, get_current_user_id(), $client_timezone_offset );
@@ -2667,6 +2855,123 @@ class TEQCIDB_Ajax {
                 'totalAmount' => number_format( $amount, 2, '.', '' ),
                 'studentCount' => $selected_count,
                 'discountCount' => $discount_count,
+            )
+        );
+    }
+
+    /**
+     * Determine whether a student already has history for a class.
+     *
+     * @param int   $wp_user_id WordPress user ID for the student.
+     * @param array $class_row  Selected class data.
+     * @return bool
+     */
+    private function student_has_history_entry_for_class( $wp_user_id, array $class_row ) {
+        global $wpdb;
+
+        $wp_user_id      = absint( $wp_user_id );
+        $unique_class_id = isset( $class_row['uniqueclassid'] ) ? sanitize_text_field( (string) $class_row['uniqueclassid'] ) : '';
+        $class_name      = isset( $class_row['classname'] ) ? sanitize_text_field( (string) $class_row['classname'] ) : '';
+
+        if ( $wp_user_id <= 0 || ( '' === $unique_class_id && '' === $class_name ) ) {
+            return false;
+        }
+
+        $students_table = $wpdb->prefix . 'teqcidb_students';
+        $history_table  = $wpdb->prefix . 'teqcidb_studenthistory';
+        $student_unique_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT uniquestudentid FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $wp_user_id
+            )
+        );
+
+        $student_where  = 'wpuserid = %d';
+        $student_params = array( $wp_user_id );
+
+        if ( is_string( $student_unique_id ) && '' !== trim( $student_unique_id ) ) {
+            $student_where   .= ' OR uniquestudentid = %s';
+            $student_params[] = sanitize_text_field( $student_unique_id );
+        }
+
+        if ( '' !== $unique_class_id ) {
+            $class_where = 'uniqueclassid = %s';
+            $class_param = $unique_class_id;
+        } else {
+            $class_where = 'LOWER(classname) = LOWER(%s)';
+            $class_param = $class_name;
+        }
+
+        $query_params = array_merge( $student_params, array( $class_param ) );
+        $history_id   = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $history_table WHERE ($student_where) AND $class_where LIMIT 1",
+                $query_params
+            )
+        );
+
+        return ! empty( $history_id );
+    }
+
+    /**
+     * Return display names for selected students who already have class history.
+     *
+     * @param array $selected_students Selected checkout students.
+     * @param array $class_row         Selected class data.
+     * @return array
+     */
+    private function get_selected_student_names_with_history_for_class( array $selected_students, array $class_row ) {
+        $duplicate_wpids = array();
+
+        foreach ( $selected_students as $selected_student ) {
+            $wp_user_id = is_array( $selected_student ) && isset( $selected_student['wpid'] ) ? absint( $selected_student['wpid'] ) : 0;
+
+            if ( $wp_user_id > 0 && $this->student_has_history_entry_for_class( $wp_user_id, $class_row ) ) {
+                $duplicate_wpids[] = $wp_user_id;
+            }
+        }
+
+        if ( empty( $duplicate_wpids ) ) {
+            return array();
+        }
+
+        $students = $this->get_students_by_wpids( array_values( array_unique( $duplicate_wpids ) ) );
+        $names    = array();
+
+        foreach ( $students as $student ) {
+            if ( ! is_array( $student ) ) {
+                continue;
+            }
+
+            $name  = trim( sprintf( '%s %s', isset( $student['first_name'] ) ? $student['first_name'] : '', isset( $student['last_name'] ) ? $student['last_name'] : '' ) );
+            $email = isset( $student['email'] ) ? sanitize_email( (string) $student['email'] ) : '';
+            $label = '' !== $name ? sanitize_text_field( $name ) : $email;
+
+            if ( '' !== $label ) {
+                $names[] = $label;
+            }
+        }
+
+        return array_values( array_unique( $names ) );
+    }
+
+    /**
+     * Return the duplicate-registration message with a clickable contact email.
+     *
+     * @return string
+     */
+    private function get_already_registered_for_class_message() {
+        return wp_kses(
+            sprintf(
+                /* translators: %1$s: email link opening tag, %2$s: email link closing tag. */
+                __( 'Whoops! Looks like you\'re already registered for this class (or your representative registered you on your behalf, if you have a representative). For questions, please contact Ilka Porter at %1$siporter@thompsonengineering.com%2$s.', 'teqcidb' ),
+                '<a href="mailto:iporter@thompsonengineering.com">',
+                '</a>'
+            ),
+            array(
+                'a' => array(
+                    'href' => true,
+                ),
             )
         );
     }
@@ -2991,6 +3296,32 @@ class TEQCIDB_Ajax {
         }
 
         return __( 'Unknown student', 'teqcidb' );
+    }
+
+    /**
+     * Determine whether the stored student record is expired for Refresher access.
+     *
+     * @param int $wp_user_id WordPress user ID for the student.
+     * @return bool
+     */
+    private function is_student_expired_for_refresher_class( $wp_user_id ) {
+        global $wpdb;
+
+        $wp_user_id = absint( $wp_user_id );
+
+        if ( $wp_user_id <= 0 ) {
+            return false;
+        }
+
+        $students_table  = $wpdb->prefix . 'teqcidb_students';
+        $expiration_date = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT expiration_date FROM $students_table WHERE wpuserid = %d ORDER BY id DESC LIMIT 1",
+                $wp_user_id
+            )
+        );
+
+        return $this->is_student_expired_for_refresher_registration( $expiration_date );
     }
 
     /**
@@ -3763,7 +4094,9 @@ class TEQCIDB_Ajax {
             }
         }
 
-        if ( $creating_new_student || $has_representative_updates ) {
+        if ( $creating_new_student && ! current_user_can( 'manage_options' ) ) {
+            $data['their_representative'] = '';
+        } elseif ( $creating_new_student || $has_representative_updates ) {
             $data['their_representative'] = $this->sanitize_representative_contact();
         }
 
@@ -4640,6 +4973,58 @@ class TEQCIDB_Ajax {
         wp_send_json_success(
             array(
                 'message' => $message,
+            )
+        );
+    }
+
+    /**
+     * Delete a class from the custom classes table.
+     */
+    public function delete_class() {
+        check_ajax_referer( 'teqcidb_ajax_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to delete this class.', 'teqcidb' ),
+                )
+            );
+        }
+
+        $class_id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
+
+        if ( $class_id <= 0 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Invalid class selection.', 'teqcidb' ),
+                )
+            );
+        }
+
+        global $wpdb;
+
+        $table   = $wpdb->prefix . 'teqcidb_classes';
+        $deleted = $wpdb->delete( $table, array( 'id' => $class_id ), array( '%d' ) );
+
+        if ( false === $deleted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Unable to delete this class. Please try again.', 'teqcidb' ),
+                )
+            );
+        }
+
+        if ( 0 === $deleted ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The selected class no longer exists.', 'teqcidb' ),
+                )
+            );
+        }
+
+        wp_send_json_success(
+            array(
+                'message' => __( 'Class deleted.', 'teqcidb' ),
             )
         );
     }
@@ -10124,8 +10509,6 @@ class TEQCIDB_Ajax {
     }
 
     private function sanitize_representative_contact() {
-        global $wpdb;
-
         $contact = array(
             'first_name' => $this->sanitize_text_value( 'representative_first_name' ),
             'last_name'  => $this->sanitize_text_value( 'representative_last_name' ),
@@ -10134,31 +10517,6 @@ class TEQCIDB_Ajax {
             'wpid'       => '',
             'uniquestudentid' => '',
         );
-
-        if ( '' !== $contact['email'] ) {
-            $user = get_user_by( 'email', $contact['email'] );
-
-            if ( $user instanceof WP_User ) {
-                $contact['wpid'] = (string) $user->ID;
-            }
-
-            $students_table = $wpdb->prefix . 'teqcidb_students';
-            $like           = $wpdb->esc_like( $students_table );
-            $found          = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
-
-            if ( $found === $students_table ) {
-                $unique_id = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT uniquestudentid FROM $students_table WHERE email = %s LIMIT 1",
-                        $contact['email']
-                    )
-                );
-
-                if ( $unique_id ) {
-                    $contact['uniquestudentid'] = sanitize_text_field( (string) $unique_id );
-                }
-            }
-        }
 
         $has_value = false;
 
@@ -10521,14 +10879,14 @@ class TEQCIDB_Ajax {
         $history_table   = $wpdb->prefix . 'teqcidb_studenthistory';
         $identifier_sql  = "SELECT
                 CASE WHEN wpuserid > 0 THEN CONCAT('wpid:', wpuserid) ELSE CONCAT('uid:', uniquestudentid) END AS student_key,
-                MIN(id) AS history_id,
+                MAX(id) AS history_id,
                 MAX(CASE WHEN wpuserid > 0 THEN wpuserid ELSE 0 END) AS wpuserid,
                 MAX(uniquestudentid) AS uniquestudentid
             FROM $history_table
             WHERE {$history_args['where_sql']}
             AND ( wpuserid > 0 OR uniquestudentid <> '' )
             GROUP BY student_key
-            ORDER BY history_id ASC
+            ORDER BY history_id DESC
             LIMIT %d OFFSET %d";
         $identifier_args = array_merge( $history_args['where_params'], array( $per_page, $offset ) );
         $identifier_rows = $wpdb->get_results( $wpdb->prepare( $identifier_sql, $identifier_args ), ARRAY_A );

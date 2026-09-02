@@ -520,6 +520,10 @@ class TEQCIDB_Cron_Manager {
                 'name'        => __( 'Expiration Reminder Email Send', 'teqcidb' ),
                 'description' => __( 'Sends a scheduled expiration reminder email for a specific student and template type.', 'teqcidb' ),
             ),
+            'teqcidb_send_refresher_class_completed_email' => array(
+                'name'        => __( 'Refresher Completion Email Send', 'teqcidb' ),
+                'description' => __( 'Sends the Refresher class completion email after the student record and certification expiration have been updated.', 'teqcidb' ),
+            ),
         );
     }
 
