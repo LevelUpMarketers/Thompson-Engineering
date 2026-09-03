@@ -2205,10 +2205,11 @@ class TEQCIDB_Ajax {
             $history_id = isset( $history_row['id'] ) ? (int) $history_row['id'] : 0;
         }
 
-        $existing_qci_number = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
-        $payment_status      = isset( $history_row['paymentstatus'] ) ? sanitize_text_field( (string) $history_row['paymentstatus'] ) : '';
+        $existing_qci_number    = isset( $student_row['qcinumber'] ) ? trim( (string) $student_row['qcinumber'] ) : '';
+        $payment_status         = isset( $history_row['paymentstatus'] ) ? sanitize_text_field( (string) $history_row['paymentstatus'] ) : '';
+        $payment_is_paid_in_full = 'paid in full' === strtolower( $payment_status );
 
-        if ( '' === $existing_qci_number && 'paid in full' === strtolower( $payment_status ) ) {
+        if ( '' === $existing_qci_number && $payment_is_paid_in_full ) {
             $student_update['qcinumber'] = $this->generate_next_qci_number();
             $student_formats[]           = '%s';
         }
@@ -2220,7 +2221,7 @@ class TEQCIDB_Ajax {
                 $student_update['expiration_date'] = $today_date_source->modify( '+2 years' )->format( 'Y-m-d' );
                 $student_formats[]                 = '%s';
             }
-        } else {
+        } elseif ( 'refresher' === $class_type && $payment_is_paid_in_full ) {
             $existing_expiration = isset( $student_row['expiration_date'] ) ? trim( (string) $student_row['expiration_date'] ) : '';
             $expiration_source   = $this->parse_student_date_value( $existing_expiration );
 

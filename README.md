@@ -23,7 +23,7 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 - On **Quizzes → Edit Quizzes**, quizzes with active uploaded slides now show a **Quiz Slides** thumbnail preview section in each accordion, including ordered slide titles, clickable thumbnails that open full-size slide previews, replacement tracking that updates changed slide `attachment_id` values when the quiz-level **Save Changes** button is submitted, per-slide deletion that removes the slide row/media attachment before re-numbering the remaining slides, and an **Add a New Slide** subsection for inserting a selected media-library image at a chosen slide number.
 - Activation now also provisions foundational quiz tables (`teqcidb_quizzes`, `teqcidb_quiz_questions`, `teqcidb_quiz_attempts`, `teqcidb_quiz_answers`, and row-level `teqcidb_quiz_answer_items`) for upcoming high-concurrency class quiz workflows.
 - Class-route feedback now reflects per-user quiz-attempt status (`2 = in progress`, `1 = failed`, `0 = passed`) with resume timing, pass guidance, and fail contact messaging.
-- Class routes now render a full quiz runtime for logged-in students when a quiz is mapped to the class: all questions are displayed on a single page in quiz order, each question still uses the same answer-choice UI, Initial Exam screens now include a manual **Save Progress** backup action, slide-only Refresher completion shows the passed-class congratulations/dashboard link on completion and future visits without re-showing slides, and grading/finalization occurs when students click **Submit Quiz** (pass thresholds: Initial = 75%, Refresher = 80%). Quiz persistence writes through `teqcidb_quiz_attempts` + `teqcidb_quiz_answer_items` (with legacy `teqcidb_quiz_answers` compatibility writes).
+- Class routes now render a full quiz runtime for logged-in students when a quiz is mapped to the class: all questions are displayed on a single page in quiz order, each question still uses the same answer-choice UI, Initial Exam screens now include a manual **Save Progress** backup action, slide-only Refresher completion shows the passed-class congratulations/dashboard link on completion and future visits without re-showing slides, and grading/finalization occurs when students click **Submit Quiz** (pass thresholds: Initial = 75%, Refresher = 80%). Quiz persistence writes through `teqcidb_quiz_attempts` + `teqcidb_quiz_answer_items` (with legacy `teqcidb_quiz_answers` compatibility writes). Completing a Refresher renews the student's expiration date only when that specific class-history record has a `paymentstatus` of **Paid in Full**.
 - Legacy `teqcidb_quiz_answers` compatibility writes remain **enabled by default** because runtime restore/review paths still read `answers_json` fallback data (`saved_answers` + `incorrect_details`). You can gate these writes with option `teqcidb_enable_legacy_quiz_answers_compat` (`1` = enabled/default, `0` = disabled) and filter `teqcidb_enable_legacy_quiz_answers_compat` while monitoring whether any legacy fallback reads are still needed before fully removing compatibility storage.
 - Class-page student-facing exam/quiz terminology now follows class type: **Initial** classes display **QCI Exam** language with the 75% pass requirement messaging, while **Refresher** classes display **Refresher Quiz**/slide language with the 80% pass requirement messaging and a welcome note explaining resources, Refresher Slides, completion requirements, and the manual Save Progress button.
 - Class-page quiz runtime loading now honors per-class quiz access controls: when `allallowedquiz` is `blocked`, quiz content remains hidden unless the logged-in user's WordPress ID appears in that class's `quizstudentsallowed` list.
@@ -46,7 +46,15 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.8 (current)
+### 1.0.9 (current)
+
+Changes in **1.0.9** compared with **1.0.8**:
+
+- Added a configurable **Student Refresher Class Completed** Communications email template and automatic, duplicate-protected delivery after a student's first successful Refresher slide completion.
+- Added linked email and phone guidance to the student dashboard's account-creation area so representatives know to create their own account before registering students and can request assistance.
+- Prevented Refresher completion from renewing a student's certification expiration date unless the matching class-history payment status is **Paid in Full**, without changing Initial-class pass behavior.
+
+### 1.0.8
 
 Changes in **1.0.8** compared with **1.0.7**:
 
