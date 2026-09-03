@@ -46,7 +46,15 @@ A Thompson Engineering–specific foundation for managing QCI student data, trai
 
 ## Version History
 
-### 1.0.8 (current)
+### 1.0.9 (current)
+
+Changes in **1.0.9** compared with **1.0.8**:
+
+- Added a configurable **Student Refresher Class Completed** Communications email template and automatic, duplicate-protected delivery after a student's first successful Refresher slide completion.
+- Added linked email and phone guidance to the student dashboard's account-creation area so representatives know to create their own account before registering students and can request assistance.
+- Prevented Refresher completion from renewing a student's certification expiration date unless the matching class-history payment status is **Paid in Full**, without changing Initial-class pass behavior.
+
+### 1.0.8
 
 Changes in **1.0.8** compared with **1.0.7**:
 
